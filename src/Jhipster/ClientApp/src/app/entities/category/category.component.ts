@@ -385,7 +385,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
     const query: any= JSON.parse(category.jsonString as string);
     this.menuItems = [{
       label: 'Edit query '+query.name,
-      icon: 'pi pi-bookmark',
+      icon: 'pi pi-pencil',
       id: query.name,      
       command: (event: any)=>{
         const menuItem : MenuItem = event.item;
@@ -395,7 +395,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
       }
     },{
       label: 'Rename query '+query.name,
-      icon: 'pi pi-bookmark',      
+      icon: 'pi pi-user-edit',      
       command: ()=>{
         this.namedQueryUsedIn = []
         let storedRulesets : IStoredRuleset[] = [];
@@ -420,7 +420,13 @@ export class CategoryComponent implements OnInit, OnDestroy {
       }
     },{
       label: 'Delete query '+query.name,
-      icon: 'pi pi-bookmark',      
+      icon: 'pi pi-trash',      
+      command: ()=>{
+        this.menuItems.length = this.menuItems.length + 0;
+      }
+    },{
+      label: 'Duplicate query '+query.name,
+      icon: 'pi pi-clone',      
       command: ()=>{
         this.menuItems.length = this.menuItems.length + 0;
       }
