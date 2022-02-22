@@ -1563,7 +1563,7 @@ namespace Jhipster.Infrastructure.Data.Repositories
             var birthdayRequest = JsonConvert.DeserializeObject<Dictionary<string,object>>(queryJson);
             View view = new View();
             string query = birthdayRequest.ContainsKey("query") ? (string)birthdayRequest["query"] : "";
-            if (birthdayRequest["view"] != null){
+            if (birthdayRequest.ContainsKey("view") && birthdayRequest["view"] != null){
                 view = JsonConvert.DeserializeObject<View>(birthdayRequest["view"].ToString());
             }
             string categoryClause = "";

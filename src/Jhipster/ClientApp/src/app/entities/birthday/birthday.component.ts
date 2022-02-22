@@ -19,14 +19,16 @@ import { DomSanitizer } from "@angular/platform-browser";
 import { ConfirmationService, PrimeNGConfig} from "primeng/api";
 import { faCheck } from '@fortawesome/free-solid-svg-icons';
 import { ICategory } from 'app/shared/model/category.model';
+import { BirthdayQueryParserService, IQuery, IQueryRule } from './birthday-query-parser.service';
 
 @Component({
   selector: 'jhi-birthday',
   templateUrl: './birthday.component.html',
-  providers: [MessageService, ConfirmationService]
+  providers: [MessageService, ConfirmationService, BirthdayQueryParserService]
 })
 
 export class BirthdayComponent implements OnInit, OnDestroy {
+  rulesetMap: Map<string, IQuery | IQueryRule> = new Map<string, IQuery | IQueryRule>();
   birthdays?: IBirthday[];
   birthdaysMap : {} = {};
   eventSubscriber?: Subscription;
@@ -87,7 +89,10 @@ export class BirthdayComponent implements OnInit, OnDestroy {
     public sanitizer:DomSanitizer,
     private confirmationService: ConfirmationService,
     private primeNGConfig : PrimeNGConfig,
-  ) {}
+    protected birthdayQueryParserService : BirthdayQueryParserService,
+  ) {
+    this.birthdayQueryParserService.rulesetMap = this.rulesetMap;
+  }
 
   loadPage(page?: number, dontNavigate?: boolean): void {
     const pageToLoad: number = page || this.page || 1;
@@ -140,6 +145,9 @@ export class BirthdayComponent implements OnInit, OnDestroy {
   }
 
   okSearchDialog(queryBuilder : any) : void {
+      if (!queryBuilder.query.condition){
+        queryBuilder.query.condition = 'and'; // error correct for query builder not being initialized 
+      }
       this.databaseQuery = JSON.stringify(queryBuilder.query);
       this.bDisplaySearchDialog = false;
       this.refreshData();
