@@ -65,7 +65,7 @@ export class BirthdayQueryParserService {
   }
 
   normalize(query: IQuery, rulesetMap: Map<string, IQuery>): IQuery{
-    if (query.name && this.rulesetMap && rulesetMap.has(query.name)){
+    if (query.name && rulesetMap && rulesetMap.has(query.name)){
       return rulesetMap?.get(query.name) as IQuery;
     }
     for (let i = 0; i < query.rules.length; i++){
