@@ -465,8 +465,10 @@ export class CategoryComponent implements OnInit, OnDestroy {
         this.rulesetMap.delete(oldname);
         this.bRenamingQuery = false;
         if (queryBeingEdited !== null){
-          this.searchQueryAsString = queryBeingEdited.name ? queryBeingEdited.name : this.birthdayQueryParserService.queryAsString(queryBeingEdited);
-          this.editingQuery = false; // trigger change detection
+          setTimeout(()=>{
+            // needs to be done here to trigger change detection
+            this.searchQueryAsString = queryBeingEdited.name ? queryBeingEdited.name : this.birthdayQueryParserService.queryAsString(queryBeingEdited);
+          }, 0);
         }
         const topLevel = this.parentComponent ? this.parentComponent : this;
         topLevel.refreshData();
