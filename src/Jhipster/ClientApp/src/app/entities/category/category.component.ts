@@ -443,9 +443,10 @@ export class CategoryComponent implements OnInit, OnDestroy {
       this.cancelEditQuery();
     }
     let queryBeingEdited : any = null;
-    if (this.searchQueryAsString !== ""){
+    const topLevel = this.parentComponent ? this.parentComponent : this;
+    if (topLevel.searchQueryAsString !== ""){
       // capture the query in the editor which could get renamed
-      queryBeingEdited = this.birthdayQueryParserService.parse(this.searchQueryAsString, this.rulesetMap);
+      queryBeingEdited = this.birthdayQueryParserService.parse(topLevel.searchQueryAsString, this.rulesetMap);
       queryBeingEdited = this.birthdayQueryParserService.normalize(queryBeingEdited, this.rulesetMap as Map<string, IQuery | IQueryRule>);
     }
     this.updatingNamedQueryError = "";
@@ -463,14 +464,10 @@ export class CategoryComponent implements OnInit, OnDestroy {
         // all done
         this.rulesetMap.set(this.newQueryName, this.rulesetMap.get(oldname) as IQueryRule);
         this.rulesetMap.delete(oldname);
-        this.bRenamingQuery = false;
         if (queryBeingEdited !== null){
-          setTimeout(()=>{
-            // needs to be done here to trigger change detection
-            this.searchQueryAsString = queryBeingEdited.name ? queryBeingEdited.name : this.birthdayQueryParserService.queryAsString(queryBeingEdited);
-          }, 0);
+          topLevel.searchQueryAsString = queryBeingEdited.name ? queryBeingEdited.name : this.birthdayQueryParserService.queryAsString(queryBeingEdited);
         }
-        const topLevel = this.parentComponent ? this.parentComponent : this;
+        this.bRenamingQuery = false;        
         topLevel.refreshData();
       }
     };
