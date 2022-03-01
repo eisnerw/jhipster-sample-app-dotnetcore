@@ -255,7 +255,7 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
 
   public undoQueryMods(event: Event) : void {
     event.stopPropagation();
-    const obj : ExtendedRuleSet = this.birthdayQueryParserService.parse(this.data?.initialQueryAsString as string);
+    const obj : ExtendedRuleSet = this.birthdayQueryParserService.parse(this.data?.initialQueryAsString as string, this.rulesetMap);
     const query = this.data as ExtendedRuleSet;
     query.condition = obj.condition;
     query.dirty = false;
@@ -349,7 +349,7 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
     if (query === ""){
       return false;
     }
-    const obj : IQuery = parserService.parse(query);
+    const obj : IQuery = parserService.parse(query, this.rulesetMap);
     return !obj.Invalid;
   }
 

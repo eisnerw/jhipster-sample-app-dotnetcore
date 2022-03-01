@@ -22,11 +22,11 @@ interface IParse {
 export class BirthdayQueryParserService {
   queryNames: string[] = [];
   rulesetMap: Map<string, IQuery | IQueryRule> | null = null;
-  parse(query: string): IQuery {
+  parse(query: string, rulesetMap: Map<string, IQuery | IQueryRule>): IQuery {
     if (query.trim() === ""){
         return {"condition":"or","not":false,"rules":[]};
     }
-    this.queryNames = [...(this.rulesetMap as Map<string, IQuery>).keys()].sort((a, b) => a > b ? -1 : 1);;
+    this.queryNames = [...(rulesetMap as Map<string, IQuery>).keys()].sort((a, b) => a > b ? -1 : 1);;
     const queryNameRegexString = this.queryNames.length > 0 ? "|(" + this.queryNames.join("|") + ")": "";
     query = query.replace(/\\\\/g,'\x01').replace(/\\"/g, '\x02').replace(/`/g,'\x03');
     // const tokens = query.replace(/\s*([()]|"" (sign|dob|lname|fname|isAlive|document)|(=|!=|CONTAINS|LIKE|>=|<=|>|<)|(&|\||!)|[A-Z_]+|[\w\d".*-]+)\s*/g, '`$1').split('`');
@@ -51,7 +51,7 @@ export class BirthdayQueryParserService {
       }
     }
     const i = 1;
-    let ret = this.parseRuleset(tokens, i, false);
+    let ret = this.parseRuleset(tokens, i, false, rulesetMap);
     if (!ret.matches){
       ret = this.parseRule(tokens, i);
     }
@@ -61,7 +61,7 @@ export class BirthdayQueryParserService {
     if (!ret.matches || ret.i < tokens.length){
       return { Invalid :true, position: ret.i, condition: "", rules:[], not: false}
     }
-    return this.normalize(JSON.parse(ret.string), this.rulesetMap as Map<string, IQuery>);
+    return this.normalize(JSON.parse(ret.string), rulesetMap as Map<string, IQuery>);
   }
 
   normalize(query: IQuery, rulesetMap: Map<string, IQuery>): IQuery{
@@ -181,28 +181,28 @@ export class BirthdayQueryParserService {
     return parse;
   }
 
-  parseRuleset(tokens: string[], i: number, not: boolean):IParse{
-    let ret = this.parseAndOrRuleset(tokens, i, not);
+  parseRuleset(tokens: string[], i: number, not: boolean, rulesetMap : Map<string, IQuery | IQueryRule>):IParse{
+    let ret = this.parseAndOrRuleset(tokens, i, not, rulesetMap);
     if (!ret.matches){
       if (ret.string !== ""){
         return ret;
       }
-      ret = this.parseNotRuleset(tokens, i);
+      ret = this.parseNotRuleset(tokens, i, rulesetMap);
     }
     if (!ret.matches){
-      ret = this.parseParened(tokens, i);
+      ret = this.parseParened(tokens, i, rulesetMap);
     }
     return ret;
   }
 
-  parseAndOrRuleset(tokens: string[], i: number, not: boolean):IParse{
+  parseAndOrRuleset(tokens: string[], i: number, not: boolean, rulesetMap : Map<string, IQuery | IQueryRule>):IParse{
     const rules : string[] = [];
     const parse: IParse = {
       matches: false,
       string: "",
       i
     }
-    let ret = this.parseParened(tokens, i);
+    let ret = this.parseParened(tokens, i, rulesetMap);
     if (!ret.matches){
       if (ret.string !== ""){
         return ret;
@@ -231,7 +231,7 @@ export class BirthdayQueryParserService {
     rules.push(ret.string);
     let loop = true;
     while (loop){
-      ret = this.parseParened(tokens, parse.i);
+      ret = this.parseParened(tokens, parse.i, rulesetMap);
       if (!ret.matches){
         if (ret.string !== ""){
           return ret;
@@ -264,7 +264,7 @@ export class BirthdayQueryParserService {
     return parse;
   }
 
-  parseNotRuleset(tokens: string[], i: number):IParse{
+  parseNotRuleset(tokens: string[], i: number, rulesetMap : Map<string, IQuery | IQueryRule>):IParse{
     const parse: IParse = {
       matches: false,
       string: "",
@@ -273,7 +273,7 @@ export class BirthdayQueryParserService {
     if (tokens[i++] !== "!"){
       return parse;
     }
-    const ret = this.parseParened(tokens, i);
+    const ret = this.parseParened(tokens, i, rulesetMap);
     if (!ret.matches){
       if (ret.string !== ""){
         return ret;
@@ -288,7 +288,7 @@ export class BirthdayQueryParserService {
     return ret;
   }
 
-  parseParened(tokens: string[], i: number):IParse{
+  parseParened(tokens: string[], i: number, rulesetMap : Map<string, IQuery | IQueryRule>):IParse{
     const parse: IParse = {
       matches: false,
       string: "",
@@ -305,12 +305,12 @@ export class BirthdayQueryParserService {
         return {
           matches: true,
           i: i + 1,
-          string: '{"condition":"or","rules":[' + JSON.stringify(this.rulesetMap?.get(tokens[i])) + '],"not": true}'
+          string: '{"condition":"or","rules":[' + JSON.stringify(rulesetMap?.get(tokens[i])) + '],"not": true}'
         }
       }
       return {
         matches: true,
-        string: JSON.stringify(this.rulesetMap?.get(tokens[i])) ,
+        string: JSON.stringify(rulesetMap?.get(tokens[i])) ,
         i: i + 1
       };
     }     
@@ -318,7 +318,7 @@ export class BirthdayQueryParserService {
       return parse;
     }
     parse.i++;
-    let ret = this.parseRuleset(tokens, i, not);
+    let ret = this.parseRuleset(tokens, i, not, rulesetMap);
     if (!ret.matches && ret.string === ""){
       ret = this.parseRule(tokens, i);
       if (ret.matches){

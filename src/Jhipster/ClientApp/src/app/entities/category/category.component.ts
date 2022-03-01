@@ -167,7 +167,6 @@ export class CategoryComponent implements OnInit, OnDestroy {
   ) {
     this.refresh = this.refreshData.bind(this);
     this.categoryComponent = this;
-    this.birthdayQueryParserService.rulesetMap = this.rulesetMap;
   }
 
   loadPage(page?: number, dontNavigate?: boolean): void {
@@ -221,12 +220,13 @@ export class CategoryComponent implements OnInit, OnDestroy {
   showSearchDialog(queryBuilder : any) : void {
     let rulesets : IStoredRuleset[] = [];
     this.rulesetService.query().pipe(map((res: any): void=> {
+      rulesetMap.clear();
       rulesets = res.body || [];
       rulesets?.forEach(r=>{
         const query : IQuery = JSON.parse(r.jsonString as string) as IQuery;
         this.rulesetMap.set(r.name as string, this.birthdayQueryParserService.normalize(query, this.rulesetMap as Map<string, IQuery>));
       }); 
-      let queryObject : any = this.birthdayQueryParserService.parse(this.searchQueryAsString);
+      let queryObject : any = this.birthdayQueryParserService.parse(this.searchQueryAsString, this.rulesetMap);
       if (queryObject.Invalid){
         if (this.editingQuery){
           this.searchQueryAsString = this.searchQueryBeforeEdit;
@@ -257,6 +257,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
 
   editQuery() : void {
     this.rulesetService.query().pipe(map((res: any): void=> {
+      this.rulesetMap.clear();
       ((res.body || []) as IStoredRuleset[]).forEach(r=>{
         const query : IQuery = JSON.parse(r.jsonString as string) as IQuery;
         this.rulesetMap.set(r.name as string, this.birthdayQueryParserService.normalize(query, this.rulesetMap as Map<string, IQuery>));
@@ -275,7 +276,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
     if (this.searchQueryAsString.length === 0){
       this.databaseQuery = "";
     } else {
-      this.databaseQuery = JSON.stringify(this.birthdayQueryParserService.parse(this.searchQueryAsString));
+      this.databaseQuery = JSON.stringify(this.birthdayQueryParserService.parse(this.searchQueryAsString, this.rulesetMap));
       this.editingQuery = false;
       this.refreshData();
     }
@@ -299,7 +300,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
       }
     }
     this.bDisplaySearchDialog = false;
-    const queryObject : any = this.birthdayQueryParserService.parse(this.searchQueryAsString);
+    const queryObject : any = this.birthdayQueryParserService.parse(this.searchQueryAsString, this.rulesetMap);
     if (queryObject.Invalid){
       this.editingQuery = true;
       setTimeout(function() : void{
@@ -438,6 +439,15 @@ export class CategoryComponent implements OnInit, OnDestroy {
   }
 
   okRenameQuery():void{
+    if (this.editingQuery){
+      this.cancelEditQuery();
+    }
+    let queryBeingEdited : any = null;
+    if (this.searchQueryAsString !== ""){
+      // capture the query in the editor which could get renamed
+      queryBeingEdited = this.birthdayQueryParserService.parse(this.searchQueryAsString, this.rulesetMap);
+      queryBeingEdited = this.birthdayQueryParserService.normalize(queryBeingEdited, this.rulesetMap as Map<string, IQuery | IQueryRule>);
+    }
     this.updatingNamedQueryError = "";
     const oldname = this.storedQueryBeingRenamed?.name as string;
     (this.storedQueryBeingRenamed as IQuery).name = this.newQueryName;
@@ -451,7 +461,13 @@ export class CategoryComponent implements OnInit, OnDestroy {
         this.rulesetService.update(storedRuleset).pipe(map(updateSuccess),catchError(updateError)).subscribe();
       } else {
         // all done
+        this.rulesetMap.set(this.newQueryName, this.rulesetMap.get(oldname) as IQueryRule);
+        this.rulesetMap.delete(oldname);
         this.bRenamingQuery = false;
+        if (queryBeingEdited !== null){
+          this.searchQueryAsString = queryBeingEdited.name ? queryBeingEdited.name : this.birthdayQueryParserService.queryAsString(queryBeingEdited);
+          this.editingQuery = false; // trigger change detection
+        }
         const topLevel = this.parentComponent ? this.parentComponent : this;
         topLevel.refreshData();
       }
