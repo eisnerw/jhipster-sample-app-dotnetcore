@@ -90,9 +90,7 @@ export class BirthdayComponent implements OnInit, OnDestroy {
     private confirmationService: ConfirmationService,
     private primeNGConfig : PrimeNGConfig,
     protected birthdayQueryParserService : BirthdayQueryParserService,
-  ) {
-    this.birthdayQueryParserService.rulesetMap = this.rulesetMap;
-  }
+  ) {}
 
   loadPage(page?: number, dontNavigate?: boolean): void {
     const pageToLoad: number = page || this.page || 1;

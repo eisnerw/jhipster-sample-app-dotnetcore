@@ -21,7 +21,6 @@ interface IParse {
 
 export class BirthdayQueryParserService {
   queryNames: string[] = [];
-  rulesetMap: Map<string, IQuery | IQueryRule> | null = null;
   parse(query: string, rulesetMap: Map<string, IQuery | IQueryRule>): IQuery {
     if (query.trim() === ""){
         return {"condition":"or","not":false,"rules":[]};

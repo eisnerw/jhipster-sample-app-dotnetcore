@@ -220,7 +220,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
   showSearchDialog(queryBuilder : any) : void {
     let rulesets : IStoredRuleset[] = [];
     this.rulesetService.query().pipe(map((res: any): void=> {
-      rulesetMap.clear();
+      this.rulesetMap.clear();
       rulesets = res.body || [];
       rulesets?.forEach(r=>{
         const query : IQuery = JSON.parse(r.jsonString as string) as IQuery;
@@ -230,7 +230,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
       if (queryObject.Invalid){
         if (this.editingQuery){
           this.searchQueryAsString = this.searchQueryBeforeEdit;
-          queryObject = this.birthdayQueryParserService.parse(this.searchQueryAsString);
+          queryObject = this.birthdayQueryParserService.parse(this.searchQueryAsString, this.rulesetMap);
         }
       }
       if (this.searchQueryAsString === ""){
@@ -447,7 +447,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
     if (topLevel.searchQueryAsString !== ""){
       // capture the query in the editor which could get renamed
       queryBeingEdited = this.birthdayQueryParserService.parse(topLevel.searchQueryAsString, this.rulesetMap);
-      queryBeingEdited = this.birthdayQueryParserService.normalize(queryBeingEdited, this.rulesetMap as Map<string, IQuery | IQueryRule>);
+      queryBeingEdited = this.birthdayQueryParserService.normalize(queryBeingEdited, this.rulesetMap as Map<string, IQuery>);
     }
     this.updatingNamedQueryError = "";
     const oldname = this.storedQueryBeingRenamed?.name as string;

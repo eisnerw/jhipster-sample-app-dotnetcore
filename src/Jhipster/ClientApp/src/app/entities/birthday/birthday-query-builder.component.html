@@ -27,6 +27,7 @@
                     Modified
                   </button><span title="Undo modification" aria-label="Undo" class="pi pi-times" style="cursor: pointer;" (click)="undoQueryMods($event)"></span>&nbsp;
                 </span>Query: {{$any(data).name}}
+                <span title="Remove query name" class="pi pi-times" style="cursor: pointer;" (click)="onRemoveNameFromQuery()"></span>
               </span>
               <span *ngIf="!queryIsValid()" style="font-weight: 100; padding-top: 10px; font-size: 10px">
                 <i>Invalid query: {{$any(data).name}}</i>
