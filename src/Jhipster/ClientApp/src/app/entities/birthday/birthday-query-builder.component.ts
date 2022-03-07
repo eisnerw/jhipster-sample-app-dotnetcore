@@ -170,6 +170,7 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
   }
 
   public initialize(query: string): void{
+    this.editingRulesetName = false; // in case it was cancelled while editing
     this.query = this.birthdayQueryParserService.normalize(JSON.parse(query), this.rulesetMap as Map<string,IQuery>);
     this.queryCtrl = this.formBuilder.control(this.query);
     this.data = this.query;
@@ -601,8 +602,8 @@ export class RulesetNameValidatorDirective implements AsyncValidator {
   constructor(private rulesetService: RulesetService ) {}
 
   validate(control: AbstractControl): Observable<ValidationErrors | null> {
-      const obs = this.rulesetService.query().pipe(map(res  => {
-        (this.storedRulesets = res.body || []);
+    if (control.value && control.value.length > 0){
+      return of(1).pipe(map(()=>{
         let bFound = false;
         this.storedRulesets.forEach(r =>{
           if (r.name === control.value){
@@ -613,7 +614,7 @@ export class RulesetNameValidatorDirective implements AsyncValidator {
           return {
             error: "Name already used"
           }
-        }
+        }        
         if (/^[A-Z][A-Z_\d]*$/.test(control.value)){
           return null;
         }
@@ -621,6 +622,17 @@ export class RulesetNameValidatorDirective implements AsyncValidator {
           error: "Invalid name"
         };
       }));
+    } else {
+      const obs = this.rulesetService.query().pipe(map(res  => {
+        (this.storedRulesets = res.body || []);
+        if (/^[A-Z][A-Z_\d]*$/.test(control.value)){
+          return null;
+        }
+        return {
+          error: "Empty name"
+        };
+      }));
       return obs;
+    }
   }
 }
