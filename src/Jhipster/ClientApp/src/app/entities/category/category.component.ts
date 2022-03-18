@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, Input, ViewChild } from '@angular/core';
 import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ActivatedRoute, ParamMap, Router, Data } from '@angular/router';
 import { Subscription, combineLatest } from 'rxjs';
+import { take } from 'rxjs/operators';
 import { JhiEventManager } from 'ng-jhipster';
 import { Directive } from '@angular/core';
 import { AbstractControl, NG_ASYNC_VALIDATORS, ValidationErrors, AsyncValidator } from '@angular/forms';
@@ -219,7 +220,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
 
   showSearchDialog(queryBuilder : any) : void {
     let rulesets : IStoredRuleset[] = [];
-    this.rulesetService.query().pipe(map((res: any): void=> {
+    this.rulesetService.query().pipe(take(1), map((res: any): void=> {
       this.rulesetMap.clear();
       rulesets = res.body || [];
       rulesets?.forEach(r=>{
@@ -256,7 +257,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
  }
 
   editQuery() : void {
-    this.rulesetService.query().pipe(map((res: any): void=> {
+    this.rulesetService.query().pipe(take(1), map((res: any): void=> {
       this.rulesetMap.clear();
       ((res.body || []) as IStoredRuleset[]).forEach(r=>{
         const query : IQuery = JSON.parse(r.jsonString as string) as IQuery;
@@ -400,7 +401,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
       command: ()=>{
         this.namedQueryUsedIn = []
         let storedRulesets : IStoredRuleset[] = [];
-        this.rulesetService.query().pipe(map(res  => {
+        this.rulesetService.query().pipe(take(1),map(res  => {
           this.rulesetMap = new Map<string, IQuery | IQueryRule>();
           (storedRulesets = res.body || []);
           storedRulesets.forEach(r=>{
@@ -422,12 +423,6 @@ export class CategoryComponent implements OnInit, OnDestroy {
     },{
       label: 'Delete query '+query.name,
       icon: 'pi pi-trash',      
-      command: ()=>{
-        this.menuItems.length = this.menuItems.length + 0;
-      }
-    },{
-      label: 'Duplicate query '+query.name,
-      icon: 'pi pi-clone',      
       command: ()=>{
         this.menuItems.length = this.menuItems.length + 0;
       }
@@ -459,7 +454,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
         const namedQueryToBeUpdated = this.rulesetMap.get(this.namedQueryUsedIn.pop() as string) as IQuery;
         jsonString = JSON.stringify(namedQueryToBeUpdated);
         storedRuleset = new StoredRuleset(undefined, namedQueryToBeUpdated.name, jsonString);
-        this.rulesetService.update(storedRuleset).pipe(map(updateSuccess),catchError(updateError)).subscribe();
+        this.rulesetService.update(storedRuleset).pipe(take(1), map(updateSuccess),catchError(updateError)).subscribe();
       } else {
         // all done
         this.rulesetMap.set(this.newQueryName, this.rulesetMap.get(oldname) as IQueryRule);
@@ -476,7 +471,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
       this.updatingNamedQueryError = error.error?.detail;
       return of([]);
     };
-    this.rulesetService.update(storedRuleset).pipe(map(updateSuccess), catchError(updateError)).subscribe();
+    this.rulesetService.update(storedRuleset).pipe(take(1), map(updateSuccess), catchError(updateError)).subscribe();
   }
 
   onMenuShow(menu : any, chips : any): void{

@@ -7,6 +7,7 @@ import { RulesetService } from '../ruleset/ruleset.service';
 import { HttpResponse } from '@angular/common/http';
 import { IStoredRuleset, StoredRuleset } from 'app/shared/model/ruleset.model';
 import { Observable, of } from 'rxjs';
+import { take } from 'rxjs/operators'
 import { catchError, map } from 'rxjs/operators';
 import { BirthdayQueryParserService, IQuery, IQueryRule } from './birthday-query-parser.service';
 
@@ -313,7 +314,7 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
         const namedQueryToBeUpdated = this.rulesetMap.get(this.namedQueryUsedIn.pop() as string) as IQuery;
         jsonString = JSON.stringify(namedQueryToBeUpdated);
         storedRuleset = new StoredRuleset(undefined, namedQueryToBeUpdated.name, jsonString);
-        this.rulesetService.update(storedRuleset).pipe(map(updateSuccess),catchError(updateError)).subscribe();
+        this.rulesetService.update(storedRuleset).pipe(take(1), map(updateSuccess),catchError(updateError)).subscribe();
       } else {
         (this.data as ExtendedRuleSet).initialQueryAsString = queryAsString;
         this.updatingNamedQuery = false;
@@ -324,7 +325,7 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
       this.updatingNamedQueryError = error.error?.detail;
       return of([]);
     };
-    this.rulesetService.update(storedRuleset).pipe(map(updateSuccess), catchError(updateError)).subscribe();
+    this.rulesetService.update(storedRuleset).pipe(take(1), map(updateSuccess), catchError(updateError)).subscribe();
   }
 
   public containsDirtyNamedQueries(): boolean{
@@ -521,7 +522,7 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
     this.selectedRuleset = null;
     this.storedRulesets = [];
     const pathNames = this.getPathNames();
-    this.rulesetService.query().pipe(map(res  => {
+    this.rulesetService.query().pipe(take(1), map(res  => {
       this.storedRulesets = [];
       const returnedRulesets = res.body || [];
       returnedRulesets.forEach(r=>{
