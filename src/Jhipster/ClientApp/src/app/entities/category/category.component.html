@@ -214,6 +214,14 @@
           <button aria-label="Ok" pButton label="Ok" style="margin-left: 9px;" class="p-button-outlined" icon="pi pi-check" [disabled]="renameEditor.errors" (click)="okRenameQuery()"></button>
         </div>        
       </p-dialog>
+      <p-dialog header="Delete query {{queryToDelete}}" [(visible)]="bDeletingQuery">
+        <span style='color: red'>{{deletingNamedQueryError}}</span>        
+        <h6>{{namedQueryUsedIn.length > 0 ? queryToDelete+" is used in "+namedQueryUsedIn.join(", ")+ ", so the name will be removed, but the query contents will remain" : ""}}</h6>        
+        <div class="modal-footer">
+          <button aria-label="Cancel" pButton label="Cancel" style="margin-left: 9px;" class="p-button-outlined" icon="pi pi-times" (click)="cancelDeleteQuery()"></button>
+          <button aria-label="Ok" pButton label="Ok" style="margin-left: 9px;" class="p-button-outlined" icon="pi pi-check" (click)="okDeleteQuery()"></button>
+        </div>        
+      </p-dialog>
       <p-dialog header="Categorize {{birthdayDialogTitle}}" [(visible)]="bDisplayCategories" >
         <jhi-editable-multiselect *ngIf="bDisplayCategories"
           [options]="categories" 

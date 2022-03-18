@@ -56,12 +56,17 @@ namespace Jhipster.Controllers
         [ValidateModel]
         public async Task<IActionResult> UpdateRuleset([FromBody] RulesetDto rulesetDto)
         {
-            _log.LogDebug($"REST request to update Ruleset : {rulesetDto}");
             if (rulesetDto.Id == 0){
                 var result = await _rulesetService.FindOneByName(rulesetDto.Name);
                 rulesetDto.Id = result.Id;
             }
             if (rulesetDto.Id == 0) throw new BadRequestAlertException("Invalid Id", EntityName, "idnull");
+            if (rulesetDto.bDelete){
+                _log.LogDebug($"REST request to delete Ruleset : {rulesetDto.Id }");
+                await _rulesetService.Delete(rulesetDto.Id);
+                return Ok().WithHeaders(HeaderUtil.CreateEntityDeletionAlert(EntityName, rulesetDto.Id.ToString()));                
+            }
+            _log.LogDebug($"REST request to update Ruleset : {rulesetDto}");            
             Ruleset ruleset = _mapper.Map<Ruleset>(rulesetDto);
             Dictionary<string, object> deserialized = JsonConvert.DeserializeObject<Dictionary<string, object>>(ruleset.JsonString);
             if (deserialized.ContainsKey("name") && ((string)deserialized["name"]) != ruleset.Name){

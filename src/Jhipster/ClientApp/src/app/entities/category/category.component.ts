@@ -138,11 +138,19 @@ export class CategoryComponent implements OnInit, OnDestroy {
 
   public newQueryName = "";
 
+  public bDeletingQuery = false;
+
+  public queryToDelete = "";  
+
   public namedQueryUsedIn : string[] = [];
 
-  public storedQueryBeingRenamed : IQuery | null = null;
+  public storedQueryBeingRenamed! : IQuery;
+
+  public storedQueryBeingDeleted! : IQuery;
 
   public updatingNamedQueryError = "";
+
+  public deletingNamedQueryError = "";
 
   views: IView[] = [
     {name:"Category", field: "categories", aggregation: "categories.keyword", query: "categories:*"}
@@ -422,13 +430,87 @@ export class CategoryComponent implements OnInit, OnDestroy {
       }
     },{
       label: 'Delete query '+query.name,
-      icon: 'pi pi-trash',      
+      icon: 'pi pi-user-edit',      
       command: ()=>{
-        this.menuItems.length = this.menuItems.length + 0;
+        this.namedQueryUsedIn = []
+        let storedRulesets : IStoredRuleset[] = [];
+        this.rulesetService.query().pipe(take(1),map(res  => {
+          this.rulesetMap = new Map<string, IQuery | IQueryRule>();
+          (storedRulesets = res.body || []);
+          storedRulesets.forEach(r=>{
+            let q : IQuery = JSON.parse(r.jsonString as string) as IQuery;
+            this.rulesetMap.set(r.name as string, this.birthdayQueryParserService.normalize(q, this.rulesetMap as Map<string, IQuery>));   
+            if ((r.name as string) === query.name){
+              this.storedQueryBeingDeleted = this.rulesetMap.get(query.name) as IQuery;
+            }
+            q = this.rulesetMap.get(r.name as string) as IQuery;
+            if (BirthdayQueryBuilderComponent.containsNamedRule(q, query.name as string)){
+              this.namedQueryUsedIn.push(r.name as string);
+            }
+          })
+          this.bDeletingQuery = true;
+          this.queryToDelete = query.name;
+        })).subscribe()        
       }
     }];    
   }
   
+  cancelDeleteQuery():void{
+    this.bDeletingQuery = false;
+  }
+
+  okDeleteQuery():void{
+    if (this.editingQuery){
+      this.cancelEditQuery();
+    }
+    const topLevel = this.parentComponent ? this.parentComponent : this;
+    this.deletingNamedQueryError = "";
+    const name = this.storedQueryBeingDeleted?.name as string;
+    this.namedQueryUsedIn.forEach(q=>{
+      this.removeNamedQueryName(this.rulesetMap.get(q) as IQuery, name);
+    });
+    let jsonString = JSON.stringify(this.storedQueryBeingDeleted);
+    let storedRuleset = new StoredRuleset(undefined, name, jsonString);
+    storedRuleset.bDelete = true;
+    const updateSuccess = ()  => {
+      if (this.namedQueryUsedIn.length > 0){
+        const namedQueryToBeUpdated = this.rulesetMap.get(this.namedQueryUsedIn.pop() as string) as IQuery;
+        jsonString = JSON.stringify(namedQueryToBeUpdated);
+        storedRuleset = new StoredRuleset(undefined, namedQueryToBeUpdated.name, jsonString);
+        this.rulesetService.update(storedRuleset).pipe(take(1), map(updateSuccess),catchError(updateError)).subscribe();
+      } else {
+        // all done
+        this.rulesetMap.delete(name);
+        this.bDeletingQuery = false;        
+        topLevel.refreshData();
+      }
+    };
+    const updateError = (error: any) => {
+      // server error from the update
+      this.updatingNamedQueryError = error.error?.detail;
+      return of([]);
+    };
+    this.rulesetService.update(storedRuleset).pipe(take(1), map(updateSuccess), catchError(updateError)).subscribe();
+  }
+
+  removeNamedQueryName(query : IQuery, name: string) : void {
+    if (!query.rules){
+      return;
+    }
+    const newRules : IQuery[] = [];
+    query.rules.forEach(r=>{
+      this.removeNamedQueryName(r as unknown as IQuery, name);
+      if ((r as any).name === name){
+        const clone = JSON.parse(JSON.stringify(r));
+        delete clone.name;
+        newRules.push(this.birthdayQueryParserService.normalize(clone, this.rulesetMap as Map<string, IQuery>));
+      } else {
+        newRules.push(r as unknown as IQuery);
+      }
+    });
+    query.rules = newRules as any;
+  }
+
   cancelRenameQuery():void{
     this.bRenamingQuery = false;
   }
@@ -446,7 +528,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
     }
     this.updatingNamedQueryError = "";
     const oldname = this.storedQueryBeingRenamed?.name as string;
-    (this.storedQueryBeingRenamed as IQuery).name = this.newQueryName;
+    this.storedQueryBeingRenamed.name = this.newQueryName;
     let jsonString = JSON.stringify(this.storedQueryBeingRenamed);
     let storedRuleset = new StoredRuleset(undefined, oldname, jsonString); // note: jsonString has the new name, which will be detected by the server
     const updateSuccess = ()  => {
