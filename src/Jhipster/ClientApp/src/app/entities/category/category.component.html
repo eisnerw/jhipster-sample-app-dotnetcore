@@ -71,7 +71,7 @@
           (onRowExpand)="onExpandChange(true)" 
           (onRowCollapse)="onExpandChange(false)"
           (selectionChange)="onCheckboxChange()"
-          (onContextMenuSelect)="setMenu(contextSelectedRow)"
+          (onContextMenuSelect)="setMenu(contextSelectedRow, false)"
           [selectedView]="selectedView"
           [displayingAsCategories]="displayAsCategories"
           (setTableReference)="setCategoriesTable($event)"
@@ -84,7 +84,7 @@
             <button aria-label="Clear" pButton label="Clear" style="margin-left: 9px;" class="p-button-outlined" icon="pi pi-filter-slash" (click)="clearFilters(categoriesTable, searchInput)"></button>
             &nbsp;
             <p-dropdown [options]="views" [(ngModel)]="selectedView" placeholder="Select a view" optionLabel="name" [showClear]="true" (onChange)="onViewChange($event, searchInput, categoriesTable)"></p-dropdown>            
-            <span *ngIf="checkboxSelectedRows.length > 2" style="font-weight: 100; padding-top: 10px;"><i>&nbsp;&nbsp;&nbsp;Too many rows selected</i></span>
+            <span *ngIf="checkboxSelectedRows.length > 100" style="font-weight: 100; padding-top: 10px;"><i>&nbsp;&nbsp;&nbsp;Too many rows selected</i></span>
             <span *ngIf="chipSelectedRows.length > 0">
               <p-menu #menu [popup]="true" [model]="menuItems" (onShow)="onMenuShow(menu, chips)" appendTo="body"></p-menu>
               <p-chips #chips pRipple
@@ -93,7 +93,7 @@
                 (onChipClick)="onChipClick($event.originalEvent)" 
               >
                 <ng-template let-item pTemplate="item">
-                  <span  (mouseover)="setMenu(item);menu.show($event)" >
+                  <span  (mouseover)="setMenu(item, true);menu.show($event)" >
                     {{item.fname}} {{item.lname}}<span style="display: none;">{{item.id}}</span>
                   </span>
                 </ng-template>

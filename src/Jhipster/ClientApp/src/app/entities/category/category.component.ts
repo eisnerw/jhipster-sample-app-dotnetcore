@@ -364,6 +364,12 @@ export class CategoryComponent implements OnInit, OnDestroy {
       this.checkboxSelectedRows.forEach((row)=>{
         this.chipSelectedRows.push(row);
       });
+    } else if (this.checkboxSelectedRows.length < 101) {
+      this.chipSelectedRows.push({
+        fname: this.checkboxSelectedRows.length,
+        lname: 'rows selected',
+        id: -1
+      })
     }
   }
 
@@ -387,72 +393,165 @@ export class CategoryComponent implements OnInit, OnDestroy {
     }
   }
 
-  setMenu(categoryAny : any):void{
-    if (this.selectedView?.name !== "Query" && this.selectedView?.name !== "SecondLevel"){
-      return;
+  setMenu(CategoryOrBirthday : any, bChip: boolean):void{
+    if (!bChip && (this.selectedView?.name === "Query" || this.selectedView?.name === "SecondLevel")){
+      const category = CategoryOrBirthday as ICategory;
+      const query: any= JSON.parse(category.jsonString as string);
+      this.menuItems = [{
+        label: 'Edit query '+query.name,
+        icon: 'pi pi-pencil',
+        id: query.name,      
+        command: (event: any)=>{
+          const menuItem : MenuItem = event.item;
+          const categoryComponent = this.parentComponent ? this.parentComponent : this;
+          categoryComponent.searchQueryAsString = menuItem.id as string;;
+          categoryComponent.showSearchDialog(categoryComponent.queryBuilder);
+        }
+      },{
+        label: 'Rename query '+query.name,
+        icon: 'pi pi-user-edit',      
+        command: ()=>{
+          this.namedQueryUsedIn = []
+          let storedRulesets : IStoredRuleset[] = [];
+          this.rulesetService.query().pipe(take(1),map(res  => {
+            this.rulesetMap = new Map<string, IQuery | IQueryRule>();
+            (storedRulesets = res.body || []);
+            storedRulesets.forEach(r=>{
+              let q : IQuery = JSON.parse(r.jsonString as string) as IQuery;
+              this.rulesetMap.set(r.name as string, this.birthdayQueryParserService.normalize(q, this.rulesetMap as Map<string, IQuery>));   
+              if ((r.name as string) === query.name){
+                this.storedQueryBeingRenamed = this.rulesetMap.get(query.name) as IQuery;
+              }
+              q = this.rulesetMap.get(r.name as string) as IQuery;
+              if (BirthdayQueryBuilderComponent.containsNamedRule(q, query.name as string)){
+                this.namedQueryUsedIn.push(r.name as string);
+              }
+            })
+            this.bRenamingQuery = true;
+            this.queryToRename = query.name;
+            this.newQueryName = "";          
+          })).subscribe()        
+        }
+      },{
+        label: 'Delete query '+query.name,
+        icon: 'pi pi-user-edit',      
+        command: ()=>{
+          this.namedQueryUsedIn = []
+          let storedRulesets : IStoredRuleset[] = [];
+          this.rulesetService.query().pipe(take(1),map(res  => {
+            this.rulesetMap = new Map<string, IQuery | IQueryRule>();
+            (storedRulesets = res.body || []);
+            storedRulesets.forEach(r=>{
+              let q : IQuery = JSON.parse(r.jsonString as string) as IQuery;
+              this.rulesetMap.set(r.name as string, this.birthdayQueryParserService.normalize(q, this.rulesetMap as Map<string, IQuery>));   
+              if ((r.name as string) === query.name){
+                this.storedQueryBeingDeleted = this.rulesetMap.get(query.name) as IQuery;
+              }
+              q = this.rulesetMap.get(r.name as string) as IQuery;
+              if (BirthdayQueryBuilderComponent.containsNamedRule(q, query.name as string)){
+                this.namedQueryUsedIn.push(r.name as string);
+              }
+            })
+            this.bDeletingQuery = true;
+            this.queryToDelete = query.name;
+          })).subscribe()        
+        }
+      }];    
+    } else {
+      const birthday : IBirthday = CategoryOrBirthday;
+      if (!birthday.lname){
+        return;
+      } else if (birthday.id === -1) {
+        this.menuItems = [{
+          label: 'Perform analyzis on selected documents',
+          icon: 'pi pi-bookmark',
+          command: ()=>{
+            this.analyzeSelected();
+          }
+        }];
+      } else {
+        this.menuItems = [{
+          label: 'Options',
+          items: [
+            {
+              label: 'Categorize',
+              icon: 'pi pi-bookmark',
+              command: ()=>{
+                setTimeout(()=>{
+                  this.selectedCategories.length = 0;
+                  const selectedRow = this.contextSelectedRow;
+                  this.birthdayDialogId = selectedRow ? selectedRow?.id?.toString() : "";
+                  this.birthdayDialogTitle = birthday.fname + " " + birthday.lname;
+                  this.categoryService
+                  .query({
+                    page: 0,
+                    size: 10000,
+                    sort: this.sortCategory(),
+                    query: this.birthdayDialogId
+                  })
+                  .subscribe(
+                    (res: HttpResponse<IBirthday[]>) => this.onCategorySuccess(res.body, res.headers),
+                    () => this.onError()
+                  );
+                }, 0);
+              }
+            },
+            {
+              label: 'Display',
+              icon: 'pi pi-book',
+              command: ()=>{
+                setTimeout(()=>{
+                  this.birthdayDialogId = this.contextSelectedRow ? this.contextSelectedRow?.id?.toString() : "";
+                  this.birthdayDialogTitle = birthday.lname as string;
+                  this.bDisplayBirthday = true;
+                }, 0);
+              },
+            },
+            {
+                label: 'Ingest',
+                icon: 'pi pi-upload',
+            },
+    
+          ]},
+          {
+              label: 'Relationship',
+              items: [{
+                  label: 'Favorable',
+                  icon: 'pi pi-thumbs-up'
+              },
+              {
+                  label: 'Unfavorable',
+                  icon: 'pi pi-thumbs-down'
+              },
+              {
+                  label: 'Iden',
+                  icon: 'pi pi-id-card'
+              },
+              {
+                  label: 'Revision',
+                  icon: 'pi pi-pencil'
+              }]
+          }
+        ];
+        this.menuItems[0].label = `Select action for ${birthday.fname} ${birthday.lname}`;
+        let alternate : any = null;
+        this.chipSelectedRows.forEach((selectedRow)=>{
+          if ((selectedRow as IBirthday).id !== birthday.id){
+            alternate = selectedRow as IBirthday;
+          }
+        });
+        if (alternate != null){
+          this.menuItems[1].label = `Relate to ${alternate.fname} ${alternate.lname}`;
+        } else {
+          this.menuItems[1].label = `Select another birthday to relate`;
+        }
+        this.contextSelectedRow = birthday;      
+      }
     }
-    const category = categoryAny as ICategory;
-    const query: any= JSON.parse(category.jsonString as string);
-    this.menuItems = [{
-      label: 'Edit query '+query.name,
-      icon: 'pi pi-pencil',
-      id: query.name,      
-      command: (event: any)=>{
-        const menuItem : MenuItem = event.item;
-        const categoryComponent = this.parentComponent ? this.parentComponent : this;
-        categoryComponent.searchQueryAsString = menuItem.id as string;;
-        categoryComponent.showSearchDialog(categoryComponent.queryBuilder);
-      }
-    },{
-      label: 'Rename query '+query.name,
-      icon: 'pi pi-user-edit',      
-      command: ()=>{
-        this.namedQueryUsedIn = []
-        let storedRulesets : IStoredRuleset[] = [];
-        this.rulesetService.query().pipe(take(1),map(res  => {
-          this.rulesetMap = new Map<string, IQuery | IQueryRule>();
-          (storedRulesets = res.body || []);
-          storedRulesets.forEach(r=>{
-            let q : IQuery = JSON.parse(r.jsonString as string) as IQuery;
-            this.rulesetMap.set(r.name as string, this.birthdayQueryParserService.normalize(q, this.rulesetMap as Map<string, IQuery>));   
-            if ((r.name as string) === query.name){
-              this.storedQueryBeingRenamed = this.rulesetMap.get(query.name) as IQuery;
-            }
-            q = this.rulesetMap.get(r.name as string) as IQuery;
-            if (BirthdayQueryBuilderComponent.containsNamedRule(q, query.name as string)){
-              this.namedQueryUsedIn.push(r.name as string);
-            }
-          })
-          this.bRenamingQuery = true;
-          this.queryToRename = query.name;
-          this.newQueryName = "";          
-        })).subscribe()        
-      }
-    },{
-      label: 'Delete query '+query.name,
-      icon: 'pi pi-user-edit',      
-      command: ()=>{
-        this.namedQueryUsedIn = []
-        let storedRulesets : IStoredRuleset[] = [];
-        this.rulesetService.query().pipe(take(1),map(res  => {
-          this.rulesetMap = new Map<string, IQuery | IQueryRule>();
-          (storedRulesets = res.body || []);
-          storedRulesets.forEach(r=>{
-            let q : IQuery = JSON.parse(r.jsonString as string) as IQuery;
-            this.rulesetMap.set(r.name as string, this.birthdayQueryParserService.normalize(q, this.rulesetMap as Map<string, IQuery>));   
-            if ((r.name as string) === query.name){
-              this.storedQueryBeingDeleted = this.rulesetMap.get(query.name) as IQuery;
-            }
-            q = this.rulesetMap.get(r.name as string) as IQuery;
-            if (BirthdayQueryBuilderComponent.containsNamedRule(q, query.name as string)){
-              this.namedQueryUsedIn.push(r.name as string);
-            }
-          })
-          this.bDeletingQuery = true;
-          this.queryToDelete = query.name;
-        })).subscribe()        
-      }
-    }];    
+  }
+
+  analyzeSelected():void{
+    
   }
   
   cancelDeleteQuery():void{
