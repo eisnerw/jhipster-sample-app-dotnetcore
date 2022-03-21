@@ -71,5 +71,12 @@ namespace Jhipster.Domain.Services
         public virtual async Task<List<Birthday>> GetReferencesFrom(string id){
             return  await _birthdayRepository.GetReferencesFromAsync(id);
         }
+
+        public virtual async Task<Birthday> FindOneWithText(string id)
+        {
+            var result = await _birthdayRepository
+            .GetOneAsync(id, true);
+            return result;
+        }        
     }
 }

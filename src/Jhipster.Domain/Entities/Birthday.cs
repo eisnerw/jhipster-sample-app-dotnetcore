@@ -18,6 +18,8 @@ namespace Jhipster.Domain
         public bool IsAlive { get; set; }
 
         public List<Category> Categories { get; set; }
+
+        public string Text { get; set; }
         
 
         // jhipster-needle-entity-add-field - JHipster will add fields here, do not remove

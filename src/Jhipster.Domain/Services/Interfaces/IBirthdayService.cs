@@ -15,6 +15,8 @@ namespace Jhipster.Domain.Services.Interfaces
 
         Task<string> FindOneText(string id);
 
+        Task<Birthday> FindOneWithText(string id);
+
         Task Delete(string id);
 
         Task<List<Birthday>> GetReferencesFrom(string id);

@@ -463,7 +463,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
         return;
       } else if (birthday.id === -1) {
         this.menuItems = [{
-          label: 'Perform analyzis on selected documents',
+          label: 'Perform analysis on selected documents',
           icon: 'pi pi-bookmark',
           command: ()=>{
             this.analyzeSelected();
@@ -531,6 +531,16 @@ export class CategoryComponent implements OnInit, OnDestroy {
                   label: 'Revision',
                   icon: 'pi pi-pencil'
               }]
+          },
+          {
+              label: 'Analysis',
+              items: [{
+                label: 'Perform analysis on selected documents',
+                icon: 'pi pi-bookmark',
+                command: ()=>{
+                  this.analyzeSelected();
+                }
+              }]
           }
         ];
         this.menuItems[0].label = `Select action for ${birthday.fname} ${birthday.lname}`;
@@ -551,7 +561,17 @@ export class CategoryComponent implements OnInit, OnDestroy {
   }
 
   analyzeSelected():void{
-    
+    const ids : string[] = [];
+    this.checkboxSelectedRows.forEach(r=>{
+      ids.push(r.id as unknown as string);
+    });
+    this.categoryService.analyze({
+      ids
+    }).subscribe((r) => {
+      if (!r.ok){
+        alert("Analysis failed");
+      }
+    }); 
   }
   
   cancelDeleteQuery():void{

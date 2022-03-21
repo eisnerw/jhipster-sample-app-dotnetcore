@@ -35,4 +35,8 @@ export class CategoryService {
   delete(id: number): Observable<HttpResponse<{}>> {
     return this.http.delete(`${this.resourceUrl}/${id}`, { observe: 'response' });
   }
+
+  analyze(req?: any): Observable<HttpResponse<{}>> {
+    return this.http.post<ICategory>(SERVER_API_URL + 'api/analyze', req, { observe: 'response' });
+  }
 }

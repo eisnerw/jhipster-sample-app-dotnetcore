@@ -1645,8 +1645,10 @@ namespace Jhipster.Infrastructure.Data.Repositories
             public string[] categories {get; set; }
             public string wikipedia {get; set; } 
         }
-
-        public override async Task<Birthday> GetOneAsync(object id)
+        public async override Task<Birthday> GetOneAsync(object id){
+            return await GetOneAsync(id, false);
+        }
+        public async Task<Birthday>  GetOneAsync(object id, bool bText)
         {
             var hit = await elastic.GetAsync<ElasticBirthday>((string)id);
             Birthday birthday = new Birthday{
@@ -1658,6 +1660,9 @@ namespace Jhipster.Infrastructure.Data.Repositories
                 IsAlive = hit.Source.isAlive,
                 Categories = new List<Category>()
             };
+            if (bText){
+                birthday.Text = hit.Source.wikipedia;
+            }
             if (hit.Source.categories != null){
                 hit.Source.categories.ToList().ForEach(c => {
                     Category category = new Category

@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using JHipsterNet.Core.Pagination;
 using Jhipster.Domain.Services.Interfaces;
 using Jhipster.Domain.Repositories.Interfaces;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
 namespace Jhipster.Domain.Services
@@ -39,6 +40,11 @@ namespace Jhipster.Domain.Services
         {
             await _categoryRepository.DeleteByIdAsync(id);
             await _categoryRepository.SaveChangesAsync();
+        }
+
+        public virtual async Task<string> Analyze(IList<string> ids)
+        {
+            return await _categoryRepository.Analyze(ids);
         }
     }
 }

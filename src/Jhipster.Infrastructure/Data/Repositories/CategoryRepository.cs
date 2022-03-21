@@ -10,7 +10,6 @@ using System;
 using Nest;
 using AutoMapper;
 using Jhipster.Infrastructure.Data;
-
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.Text.RegularExpressions;
@@ -34,6 +33,88 @@ namespace Jhipster.Infrastructure.Data.Repositories
             _mapper = mapper;
         }
 
+        public async Task<string> Analyze(IList<string> ids){
+            var pageable = JHipsterNet.Core.Pagination.PageableConstants.UnPaged;
+            var result = await _rulesetService.FindAll(pageable);{}
+            List<RulesetDto> lstRuleset = result.Content.Select(entity => _mapper.Map<RulesetDto>(entity)).ToList();
+            string error = null;
+            int countTries = 0;
+            int countMatches = 0;
+            for (int i = 0; i < ids.Count; i++){
+                Birthday birthday = null;
+                try {
+                    birthday = await _birthdayService.FindOneWithText(ids[i]);
+                } catch (Exception e){
+                    error = $"Error doing anaysis {e.Message}";
+                }
+                if (error == null){
+                    lstRuleset.ForEach(r=>{
+                        countTries += 1;
+                        if (Match(birthday, r)){
+                            countMatches += 1;
+                        }
+                    });
+                }
+            }
+            return error == null ? $"Looked at {ids.Count} documents and got {countMatches} matches out of {countTries} comparisons." : error;
+        }
+
+        private bool Match(Birthday birthday, RulesetDto ruleset){
+            RulesetOrRule rs = JsonConvert.DeserializeObject<RulesetOrRule>(ruleset.JsonString);
+            return Evaluate(birthday, rs);
+        }
+
+        private bool Evaluate(Birthday birthday, RulesetOrRule set){
+            if (set.rules == null){
+                string fieldValue = "";
+                switch (set.field){
+                    case "document":
+                        fieldValue = " " + Regex.Replace(birthday.Text, @"<[^>]*>", " ") + " " + birthday.Fname + " " + birthday.Lname + " " + birthday.Sign + " ";
+                        break;
+                    case "lname":
+                        fieldValue = birthday.Lname;
+                        break;
+                    case "fname":
+                        fieldValue = birthday.Fname;
+                        break;
+                    case "sign":
+                        fieldValue = birthday.Sign;
+                        break;
+                }
+                switch (set.@operator){
+                    case "=":
+                        return fieldValue == set.value;
+                    case "contains":
+                        string reString = "";
+                        if (set.value.StartsWith("\"") && set.value.EndsWith("\"")){
+                            string unquoted = set.value.Substring(1, set.value.Length -2);
+                            reString = Regex.Replace(unquoted, @"[^A-Z\d]+", @"[^A-Z\d]+",RegexOptions.IgnoreCase);
+                        } else {
+                            reString =  @"[^A-Z\d]+" + set.value +  @"[^A-Z\d]+";
+                        }
+                        if (Regex.IsMatch(fieldValue, reString,RegexOptions.IgnoreCase)){
+                            return true;
+                        }
+                        break;
+                }
+                return false;
+            } else {
+                bool evaluation = set.condition == "and" ? true : false;
+                for (int i = 0; i < set.rules.Count; i++){
+                    if (evaluation && set.condition == "and" & !Evaluate(birthday, set.rules[i])){
+                        evaluation = false;
+                        break;
+                    } else {
+                        // or
+                        if (Evaluate(birthday, set.rules[i])){
+                            evaluation = true;
+                            break;
+                        }
+                    }
+                }
+                return set.not ? !evaluation : evaluation;
+            }
+        }
 
         public override async Task<Category> CreateOrUpdateAsync(Category category)
         {
@@ -329,5 +410,15 @@ namespace Jhipster.Infrastructure.Data.Repositories
             int doc_count { get; set; }
             object[] distinct { get; set; }
         }
+    }
+
+    public class RulesetOrRule{
+        public string condition { get; set; }
+        public List<RulesetOrRule> rules { get; set; }
+        public bool not { get; set; }
+        public string name { get; set; }
+        public string field { get; set; }
+        public string value { get; set; }
+        public string @operator { get; set; }
     }
 }

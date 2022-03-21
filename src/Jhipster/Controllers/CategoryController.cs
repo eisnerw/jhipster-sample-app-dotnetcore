@@ -17,6 +17,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 
 namespace Jhipster.Controllers
 {
@@ -25,6 +26,7 @@ namespace Jhipster.Controllers
     [ApiController]
     public class CategoryController : ControllerBase
     {
+        private static readonly string APPLICATION_NAME = "jhipsterApp";
         private const string EntityName = "category";
         private readonly IMapper _mapper;
         private readonly ICategoryService _categoryService;
@@ -52,6 +54,7 @@ namespace Jhipster.Controllers
             return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, category)
                 .WithHeaders(HeaderUtil.CreateEntityCreationAlert(EntityName, category.Id.ToString()));
         }
+        
 
         [HttpPut("categories")]
         [ValidateModel]
@@ -105,5 +108,17 @@ namespace Jhipster.Controllers
             await _categoryService.Delete(id);
             return Ok().WithHeaders(HeaderUtil.CreateEntityDeletionAlert(EntityName, id.ToString()));
         }
+
+        [HttpPost("analyze")]
+        [ValidateModel]
+        public async Task<IActionResult> AnalyzeDocuments([FromBody] DocumentAnalysisDto documentAnalysisDto)
+        {
+            _log.LogDebug($"REST request to analyze {documentAnalysisDto.ids.Count} documents");
+            string result = await _categoryService.Analyze(documentAnalysisDto.ids);
+            IHeaderDictionary headers = new HeaderDictionary();
+            headers.Add($"X-{APPLICATION_NAME}-alert", $"{APPLICATION_NAME}.{EntityName}.analyzed");
+            headers.Add($"X-{APPLICATION_NAME}-params", result);
+            return Ok().WithHeaders(headers);
+        }        
     }
 }
