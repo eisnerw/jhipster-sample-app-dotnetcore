@@ -22,7 +22,7 @@ import { BirthdayTableModule } from '../birthday/birthday-table.module';
 import { EditableMultiSelectModule } from '../birthday/editable-multi-select.module';
 import { BirthdayQueryBuilderModule } from '../birthday/birthday-query-builder.module';
 import { DropdownModule } from 'primeng/dropdown';
-import { BirthdayQueryValidatorDirective } from '../birthday/birthday-query-validator.directive';
+import { BirthdayQueryValidatorModule } from '../birthday/birthday-query-validator.directive.module';
 import { RulesetRenameValidatorDirective } from './category.component';
 
 @NgModule({

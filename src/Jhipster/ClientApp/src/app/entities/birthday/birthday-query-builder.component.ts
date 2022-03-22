@@ -51,7 +51,15 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
 
   public updatingNamedQueryError = "";
 
-  data: any = null;
+  public updatingNamedQueryInPopup = false;
+
+  public namedQueryAsString = "";
+
+  data: any | null = null;
+
+  public myobj: any | null = null;
+
+  public myq: any | null = null;
 
   odataFilters = {
     eq: 'eq',
@@ -183,7 +191,7 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
       if (!this.sublevel){
         BirthdayQueryBuilderComponent.topLevelRuleset = this.data as RuleSet;
       }
-    }, 0);    
+    }, 0);
   }
 
   ngOnInit() : any{
@@ -244,7 +252,6 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
     const ruleset = this.data as ExtendedRuleSet;
     ruleset.name = this.oldRulesetName;
     this.editingRulesetName = false;
-    
   }
 
   public acceptRulesetName() : void {
@@ -280,12 +287,89 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
     this.updatingNamedQuery = true;
   }
 
+  public onUpdateNamedQueryInPopup(): void {
+    this.namedQuery = (this.data as ExtendedRuleSet).name as string;
+    this.namedQueryUsedIn = [];
+    this.rulesetMap.forEach((value: any, key: string) => {
+      if (key !== this.namedQuery){
+        const namedQuery = value as IQuery;
+        if (BirthdayQueryBuilderComponent.containsNamedRule(namedQuery, this.namedQuery) && !this.namedQueryUsedIn.includes(namedQuery.name as string)){
+          this.namedQueryUsedIn.push(namedQuery.name as string);
+        }
+      }
+    });
+    this.namedQueryAsString = this.birthdayQueryParserService.queryAsString(this.data as IQuery);
+    this.updatingNamedQueryInPopup = true;
+  }
+
+  public onCancelUpdatingNamedQueryInPopup(): void {
+    this.updaingNamedQueryInPopup = false;
+  }
+
+  public onConfirmUpdatingNamedQueryInPopup(event: Event): void {
+    event.stopPropagation();
+    const data = this.data as ExtendedRuleSet;
+    // convert updated query to ExtendedRuleset and normalize;
+    const updated : ExtendedRuleSet = this.birthdayQueryParserService.parse(this.namedQueryAsString, this.rulesetMap);
+    updated.name = data.name;
+    for (let i = 0; i < updated.rules.length; i++) {
+      if ((updated.rules[i] as IQuery).rules) {
+        updated.rules[i] = this.birthdayQueryParserService.normalize(updated.rules[i] as IQuery, this.rulesetMap as Map<string, IQuery>);
+      }
+    }
+
+    // if original query does not match the new query set the dirty to true and update the original
+    data.dirty = data.initialQueryAsString !== this.namedQueryAsString;
+    data.condition = updated.condition;
+    data.not = updated.not;
+    data.rules = updated.rules;
+    this.onCancelUpdatingNamedQueryInPopup = false;
+  }
+
+  private containsNamedRule(query: IQuery, key: string):boolean{
+    let ret = false;
+    query.rules.forEach((r)=>{
+      const testQuery: IQuery = r as any as IQuery;
+      if (testQuery.rules){
+          if (testQuery.name === key){
+            ret = ret || true;
+          }
+          if (this.containsNamedRule(testQuery, key)){
+            ret = ret || true;
+          }
+      }
+    });
+    return ret;
+  }
+
   public onCancelSavingNamedQuery(): void{
     this.updatingNamedQuery = false;
   }
 
   public onRemoveNameFromQuery(): void{
-    delete (this.data as ExtendedRuleSet).name;
+    let jsonString - JSON.stringify(this.data as ExtendedRuleSet);
+    let updated: ExtendedRuleSet = JSON.parse(jsonString); // clone
+    delete updated.dirty;
+    delete updated.collapsed;
+    delete updated.name;
+    delete updated.initialQueryAsString;
+    jsonString = JSON.stringify(updated);
+    updated = JSON.parse(jsonString) as ExtendedRuleSet;
+    for (let i = 0; i < updated.rules.length; i++){
+      if ((updated.rules[i] as IQuery).rules){
+        updated.rules[i] = this.birthdayQueryParserService.normalize(updated.rules[i] as IQuery, this.rulesetMap as Map<string, IQuery>);
+      }
+    }
+    if (this.parentValue && this.parentValue.rules){
+      for (let i = 0; i < this.parentValue.rules.length; i++){
+        if this.parentValue.rules[i] == this.data){
+          this.parentValue.rules[i] = updated;
+        }
+      }
+    } else {
+      this.query = updated; // at the top level
+    }
+    this.data = updated;
     this.updatingNamedQuery = false;
   }
 
@@ -537,11 +621,11 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
   getPathNames() : string[]{
     // this routine iterates up the tree
     const pathNames : string[] = [];
-    let pathData : RuleSet | null = this.data;
+    let pathData : ExtendedRuleSet | null = this.data;
     let looping = true;
     while (looping){
-      if ((pathData as any).name){
-        pathNames.push((pathData as any).name);
+      if (pathData?.name){
+        pathNames.push(pathData.name);
       }
       if (pathData === BirthdayQueryBuilderComponent.topLevelRuleset){
          looping = false;
@@ -575,7 +659,8 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
   onRulesetSelected():void{
     this.selectingRuleset = false;
     const parent = this.data;
-    const addedRuleset = this.rulesetMap.has(this.selectedRuleset?.name as string) ? this.rulesetMap.get(this.selectedRuleset?.name as string) : JSON.parse(this.selectedRuleset?.jsonString as string);
+    let addedRuleset = this.rulesetMap.has(this.selectedRuleset?.name as string) ? this.rulesetMap.get(this.selectedRuleset?.name as string) : JSON.parse(this.selectedRuleset?.jsonString as string);
+    addedRuleset = this.birthdayQueryParserService.normalize(addedRuleset, this.rulesetMap as Map<string, IQuery>);
     (parent as RuleSet).rules = (parent as RuleSet).rules.concat([addedRuleset]);
     this.localChangeDetectorRef.markForCheck();
     if (this.onChangeCallback) {
@@ -615,7 +700,7 @@ export class RulesetNameValidatorDirective implements AsyncValidator {
           return {
             error: "Name already used"
           }
-        }        
+        }
         if (/^[A-Z][A-Z_\d]*$/.test(control.value)){
           return null;
         }

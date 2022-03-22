@@ -16,55 +16,60 @@
   </ng-container>
   <ng-template #defaultButtonGroup>
     <div [ngClass]="getClassNames('buttonGroup', 'rightAlign')">
-      <span style="display: inline-flex;">
-        <span *ngIf="!editingRulesetName && !selectingRuleset" style="align-self:center;">
+      <div [ngClass]="getClassNames('buttonGroup', 'rightAlign')">
+        <span style="display: inline-flex;">
+          <span *ngIf="!editingRulesetName && !selectingRuleset" style="align-self: center;">
           <span *ngIf="$any(data).name == null || $any(data).name.length == 0" class="p-component" style="font-weight: 100; padding-top: 10px;" (click)="editRulesetName()"><i>{{queryIsValid() ? "Click to name query" : "Invalid Query"}}</i></span>
-            <span *ngIf="$any(data).name != null && $any(data).name.length > 0" ((click)="editRulesetName()" style="font-size: 16px;font-weight: 200;">
+            <span *ngIf="$any(data).name != null && $any(data).name.length > 0" (click)="editRulesetName()" style="font-size: 16px;font-weight: 200;">
               <span *ngIf="queryIsValid()" (click)="editRulesetName()">
                 <span *ngIf="containsDirtyNamedQueries()">
                   <button title="Click to update query" style="border-width: thin; border-color: rgba(0, 0, 0, 0.2); background: none;" (click)="onUpdateNamedQuery($event)" [disabled]="containsDirtyNamedQueriesBelow()">
                     <fa-icon icon="save" class="ng-fa-icon" ng-reflect-icon="save"></fa-icon>
                     Modified
                   </button><span title="Undo modification" aria-label="Undo" class="pi pi-times" style="cursor: pointer;" (click)="undoQueryMods($event)"></span>&nbsp;
-                </span>Query: {{$any(data).name}}
-                <span title="Remove query name" class="pi pi-times" style="cursor: pointer;" (click)="onRemoveNameFromQuery()"></span>
+                </span>
+                <button title="Edit query {{$any((data).name)}}" type="button" (click)="OnUpdateNamedQueryInPopup()" [ngClass]="getClassNames('button')" [disabled]=disabled>
+                  <!--- add an icon here -->Query: {{$any((data).name)}}
+                </button>
+                <span *ngIf="!containsDirtyNamedQueries()" title="Remove query name" class="pi pi-times" style="cursor: pointer;" (click)="onRemoveNameFromQuery()"></span>
               </span>
               <span *ngIf="!queryIsValid()" style="font-weight: 100; padding-top: 10px; font-size: 10px">
                 <i>Invalid query: {{$any(data).name}}</i>
               </span>
             </span>
-        </span>        
-        <span #queryEditbox style="padding-top:7px">
-          <span *ngIf="editingRulesetName && !selectingRuleset">
-            {{$any(nameEditor).control.errors != null ? $any(nameEditor).control.errors.error : ""}}
-            <input 
-              pInputText
-              type="text"
-              [(ngModel)]="$any(data).name"
-              placeholder="Enter Ruleset name"
-              size="30"
-              minlength="1"
-              jhiValidateRulesetName
-              oninput="this.value = this.value.toUpperCase();"
-              #nameEditor="ngModel"
-            />
-            <span aria-label="Search" class="pi pi-check" *ngIf="nameEditor.valid" style="cursor:pointer;" (click)="acceptRulesetName()"></span>
-            <span aria-label="Search" class="pi pi-times" style="cursor:pointer;" (click)="cancelEditRulesetName()"></span>
+          </span>        
+          <span #queryEditbox style="padding-top:7px">
+            <span *ngIf="editingRulesetName && !selectingRuleset">
+              {{$any(nameEditor).control.errors != null ? $any(nameEditor).control.errors.error : ""}}
+              <input 
+                pInputText
+                type="text"
+                [(ngModel)]="$any(data).name"
+                placeholder="Enter Ruleset name"
+                size="30"
+                minlength="1"
+                jhiValidateRulesetName
+                oninput="this.value = this.value.toUpperCase();"
+                #nameEditor="ngModel"
+              />
+              <span aria-label="Search" class="pi pi-check" *ngIf="nameEditor.valid" style="cursor:pointer;" (click)="acceptRulesetName()"></span>
+              <span aria-label="Search" class="pi pi-times" style="cursor:pointer;" (click)="cancelEditRulesetName()"></span>
+            </span>
+      
           </span>
-     
-        </span>
-        <button title="Add an additional expression to this query" type="button" (click)="addRule()" [ngClass]="getClassNames('button')" [disabled]=disabled>
-          <i [ngClass]="getClassNames('addIcon')"></i> Expression
-        </button>
-        <button title="Add a named query to this query" type="button" (click)="addNamedRuleSet()" [ngClass]="getClassNames('button')" *ngIf="allowRuleset" [disabled]=disabled>
-          <i [ngClass]="getClassNames('addIcon')"></i> Named query
-        </button>
-        <ng-container *ngIf="!!parentValue && allowRuleset">
-          <button title="Remove this query" type="button" (click)="removeRuleSet()" [ngClass]="getClassNames('button', 'removeButton')" [disabled]=disabled>
-            <i [ngClass]="getClassNames('removeIcon')"></i>
+          <button title="Add an additional expression to this query" type="button" (click)="addRule()" [ngClass]="getClassNames('button')" [disabled]=disabled>
+            <i [ngClass]="getClassNames('addIcon')"></i> Expression
           </button>
-        </ng-container>        
-      </span>
+          <button title="Add a named query to this query" type="button" (click)="addNamedRuleSet()" [ngClass]="getClassNames('button')" *ngIf="allowRuleset" [disabled]=disabled>
+            <i [ngClass]="getClassNames('addIcon')"></i> Named query
+          </button>
+          <ng-container *ngIf="!!parentValue && allowRuleset">
+            <button title="Remove this query" type="button" (click)="removeRuleSet()" [ngClass]="getClassNames('button', 'removeButton')" [disabled]=disabled>
+              <i [ngClass]="getClassNames('removeIcon')"></i>
+            </button>
+          </ng-container>        
+        </span>
+      </div>
     </div>
   </ng-template>
 

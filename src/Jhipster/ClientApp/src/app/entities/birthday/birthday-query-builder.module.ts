@@ -9,9 +9,10 @@ import { DropdownModule } from 'primeng/dropdown';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { BirthdayQueryValidatorDirectiveModule } from './birthday-query-validator.directive.module';
 
 @NgModule({
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, QueryBuilderModule, InputTextModule, DialogModule, DropdownModule,ButtonModule,FontAwesomeModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, QueryBuilderModule, InputTextModule, DialogModule, DropdownModule, ButtonModule, FontAwesomeModule, BirthdayQueryValidatorDirectiveModule],
   declarations: [BirthdayQueryBuilderComponent, RulesetNameValidatorDirective],
   bootstrap: [BirthdayQueryBuilderComponent],
   exports: [BirthdayQueryBuilderComponent]
