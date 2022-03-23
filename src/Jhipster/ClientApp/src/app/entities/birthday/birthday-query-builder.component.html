@@ -28,7 +28,7 @@
                     Modified
                   </button><span title="Undo modification" aria-label="Undo" class="pi pi-times" style="cursor: pointer;" (click)="undoQueryMods($event)"></span>&nbsp;
                 </span>
-                <button title="Edit query {{$any((data).name)}}" type="button" (click)="OnUpdateNamedQueryInPopup()" [ngClass]="getClassNames('button')" [disabled]=disabled>
+                <button title="Edit query {{$any((data).name)}}" type="button" (click)="onUpdateNamedQueryInPopup()" [ngClass]="getClassNames('button')" [disabled]=disabled>
                   <!--- add an icon here -->Query: {{$any((data).name)}}
                 </button>
                 <span *ngIf="!containsDirtyNamedQueries()" title="Remove query name" class="pi pi-times" style="cursor: pointer;" (click)="onRemoveNameFromQuery()"></span>

@@ -303,7 +303,7 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
   }
 
   public onCancelUpdatingNamedQueryInPopup(): void {
-    this.updaingNamedQueryInPopup = false;
+    this.updatingNamedQueryInPopup = false;
   }
 
   public onConfirmUpdatingNamedQueryInPopup(event: Event): void {
@@ -323,7 +323,7 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
     data.condition = updated.condition;
     data.not = updated.not;
     data.rules = updated.rules;
-    this.onCancelUpdatingNamedQueryInPopup = false;
+    this.updatingNamedQueryInPopup = false;
   }
 
   private containsNamedRule(query: IQuery, key: string):boolean{
@@ -347,7 +347,7 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
   }
 
   public onRemoveNameFromQuery(): void{
-    let jsonString - JSON.stringify(this.data as ExtendedRuleSet);
+    let jsonString = JSON.stringify(this.data as ExtendedRuleSet);
     let updated: ExtendedRuleSet = JSON.parse(jsonString); // clone
     delete updated.dirty;
     delete updated.collapsed;
@@ -362,7 +362,7 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
     }
     if (this.parentValue && this.parentValue.rules){
       for (let i = 0; i < this.parentValue.rules.length; i++){
-        if this.parentValue.rules[i] == this.data){
+        if (this.parentValue.rules[i] === this.data){
           this.parentValue.rules[i] = updated;
         }
       }
