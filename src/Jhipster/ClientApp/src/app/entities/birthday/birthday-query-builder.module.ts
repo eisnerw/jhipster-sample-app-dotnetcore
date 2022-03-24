@@ -9,7 +9,7 @@ import { DropdownModule } from 'primeng/dropdown';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { BirthdayQueryValidatorModule } from './birthday-query-validator.directive.module';
+import { BirthdayQueryValidatorDirectiveModule } from './birthday-query-validator.directive.module';
 
 @NgModule({
   imports: [CommonModule, FormsModule, ReactiveFormsModule, QueryBuilderModule, InputTextModule, DialogModule, DropdownModule, ButtonModule, FontAwesomeModule, BirthdayQueryValidatorModule],

@@ -3,7 +3,7 @@ import { RouterModule } from '@angular/router';
 
 import { JhipsterSharedModule } from 'app/shared/shared.module';
 import { CategoryComponent } from './category.component';
-import { CategoryDetailComponent } from './category-detail.component';
+// import { CategoryDetailComponent } from './category-detail.component';
 // import { CategoryUpdateComponent } from './category-update.component';
 // import { CategoryDeleteDialogComponent } from './category-delete-dialog.component';
 import { categoryRoute } from './category.route';
@@ -22,12 +22,13 @@ import { BirthdayTableModule } from '../birthday/birthday-table.module';
 import { EditableMultiSelectModule } from '../birthday/editable-multi-select.module';
 import { BirthdayQueryBuilderModule } from '../birthday/birthday-query-builder.module';
 import { DropdownModule } from 'primeng/dropdown';
+import { BirthdayQueryValidatorDirectiveModule } from '../birthday/birthday-query-validator.directive.module';
 import { RulesetRenameValidatorDirective } from './category.component';
-import { BirthdayQueryValidatorModule } from '../birthday/birthday-query-validator.directive.module';
+
 
 @NgModule({
-  imports: [JhipsterSharedModule, RouterModule.forChild(categoryRoute), SuperTableModule, CalendarModule, ContextMenuModule, MessagesModule, ChipsModule, ConfirmPopupModule, TooltipModule, ScrollTopModule, MenuModule, DialogModule, BirthdayTableModule, BirthdayQueryBuilderModule, EditableMultiSelectModule, DropdownModule, BirthdayQueryValidatorModule],
-declarations: [CategoryComponent, CategoryDetailComponent, RulesetRenameValidatorDirective /* , CategoryUpdateComponent, CategoryDeleteDialogComponent*/],
+  imports: [JhipsterSharedModule, RouterModule.forChild(categoryRoute), SuperTableModule, CalendarModule, ContextMenuModule, MessagesModule, ChipsModule, ConfirmPopupModule, TooltipModule, ScrollTopModule, MenuModule, DialogModule, BirthdayTableModule, BirthdayQueryBuilderModule, EditableMultiSelectModule, DropdownModule, BirthdayQueryValidatorDirectiveModule],
+  declarations: [CategoryComponent, RulesetRenameValidatorDirective /* , CategoryUpdateComponent, CategoryDeleteDialogComponent*/],
   entryComponents: [/* CategoryDeleteDialogComponent*/],
 })
 export class JhipsterCategoryModule {}

@@ -267,3 +267,23 @@
     <p-button label="Ok" type="Submit" class="btn btn-primary" (click)="onRulesetSelected()" [disabled]="!selectedRuleset"></p-button>
   </div>  
 </p-dialog>
+<p-dialog header="Update named query {{$any(data).name}}" *ngIf="updatingNamedQueryInPopup" [modal]="true" [baseZIndex]="10000" [(visible)]="updatingNamedQueryInPopup" [style]="{width: '60vw', 'position': 'relative'}" [baseZIndex]="20001" [draggable]="true" [responsive]="true">
+  <div [style]="{'width': '100%', 'height': '80%'}">
+    <span>
+      <textarea pInputText
+        type="text"
+        [(ngModel)]="namedQueryAsString"
+        minlength="0"
+        jhiValidateBirthdayQuery
+        #editPopupQuery="ngModel"
+        [queryName]="$any(data).name"
+        [rulesetMap]="rulesetMap"
+        [style]="{'width': '100%', 'height': '100%', resize: 'none'}"
+      </textarea>
+    </span>
+  </div>
+  <div class="modal-footer">
+    <p-button label="Cancel" type="button" class="btn btn-secondary" data-dismiss="modal" (click)="onConfirmUpdatingNamedQuery()"></p-button>
+    <p-button label="Ok" type="button" [disabled]="!editPopupQuery.valid" class="btn btn-primary" data-dismiss="modal" (click)="onConfirmUpdatingNamedQueryInPopup($event)" [disabled]="!selectedRuleset"></p-button>
+  </div>  
+</p-dialog>

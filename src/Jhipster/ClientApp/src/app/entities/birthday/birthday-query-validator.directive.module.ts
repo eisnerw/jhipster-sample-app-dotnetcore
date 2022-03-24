@@ -7,4 +7,4 @@ import { BirthdayQueryValidatorDirective } from './birthday-query-validator.dire
     bootstrap: [],
     exports: [BirthdayQueryValidatorDirective]
 })
-export class BirthdayQueryValidatorModule { }
+export class BirthdayQueryValidatorDirectiveModule { }

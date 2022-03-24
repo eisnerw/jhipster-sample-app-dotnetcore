@@ -10,6 +10,7 @@ import { BirthdayQueryParserService, IQuery, IQueryRule } from './birthday-query
 export class BirthdayQueryValidatorDirective implements Validator {
   @Input() rulesetMap: Map<string, IQuery | IQueryRule> = new Map<string, IQuery | IQueryRule>();
   @Input() queryName = "";
+
   constructor(protected birthdayQueryParserService : BirthdayQueryParserService) {}
 
   validate(control: AbstractControl): any {

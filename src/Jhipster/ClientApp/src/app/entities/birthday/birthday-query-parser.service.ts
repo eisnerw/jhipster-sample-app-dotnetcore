@@ -67,6 +67,9 @@ export class BirthdayQueryParserService {
     if (query.name && rulesetMap && rulesetMap.has(query.name)){
       return rulesetMap?.get(query.name) as IQuery;
     }
+    if (query.name){
+      rulesetMap.set(query.name, query);
+    }
     for (let i = 0; i < query.rules.length; i++){
       const testQuery = query.rules[i] as any as IQuery;
       if (testQuery.rules){
