@@ -24,11 +24,12 @@ import { BirthdayQueryBuilderModule } from '../birthday/birthday-query-builder.m
 import { DropdownModule } from 'primeng/dropdown';
 import { BirthdayQueryValidatorDirectiveModule } from '../birthday/birthday-query-validator.directive.module';
 import { RulesetRenameValidatorDirective } from './category.component';
+import { CategoryDetailComponent } from './category-detail.component';
 
 
 @NgModule({
   imports: [JhipsterSharedModule, RouterModule.forChild(categoryRoute), SuperTableModule, CalendarModule, ContextMenuModule, MessagesModule, ChipsModule, ConfirmPopupModule, TooltipModule, ScrollTopModule, MenuModule, DialogModule, BirthdayTableModule, BirthdayQueryBuilderModule, EditableMultiSelectModule, DropdownModule, BirthdayQueryValidatorDirectiveModule],
-  declarations: [CategoryComponent, RulesetRenameValidatorDirective /* , CategoryUpdateComponent, CategoryDeleteDialogComponent*/],
+  declarations: [CategoryComponent, RulesetRenameValidatorDirective, CategoryDetailComponent /* , CategoryUpdateComponent, CategoryDeleteDialogComponent*/],
   entryComponents: [/* CategoryDeleteDialogComponent*/],
 })
 export class JhipsterCategoryModule {}
