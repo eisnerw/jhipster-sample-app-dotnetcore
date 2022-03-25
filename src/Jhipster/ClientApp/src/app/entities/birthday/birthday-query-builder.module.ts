@@ -12,7 +12,7 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { BirthdayQueryValidatorDirectiveModule } from './birthday-query-validator.directive.module';
 
 @NgModule({
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, QueryBuilderModule, InputTextModule, DialogModule, DropdownModule, ButtonModule, FontAwesomeModule, BirthdayQueryValidatorModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, QueryBuilderModule, InputTextModule, DialogModule, DropdownModule, ButtonModule, FontAwesomeModule, BirthdayQueryValidatorDirectiveModule],
   declarations: [BirthdayQueryBuilderComponent, RulesetNameValidatorDirective],
   bootstrap: [BirthdayQueryBuilderComponent],
   exports: [BirthdayQueryBuilderComponent]
