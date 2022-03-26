@@ -1,0 +1,46 @@
+<div class="row justify-content-center">
+    <div class="col-8">
+        <div *ngIf="selector">
+            <h2><span jhiTranslate="jhipsterApp.selector.detail.title">Selector</span> {{ selector.id }}</h2>
+
+            <hr>
+
+            <jhi-alert-error></jhi-alert-error>
+
+            <dl class="row-md jh-entity-details">
+                <dt><span jhiTranslate="jhipsterApp.selector.name">Name</span></dt>
+                <dd>
+                    <span>{{ selector.name }}</span>
+                </dd>
+                <dt><span jhiTranslate="jhipsterApp.selector.rulesetName">Ruleset Name</span></dt>
+                <dd>
+                    <span>{{ selector.rulesetName }}</span>
+                </dd>
+                <dt><span jhiTranslate="jhipsterApp.selector.action">Action</span></dt>
+                <dd>
+                    <span>{{ selector.action }}</span>
+                </dd>
+                <dt><span jhiTranslate="jhipsterApp.selector.actionParameter">Action Parameter</span></dt>
+                <dd>
+                    <span>{{ selector.actionParameter }}</span>
+                </dd>
+                <dt><span jhiTranslate="jhipsterApp.selector.descriptoin">Country</span></dt>
+                <dd>
+                    <span>{{ selector.description }}</span>
+                </dd>
+            </dl>
+
+            <button type="submit"
+                    (click)="previousState()"
+                    class="btn btn-info">
+                <fa-icon icon="arrow-left"></fa-icon>&nbsp;<span jhiTranslate="entity.action.back">Back</span>
+            </button>
+
+            <button type="button"
+                    [routerLink]="['/selector', selector.id, 'edit']"
+                    class="btn btn-primary">
+                <fa-icon icon="pencil-alt"></fa-icon>&nbsp;<span jhiTranslate="entity.action.edit">Edit</span>
+            </button>
+        </div>
+    </div>
+</div>

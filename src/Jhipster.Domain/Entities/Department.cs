@@ -14,9 +14,9 @@ namespace Jhipster.Domain
 
         [Required]
         public string DepartmentName { get; set; }
-        public long? LocationId { get; set; }
+        public long? SelectorId { get; set; }
 
-        public Location Location { get; set; }
+        public Selector Selector { get; set; }
         public IList<Employee> Employees { get; set; } = new List<Employee>();
 
         // jhipster-needle-entity-add-field - JHipster will add fields here, do not remove

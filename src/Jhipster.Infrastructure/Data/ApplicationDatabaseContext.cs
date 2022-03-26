@@ -31,7 +31,7 @@ namespace Jhipster.Infrastructure.Data
 
         public DbSet<Category> Categories { get; set; }
         public DbSet<Country> Countries { get; set; }
-        public DbSet<Location> Locations { get; set; }
+        public DbSet<Selector> Selectors { get; set; }
         public DbSet<Department> Departments { get; set; }
         public DbSet<PieceOfWork> PieceOfWorks { get; set; }
         public DbSet<Ruleset> Rulesets { get; set; }

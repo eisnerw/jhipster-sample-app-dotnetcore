@@ -12,10 +12,10 @@
                 <dd>
                     <span>{{ department.departmentName }}</span>
                 </dd>
-                <dt><span jhiTranslate="jhipsterApp.department.location">Location</span></dt>
+                <dt><span jhiTranslate="jhipsterApp.department.selector">Selector</span></dt>
                 <dd>
-                    <div *ngIf="department.locationId">
-                        <a [routerLink]="['/location', department.locationId, 'view']">{{ department.locationId }}</a>
+                    <div *ngIf="department.selectorId">
+                        <a [routerLink]="['/selector', department.selectorId, 'view']">{{ department.selectorId }}</a>
                     </div>
                 </dd>
             </dl>

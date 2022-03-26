@@ -5,20 +5,20 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Jhipster.Domain
 {
-    [Table("location")]
-    public class Location
+    [Table("selector")]
+    public class Selector
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public long Id { get; set; }
 
-        public string StreetAddress { get; set; }
-        public string PostalCode { get; set; }
-        public string City { get; set; }
-        public string StateProvince { get; set; }
-        public long? CountryId { get; set; }
+        public string Name { get; set; }
+        public string RulesetName { get; set; }
+        public string Action { get; set; }
+        public string ActionParameter { get; set; }
+        public string Descriptoin { get; set; }
 
-        public Country Country { get; set; }
+        public string Description { get; set; }
 
         // jhipster-needle-entity-add-field - JHipster will add fields here, do not remove
 
@@ -26,9 +26,9 @@ namespace Jhipster.Domain
         {
             if (this == obj) return true;
             if (obj == null || GetType() != obj.GetType()) return false;
-            var location = obj as Location;
-            if (location?.Id == null || location?.Id == 0 || Id == 0) return false;
-            return EqualityComparer<long>.Default.Equals(Id, location.Id);
+            var selector = obj as Selector;
+            if (selector?.Id == null || selector?.Id == 0 || Id == 0) return false;
+            return EqualityComparer<long>.Default.Equals(Id, selector.Id);
         }
 
         public override int GetHashCode()
@@ -38,12 +38,12 @@ namespace Jhipster.Domain
 
         public override string ToString()
         {
-            return "Location{" +
+            return "Selector{" +
                     $"ID='{Id}'" +
-                    $", StreetAddress='{StreetAddress}'" +
-                    $", PostalCode='{PostalCode}'" +
-                    $", City='{City}'" +
-                    $", StateProvince='{StateProvince}'" +
+                    $", Name='{Name}'" +
+                    $", RulesetName='{RulesetName}'" +
+                    $", Action='{Action}'" +
+                    $", ActionParameter='{ActionParameter}'" +
                     "}";
         }
     }

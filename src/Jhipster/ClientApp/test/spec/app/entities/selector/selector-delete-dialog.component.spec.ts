@@ -6,27 +6,27 @@ import { JhiEventManager } from 'ng-jhipster';
 import { JhipsterTestModule } from '../../../test.module';
 import { MockEventManager } from '../../../helpers/mock-event-manager.service';
 import { MockActiveModal } from '../../../helpers/mock-active-modal.service';
-import { LocationDeleteDialogComponent } from 'app/entities/location/location-delete-dialog.component';
-import { LocationService } from 'app/entities/location/location.service';
+import { SelectorDeleteDialogComponent } from 'app/entities/selector/selector-delete-dialog.component';
+import { SelectorService } from 'app/entities/selector/selector.service';
 
 describe('Component Tests', () => {
-  describe('Location Management Delete Component', () => {
-    let comp: LocationDeleteDialogComponent;
-    let fixture: ComponentFixture<LocationDeleteDialogComponent>;
-    let service: LocationService;
+  describe('Selector Management Delete Component', () => {
+    let comp: SelectorDeleteDialogComponent;
+    let fixture: ComponentFixture<SelectorDeleteDialogComponent>;
+    let service: SelectorService;
     let mockEventManager: MockEventManager;
     let mockActiveModal: MockActiveModal;
 
     beforeEach(() => {
       TestBed.configureTestingModule({
         imports: [JhipsterTestModule],
-        declarations: [LocationDeleteDialogComponent],
+        declarations: [SelectorDeleteDialogComponent],
       })
-        .overrideTemplate(LocationDeleteDialogComponent, '')
+        .overrideTemplate(SelectorDeleteDialogComponent, '')
         .compileComponents();
-      fixture = TestBed.createComponent(LocationDeleteDialogComponent);
+      fixture = TestBed.createComponent(SelectorDeleteDialogComponent);
       comp = fixture.componentInstance;
-      service = fixture.debugElement.injector.get(LocationService);
+      service = fixture.debugElement.injector.get(SelectorService);
       mockEventManager = TestBed.get(JhiEventManager);
       mockActiveModal = TestBed.get(NgbActiveModal);
     });

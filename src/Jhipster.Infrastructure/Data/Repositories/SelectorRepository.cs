@@ -9,25 +9,25 @@ using Jhipster.Infrastructure.Data.Extensions;
 
 namespace Jhipster.Infrastructure.Data.Repositories
 {
-    public class LocationRepository : GenericRepository<Location>, ILocationRepository
+    public class SelectorRepository : GenericRepository<Selector>, ISelectorRepository
     {
-        public LocationRepository(IUnitOfWork context) : base(context)
+        public SelectorRepository(IUnitOfWork context) : base(context)
         {
         }
 
-        public override async Task<Location> CreateOrUpdateAsync(Location location)
+        public override async Task<Selector> CreateOrUpdateAsync(Selector selector)
         {
-            bool exists = await Exists(x => x.Id == location.Id);
+            bool exists = await Exists(x => x.Id == selector.Id);
 
-            if (location.Id != 0 && exists)
+            if (selector.Id != 0 && exists)
             {
-                Update(location);
+                Update(selector);
             }
             else
             {
-                _context.AddOrUpdateGraph(location);
+                _context.AddOrUpdateGraph(selector);
             }
-            return location;
+            return selector;
         }
     }
 }

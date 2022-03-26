@@ -8,11 +8,11 @@ entity Country {
 
 // an ignored comment
 /** not an ignored comment */
-entity Location {
-	streetAddress String,
-	postalCode String,
-	city String,
-	stateProvince String
+entity Selector {
+	name String,
+	rulesetName String,
+	action String,
+	actionParameter String
 }
 
 entity Department {
@@ -77,11 +77,11 @@ relationship OneToOne {
 }
 
 relationship OneToOne {
-	Location{country} to Country
+	Selector{country} to Country
 }
 
 relationship OneToOne {
-	Department{location} to Location
+	Department{selector} to Selector
 }
 
 // defining multiple OneToMany relationships with comments

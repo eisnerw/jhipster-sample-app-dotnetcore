@@ -1,15 +1,15 @@
 import { TestBed, getTestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-import { LocationService } from 'app/entities/location/location.service';
-import { ILocation, Location } from 'app/shared/model/location.model';
+import { SelectorService } from 'app/entities/selector/selector.service';
+import { ISelector, Selector } from 'app/shared/model/selector.model';
 
 describe('Service Tests', () => {
-  describe('Location Service', () => {
+  describe('Selector Service', () => {
     let injector: TestBed;
-    let service: LocationService;
+    let service: SelectorService;
     let httpMock: HttpTestingController;
-    let elemDefault: ILocation;
-    let expectedResult: ILocation | ILocation[] | boolean | null;
+    let elemDefault: ISelector;
+    let expectedResult: ISelector | ISelector[] | boolean | null;
 
     beforeEach(() => {
       TestBed.configureTestingModule({
@@ -17,10 +17,10 @@ describe('Service Tests', () => {
       });
       expectedResult = null;
       injector = getTestBed();
-      service = injector.get(LocationService);
+      service = injector.get(SelectorService);
       httpMock = injector.get(HttpTestingController);
 
-      elemDefault = new Location(0, 'AAAAAAA', 'AAAAAAA', 'AAAAAAA', 'AAAAAAA');
+      elemDefault = new Selector(0, 'AAAAAAA', 'AAAAAAA', 'AAAAAAA', 'AAAAAAA');
     });
 
     describe('Service methods', () => {
@@ -34,7 +34,7 @@ describe('Service Tests', () => {
         expect(expectedResult).toMatchObject(elemDefault);
       });
 
-      it('should create a Location', () => {
+      it('should create a Selector', () => {
         const returnedFromService = Object.assign(
           {
             id: 0,
@@ -44,20 +44,20 @@ describe('Service Tests', () => {
 
         const expected = Object.assign({}, returnedFromService);
 
-        service.create(new Location()).subscribe(resp => (expectedResult = resp.body));
+        service.create(new Selector()).subscribe(resp => (expectedResult = resp.body));
 
         const req = httpMock.expectOne({ method: 'POST' });
         req.flush(returnedFromService);
         expect(expectedResult).toMatchObject(expected);
       });
 
-      it('should update a Location', () => {
+      it('should update a Selector', () => {
         const returnedFromService = Object.assign(
           {
-            streetAddress: 'BBBBBB',
-            postalCode: 'BBBBBB',
-            city: 'BBBBBB',
-            stateProvince: 'BBBBBB',
+            name: 'BBBBBB',
+            rulesetName: 'BBBBBB',
+            action: 'BBBBBB',
+            actionParameter: 'BBBBBB',
           },
           elemDefault
         );
@@ -71,13 +71,13 @@ describe('Service Tests', () => {
         expect(expectedResult).toMatchObject(expected);
       });
 
-      it('should return a list of Location', () => {
+      it('should return a list of Selector', () => {
         const returnedFromService = Object.assign(
           {
-            streetAddress: 'BBBBBB',
-            postalCode: 'BBBBBB',
-            city: 'BBBBBB',
-            stateProvince: 'BBBBBB',
+            name: 'BBBBBB',
+            rulesetName: 'BBBBBB',
+            action: 'BBBBBB',
+            actionParameter: 'BBBBBB',
           },
           elemDefault
         );
@@ -92,7 +92,7 @@ describe('Service Tests', () => {
         expect(expectedResult).toContainEqual(expected);
       });
 
-      it('should delete a Location', () => {
+      it('should delete a Selector', () => {
         service.delete(123).subscribe(resp => (expectedResult = resp.ok));
 
         const req = httpMock.expectOne({ method: 'DELETE' });

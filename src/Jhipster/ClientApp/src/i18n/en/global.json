@@ -16,6 +16,8 @@
         "job": "Job",
         "birthday" : "Birthday",        
         "jobHistory": "Job History",
+        "description": "Description",
+        "selector": "Selector",
         "jhipster-needle-menu-add-entry": "JHipster will add additional entities here (do not translate!)"
       },
       "account": {

@@ -6,23 +6,23 @@ import { flatMap } from 'rxjs/operators';
 
 import { Authority } from 'app/shared/constants/authority.constants';
 import { UserRouteAccessService } from 'app/core/auth/user-route-access-service';
-import { ILocation, Location } from 'app/shared/model/location.model';
-import { LocationService } from './location.service';
-import { LocationComponent } from './location.component';
-import { LocationDetailComponent } from './location-detail.component';
-import { LocationUpdateComponent } from './location-update.component';
+import { ISelector, Selector } from 'app/shared/model/selector.model';
+import { SelectorService } from './selector.service';
+import { SelectorComponent } from './selector.component';
+import { SelectorDetailComponent } from './selector-detail.component';
+import { SelectorUpdateComponent } from './selector-update.component';
 
 @Injectable({ providedIn: 'root' })
-export class LocationResolve implements Resolve<ILocation> {
-  constructor(private service: LocationService, private router: Router) {}
+export class SelectorResolve implements Resolve<ISelector> {
+  constructor(private service: SelectorService, private router: Router) {}
 
-  resolve(route: ActivatedRouteSnapshot): Observable<ILocation> | Observable<never> {
+  resolve(route: ActivatedRouteSnapshot): Observable<ISelector> | Observable<never> {
     const id = route.params['id'];
     if (id) {
       return this.service.find(id).pipe(
-        flatMap((location: HttpResponse<Location>) => {
-          if (location.body) {
-            return of(location.body);
+        flatMap((selector: HttpResponse<Selector>) => {
+          if (selector.body) {
+            return of(selector.body);
           } else {
             this.router.navigate(['404']);
             return EMPTY;
@@ -30,53 +30,53 @@ export class LocationResolve implements Resolve<ILocation> {
         })
       );
     }
-    return of(new Location());
+    return of(new Selector());
   }
 }
 
-export const locationRoute: Routes = [
+export const selectorRoute: Routes = [
   {
     path: '',
-    component: LocationComponent,
+    component: SelectorComponent,
     data: {
       authorities: [Authority.USER],
-      pageTitle: 'jhipsterApp.location.home.title',
+      pageTitle: 'jhipsterApp.selector.home.title',
     },
     canActivate: [UserRouteAccessService],
   },
   {
     path: ':id/view',
-    component: LocationDetailComponent,
+    component: SelectorDetailComponent,
     resolve: {
-      location: LocationResolve,
+      selector: SelectorResolve,
     },
     data: {
       authorities: [Authority.USER],
-      pageTitle: 'jhipsterApp.location.home.title',
+      pageTitle: 'jhipsterApp.selector.home.title',
     },
     canActivate: [UserRouteAccessService],
   },
   {
     path: 'new',
-    component: LocationUpdateComponent,
+    component: SelectorUpdateComponent,
     resolve: {
-      location: LocationResolve,
+      selector: SelectorResolve,
     },
     data: {
       authorities: [Authority.USER],
-      pageTitle: 'jhipsterApp.location.home.title',
+      pageTitle: 'jhipsterApp.selector.home.title',
     },
     canActivate: [UserRouteAccessService],
   },
   {
     path: ':id/edit',
-    component: LocationUpdateComponent,
+    component: SelectorUpdateComponent,
     resolve: {
-      location: LocationResolve,
+      selector: SelectorResolve,
     },
     data: {
       authorities: [Authority.USER],
-      pageTitle: 'jhipsterApp.location.home.title',
+      pageTitle: 'jhipsterApp.selector.home.title',
     },
     canActivate: [UserRouteAccessService],
   },

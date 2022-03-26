@@ -12,7 +12,7 @@ namespace Jhipster.Dto
 
         [Required]
         public string DepartmentName { get; set; }
-        public long? LocationId { get; set; }
+        public long? SelectorId { get; set; }
 
         public IList<EmployeeDto> Employees { get; set; } = new List<EmployeeDto>();
 

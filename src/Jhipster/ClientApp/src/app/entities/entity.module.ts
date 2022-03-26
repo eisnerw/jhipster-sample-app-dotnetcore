@@ -13,8 +13,8 @@ import { RouterModule } from '@angular/router';
         loadChildren: () => import('./country/country.module').then(m => m.JhipsterCountryModule),
       },
       {
-        path: 'location',
-        loadChildren: () => import('./location/location.module').then(m => m.JhipsterLocationModule),
+        path: 'selector',
+        loadChildren: () => import('./selector/selector.module').then(m => m.JhipsterSelectorModule),
       },
       {
         path: 'department',

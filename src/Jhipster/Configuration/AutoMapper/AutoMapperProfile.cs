@@ -19,7 +19,7 @@ namespace Jhipster.Configuration.AutoMapper
 
             CreateMap<Category, CategoryDto>().ReverseMap();
             CreateMap<Country, CountryDto>().ReverseMap();
-            CreateMap<Location, LocationDto>().ReverseMap();
+            CreateMap<Selector, SelectorDto>().ReverseMap();
             CreateMap<Department, DepartmentDto>().ReverseMap();
             CreateMap<PieceOfWork, PieceOfWorkDto>().ReverseMap();
             CreateMap<Employee, EmployeeDto>().ReverseMap();

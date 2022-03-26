@@ -4,34 +4,34 @@ import { FormBuilder } from '@angular/forms';
 import { of } from 'rxjs';
 
 import { JhipsterTestModule } from '../../../test.module';
-import { LocationUpdateComponent } from 'app/entities/location/location-update.component';
-import { LocationService } from 'app/entities/location/location.service';
-import { Location } from 'app/shared/model/location.model';
+import { SelectorUpdateComponent } from 'app/entities/selector/selector-update.component';
+import { SelectorService } from 'app/entities/selector/selector.service';
+import { Selector } from 'app/shared/model/selector.model';
 
 describe('Component Tests', () => {
-  describe('Location Management Update Component', () => {
-    let comp: LocationUpdateComponent;
-    let fixture: ComponentFixture<LocationUpdateComponent>;
-    let service: LocationService;
+  describe('Selector Management Update Component', () => {
+    let comp: SelectorUpdateComponent;
+    let fixture: ComponentFixture<SelectorUpdateComponent>;
+    let service: SelectorService;
 
     beforeEach(() => {
       TestBed.configureTestingModule({
         imports: [JhipsterTestModule],
-        declarations: [LocationUpdateComponent],
+        declarations: [SelectorUpdateComponent],
         providers: [FormBuilder],
       })
-        .overrideTemplate(LocationUpdateComponent, '')
+        .overrideTemplate(SelectorUpdateComponent, '')
         .compileComponents();
 
-      fixture = TestBed.createComponent(LocationUpdateComponent);
+      fixture = TestBed.createComponent(SelectorUpdateComponent);
       comp = fixture.componentInstance;
-      service = fixture.debugElement.injector.get(LocationService);
+      service = fixture.debugElement.injector.get(SelectorService);
     });
 
     describe('save', () => {
       it('Should call update service on save for existing entity', fakeAsync(() => {
         // GIVEN
-        const entity = new Location(123);
+        const entity = new Selector(123);
         spyOn(service, 'update').and.returnValue(of(new HttpResponse({ body: entity })));
         comp.updateForm(entity);
         // WHEN
@@ -45,7 +45,7 @@ describe('Component Tests', () => {
 
       it('Should call create service on save for new entity', fakeAsync(() => {
         // GIVEN
-        const entity = new Location();
+        const entity = new Selector();
         spyOn(service, 'create').and.returnValue(of(new HttpResponse({ body: entity })));
         comp.updateForm(entity);
         // WHEN

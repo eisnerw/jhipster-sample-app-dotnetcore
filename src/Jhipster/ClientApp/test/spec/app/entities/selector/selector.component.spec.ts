@@ -3,27 +3,27 @@ import { of } from 'rxjs';
 import { HttpHeaders, HttpResponse } from '@angular/common/http';
 
 import { JhipsterTestModule } from '../../../test.module';
-import { LocationComponent } from 'app/entities/location/location.component';
-import { LocationService } from 'app/entities/location/location.service';
-import { Location } from 'app/shared/model/location.model';
+import { SelectorComponent } from 'app/entities/selector/selector.component';
+import { SelectorService } from 'app/entities/selector/selector.service';
+import { Selector } from 'app/shared/model/selector.model';
 
 describe('Component Tests', () => {
-  describe('Location Management Component', () => {
-    let comp: LocationComponent;
-    let fixture: ComponentFixture<LocationComponent>;
-    let service: LocationService;
+  describe('Selector Management Component', () => {
+    let comp: SelectorComponent;
+    let fixture: ComponentFixture<SelectorComponent>;
+    let service: SelectorService;
 
     beforeEach(() => {
       TestBed.configureTestingModule({
         imports: [JhipsterTestModule],
-        declarations: [LocationComponent],
+        declarations: [SelectorComponent],
       })
-        .overrideTemplate(LocationComponent, '')
+        .overrideTemplate(SelectorComponent, '')
         .compileComponents();
 
-      fixture = TestBed.createComponent(LocationComponent);
+      fixture = TestBed.createComponent(SelectorComponent);
       comp = fixture.componentInstance;
-      service = fixture.debugElement.injector.get(LocationService);
+      service = fixture.debugElement.injector.get(SelectorService);
     });
 
     it('Should call load all on init', () => {
@@ -32,7 +32,7 @@ describe('Component Tests', () => {
       spyOn(service, 'query').and.returnValue(
         of(
           new HttpResponse({
-            body: [new Location(123)],
+            body: [new Selector(123)],
             headers,
           })
         )
@@ -43,7 +43,7 @@ describe('Component Tests', () => {
 
       // THEN
       expect(service.query).toHaveBeenCalled();
-      expect(comp.locations && comp.locations[0]).toEqual(jasmine.objectContaining({ id: 123 }));
+      expect(comp.selectors && comp.selectors[0]).toEqual(jasmine.objectContaining({ id: 123 }));
     });
   });
 });

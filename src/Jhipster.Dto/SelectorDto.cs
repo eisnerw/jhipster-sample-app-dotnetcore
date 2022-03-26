@@ -5,16 +5,16 @@ using System.ComponentModel.DataAnnotations;
 namespace Jhipster.Dto
 {
 
-    public class LocationDto
+    public class SelectorDto
     {
 
         public long Id { get; set; }
 
-        public string StreetAddress { get; set; }
-        public string PostalCode { get; set; }
-        public string City { get; set; }
-        public string StateProvince { get; set; }
-        public long? CountryId { get; set; }
+        public string Name { get; set; }
+        public string RulesetName { get; set; }
+        public string Action { get; set; }
+        public string ActionParameter { get; set; }
+        public string Description { get; set; }
 
 
         // jhipster-needle-dto-add-field - JHipster will add fields here, do not remove

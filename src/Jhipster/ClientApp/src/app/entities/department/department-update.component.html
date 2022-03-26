@@ -24,10 +24,10 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-control-label" jhiTranslate="jhipsterApp.department.location" for="field_location">Location</label>
-                    <select class="form-control" id="field_location" name="location" formControlName="locationId">
+                    <label class="form-control-label" jhiTranslate="jhipsterApp.department.selector" for="field_selector">Selector</label>
+                    <select class="form-control" id="field_selector" name="selector" formControlName="selectorId">
                         <option [ngValue]="null"></option>
-                        <option [ngValue]="locationOption.id" *ngFor="let locationOption of locations; trackBy: trackById">{{ locationOption.id }}</option>
+                        <option [ngValue]="selectorOption.id" *ngFor="let selectorOption of selectors; trackBy: trackById">{{ selectorOption.id }}</option>
                     </select>
                 </div>
             </div>

@@ -8,8 +8,8 @@ import { map } from 'rxjs/operators';
 
 import { IDepartment, Department } from 'app/shared/model/department.model';
 import { DepartmentService } from './department.service';
-import { ILocation } from 'app/shared/model/location.model';
-import { LocationService } from 'app/entities/location/location.service';
+import { ISelector } from 'app/shared/model/selector.model';
+import { SelectorService } from 'app/entities/selector/selector.service';
 
 @Component({
   selector: 'jhi-department-update',
@@ -17,17 +17,17 @@ import { LocationService } from 'app/entities/location/location.service';
 })
 export class DepartmentUpdateComponent implements OnInit {
   isSaving = false;
-  locations: ILocation[] = [];
+  selectors: ISelector[] = [];
 
   editForm = this.fb.group({
     id: [],
     departmentName: [null, [Validators.required]],
-    locationId: [],
+    selectorId: [],
   });
 
   constructor(
     protected departmentService: DepartmentService,
-    protected locationService: LocationService,
+    protected selectorService: SelectorService,
     protected activatedRoute: ActivatedRoute,
     private fb: FormBuilder
   ) {}
@@ -36,25 +36,25 @@ export class DepartmentUpdateComponent implements OnInit {
     this.activatedRoute.data.subscribe(({ department }) => {
       this.updateForm(department);
 
-      this.locationService
+      this.selectorService
         .query({ filter: 'department-is-null' })
         .pipe(
-          map((res: HttpResponse<ILocation[]>) => {
+          map((res: HttpResponse<ISelector[]>) => {
             return res.body || [];
           })
         )
-        .subscribe((resBody: ILocation[]) => {
-          if (!department.locationId) {
-            this.locations = resBody;
+        .subscribe((resBody: ISelector[]) => {
+          if (!department.selectorId) {
+            this.selectors = resBody;
           } else {
-            this.locationService
-              .find(department.locationId)
+            this.selectorService
+              .find(department.selectorId)
               .pipe(
-                map((subRes: HttpResponse<ILocation>) => {
+                map((subRes: HttpResponse<ISelector>) => {
                   return subRes.body ? [subRes.body].concat(resBody) : resBody;
                 })
               )
-              .subscribe((concatRes: ILocation[]) => (this.locations = concatRes));
+              .subscribe((concatRes: ISelector[]) => (this.selectors = concatRes));
           }
         });
     });
@@ -64,7 +64,7 @@ export class DepartmentUpdateComponent implements OnInit {
     this.editForm.patchValue({
       id: department.id,
       departmentName: department.departmentName,
-      locationId: department.locationId,
+      selectorId: department.selectorId,
     });
   }
 
@@ -87,7 +87,7 @@ export class DepartmentUpdateComponent implements OnInit {
       ...new Department(),
       id: this.editForm.get(['id'])!.value,
       departmentName: this.editForm.get(['departmentName'])!.value,
-      locationId: this.editForm.get(['locationId'])!.value,
+      selectorId: this.editForm.get(['selectorId'])!.value,
     };
   }
 
@@ -107,7 +107,7 @@ export class DepartmentUpdateComponent implements OnInit {
     this.isSaving = false;
   }
 
-  trackById(index: number, item: ILocation): any {
+  trackById(index: number, item: ISelector): any {
     return item.id;
   }
 }

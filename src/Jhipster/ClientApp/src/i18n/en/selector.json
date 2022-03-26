@@ -1,0 +1,26 @@
+{
+  "jhipsterApp": {
+    "selector": {
+      "home": {
+        "title": "Selectors",
+        "createLabel": "Create a new Selector",
+        "createOrEditLabel": "Create or edit a Selector",
+        "notFound": "No Selectors found"
+      },
+      "created": "A new Selector is created with identifier {{ param }}",
+      "updated": "A Selector is updated with identifier {{ param }}",
+      "deleted": "A Selector is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Selector {{ id }}?"
+      },
+      "detail": {
+        "title": "Selector"
+      },
+      "name": "Name",
+      "rulesetName": "Ruleset Name",
+      "action": "Action",
+      "actionParameter": "Action Parameter",
+      "description": "Description"
+    }
+  }
+}
