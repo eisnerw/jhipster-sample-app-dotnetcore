@@ -25,18 +25,29 @@ namespace Jhipster.Infrastructure.Data.Repositories
         private static ElasticClient elastic = new ElasticClient(setting);
         protected readonly IBirthdayService _birthdayService;
         private readonly IRulesetService _rulesetService;
+        private readonly ISelectorService _selectorService;
         private readonly IMapper _mapper;
-        public CategoryRepository(IUnitOfWork context, IBirthdayService birthdayService, IRulesetService rulesetService, IMapper mapper) : base(context)
+        public CategoryRepository(IUnitOfWork context, IBirthdayService birthdayService, IRulesetService rulesetService, ISelectorService selectorService, IMapper mapper) : base(context)
         {
             _birthdayService = birthdayService;
             _rulesetService = rulesetService;
+            _selectorService = selectorService;
             _mapper = mapper;
         }
 
         public async Task<string> Analyze(IList<string> ids){
             var pageable = JHipsterNet.Core.Pagination.PageableConstants.UnPaged;
-            var result = await _rulesetService.FindAll(pageable);{}
-            List<RulesetDto> lstRuleset = result.Content.Select(entity => _mapper.Map<RulesetDto>(entity)).ToList();
+            var result = await _selectorService.FindAll(pageable);{}
+            List<SelectorDto> lstSelector = result.Content.Select(entity => _mapper.Map<SelectorDto>(entity)).ToList();
+            List<SelectorForMatch> lstSelectorForMatch = new List<SelectorForMatch>();
+            lstSelector.ForEach(async s=>{
+                Ruleset ruleset = await _rulesetService.FindOneByName(s.Name);
+                RulesetOrRule rulesetOrRule = JsonConvert.DeserializeObject<RulesetOrRule>(ruleset.JsonString);
+                lstSelectorForMatch.Add(new SelectorForMatch{
+                    selectorDto = s,
+                    ruleset = rulesetOrRule
+                });
+            });
             string error = null;
             int countTries = 0;
             int countMatches = 0;
@@ -48,20 +59,15 @@ namespace Jhipster.Infrastructure.Data.Repositories
                     error = $"Error doing anaysis {e.Message}";
                 }
                 if (error == null){
-                    lstRuleset.ForEach(r=>{
+                    lstSelectorForMatch.ForEach(s=>{
                         countTries += 1;
-                        if (Match(birthday, r)){
+                        if (Evaluate(birthday, s.ruleset)){
                             countMatches += 1;
                         }
                     });
                 }
             }
             return error == null ? $"Looked at {ids.Count} documents and got {countMatches} matches out of {countTries} comparisons." : error;
-        }
-
-        private bool Match(Birthday birthday, RulesetDto ruleset){
-            RulesetOrRule rs = JsonConvert.DeserializeObject<RulesetOrRule>(ruleset.JsonString);
-            return Evaluate(birthday, rs);
         }
 
         private bool Evaluate(Birthday birthday, RulesetOrRule set){
@@ -410,6 +416,11 @@ namespace Jhipster.Infrastructure.Data.Repositories
             int doc_count { get; set; }
             object[] distinct { get; set; }
         }
+    }
+
+    public class SelectorForMatch{
+        public SelectorDto selectorDto { get; set; }
+        public RulesetOrRule ruleset { get; set; }
     }
 
     public class RulesetOrRule{

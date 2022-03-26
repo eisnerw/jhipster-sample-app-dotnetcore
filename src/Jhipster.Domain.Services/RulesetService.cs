@@ -32,7 +32,7 @@ namespace Jhipster.Domain.Services
         public virtual async Task<Ruleset> FindOneByName(string name)
         {
             var result = await _rulesetRepository.QueryHelper().AsNoTracking()
-                .GetOneAsync(ruleset => ruleset.Name == name);
+                .GetOneAsync(ruleset => ruleset.Name.ToLower() == name.ToLower());
             return result;
         }
 
