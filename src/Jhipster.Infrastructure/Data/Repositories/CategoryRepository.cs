@@ -25,103 +25,13 @@ namespace Jhipster.Infrastructure.Data.Repositories
         private static ElasticClient elastic = new ElasticClient(setting);
         protected readonly IBirthdayService _birthdayService;
         private readonly IRulesetService _rulesetService;
-        private readonly ISelectorService _selectorService;
         private readonly IMapper _mapper;
         public CategoryRepository(IUnitOfWork context, IBirthdayService birthdayService, IRulesetService rulesetService, ISelectorService selectorService, IMapper mapper) : base(context)
         {
             _birthdayService = birthdayService;
             _rulesetService = rulesetService;
-            _selectorService = selectorService;
             _mapper = mapper;
         }
-
-        public async Task<string> Analyze(IList<string> ids){
-            var pageable = JHipsterNet.Core.Pagination.PageableConstants.UnPaged;
-            var result = await _selectorService.FindAll(pageable);{}
-            List<SelectorDto> lstSelector = result.Content.Select(entity => _mapper.Map<SelectorDto>(entity)).ToList();
-            List<SelectorForMatch> lstSelectorForMatch = new List<SelectorForMatch>();
-            lstSelector.ForEach(async s=>{
-                Ruleset ruleset = await _rulesetService.FindOneByName(s.Name);
-                RulesetOrRule rulesetOrRule = JsonConvert.DeserializeObject<RulesetOrRule>(ruleset.JsonString);
-                lstSelectorForMatch.Add(new SelectorForMatch{
-                    selectorDto = s,
-                    ruleset = rulesetOrRule
-                });
-            });
-            string error = null;
-            int countTries = 0;
-            int countMatches = 0;
-            for (int i = 0; i < ids.Count; i++){
-                Birthday birthday = null;
-                try {
-                    birthday = await _birthdayService.FindOneWithText(ids[i]);
-                } catch (Exception e){
-                    error = $"Error doing anaysis {e.Message}";
-                }
-                if (error == null){
-                    lstSelectorForMatch.ForEach(s=>{
-                        countTries += 1;
-                        if (Evaluate(birthday, s.ruleset)){
-                            countMatches += 1;
-                        }
-                    });
-                }
-            }
-            return error == null ? $"Looked at {ids.Count} documents and got {countMatches} matches out of {countTries} comparisons." : error;
-        }
-
-        private bool Evaluate(Birthday birthday, RulesetOrRule set){
-            if (set.rules == null){
-                string fieldValue = "";
-                switch (set.field){
-                    case "document":
-                        fieldValue = " " + Regex.Replace(birthday.Text, @"<[^>]*>", " ") + " " + birthday.Fname + " " + birthday.Lname + " " + birthday.Sign + " ";
-                        break;
-                    case "lname":
-                        fieldValue = birthday.Lname;
-                        break;
-                    case "fname":
-                        fieldValue = birthday.Fname;
-                        break;
-                    case "sign":
-                        fieldValue = birthday.Sign;
-                        break;
-                }
-                switch (set.@operator){
-                    case "=":
-                        return fieldValue == set.value;
-                    case "contains":
-                        string reString = "";
-                        if (set.value.StartsWith("\"") && set.value.EndsWith("\"")){
-                            string unquoted = set.value.Substring(1, set.value.Length -2);
-                            reString = Regex.Replace(unquoted, @"[^A-Z\d]+", @"[^A-Z\d]+",RegexOptions.IgnoreCase);
-                        } else {
-                            reString =  @"[^A-Z\d]+" + set.value +  @"[^A-Z\d]+";
-                        }
-                        if (Regex.IsMatch(fieldValue, reString,RegexOptions.IgnoreCase)){
-                            return true;
-                        }
-                        break;
-                }
-                return false;
-            } else {
-                bool evaluation = set.condition == "and" ? true : false;
-                for (int i = 0; i < set.rules.Count; i++){
-                    if (evaluation && set.condition == "and" & !Evaluate(birthday, set.rules[i])){
-                        evaluation = false;
-                        break;
-                    } else {
-                        // or
-                        if (Evaluate(birthday, set.rules[i])){
-                            evaluation = true;
-                            break;
-                        }
-                    }
-                }
-                return set.not ? !evaluation : evaluation;
-            }
-        }
-
         public override async Task<Category> CreateOrUpdateAsync(Category category)
         {
             bool exists = await Exists(x => x.Id == category.Id);
@@ -416,20 +326,5 @@ namespace Jhipster.Infrastructure.Data.Repositories
             int doc_count { get; set; }
             object[] distinct { get; set; }
         }
-    }
-
-    public class SelectorForMatch{
-        public SelectorDto selectorDto { get; set; }
-        public RulesetOrRule ruleset { get; set; }
-    }
-
-    public class RulesetOrRule{
-        public string condition { get; set; }
-        public List<RulesetOrRule> rules { get; set; }
-        public bool not { get; set; }
-        public string name { get; set; }
-        public string field { get; set; }
-        public string value { get; set; }
-        public string @operator { get; set; }
     }
 }

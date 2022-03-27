@@ -15,6 +15,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Jhipster.Crosscutting\Jhipster.Crosscutting.csproj" />
+        <ProjectReference Include="..\Jhipster.Dto\Jhipster.Dto.csproj" />
     </ItemGroup>
 
 </Project>

@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using JHipsterNet.Core.Pagination;
 using System.Collections.Generic;
-using Jhipster.Domain;
+using Jhipster.Dto;
 
 namespace Jhipster.Domain.Services.Interfaces
 {
@@ -15,6 +15,6 @@ namespace Jhipster.Domain.Services.Interfaces
 
         Task Delete(long id);
 
-        Task<string> Analyze(IList<string> ids);
+        Task<AnalysisResultDto> Analyze(IList<string> ids);
     }
 }

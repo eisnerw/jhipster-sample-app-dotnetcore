@@ -713,6 +713,10 @@ export class CategoryComponent implements OnInit, OnDestroy {
   }
 
   onRemoveChip(chip : any) : void {
+    if (chip.id === -1){
+      this.checkboxSelectedRows = [];
+      return;
+    }
     if (this.expandedRows[chip.id]){
       this.expandedRows[chip.id] = false;
     }

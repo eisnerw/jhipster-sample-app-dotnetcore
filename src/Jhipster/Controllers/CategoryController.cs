@@ -114,10 +114,10 @@ namespace Jhipster.Controllers
         public async Task<IActionResult> AnalyzeDocuments([FromBody] DocumentAnalysisDto documentAnalysisDto)
         {
             _log.LogDebug($"REST request to analyze {documentAnalysisDto.ids.Count} documents");
-            string result = await _categoryService.Analyze(documentAnalysisDto.ids);
+            AnalysisResultDto result = await _categoryService.Analyze(documentAnalysisDto.ids);
             IHeaderDictionary headers = new HeaderDictionary();
             headers.Add($"X-{APPLICATION_NAME}-alert", $"{APPLICATION_NAME}.{EntityName}.analyzed");
-            headers.Add($"X-{APPLICATION_NAME}-params", result);
+            headers.Add($"X-{APPLICATION_NAME}-params", result.result);
             return Ok().WithHeaders(headers);
         }        
     }
