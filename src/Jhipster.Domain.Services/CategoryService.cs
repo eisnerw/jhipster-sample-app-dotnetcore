@@ -58,6 +58,12 @@ namespace Jhipster.Domain.Services
 
         public virtual async Task<AnalysisResultDto> Analyze(IList<string> ids)
         {
+            AnalysisResultDto ret = new AnalysisResultDto();
+            Dictionary<string, AnalysisMatchDto> dictMatches= new Dictionary<string, AnalysisMatchDto>();
+            AnalysisMatchDto noMatch =  new AnalysisMatchDto{
+                title = "Matched no selectors",
+                type = AnalysisMatchType.none
+            };
             var pageable = JHipsterNet.Core.Pagination.PageableConstants.UnPaged;
             var result = await _selectorService.FindAll(pageable);{}
             List<SelectorDto> lstSelector = result.Content.Select(entity => _mapper.Map<SelectorDto>(entity)).ToList();
@@ -74,6 +80,7 @@ namespace Jhipster.Domain.Services
             int countTries = 0;
             int countMatches = 0;
             for (int i = 0; i < ids.Count; i++){
+                List<string> matched = new List<string>();
                 Birthday birthday = null;
                 try {
                     birthday = await _birthdayService.FindOneWithText(ids[i]);
@@ -85,13 +92,50 @@ namespace Jhipster.Domain.Services
                         countTries += 1;
                         if (Evaluate(birthday, s.ruleset)){
                             countMatches += 1;
+                            matched.Add(s.selectorDto.Name);
+                            if (!dictMatches.Keys.Contains(s.selectorDto.Name)){
+                                dictMatches.Add(s.selectorDto.Name, new AnalysisMatchDto{
+                                    title = s.selectorDto.Name,
+                                    selector = s.selectorDto,
+                                    type = AnalysisMatchType.single
+                                });
+                            }
+                            dictMatches[s.selectorDto.Name].ids.Add(birthday.Id);
                         }
                     });
+                    if (matched.Count == 0){
+                        noMatch.ids.Add(birthday.Id);
+                    } else if (matched.Count > 1){
+                        matched.Sort();
+                        string title = string.Join('`', matched);
+                        title = title.Replace("`", matched.Count == 2 ? " & " : ", ");
+                        if (!dictMatches.ContainsKey(title)){
+                            dictMatches.Add(title, new AnalysisMatchDto{
+                                title = title,
+                                type = AnalysisMatchType.multiple
+                            });
+                            dictMatches[title].ids.Add(birthday.Id);
+                        }
+                    }
                 }
             }
-            return new AnalysisResultDto{
-                result = error == null ? $"Looked at {ids.Count} documents and got {countMatches} matches out of {countTries} comparisons." : error
-            };
+            List<string> keys = dictMatches.Keys.ToList();
+            keys.Sort();
+            keys.ForEach(k=>{
+                if (dictMatches[k].type == AnalysisMatchType.single){
+                    ret.matches.Add(dictMatches[k]);
+                }
+            });
+            keys.ForEach(k=>{
+                if (dictMatches[k].type == AnalysisMatchType.multiple){
+                    ret.matches.Add(dictMatches[k]);
+                }
+            });
+            if (noMatch.ids.Count > 0) {
+                ret.matches.Add(noMatch);
+            }            
+            ret.result = error == null ? $"Looked at {ids.Count} documents and got {countMatches} matches out of {countTries} comparisons." : error;
+            return ret;
         }
 
         private bool Evaluate(Birthday birthday, RulesetOrRule set){
@@ -134,8 +178,7 @@ namespace Jhipster.Domain.Services
                     if (evaluation && set.condition == "and" & !Evaluate(birthday, set.rules[i])){
                         evaluation = false;
                         break;
-                    } else {
-                        // or
+                    } else if (set.condition == "or") {
                         if (Evaluate(birthday, set.rules[i])){
                             evaluation = true;
                             break;

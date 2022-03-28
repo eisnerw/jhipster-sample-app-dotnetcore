@@ -118,7 +118,7 @@ namespace Jhipster.Controllers
             IHeaderDictionary headers = new HeaderDictionary();
             headers.Add($"X-{APPLICATION_NAME}-alert", $"{APPLICATION_NAME}.{EntityName}.analyzed");
             headers.Add($"X-{APPLICATION_NAME}-params", result.result);
-            return Ok().WithHeaders(headers);
+            return Ok(result).WithHeaders(headers);
         }        
     }
 }
