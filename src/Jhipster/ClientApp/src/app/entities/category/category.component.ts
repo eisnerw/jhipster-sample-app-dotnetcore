@@ -10,7 +10,7 @@ import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 
 import { IBirthday } from 'app/shared/model/birthday.model';
 
-import { ICategory } from 'app/shared/model/category.model';
+import { Category, ICategory } from 'app/shared/model/category.model';
 
 import { ITEMS_PER_PAGE } from 'app/shared/constants/pagination.constants';
 import { BirthdayService } from '../birthday/birthday.service';
@@ -30,6 +30,7 @@ import { faCheck } from '@fortawesome/free-solid-svg-icons';
 import { SuperTable } from '../birthday/super-table';
 import { BirthdayQueryParserService, IQuery, IQueryRule } from '../birthday/birthday-query-parser.service';
 import { BirthdayQueryBuilderComponent } from '../birthday/birthday-query-builder.component';
+import { ISelector } from 'app/shared/model/selector.model';
 
 interface IView {
   name: string,
@@ -42,6 +43,14 @@ interface IView {
   secondLevelView? : IView
   topLevelView? : IView
   topLevelCategory? : string
+}
+
+interface AnalysisMatch
+{
+    type: string,
+    title: string,
+    selector: ISelector;
+    ids: string[];
 }
 
 @Component({
@@ -111,7 +120,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
 
   @Input() firstColumnIndent = "";
 
-  @Input() hideHeader = false;
+  @Input() hideHeader = false;  
 
   _parent : SuperTable | null = null;
 
@@ -160,6 +169,8 @@ export class CategoryComponent implements OnInit, OnDestroy {
     ,{name: "Sign/Birth Year", field: "sign", aggregation: "sign.keyword", query: "sign:*", secondLevelView:{name:"Year of Birth", field: "dob", aggregation: "dob", query: "*", categoryQuery: "dob:[{}-01-01 TO {}-12-31]", script: "\n            String st = doc['dob'].value.getYear().toString();\n            if (st==null){\n              return \"\";\n            } else {\n              return st.substring(0, 4);\n            }\n          "}}
     ,{name: "Query", field: "ruleset", aggregation: "", query: "", secondLevelView:{name: "SecondLevel", field: "ruleset2", aggregation: "", query: ""}}
   ];
+
+  public analysisMatches: AnalysisMatch[] = [];
 
   constructor(
     protected categoryService: CategoryService,
@@ -385,7 +396,9 @@ export class CategoryComponent implements OnInit, OnDestroy {
       }
       const newViews : IView[] = [];
       this.views.forEach(v=>{
-        newViews.push(v);
+        if (v.name !== "Analysis"){ // Analysis should only appear when displaying result of Analyze
+          newViews.push(v);
+        }
       });
       this.views = newViews; // replace the list of views so the dropdown sees the change
       this.secondLevel = this.selectedView?.secondLevelView != null;
@@ -569,7 +582,46 @@ export class CategoryComponent implements OnInit, OnDestroy {
       ids
     }).subscribe((r) => {
       if (!r.ok){
-        alert("Analysis failed");
+        alert("Analysis failed"); 
+      } else {
+        this.analysisMatches = (r as any).body.matches;
+        const analysisView : IView = {name: "Analysis", field: "", aggregation: "", query: "", secondLevelView:{name: "SecondLevelAnalysis", field: "analysis", aggregation: "", query: ""}};
+        this.secondLevel = true;
+        if (this.views[this.views.length - 1].name !== "Analysis"){
+          this.views.push(analysisView);
+          const newViews : IView[] = [];
+          this.views.forEach(v=>{
+            newViews.push(v);
+          });
+          this.views = newViews;  // replace the list of views so the dropdown sees the change
+        }
+        this.selectedView = analysisView;
+        this.categories = [];
+        let category = "";
+        let categoryId = 0;
+        const usedTypes : string[] = [];
+        this.analysisMatches.forEach(m=>{
+          if (!usedTypes.includes(m.type)){
+            usedTypes.push(m.type);
+            switch (m.type){
+              case"none":
+                category = "Documents that matched no selectors";
+                break;
+                
+              case"single":
+                category = "Documents that matched one selector";
+                break;
+
+              case"multiple":
+                category = "Documents that matched multiple selectors";
+                break;
+            }
+            this.categories.push(new Category(categoryId, category));
+          }
+          categoryId++;
+        });
+        this.rowData = of(this.categories);
+        this.displayAsCategories = true;
       }
     }); 
   }
@@ -809,7 +861,29 @@ export class CategoryComponent implements OnInit, OnDestroy {
         this.predicate = predicate;
         this.ascending = ascending;
       */
-        this.loadPage(pageNumber, true);
+        if (this.selectedView?.name === "SecondLevelAnalysis"){
+          // special analysis view
+          const categoryType = this.parentComponent?.analysisMatches[this.category?.id as number].type;
+          this.categories = [];
+          let categoryId = 0;
+          this.parentComponent?.analysisMatches.forEach(m=>{
+            if (m.type === categoryType){
+              let title = m.title;
+              if (m.type === "single"){
+                title = "Matched selector '" + m.title + "'";
+              } else if (m.type === "multiple"){
+                title = "Matched selectors " + m.title;
+              }
+              const category = new Category(categoryId++, title);
+              category.ids = m.ids;
+              this.categories.push(category);
+            }
+          });
+          this.rowData = of(this.categories);
+          this.loading = false;
+        } else {
+          this.loadPage(pageNumber, true);
+        }
       // }
     }).subscribe();
   }

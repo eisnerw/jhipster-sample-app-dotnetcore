@@ -120,7 +120,7 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
         page: pageToLoad - 1,
         size: this.itemsPerPage,
         sort: this.sort(),
-        query: JSON.stringify(viewQuery)
+        query: JSON.stringify(this.category?.ids && this.category.ids.length > 0 ? {ids:this.category.ids}: viewQuery)
       })
       .subscribe(
         (res: HttpResponse<IBirthday[]>) => this.onSuccess(res.body, res.headers, pageToLoad, !dontNavigate),

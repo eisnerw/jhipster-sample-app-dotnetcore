@@ -78,13 +78,18 @@ namespace Jhipster.Controllers
             if (query.StartsWith("{")){
                 var birthdayRequest = JsonConvert.DeserializeObject<Dictionary<string,object>>(query);
                 string birthdayQuery = "";
-                if (birthdayRequest.ContainsKey("query")){
-                    birthdayQuery = (string)birthdayRequest["query"];
+                if (birthdayRequest.ContainsKey("ids")){
+                    List<string> ids = JsonConvert.DeserializeObject<List<string>>(birthdayRequest["ids"].ToString());
+                    birthdayQuery = "_id:(\"" + (string.Join('`', ids).Replace("`", "\" \"")) + "\")";
                 } else {
-                    birthdayQuery = query;
-                }
-                if (birthdayQuery != ""){
-                    birthdayQuery = TextTemplate.Runner.Interpolate("LuceneQueryBuilder", birthdayQuery);
+                    if (birthdayRequest.ContainsKey("query")){
+                        birthdayQuery = (string)birthdayRequest["query"];
+                    } else {
+                        birthdayQuery = query;
+                    }
+                    if (birthdayQuery != ""){
+                        birthdayQuery = TextTemplate.Runner.Interpolate("LuceneQueryBuilder", birthdayQuery);
+                    }
                 }
                 birthdayRequest["query"] = birthdayQuery;
                 query = JsonConvert.SerializeObject(birthdayRequest);

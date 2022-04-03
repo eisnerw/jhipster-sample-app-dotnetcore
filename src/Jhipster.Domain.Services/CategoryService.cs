@@ -69,7 +69,7 @@ namespace Jhipster.Domain.Services
             List<SelectorDto> lstSelector = result.Content.Select(entity => _mapper.Map<SelectorDto>(entity)).ToList();
             List<SelectorForMatch> lstSelectorForMatch = new List<SelectorForMatch>();
             lstSelector.ForEach(async s=>{
-                Ruleset ruleset = await _rulesetService.FindOneByName(s.Name);
+                Ruleset ruleset = await _rulesetService.FindOneByName(s.RulesetName);
                 RulesetOrRule rulesetOrRule = JsonConvert.DeserializeObject<RulesetOrRule>(ruleset.JsonString);
                 lstSelectorForMatch.Add(new SelectorForMatch{
                     selectorDto = s,
@@ -157,7 +157,7 @@ namespace Jhipster.Domain.Services
                 }
                 switch (set.@operator){
                     case "=":
-                        return fieldValue == set.value;
+                        return fieldValue.ToLower() == set.value.ToLower();
                     case "contains":
                         string reString = "";
                         if (set.value.StartsWith("\"") && set.value.EndsWith("\"")){
