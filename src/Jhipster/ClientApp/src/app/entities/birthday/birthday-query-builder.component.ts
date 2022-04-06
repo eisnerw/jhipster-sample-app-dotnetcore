@@ -118,7 +118,7 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
       isAlive: { name: 'Alive?', type: 'boolean' },
       categories: { name: 'Category', type: 'string', operators: ["contains", "is null", "is not null"]},
       dob: {
-        name: 'Birthday', type: 'date', operators: ['=', '<=', '>', '<', '<='],
+        name: 'Birthday', type: 'date', operators: ['=', '<=', '>', '<', '>='],
         defaultValue: (() => new Date())
       },
       sign: {
@@ -709,7 +709,7 @@ export class RulesetNameValidatorDirective implements AsyncValidator {
         };
       }));
     } else {
-      const obs = this.rulesetService.query().pipe(map(res  => {
+      const obs = this.rulesetService.query().pipe(take(1), map(res  => {
         (this.storedRulesets = res.body || []);
         if (/^[A-Z][A-Z_\d]*$/.test(control.value)){
           return null;

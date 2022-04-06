@@ -26,7 +26,6 @@ import { BirthdayQueryValidatorDirectiveModule } from '../birthday/birthday-quer
 import { RulesetRenameValidatorDirective } from './category.component';
 import { CategoryDetailComponent } from './category-detail.component';
 
-
 @NgModule({
   imports: [JhipsterSharedModule, RouterModule.forChild(categoryRoute), SuperTableModule, CalendarModule, ContextMenuModule, MessagesModule, ChipsModule, ConfirmPopupModule, TooltipModule, ScrollTopModule, MenuModule, DialogModule, BirthdayTableModule, BirthdayQueryBuilderModule, EditableMultiSelectModule, DropdownModule, BirthdayQueryValidatorDirectiveModule],
   declarations: [CategoryComponent, RulesetRenameValidatorDirective, CategoryDetailComponent /* , CategoryUpdateComponent, CategoryDeleteDialogComponent*/],

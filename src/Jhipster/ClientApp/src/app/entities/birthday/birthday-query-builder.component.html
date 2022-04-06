@@ -284,7 +284,7 @@
     </span>
   </div>
   <div class="modal-footer">
-    <p-button label="Cancel" type="button" class="btn btn-secondary" data-dismiss="modal" (click)="onConfirmUpdatingNamedQuery()"></p-button>
+    <p-button label="Cancel" type="button" class="btn btn-secondary" data-dismiss="modal" (click)="onCancelUpdatingNamedQueryInPopup()"></p-button>
     <p-button label="Ok" type="button" [disabled]="!editPopupQuery.valid" class="btn btn-primary" data-dismiss="modal" (click)="onConfirmUpdatingNamedQueryInPopup($event)" [disabled]="!selectedRuleset"></p-button>
   </div>  
 </p-dialog>

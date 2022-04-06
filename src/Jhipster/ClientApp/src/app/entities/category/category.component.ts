@@ -120,7 +120,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
 
   @Input() firstColumnIndent = "";
 
-  @Input() hideHeader = false;  
+  @Input() hideHeader = false;
 
   _parent : SuperTable | null = null;
 
@@ -715,7 +715,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
         if (queryBeingEdited !== null){
           topLevel.searchQueryAsString = queryBeingEdited.name ? queryBeingEdited.name : this.birthdayQueryParserService.queryAsString(queryBeingEdited);
         }
-        this.bRenamingQuery = false;        
+        this.bRenamingQuery = false;
         topLevel.refreshData();
       }
     };
