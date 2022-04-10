@@ -28,7 +28,7 @@ export class BirthdayQueryParserService {
     this.queryNames = [...(rulesetMap as Map<string, IQuery>).keys()].sort((a, b) => a > b ? -1 : 1);;
     const queryNameRegexString = this.queryNames.length > 0 ? "|(" + this.queryNames.join("|") + ")": "";
     query = query.replace(/\\\\/g,'\x01').replace(/\\"/g, '\x02').replace(/`/g,'\x03');
-    const regexString = "\\s*([()]" + queryNameRegexString + "|(sign|dob|lname|fname|isAlive|document)|(=|!=|CONTAINS|LIKE|EXISTS|!EXISTS|>=|<=|>|<)|(&|\\||!)|[\\w\\d\".*-]+)\\s*";
+    const regexString = "\\s*([()]" + queryNameRegexString + "|(\"[A-Za-z0-9 ]+\"|sign|dob|lname|fname|isAlive|document)|(=|!=|CONTAINS|LIKE|EXISTS|!EXISTS|>=|<=|>|<)|(&|\\||!)|[\\w\\d\".*-]+)\\s*";
     const regex = new RegExp(regexString, "g");
     const tokens = query.replace(regex, '`$1').split('`');
     /* NOT SURE WE STILL NEED THIS
