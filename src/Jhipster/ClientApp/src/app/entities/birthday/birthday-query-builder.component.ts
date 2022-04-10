@@ -113,10 +113,10 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
   public config: QueryBuilderConfig = {
     fields: {
       document: { name: 'Document', type: 'string', operators: ["contains"]},
-      lname: { name: 'Last Name', type: 'string' },
-      fname: { name: 'First Name', type: 'string' },
+      lname: { name: 'Last Name', type: 'string', operators: ['=', '!=', 'contains', 'like', 'exists'] },
+      fname: { name: 'First Name', type: 'string', operators: ['=', '!=', 'contains', 'like', 'exists'] },
       isAlive: { name: 'Alive?', type: 'boolean' },
-      categories: { name: 'Category', type: 'string', operators: ["contains", "is null", "is not null"]},
+      categories: { name: 'Category', type: 'string', operators: ["contains", "exists"]},
       dob: {
         name: 'Birthday', type: 'date', operators: ['=', '<=', '>', '<', '<='],
         defaultValue: (() => new Date())
@@ -197,6 +197,10 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
   ngOnInit() : any{
     // super.ngOnInit();
     this.ngOnChanges(null as any);  // needed to initialize fields
+  }
+
+  changeInput(): void {
+    super.changeInput();
   }
 
   toggleNot(el : any) : void{

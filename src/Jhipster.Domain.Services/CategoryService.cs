@@ -158,6 +158,9 @@ namespace Jhipster.Domain.Services
                 switch (set.@operator){
                     case "=":
                         return fieldValue.ToLower() == set.value.ToLower();
+                    case "exists":
+                        bool fieldValueExists = fieldValue != null && fieldValue.ToString().Length > 0;
+                        return (set.value != null && set.value == "true") ? fieldValueExists : !fieldValueExists;                  
                     case "contains":
                         string reString = "";
                         if (set.value.StartsWith("\"") && set.value.EndsWith("\"")){

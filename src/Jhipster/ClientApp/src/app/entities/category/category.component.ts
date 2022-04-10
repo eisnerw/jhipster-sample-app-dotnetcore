@@ -407,7 +407,18 @@ export class CategoryComponent implements OnInit, OnDestroy {
   }
 
   setMenu(CategoryOrBirthday : any, bChip: boolean):void{
-    if (!bChip && (this.selectedView?.name === "Query" || this.selectedView?.name === "SecondLevel")){
+    if (!bChip && this.selectedView?.name === "Analysis"){
+      this.menuItems = [{
+        label: 'do something',
+        icon: 'pi pi-pencil',
+        command: (event: any)=>{
+          const menuItem : MenuItem = event.item;
+          const categoryComponent = this.parentComponent ? this.parentComponent : this;
+          categoryComponent.searchQueryAsString = menuItem.id as string;;
+          categoryComponent.showSearchDialog(categoryComponent.queryBuilder);
+        }
+      }];
+    } else if (!bChip && (this.selectedView?.name === "Query" || this.selectedView?.name === "SecondLevel")){
       const category = CategoryOrBirthday as ICategory;
       const query: any= JSON.parse(category.jsonString as string);
       this.menuItems = [{
