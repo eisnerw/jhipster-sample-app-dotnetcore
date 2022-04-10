@@ -85,7 +85,7 @@ namespace Jhipster.Infrastructure.Data.Repositories
                 return new Page<Category>(content, pageable, content.Count);
             }
             var categoryRequest = JsonConvert.DeserializeObject<Dictionary<string, object>>(queryJson);
-            View view = new View();
+            View<Birthday> view = new View<Birthday>();
             string aggregationKey = "";
             string query = "";
             if (categoryRequest["view"] == null)
@@ -101,7 +101,7 @@ namespace Jhipster.Infrastructure.Data.Repositories
             }
             else
             {
-                view = JsonConvert.DeserializeObject<View>(categoryRequest["view"].ToString());
+                view = JsonConvert.DeserializeObject<View<Birthday>>(categoryRequest["view"].ToString());
                 if (view.focus != null){
                     if (view.topLevelView != null){
                         List<Birthday> topLevelFocus = view.topLevelView.focus;
@@ -212,7 +212,7 @@ namespace Jhipster.Infrastructure.Data.Repositories
                     aggregationKey = view.aggregation;
                     query = view.query + ((string)categoryRequest["query"] != "" ? " AND " + categoryRequest["query"] : "");
                     if (view.topLevelView != null){
-                        View topLevelView = view.topLevelView;
+                        View<Birthday>topLevelView = view.topLevelView;
                         string categoryClause = "";
                         if (view.topLevelCategory != null && topLevelView.field != null){
                             if (topLevelView.categoryQuery != null){
