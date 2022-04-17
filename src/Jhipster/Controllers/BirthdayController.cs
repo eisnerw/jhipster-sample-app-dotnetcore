@@ -96,7 +96,8 @@ namespace Jhipster.Controllers
             }
             BirthdayDto birthdaydto = _mapper.Map<BirthdayDto>(new Birthday());
             var result = await _birthdayService.FindAll(pageable, query);
-            var page = new Page<BirthdayDto>(result.Content.Select(entity => _mapper.Map<BirthdayDto>(entity)).ToList(), pageable, result.TotalElements);
+            var listBirthdays = result.Content.Select(entity => _mapper.Map<BirthdayDto>(entity)).ToList();
+            var page = new Page<BirthdayDto>(listBirthdays, pageable, result.TotalElements);
             return Ok(((IPage<BirthdayDto>)page).Content).WithHeaders(page.GeneratePaginationHttpHeaders());
         }
 

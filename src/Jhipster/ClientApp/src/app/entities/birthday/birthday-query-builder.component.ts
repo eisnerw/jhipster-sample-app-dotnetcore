@@ -1,6 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef, Renderer2, Input } from '@angular/core';
 import { FormBuilder, FormControl } from '@angular/forms';
-import { QueryBuilderConfig, QueryBuilderComponent, RuleSet } from "angular2-query-builder";
+import { QueryBuilderConfig, QueryBuilderComponent, RuleSet, Option } from "angular2-query-builder";
 import { Directive } from '@angular/core';
 import { AbstractControl, NG_ASYNC_VALIDATORS, ValidationErrors, AsyncValidator } from '@angular/forms';
 import { RulesetService } from '../ruleset/ruleset.service';
@@ -113,7 +113,11 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
   public config: QueryBuilderConfig = {
     fields: {
       document: { name: 'Document', type: 'string', operators: ["contains"]},
-      lname: { name: 'Last Name', type: 'string', operators: ['=', '!=', 'contains', 'like', 'exists'] },
+      // lname: { name: 'Last Name', type: 'string', operators: ['=', '!=', 'contains', 'like', 'exists'] },
+      lname: {
+        name: 'Last Name',
+        type: 'category'
+      },
       fname: { name: 'First Name', type: 'string', operators: ['=', '!=', 'contains', 'like', 'exists'] },
       isAlive: { name: 'Alive?', type: 'boolean' },
       categories: { name: 'Category', type: 'string', operators: ["contains", "exists"]},
@@ -155,6 +159,8 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
   @Input() public sublevel = false;
 
   @Input() public rulesetMap : Map<string, IQuery | IQueryRule> = new Map<string, IQuery | IQueryRule>();
+
+  @Input() public optionsMap : Map<string, Option[]> = new Map<string,  Option[]>();
   
   constructor(private formBuilder: FormBuilder, private localChangeDetectorRef:ChangeDetectorRef, private renderer : Renderer2, private rulesetService: RulesetService, private birthdayQueryParserService : BirthdayQueryParserService) {
     super(localChangeDetectorRef);
@@ -192,6 +198,13 @@ export class BirthdayQueryBuilderComponent extends QueryBuilderComponent impleme
         BirthdayQueryBuilderComponent.topLevelRuleset = this.data as RuleSet;
       }
     }, 0);
+    this.getOptions = (field: string)=>{
+      if (this.optionsMap.has(field)){
+        return this.optionsMap.get(field) as Option[];
+      } else {
+        return this.config.fields[field].options || [];
+      }
+    }
   }
 
   ngOnInit() : any{

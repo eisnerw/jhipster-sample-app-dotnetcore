@@ -1561,10 +1561,10 @@ namespace Jhipster.Infrastructure.Data.Repositories
                 queryJson = JsonConvert.SerializeObject(queryObject);
             }
             var birthdayRequest = JsonConvert.DeserializeObject<Dictionary<string,object>>(queryJson);
-            View view = new View();
+            View<Birthday> view = new View<Birthday>();
             string query = birthdayRequest.ContainsKey("query") ? (string)birthdayRequest["query"] : "";
             if (birthdayRequest.ContainsKey("view") && birthdayRequest["view"] != null){
-                view = JsonConvert.DeserializeObject<View>(birthdayRequest["view"].ToString());
+                view = JsonConvert.DeserializeObject<View<Birthday>>(birthdayRequest["view"].ToString());
             }
             string categoryClause = "";
             if (birthdayRequest.ContainsKey("category") && view.field != null){
@@ -1575,7 +1575,7 @@ namespace Jhipster.Infrastructure.Data.Repositories
                 }
                     query = categoryClause + (query != "" ? " AND (" + query + ")" : "");
                     if (view.topLevelView != null){
-                    View topLevelView = view.topLevelView;
+                    View<Birthday> topLevelView = view.topLevelView;
                     categoryClause = "";
                     if (view.topLevelCategory != null && topLevelView.field != null){
                         if (birthdayRequest.ContainsKey("focusType")){

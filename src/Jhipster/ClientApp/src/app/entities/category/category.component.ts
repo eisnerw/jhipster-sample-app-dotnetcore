@@ -31,6 +31,7 @@ import { SuperTable } from '../birthday/super-table';
 import { BirthdayQueryParserService, IQuery, IQueryRule } from '../birthday/birthday-query-parser.service';
 import { BirthdayQueryBuilderComponent } from '../birthday/birthday-query-builder.component';
 import { ISelector } from 'app/shared/model/selector.model';
+import { Option } from "angular2-query-builder";
 
 interface IView {
   name: string,
@@ -61,6 +62,7 @@ interface AnalysisMatch
 
 export class CategoryComponent implements OnInit, OnDestroy {
   rulesetMap: Map<string, IQuery | IQueryRule> = new Map<string, IQuery | IQueryRule>();
+  optionsMap: Map<string, Option[]> = new Map<string, Option[]>();
   categories: ICategory[] = [];
   categoriesMap : {} = {};
   eventSubscriber?: Subscription;
@@ -93,6 +95,10 @@ export class CategoryComponent implements OnInit, OnDestroy {
   chipSelectedRows : object[] = [];
 
   bDisplaySearchDialog = false;
+
+  bDoneGettingRulesetMap = false;
+
+  bDoneGettingOptionsMap = false;
 
   editingQuery = false;
 
@@ -238,6 +244,9 @@ export class CategoryComponent implements OnInit, OnDestroy {
   }
 
   showSearchDialog(queryBuilder : any) : void {
+    this.bDoneGettingOptionsMap = false;
+    this.bDoneGettingRulesetMap = false;
+    this.optionsMap.clear();
     let rulesets : IStoredRuleset[] = [];
     this.rulesetService.query().pipe(take(1), map((res: any): void=> {
       this.rulesetMap.clear();
@@ -266,9 +275,38 @@ export class CategoryComponent implements OnInit, OnDestroy {
         }
       }
       queryBuilder.initialize(JSON.stringify(queryObject));
-      this.bDisplaySearchDialog = true;
+      this.bDoneGettingRulesetMap = true;
+      if (this.bDoneGettingOptionsMap){
+        this.bDisplaySearchDialog = true;
+      }
       this.editingQuery = false;
     })).subscribe();
+    this.birthdayService.query({
+      page: 0,
+      size: this.itemsPerPage,
+      sort: this.sort(),
+      query: ""
+    }).subscribe(
+      (res: HttpResponse<IBirthday[]>) => {
+        let lnames : string[] = [];
+        const options : Option[] = [];
+        (res.body as IBirthday[]).forEach((b=>{
+          if (!lnames.includes(b.lname as string)){
+            lnames.push(b.lname as string);
+          }
+        }));
+        lnames = lnames.sort();
+        lnames.forEach(n=>{
+          options.push({name: n, value: n});
+        });
+        this.optionsMap.set("lname", options);
+        this.bDoneGettingOptionsMap = true;
+        if (this.bDoneGettingRulesetMap){
+          this.bDisplaySearchDialog = true;
+        }
+      },
+      () => this.onError()
+    );
   }
 
   cancelSearchDialog() : void {
