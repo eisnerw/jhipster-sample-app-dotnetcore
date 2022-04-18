@@ -27,8 +27,8 @@ export class BirthdayQueryParserService {
     }
     this.queryNames = [...(rulesetMap as Map<string, IQuery>).keys()].sort((a, b) => a > b ? -1 : 1);;
     const queryNameRegexString = this.queryNames.length > 0 ? "|(" + this.queryNames.join("|") + ")": "";
-    query = query.replace(/\\\\/g,'\x01').replace(/\\"/g, '\x02').replace(/`/g,'\x03');
-    const regexString = "\\s*([()]" + queryNameRegexString + "|(\"[A-Za-z0-9 ]+\"|sign|dob|lname|fname|isAlive|document)|(=|!=|CONTAINS|LIKE|EXISTS|!EXISTS|>=|<=|>|<)|(&|\\||!)|[\\w\\d\".*-]+)\\s*";
+    // query = query.replace(/\\\\/g,'\x01').replace(/\\"/g, '\x02').replace(/`/g,'\x03');
+    const regexString = "\\s*([()]" + queryNameRegexString + '|("(\\\\"|\\\\\\\\|[^"])+\\"|\\/(\\\\\\/|[^\\/])+\\/' + "|sign|dob|lname|fname|isAlive|document)|(=|!=|CONTAINS|LIKE|EXISTS|!EXISTS|>=|<=|>|<)|(&|\\||!)|[^\"/=!<>]+)\\s*";
     const regex = new RegExp(regexString, "g");
     const tokens = query.replace(regex, '`$1').split('`');
     /* NOT SURE WE STILL NEED THIS
@@ -49,6 +49,9 @@ export class BirthdayQueryParserService {
 
       }
     } */
+    if (tokens[0] !== ""){
+      return { Invalid :true, position: 0, condition: "", rules:[], not: false} // must be starting with unmatched " or /
+    }
     const i = 1;
     let ret = this.parseRuleset(tokens, i, false, rulesetMap);
     if (!ret.matches){
@@ -89,8 +92,15 @@ export class BirthdayQueryParserService {
       return parse;
     }
     if (!/^(sign|dob|lname|fname|isAlive|document)$/.test(tokens[parse.i])){
-        if ((/^[A-Za-z0-9]+$/.test(tokens[i]) && /[a-z0-9]/.test(tokens[i])) || /^"[^"]+"$/.test(tokens[i])){
-            const documentValue = '"' + (tokens[i].replace(/\x03/g,'`').replace(/\x02/g,'"').replace(/\x01/g,"\\\\").replace(/"/g,"\\\"")) + '"';
+        if ((/^[A-Za-z0-9]+$/.test(tokens[i]) && /[a-z0-9]/.test(tokens[i])) || /^".*"$/.test(tokens[i]) || /^\/.*\/$/.test(tokens[i])){
+            let documentValue = '"' + tokens[i] + '"';
+            if (tokens[i].startsWith('"')){
+              if (tokens[i].endsWith('\\"')){
+                parse.string = '[invalid quoted string]';
+                return parse;                
+              }
+              documentValue = tokens[i];
+            }
             parse.matches = true;
             parse.string = '{"field":"document", "operator":"contains","value":' + documentValue + '}';
             parse.i++;
@@ -182,7 +192,10 @@ export class BirthdayQueryParserService {
       value = tokens[i + 2];
     } else {
 /* eslint "no-control-regex": 0 */ 
-      value = '"' + (tokens[i + 2].replace(/\x03/g,'`').replace(/\x02/g,'"').replace(/\x01/g,"\\\\").replace(/"/g,"\\\"")) + '"';
+      value = '"' + tokens[i + 2] + '"';
+      if (tokens[i + 2].startsWith('"')){
+        value = tokens[i + 2];
+      }
     }
     parse.matches = true;
     parse.string = '{"field":"' + tokens[i] + '","operator":"' + tokens[i + 1].toLowerCase() + '","value":' + value + '}';
@@ -363,8 +376,12 @@ export class BirthdayQueryParserService {
         } else {
           result += this.queryAsString(r as unknown as IQuery, query.rules.length > 1); // note: is only one rule, treat it as a top level
         }
-      } else if (r.field === "document" && r.value !== undefined) { 
-        result += (r.value.toString().toLowerCase());
+      } else if (r.field === "document" && r.value !== undefined) {
+        if (/[\s\\"]/.test(r.value.toString())){
+          result += ('"' + r.value.toString().replace(/([\\"])/g, '\\$1') + '"');
+        } else {
+          result += (r.value.toString().toLowerCase());
+        }
       } else {
         result += r.field;
         if (r.operator === "exists"){
@@ -372,7 +389,11 @@ export class BirthdayQueryParserService {
         } else {
           result += (' ' +  r.operator.toUpperCase() + ' ');
           if (r.value !== undefined) {
-            result += (r.value.toString().toLowerCase());
+            if (/[\s\\"]/.test(r.value.toString())){
+              result += ('"' + r.value.toString().replace(/([\\"])/g, '\\$1') + '"');
+            } else {
+              result += (r.value.toString().toLowerCase());
+            }            
           }
         }
       }
