@@ -31,7 +31,13 @@ namespace TextTemplate
 						var arrayValue = arrayProps.Current;
 						if (arrayValue is JsonElement)
 						{
-							arrayList.Add(ConvertToDictionaryOrList(arrayValue));
+							if (arrayValue.ValueKind.ToString() == "String"){
+								Dictionary<string, object> stringValue = new Dictionary<string, object>();
+								stringValue.Add("_", arrayValue.GetString());
+								arrayList.Add(stringValue);
+							} else {
+								arrayList.Add(ConvertToDictionaryOrList(arrayValue));
+							}
 						}
 						else
 						{

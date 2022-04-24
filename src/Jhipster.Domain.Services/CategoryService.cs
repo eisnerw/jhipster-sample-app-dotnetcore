@@ -157,19 +157,31 @@ namespace Jhipster.Domain.Services
                 }
                 switch (set.@operator){
                     case "=":
-                        return fieldValue.ToLower() == set.value.ToLower();
+                        return fieldValue.ToLower() == ((string)set.value).ToLower();
                     case "exists":
                         bool fieldValueExists = fieldValue != null && fieldValue.ToString().Length > 0;
-                        return (set.value != null && set.value == "true") ? fieldValueExists : !fieldValueExists;                  
+                        return (set.value != null && ((string)set.value) == "true") ? fieldValueExists : !fieldValueExists;                  
                     case "contains":
                         string reString = "";
-                        if (set.value.StartsWith("\"") && set.value.EndsWith("\"")){
-                            string unquoted = set.value.Substring(1, set.value.Length -2);
+                        if (((string)set.value).StartsWith("\"") && ((string)set.value).EndsWith("\"")){
+                            string unquoted = ((string)set.value).Substring(1, ((string)set.value).Length -2);
                             reString = Regex.Replace(unquoted, @"[^A-Z\d]+", @"[^A-Z\d]+",RegexOptions.IgnoreCase);
                         } else {
                             reString =  @"[^A-Z\d]+" + set.value +  @"[^A-Z\d]+";
                         }
                         if (Regex.IsMatch(fieldValue, reString,RegexOptions.IgnoreCase)){
+                            return true;
+                        }
+                        break;
+                    case "in":
+                        List<string> lstValue = JsonConvert.DeserializeObject<List<string>>(set.value.ToString());
+                        bool bMatch = false;
+                        lstValue.ForEach(v=>{
+                            if (fieldValue.ToLower() == v.ToLower()){
+                                bMatch = true;
+                            }
+                        });
+                        if (bMatch){
                             return true;
                         }
                         break;
@@ -205,7 +217,7 @@ namespace Jhipster.Domain.Services
         public bool not { get; set; }
         public string name { get; set; }
         public string field { get; set; }
-        public string value { get; set; }
+        public object value { get; set; }
         public string @operator { get; set; }
     }    
 }

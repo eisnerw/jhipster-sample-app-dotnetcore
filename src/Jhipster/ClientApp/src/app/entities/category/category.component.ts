@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, Input, ViewChild } from '@angular/core';
 import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ActivatedRoute, ParamMap, Router, Data } from '@angular/router';
-import { Subscription, combineLatest } from 'rxjs';
+import { Subscription, combineLatest, forkJoin } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { JhiEventManager } from 'ng-jhipster';
 import { Directive } from '@angular/core';
@@ -96,10 +96,6 @@ export class CategoryComponent implements OnInit, OnDestroy {
 
   bDisplaySearchDialog = false;
 
-  bDoneGettingRulesetMap = false;
-
-  bDoneGettingOptionsMap = false;
-
   editingQuery = false;
 
   bDisplayBirthday = false;
@@ -178,6 +174,42 @@ export class CategoryComponent implements OnInit, OnDestroy {
 
   public analysisMatches: AnalysisMatch[] = [];
 
+
+  getLatestRulesets$ : Observable<void> = 
+    this.rulesetService.query().pipe(take(1), map((res: any): void=> {
+      this.rulesetMap.clear();
+      let rulesets : IStoredRuleset[] = [];
+      rulesets = res.body || [];
+      rulesets?.forEach(r=>{
+        const query : IQuery = JSON.parse(r.jsonString as string) as IQuery;
+        this.rulesetMap.set(r.name as string, this.birthdayQueryParserService.normalize(query, this.rulesetMap as Map<string, IQuery>));
+      });
+  }));
+
+  getLatestOptions$ : Observable<void> =
+    this.birthdayService.query({
+      page: 0,
+      size: this.itemsPerPage,
+      sort: this.sort(),
+      query: ""
+    }).pipe(take(1), map((res: HttpResponse<IBirthday[]>) => {
+      this.optionsMap.clear();
+      let lnames : string[] = [];
+      const options : Option[] = [];
+      (res.body as IBirthday[]).forEach((b=>{
+        if (!lnames.includes(b.lname as string)){
+          lnames.push(b.lname as string);
+        }
+      }));
+      lnames = lnames.sort();
+      lnames.forEach(n=>{
+        options.push({name: n, value: n});
+      });
+      this.optionsMap.set("lname", options);
+    },
+    () => this.onError()
+  ));
+
   constructor(
     protected categoryService: CategoryService,
     protected birthdayService: BirthdayService,
@@ -244,22 +276,12 @@ export class CategoryComponent implements OnInit, OnDestroy {
   }
 
   showSearchDialog(queryBuilder : any) : void {
-    this.bDoneGettingOptionsMap = false;
-    this.bDoneGettingRulesetMap = false;
-    this.optionsMap.clear();
-    let rulesets : IStoredRuleset[] = [];
-    this.rulesetService.query().pipe(take(1), map((res: any): void=> {
-      this.rulesetMap.clear();
-      rulesets = res.body || [];
-      rulesets?.forEach(r=>{
-        const query : IQuery = JSON.parse(r.jsonString as string) as IQuery;
-        this.rulesetMap.set(r.name as string, this.birthdayQueryParserService.normalize(query, this.rulesetMap as Map<string, IQuery>));
-      }); 
-      let queryObject : any = this.birthdayQueryParserService.parse(this.searchQueryAsString, this.rulesetMap);
+    forkJoin([this.getLatestOptions$, this.getLatestRulesets$]).subscribe(()=>{
+      let queryObject : any = this.birthdayQueryParserService.parse(this.searchQueryAsString, this.rulesetMap, this.optionsMap);
       if (queryObject.Invalid){
         if (this.editingQuery){
           this.searchQueryAsString = this.searchQueryBeforeEdit;
-          queryObject = this.birthdayQueryParserService.parse(this.searchQueryAsString, this.rulesetMap);
+          queryObject = this.birthdayQueryParserService.parse(this.searchQueryAsString, this.rulesetMap, this.optionsMap);
         }
       }
       if (this.searchQueryAsString === ""){
@@ -275,54 +297,20 @@ export class CategoryComponent implements OnInit, OnDestroy {
         }
       }
       queryBuilder.initialize(JSON.stringify(queryObject));
-      this.bDoneGettingRulesetMap = true;
-      if (this.bDoneGettingOptionsMap){
-        this.bDisplaySearchDialog = true;
-      }
+      this.bDisplaySearchDialog = true;
       this.editingQuery = false;
-    })).subscribe();
-    this.birthdayService.query({
-      page: 0,
-      size: this.itemsPerPage,
-      sort: this.sort(),
-      query: ""
-    }).subscribe(
-      (res: HttpResponse<IBirthday[]>) => {
-        let lnames : string[] = [];
-        const options : Option[] = [];
-        (res.body as IBirthday[]).forEach((b=>{
-          if (!lnames.includes(b.lname as string)){
-            lnames.push(b.lname as string);
-          }
-        }));
-        lnames = lnames.sort();
-        lnames.forEach(n=>{
-          options.push({name: n, value: n});
-        });
-        this.optionsMap.set("lname", options);
-        this.bDoneGettingOptionsMap = true;
-        if (this.bDoneGettingRulesetMap){
-          this.bDisplaySearchDialog = true;
-        }
-      },
-      () => this.onError()
-    );
+    });
   }
 
   cancelSearchDialog() : void {
     this.bDisplaySearchDialog = false;
- }
+  }
 
   editQuery() : void {
-    this.rulesetService.query().pipe(take(1), map((res: any): void=> {
-      this.rulesetMap.clear();
-      ((res.body || []) as IStoredRuleset[]).forEach(r=>{
-        const query : IQuery = JSON.parse(r.jsonString as string) as IQuery;
-        this.rulesetMap.set(r.name as string, this.birthdayQueryParserService.normalize(query, this.rulesetMap as Map<string, IQuery>));
-      });
+    forkJoin([this.getLatestOptions$, this.getLatestRulesets$]).subscribe(()=>{
       this.editingQuery = true;
       this.searchQueryBeforeEdit = this.searchQueryAsString;
-    })).subscribe();  
+    });
   }
 
   cancelEditQuery() : void{
@@ -334,7 +322,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
     if (this.searchQueryAsString.length === 0){
       this.databaseQuery = "";
     } else {
-      this.databaseQuery = JSON.stringify(this.birthdayQueryParserService.parse(this.searchQueryAsString, this.rulesetMap));
+      this.databaseQuery = JSON.stringify(this.birthdayQueryParserService.parse(this.searchQueryAsString, this.rulesetMap, this.optionsMap));
       this.editingQuery = false;
       this.refreshData();
     }
@@ -358,7 +346,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
       }
     }
     this.bDisplaySearchDialog = false;
-    const queryObject : any = this.birthdayQueryParserService.parse(this.searchQueryAsString, this.rulesetMap);
+    const queryObject : any = this.birthdayQueryParserService.parse(this.searchQueryAsString, this.rulesetMap, this.optionsMap);
     if (queryObject.Invalid){
       this.editingQuery = true;
       setTimeout(function() : void{
@@ -743,7 +731,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
     const topLevel = this.parentComponent ? this.parentComponent : this;
     if (topLevel.searchQueryAsString !== ""){
       // capture the query in the editor which could get renamed
-      queryBeingEdited = this.birthdayQueryParserService.parse(topLevel.searchQueryAsString, this.rulesetMap);
+      queryBeingEdited = this.birthdayQueryParserService.parse(topLevel.searchQueryAsString, this.rulesetMap, this.optionsMap);
       queryBeingEdited = this.birthdayQueryParserService.normalize(queryBeingEdited, this.rulesetMap as Map<string, IQuery>);
     }
     this.updatingNamedQueryError = "";

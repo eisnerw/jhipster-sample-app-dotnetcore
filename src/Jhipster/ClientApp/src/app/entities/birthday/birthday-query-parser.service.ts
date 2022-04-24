@@ -1,7 +1,9 @@
+import { Option } from "angular2-query-builder";
+
 export interface IQueryRule {
     field: string,
     operator: string,
-    value: string
+    value: string | string[]
 }
 
 export interface IQuery {
@@ -21,14 +23,14 @@ interface IParse {
 
 export class BirthdayQueryParserService {
   queryNames: string[] = [];
-  parse(query: string, rulesetMap: Map<string, IQuery | IQueryRule>): IQuery {
+  parse(query: string, rulesetMap: Map<string, IQuery | IQueryRule>, optionsMap : Map<string, Option[]>): IQuery {
     if (query.trim() === ""){
         return {"condition":"or","not":false,"rules":[]};
     }
     this.queryNames = [...(rulesetMap as Map<string, IQuery>).keys()].sort((a, b) => a > b ? -1 : 1);;
     const queryNameRegexString = this.queryNames.length > 0 ? "|(" + this.queryNames.join("|") + ")": "";
     // query = query.replace(/\\\\/g,'\x01').replace(/\\"/g, '\x02').replace(/`/g,'\x03');
-    const regexString = "\\s*([()]" + queryNameRegexString + '|("(\\\\"|\\\\\\\\|[^"])+\\"|\\/(\\\\\\/|[^\\/])+\\/' + "|sign|dob|lname|fname|isAlive|document)|(=|!=|CONTAINS|LIKE|EXISTS|!EXISTS|>=|<=|>|<)|(&|\\||!)|[^\"/=!<>]+)\\s*";
+    const regexString = "\\s*(" + '(?<=\\sIN\\s)(\\("(\\\\"|[^"])+"|[^"\\s]+\\s*)(,\\s*("(\\\\"|[^"])+"|[^"\\s]+\\s*))*\\s*\\)' + queryNameRegexString + '|[()]' + '|("(\\\\"|\\\\\\\\|[^"])+\\"|\\/(\\\\\\/|[^\\/])+\\/' + "|sign|dob|lname|fname|isAlive|document)|(=|!=|CONTAINS|LIKE|EXISTS|!EXISTS|IN|>=|<=|>|<)|(&|\\||!)|[^\"/=!<>() ]+)\\s*";
     const regex = new RegExp(regexString, "g");
     const tokens = query.replace(regex, '`$1').split('`');
     /* NOT SURE WE STILL NEED THIS
@@ -53,9 +55,9 @@ export class BirthdayQueryParserService {
       return { Invalid :true, position: 0, condition: "", rules:[], not: false} // must be starting with unmatched " or /
     }
     const i = 1;
-    let ret = this.parseRuleset(tokens, i, false, rulesetMap);
+    let ret = this.parseRuleset(tokens, i, false, rulesetMap, optionsMap);
     if (!ret.matches){
-      ret = this.parseRule(tokens, i);
+      ret = this.parseRule(tokens, i, optionsMap);
     }
     if (!ret.string.startsWith('{"condition')){
       ret.string = '{"condition":"or","rules":[' + ret.string + '],"not":false}';
@@ -82,7 +84,7 @@ export class BirthdayQueryParserService {
     return query;
   }
 
-  parseRule(tokens: string[], i: number):IParse{
+  parseRule(tokens: string[], i: number, optionsMap : Map<string, Option[]>):IParse{
     const parse: IParse = {
       matches: false,
       string: "",
@@ -116,8 +118,13 @@ export class BirthdayQueryParserService {
     parse.string = '[invalid operator]'
     switch (tokens[i]){
       case 'isAlive':
-      case 'sign':
         if (tokens[i + 1] !== '='){
+          return parse;
+        }        
+        break;
+
+      case 'sign':
+        if (!/^(=|!=|IN)$/.test(tokens[i + 1])){
           return parse;
         }
         break;
@@ -129,8 +136,13 @@ export class BirthdayQueryParserService {
         break;
       
       case 'lname':
+        if (!/^(=|!=|IN|EXISTS|!EXISTS)$/.test(tokens[i + 1])){
+          return parse;
+        }        
+        break;
+
       case 'fname':
-        if (!/^(=|!=|CONTAINS|LIKE|EXISTS|!EXISTS)$/.test(tokens[i + 1])){
+        if (!/^(=|!=|CONTAINS|LIKE|IN|EXISTS|!EXISTS)$/.test(tokens[i + 1])){
           return parse;
         }
         break;
@@ -153,6 +165,7 @@ export class BirthdayQueryParserService {
       parse.string = '{"field":"' + tokens[i] + '","operator":"exists","value":' + (tokens[i + 1].startsWith('!') ? 'false' : 'true') + '}';
       return parse;
     }
+    const values : Map<string, string> = new Map<string, string>();    
     switch (tokens[i]){
       case 'isAlive':
         if (!/^(true|false)$/.test(tokens[i + 2])){
@@ -161,8 +174,24 @@ export class BirthdayQueryParserService {
         break;
 
       case 'sign':
-        if (!/^(aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces|EXISTS)$/.test(tokens[i + 2])){
-          return parse;
+        if (tokens[i + 1] === 'IN' && tokens[i + 2] && tokens[i + 2].length > 2){
+          let bValid = true;
+          const trimmedAndQuoted : string[] = [];
+          tokens[i + 2].substring(1, tokens[i + 2].length - 1).split(',').forEach(v=>{
+            if (!/^(aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces)$/.test(v.trim().toLowerCase())){
+              bValid = false;
+            } else {
+              trimmedAndQuoted.push('"' + v.trim() + '"');
+            }
+          });
+          if (!bValid){
+            return parse;
+          }
+          tokens[i + 2] = "[" + trimmedAndQuoted.join(", ") + "]";
+        } else {
+          if (!/^(aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces|EXISTS)$/.test(tokens[i + 2])){
+            return parse;
+          }
         }
         break;
       
@@ -173,7 +202,52 @@ export class BirthdayQueryParserService {
         break;
       
       case 'lname':
+        if (optionsMap.has('lname')){
+          optionsMap.get('lname')?.forEach(o=>{
+            if (!values.has(o.value.toLowerCase())){
+              values.set(o.value.toLowerCase(), o.value);
+            }
+          });
+        }        
+        if (tokens[i + 1] === 'IN' && tokens[i + 2] && tokens[i + 2].length > 2){
+          let bValid = true;
+          const trimmedAndQuoted : string[] = [];
+          tokens[i + 2].substring(1, tokens[i + 2].length - 1).split(',').forEach(v=>{
+            let value = v.trim().toLowerCase();
+            if (value.startsWith('"')){
+              value = value.substring(1, value.length - 1).replace(/\\"/g,'"');
+            }            
+            const quotedValue = v.trim().startsWith('"') ? v.trim() : ('"' + v.trim() + '"');
+            if (!values.has(value)){
+              bValid = false;
+            } else {
+              trimmedAndQuoted.push(quotedValue);
+            }
+          });
+          if (!bValid){
+            return parse;
+          }
+          tokens[i + 2] = "[" + trimmedAndQuoted.join(", ") + "]";
+        } else {
+          let value = tokens[i + 2]?.toLowerCase();
+          if (value?.startsWith('"')){
+            value = value.substring(1, value.length - 1).replace(/\\"/g,'"');
+          }            
+          const quotedValue = tokens[i + 2]?.startsWith('"') ? tokens[i + 2] : ('"' + tokens[i + 2] + '"');
+          if (!values.has(value)){
+            return parse;
+          }
+          tokens[i + 2] = quotedValue;
+        }
+        break;
+
       case 'fname':
+        if (!(tokens[i + 1] === 'IN' && /^\(.+\)$/.test(tokens[i + 2]) 
+            && !/^[\w\d.* -]+$/.test(tokens[i + 2]) && !/^"[^"]+"$/.test(tokens[i + 2]))){
+          return parse;
+        }
+        break;
+
       case 'document':
         if (!/^[\w\d.* -]+$/.test(tokens[i + 2]) && !/^"[^"]+"$/.test(tokens[i + 2])){
           return parse;
@@ -188,47 +262,43 @@ export class BirthdayQueryParserService {
     if (tokens[i + 2] === undefined){
       return parse; // no value
     }
-    if (tokens[i] === "isAlive"){
+    if (tokens[i] === "isAlive" || tokens[i + 1] === "IN" || value || tokens[i + 2].startsWith('"')){
       value = tokens[i + 2];
     } else {
-/* eslint "no-control-regex": 0 */ 
       value = '"' + tokens[i + 2] + '"';
-      if (tokens[i + 2].startsWith('"')){
-        value = tokens[i + 2];
-      }
     }
     parse.matches = true;
     parse.string = '{"field":"' + tokens[i] + '","operator":"' + tokens[i + 1].toLowerCase() + '","value":' + value + '}';
     return parse;
   }
 
-  parseRuleset(tokens: string[], i: number, not: boolean, rulesetMap : Map<string, IQuery | IQueryRule>):IParse{
-    let ret = this.parseAndOrRuleset(tokens, i, not, rulesetMap);
+  parseRuleset(tokens: string[], i: number, not: boolean, rulesetMap : Map<string, IQuery | IQueryRule>, optionsMap : Map<string, Option[]>):IParse{
+    let ret = this.parseAndOrRuleset(tokens, i, not, rulesetMap, optionsMap);
     if (!ret.matches){
       if (ret.string !== ""){
         return ret;
       }
-      ret = this.parseNotRuleset(tokens, i, rulesetMap);
+      ret = this.parseNotRuleset(tokens, i, rulesetMap, optionsMap);
     }
     if (!ret.matches){
-      ret = this.parseParened(tokens, i, rulesetMap);
+      ret = this.parseParened(tokens, i, rulesetMap, optionsMap);
     }
     return ret;
   }
 
-  parseAndOrRuleset(tokens: string[], i: number, not: boolean, rulesetMap : Map<string, IQuery | IQueryRule>):IParse{
+  parseAndOrRuleset(tokens: string[], i: number, not: boolean, rulesetMap : Map<string, IQuery | IQueryRule>, optionsMap : Map<string, Option[]>):IParse{
     const rules : string[] = [];
     const parse: IParse = {
       matches: false,
       string: "",
       i
     }
-    let ret = this.parseParened(tokens, i, rulesetMap);
+    let ret = this.parseParened(tokens, i, rulesetMap, optionsMap);
     if (!ret.matches){
       if (ret.string !== ""){
         return ret;
       }
-      ret = this.parseRule(tokens, i);
+      ret = this.parseRule(tokens, i, optionsMap);
       if (!ret.matches){
         if (ret.string !== ""){
           return ret;
@@ -255,12 +325,12 @@ export class BirthdayQueryParserService {
     rules.push(ret.string);
     let loop = true;
     while (loop){
-      ret = this.parseParened(tokens, parse.i, rulesetMap);
+      ret = this.parseParened(tokens, parse.i, rulesetMap, optionsMap);
       if (!ret.matches){
         if (ret.string !== ""){
           return ret;
         }
-        ret = this.parseRule(tokens, parse.i);
+        ret = this.parseRule(tokens, parse.i, optionsMap);
         if (!ret.matches){
           if (ret.string !== ""){
             return ret;
@@ -288,7 +358,7 @@ export class BirthdayQueryParserService {
     return parse;
   }
 
-  parseNotRuleset(tokens: string[], i: number, rulesetMap : Map<string, IQuery | IQueryRule>):IParse{
+  parseNotRuleset(tokens: string[], i: number, rulesetMap : Map<string, IQuery | IQueryRule>, optionsMap : Map<string, Option[]>):IParse{
     const parse: IParse = {
       matches: false,
       string: "",
@@ -297,7 +367,7 @@ export class BirthdayQueryParserService {
     if (tokens[i++] !== "!"){
       return parse;
     }
-    const ret = this.parseParened(tokens, i, rulesetMap);
+    const ret = this.parseParened(tokens, i, rulesetMap, optionsMap);
     if (!ret.matches){
       if (ret.string !== ""){
         return ret;
@@ -312,7 +382,7 @@ export class BirthdayQueryParserService {
     return ret;
   }
 
-  parseParened(tokens: string[], i: number, rulesetMap : Map<string, IQuery | IQueryRule>):IParse{
+  parseParened(tokens: string[], i: number, rulesetMap : Map<string, IQuery | IQueryRule>, optionsMap : Map<string, Option[]>):IParse{
     const parse: IParse = {
       matches: false,
       string: "",
@@ -342,9 +412,9 @@ export class BirthdayQueryParserService {
       return parse;
     }
     parse.i++;
-    let ret = this.parseRuleset(tokens, i, not, rulesetMap);
+    let ret = this.parseRuleset(tokens, i, not, rulesetMap, optionsMap);
     if (!ret.matches && ret.string === ""){
-      ret = this.parseRule(tokens, i);
+      ret = this.parseRule(tokens, i, optionsMap);
       if (ret.matches){
         ret.string = ret.string = '{"condition":"or","rules":[' + ret.string + '],"not":' + (not ? 'true' : 'false') + '}';
       } else {
@@ -377,7 +447,7 @@ export class BirthdayQueryParserService {
           result += this.queryAsString(r as unknown as IQuery, query.rules.length > 1); // note: is only one rule, treat it as a top level
         }
       } else if (r.field === "document" && r.value !== undefined) {
-        if (/[\s\\"]/.test(r.value.toString())){
+        if (!/^[a-zA-z\d]+$]/.test(r.value.toString())){
           result += ('"' + r.value.toString().replace(/([\\"])/g, '\\$1') + '"');
         } else {
           result += (r.value.toString().toLowerCase());
@@ -386,6 +456,12 @@ export class BirthdayQueryParserService {
         result += r.field;
         if (r.operator === "exists"){
           result += (' ' + (r.value ? '' : '!') + 'EXISTS ');
+        } else if (r.operator === "in"){
+          const quoted : string[] = [];
+          (r.value as string[]).forEach(v =>{
+            quoted. push(/^[a-zA-z\d]+$/.test(v) ? v : ('"' + v?.replace(/([\\"])/g, '\\$1') + '"'));
+          });
+          result += (' IN (' + quoted.join(', ') + ') ');          
         } else {
           result += (' ' +  r.operator.toUpperCase() + ' ');
           if (r.value !== undefined) {
