@@ -4,13 +4,15 @@ Subtemplates:
 {#condition:[{not->[( NOT]}({condition.Case('and',#and,'or',#or)}){not->[)]}]}
 {#and:[{rules:[{field=>#operator,#condition}].Join( ' AND ')}]}
 {#or:[{rules:[{field=>#operator,#condition}].Join(' OR ')}]}
-{#operator:[{operator.Case('=',#equals,'>=',#gte,'<=',#lte,'>',#gt,'<',#lt,'contains',#contains,'exists',#exists,'in',#in,[NOT HANDLED: {field} {operator} {value}])}]}
-{#equals:[{field}:({'"'}{value}{'"'})]}
-{#gte:[{field}:{'["'}{value}{'"'} TO *{']'}]}
-{#lte:[{field}:{'['}* TO {'"'}{value}{'"]'}]}
-{#gt:[{field}:{'{"'}{value}{'"'} TO *{'}'}]}
-{#lt:[{field}:{'{'}* TO {'"'}{value}{'"}'}]}
+{#operator:[{operator.Case('=',#equals,'!=',#ne,'>=',#gte,'<=',#lte,'>',#gt,'<',#lt,'contains',#contains,'exists',#exists,'in',#in,'not in',#notin,[NOT HANDLED: {field} {operator} {value}])}]}
+{#equals:[{field}:("{value}")]}
+{#gte:[{field}:{'["'}{value}" TO *{']'}]}
+{#lte:[{field}:{'['}* TO "{value}{'"]'}]}
+{#gt:[{field}:{'{"'}{value}" TO *{'}'}]}
+{#lt:[{field}:{'{'}* TO "{value}{'"}'}]}
+{#ne:[!({field}:("{value}"))]}
 {#contains:[{field != 'document'->[{field}:]}{#value}]}
 {#value:[{!value.Contains(' ') | value.Matches(/"[^"]+"/)=>[{value}],["{value}"~4]}]}
 {#exists:[{!value->[!]}{field}:{'[* TO *]'}]}
 {#in:[({value:[{^.^.field}:("{_}")].Join(' OR ')})]}
+{#notin:[!({value:[{^.^.field}:("{_}")].Join(' OR ')})]}

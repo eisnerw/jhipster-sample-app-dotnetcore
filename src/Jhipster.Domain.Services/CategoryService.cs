@@ -158,6 +158,8 @@ namespace Jhipster.Domain.Services
                 switch (set.@operator){
                     case "=":
                         return fieldValue.ToLower() == ((string)set.value).ToLower();
+                    case "!=":
+                        return fieldValue.ToLower() != ((string)set.value).ToLower();
                     case "exists":
                         bool fieldValueExists = fieldValue != null && fieldValue.ToString().Length > 0;
                         return (set.value != null && ((string)set.value) == "true") ? fieldValueExists : !fieldValueExists;                  
@@ -174,6 +176,7 @@ namespace Jhipster.Domain.Services
                         }
                         break;
                     case "in":
+                    case "not in":
                         List<string> lstValue = JsonConvert.DeserializeObject<List<string>>(set.value.ToString());
                         bool bMatch = false;
                         lstValue.ForEach(v=>{
@@ -181,7 +184,7 @@ namespace Jhipster.Domain.Services
                                 bMatch = true;
                             }
                         });
-                        if (bMatch){
+                        if ((set.@operator == "in" && bMatch) || (set.@operator == "not in" && !bMatch)){
                             return true;
                         }
                         break;

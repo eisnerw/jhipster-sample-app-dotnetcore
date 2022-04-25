@@ -203,7 +203,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
       }));
       lnames = lnames.sort();
       lnames.forEach(n=>{
-        options.push({name: n, value: n});
+        options.push({name: n, value: n.toLowerCase()});
       });
       this.optionsMap.set("lname", options);
     },
