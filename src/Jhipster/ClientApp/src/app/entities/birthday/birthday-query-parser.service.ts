@@ -30,7 +30,7 @@ export class BirthdayQueryParserService {
     this.queryNames = [...(rulesetMap as Map<string, IQuery>).keys()].sort((a, b) => a > b ? -1 : 1);;
     const queryNameRegexString = this.queryNames.length > 0 ? "|(" + this.queryNames.join("|") + ")": "";
     // query = query.replace(/\\\\/g,'\x01').replace(/\\"/g, '\x02').replace(/`/g,'\x03');
-    const regexString = "\\s*(" + '(?<=IN\\s)(\\("(\\\\"|[^"])+"|[^"\\s]+\\s*)(,\\s*("(\\\\"|[^"])+"|[^"\\s]+\\s*))*\\s*\\)' + queryNameRegexString + '|[()]' + '|("(\\\\"|\\\\\\\\|[^"])+\\"|\\/(\\\\\\/|[^\\/])+\\/' + "|sign|dob|lname|fname|isAlive|document)|(=|!=|CONTAINS|LIKE|EXISTS|!EXISTS|IN|!IN|>=|<=|>|<)|(&|\\||!)|[^\"/=!<>() ]+)\\s*";
+    const regexString = "\\s*(" + '(?<=IN\\s)(\\("(\\\\"|[^"])+"|\\/(\\\\/|[^/]+\\/)|[^"\\s]+\\s*)(,\\s*("(\\\\"|[^"])+"|[^"\\s]+\\s*))*\\s*\\)' + queryNameRegexString + '|[()]' + '|("(\\\\"|\\\\\\\\|[^"])+\\"|\\/(\\\\\\/|[^\\/])+\\/' + "|sign|dob|lname|fname|isAlive|document)|(=|!=|CONTAINS|LIKE|EXISTS|!EXISTS|IN|!IN|>=|<=|>|<)|(&|\\||!)|[^\"/=!<>() ]+)\\s*";
     const regex = new RegExp(regexString, "g");
     const tokens = query.replace(regex, '`$1').split('`');
     /* NOT SURE WE STILL NEED THIS
@@ -103,6 +103,14 @@ export class BirthdayQueryParserService {
               }
               documentValue = tokens[i];
             }
+            if (typeof documentValue === 'string' && documentValue.startsWith('"/') && documentValue.endsWith('/"')){
+              try {
+                RegExp(documentValue.substring(1, documentValue.length - 1));
+              } catch(e){
+                parse.string = '[bad regex]'
+                return parse;
+              }
+            }           
             parse.matches = true;
             parse.string = '{"field":"document", "operator":"contains","value":' + documentValue + '}';
             parse.i++;
@@ -249,8 +257,15 @@ export class BirthdayQueryParserService {
         break;
 
       case 'fname':
-        if (!((tokens[i + 1] === 'IN' || tokens[i + 1] === '!IN') && /^\(.+\)$/.test(tokens[i + 2]) 
-            && !/^[\w\d.* -]+$/.test(tokens[i + 2]) && !/^"[^"]+"$/.test(tokens[i + 2]))){
+        if (tokens[i + 1] === 'CONTAINS' && typeof tokens[i + 2] === 'string' && tokens[i + 2].startsWith('/')&& tokens[i + 2].endsWith('/')){
+          try {
+            RegExp(tokens[i + 2]);
+          } catch(e){
+            parse.string = '[bad regex]'
+            return parse;
+          }
+        } else if (!((tokens[i + 1] === 'IN' || tokens[i + 1] === '!IN') && /^\(.+\)$/.test(tokens[i + 2])) 
+            && !/^[\w\d.* -]+$/.test(tokens[i + 2]) && !/^"[^"]+"$/.test(tokens[i + 2])){
           return parse;
         }
         break;
@@ -455,7 +470,10 @@ export class BirthdayQueryParserService {
           result += this.queryAsString(r as unknown as IQuery, query.rules.length > 1); // note: is only one rule, treat it as a top level
         }
       } else if (r.field === "document" && r.value !== undefined) {
-        if (!/^[a-zA-z\d]+$]/.test(r.value.toString())){
+        if(/^\/.*\//.test(r.value.toString())){
+          // regex
+          result += r.value.toString();
+        } else if (!/^[a-zA-Z\d]+$/.test(r.value.toString())){
           result += ('"' + r.value.toString().replace(/([\\"])/g, '\\$1') + '"');
         } else {
           result += (r.value.toString().toLowerCase());
@@ -467,13 +485,15 @@ export class BirthdayQueryParserService {
         } else if (r.operator === "in" || r.operator === "not in"){
           const quoted : string[] = [];
           (r.value as string[]).forEach(v =>{
-            quoted. push(/^[a-zA-z\d]+$/.test(v) ? v : ('"' + v?.replace(/([\\"])/g, '\\$1') + '"'));
+            quoted. push(/^[a-zA-Z\d]+$/.test(v) ? v : ('"' + v?.replace(/([\\"])/g, '\\$1') + '"'));
           });
           result += (' ' + (r.operator === "in" ? "" : "!") +'IN (' + quoted.join(', ') + ') ');          
         } else {
           result += (' ' +  r.operator.toUpperCase() + ' ');
           if (r.value !== undefined) {
-            if (/[\s\\"]/.test(r.value.toString())){
+            if (r.value.toString().startsWith('/') && r.value.toString().endsWith('/')){
+              result += r.value.toString(); // regex
+            } else if (/[\s\\"]/.test(r.value.toString())){
               result += ('"' + r.value.toString().replace(/([\\"])/g, '\\$1') + '"');
             } else {
               result += (r.value.toString().toLowerCase());

@@ -18,6 +18,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace Jhipster.Controllers
 {
@@ -72,6 +73,7 @@ namespace Jhipster.Controllers
             _log.LogDebug("REST request to get a page of Birthdays");
             var queryDictionary = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(HttpContext.Request.QueryString.ToString());
             String query = "";
+            RulesetOrRule regexRulesetOrRule = null;
             if (queryDictionary.Keys.Contains("query")){
                 query = queryDictionary["query"];
             }
@@ -88,6 +90,16 @@ namespace Jhipster.Controllers
                         birthdayQuery = query;
                     }
                     if (birthdayQuery != ""){
+                        RulesetOrRule rulesetOrRule = JsonConvert.DeserializeObject<RulesetOrRule>(birthdayQuery);
+                        if (ContainsRegex(rulesetOrRule)){
+                            regexRulesetOrRule = DeMorganRemoveNot(rulesetOrRule, false);
+                            RulesetOrRule removed = RemoveRegex(regexRulesetOrRule);
+                            if (removed == null){
+                                birthdayQuery = "";
+                            } else {
+                                birthdayQuery = removed.ToString();
+                            }
+                        }
                         birthdayQuery = TextTemplate.Runner.Interpolate("LuceneQueryBuilder", birthdayQuery);
                     }
                 }
@@ -96,10 +108,170 @@ namespace Jhipster.Controllers
             }
             BirthdayDto birthdaydto = _mapper.Map<BirthdayDto>(new Birthday());
             var result = await _birthdayService.FindAll(pageable, query);
-            var listBirthdays = result.Content.Select(entity => _mapper.Map<BirthdayDto>(entity)).ToList();
-            var page = new Page<BirthdayDto>(listBirthdays, pageable, result.TotalElements);
+            List<BirthdayDto> lstBirthdays = new List<BirthdayDto>();
+            foreach(Birthday entity in result.Content){
+                if (regexRulesetOrRule == null || EvaluateWithRegex(entity, regexRulesetOrRule)){
+                    lstBirthdays.Add(_mapper.Map<BirthdayDto>(entity));
+                }
+            }
+            var page = new Page<BirthdayDto>(lstBirthdays, pageable, result.TotalElements);
             return Ok(((IPage<BirthdayDto>)page).Content).WithHeaders(page.GeneratePaginationHttpHeaders());
         }
+
+        private bool EvaluateWithRegex(Birthday result, RulesetOrRule rulesetOrRule){
+            bool evalResult = rulesetOrRule.condition == "and" ? true : false;            
+            if (rulesetOrRule.rules == null){
+                object value = "";
+                switch (rulesetOrRule.field){
+                    case "lname":
+                        value = result.Lname.ToLower();
+                        break;
+                    case "fname":
+                        value = result.Fname.ToLower();
+                        break;
+                    case "sign":
+                        value = result.Lname.ToLower();
+                        break;
+                }
+                switch (rulesetOrRule.@operator){
+                    case "!contains":                    
+                    case "contains":
+                        if (rulesetOrRule.value.StartsWith("/") && rulesetOrRule.value.EndsWith("/")){
+                            evalResult = Regex.IsMatch((string)value, rulesetOrRule.value.Substring(1, rulesetOrRule.value.Length - 2), RegexOptions.IgnoreCase);
+                        } else if (((string)value).Contains(rulesetOrRule.value.ToLower())){
+                            evalResult = true;
+                        }
+                        return rulesetOrRule.@operator.StartsWith("!") ? !evalResult : evalResult;
+
+                    case "!=":                        
+                    case "=":
+                        evalResult = rulesetOrRule.value.ToLower() == (string)value;
+                        return rulesetOrRule.@operator.StartsWith("!") ? !evalResult : evalResult;
+                }
+                return false;
+            } else {
+                rulesetOrRule.rules.ForEach(r=>{
+                    if (rulesetOrRule.condition != "and" || r.rules != null || (r.@operator.EndsWith("contains") && r.value.StartsWith("/") && r.value.EndsWith("/"))){
+                        if (rulesetOrRule.condition == "and" && evalResult){
+                            evalResult = evalResult && EvaluateWithRegex(result, r);
+                        } else if (rulesetOrRule.condition == "or" && !evalResult){
+                            evalResult = evalResult || EvaluateWithRegex(result, r);
+                        }
+                    }
+                });
+                return evalResult;
+            }
+        }
+
+        private bool ContainsRegex(RulesetOrRule rulesetOrRule){
+            if (rulesetOrRule.rules == null){
+                return rulesetOrRule.@operator.EndsWith("contains") && rulesetOrRule.value.StartsWith("/") && rulesetOrRule.value.EndsWith("/");
+            }
+            bool bContainsRegex = false;
+            rulesetOrRule.rules.ForEach(r=>{
+                if (ContainsRegex(r)){
+                    bContainsRegex = true;
+                }
+            });
+            return bContainsRegex;
+        }
+
+        private RulesetOrRule RemoveRegex(RulesetOrRule rulesetOrRule){
+            RulesetOrRule returned = new RulesetOrRule();
+            returned.rules = new List<RulesetOrRule>();
+            returned.condition = rulesetOrRule.condition;
+            bool bReturnNull = false;
+            if (rulesetOrRule.condition == "and"){
+                rulesetOrRule.rules.ForEach(r=>{
+                    if (!(r.rules == null && r.@operator.EndsWith("contains") && r.value.StartsWith("/") && r.value.EndsWith("/"))){
+                        if (r.rules == null){
+                            returned.rules.Add(r);
+                        } else {
+                            RulesetOrRule removed = RemoveRegex(r);
+                            if (removed != null){
+                                returned.rules.Add(removed);
+                            }
+                        }
+                    }
+                });
+            } else { // OR
+                rulesetOrRule.rules.ForEach(r=>{
+                    if (r.rules == null && r.@operator.EndsWith("contains") && r.value.StartsWith("/") && r.value.EndsWith("/")){
+                        bReturnNull = true;
+                    } else if (r.rules == null){
+                        returned.rules.Add(r);
+                    } else {
+                        RulesetOrRule removed = RemoveRegex(r);
+                        if (removed != null){
+                            returned.rules.Add(removed);
+                        } else {
+                            bReturnNull = true;
+                        }                      
+                    }
+                });
+            }
+            if (bReturnNull || returned.rules.Count == 0){
+                return null;
+            }
+            return returned;
+        }
+
+        private RulesetOrRule DeMorganRemoveNot(RulesetOrRule rulesetOrRule, bool reverse){
+            RulesetOrRule returned = new RulesetOrRule();
+            if (rulesetOrRule.rules == null){
+                if (!reverse){
+                    return rulesetOrRule;
+                }
+                returned.field = rulesetOrRule.field;
+                returned.value = rulesetOrRule.value;
+                switch (rulesetOrRule.@operator){
+                    case "=":
+                        returned.@operator = "!=";
+                        break;
+                    case "!=":
+                        returned.@operator = "=";
+                        break;
+                    case ">":
+                        returned.@operator = "<=";
+                        break;
+                    case "<":
+                        returned.@operator = "<=";
+                        break;                                                                        
+                    case "<=":
+                        returned.@operator = ">";
+                        break;
+                    case ">=":
+                        returned.@operator = "<";
+                        break;
+                    case "in":
+                        returned.@operator = "!in";
+                        break;
+                    case "!in":
+                        returned.@operator = "in";
+                        break;
+                    case "contains":
+                        returned.@operator = "!contains";
+                        break;
+                    case "!contains":
+                        returned.@operator = "contains";
+                        break;
+                }
+                return returned;
+            }
+            returned.rules = new List<RulesetOrRule>();
+            if ((rulesetOrRule.not && reverse) || (!rulesetOrRule.not && !reverse)){
+                returned.condition = rulesetOrRule.condition;
+                rulesetOrRule.rules.ForEach(r=>{
+                    returned.rules.Add(DeMorganRemoveNot(r, false));
+                });
+            } else {
+                returned.condition = rulesetOrRule.condition == "and" ? "or" : "and";
+                rulesetOrRule.rules.ForEach(r=>{
+                    returned.rules.Add(DeMorganRemoveNot(r, true));
+                });                    
+            }
+            return returned;
+        }        
 
         [AllowAnonymous]
         [HttpGet("birthdays/text/{id}")]
