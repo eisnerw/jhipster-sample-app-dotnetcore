@@ -1628,7 +1628,8 @@ namespace Jhipster.Infrastructure.Data.Repositories
                     Dob = hit.Source.dob,
                     Sign = hit.Source.sign,
                     IsAlive = hit.Source.isAlive,
-                    Categories = listCategory
+                    Categories = listCategory,
+                    Text = Regex.Replace(hit.Source.wikipedia, "<.*?>|&.*?;", string.Empty)
                 });
             }
             content = content.OrderBy(b => b.Dob).ToList();

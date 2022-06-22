@@ -3,6 +3,9 @@
     <p-contextMenu #contextMenu [model]="menuItems" (mouseleave)="contextMenu.hide()" appendTo="body"></p-contextMenu>
     <p-confirmPopup></p-confirmPopup>
     <p-messages></p-messages>
+    <div *ngIf="tooManyMessage">
+      <span >{{tooManyMessage}}</span>
+    </div>    
     <super-table #birthdays [value]="birthday" 
       [resizableColumns]="true" 
       [globalFilterFields]="['lname', 'fname', 'sign']" 

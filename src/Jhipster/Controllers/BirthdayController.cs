@@ -132,6 +132,9 @@ namespace Jhipster.Controllers
                     case "sign":
                         value = result.Lname.ToLower();
                         break;
+                    case "document":
+                        value = result.Text.ToLower();
+                        break;
                 }
                 switch (rulesetOrRule.@operator){
                     case "!contains":                    

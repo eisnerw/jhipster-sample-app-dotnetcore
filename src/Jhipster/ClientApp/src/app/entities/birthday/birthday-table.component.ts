@@ -86,6 +86,8 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
 
   @Output() setViewFocus:EventEmitter<IBirthday> = new EventEmitter<IBirthday>();
 
+  public tooManyMessage = "";
+
   constructor(
     protected birthdayService: BirthdayService,
     protected categoryService: CategoryService,
@@ -447,6 +449,12 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
       });
     }
     this.birthdays = data || [];
+    if (data && data.length > 1000){
+      this.tooManyMessage = data.length + " hits (too many to display, showing the first 1000)";
+      this.birthdays.length = 1000;
+    } else {
+      this.tooManyMessage = "";
+    }
     this.birthdays.forEach((birthday)=>{
       this.birthdaysMap[birthday.id as number] = birthday;
     });
