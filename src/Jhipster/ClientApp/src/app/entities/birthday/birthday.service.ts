@@ -26,6 +26,14 @@ export class BirthdayService {
 
   update(birthday: IBirthday): Observable<EntityResponseType> {
     const copy = this.convertDateFromClient(birthday);
+    if (copy.categories){
+      copy.categories.forEach(c=>{
+        if (c.focusType === "NONE"){
+          // C# automapper can't handle NONE but can handle undefined
+          c.focusType = undefined;
+        }
+      });
+    }
     return this.http
       .put<IBirthday>(this.resourceUrl, copy, { observe: 'response' })
       .pipe(map((res: EntityResponseType) => this.convertDateFromServer(res)));

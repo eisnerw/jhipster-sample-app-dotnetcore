@@ -570,7 +570,15 @@ export class SuperTable extends Table implements OnInit, AfterViewInit, AfterCon
                 c._filter();
             });
         } else {
-            super._filter();
+            if (this.value.length > 0 && this.value[0].categoryName){
+                // Can only apply column filters to categories
+                const saveFilters = this.filters;
+                this.filters = {global: saveFilters.global, categoryName:{value: null, matchMode: 'startsWith', operator: 'and'}};
+                super._filter();
+                this.filters = saveFilters;
+            } else {
+                super._filter();
+            }
             if (this.filteringGlobal){
                 this.filteringGlobal = false;
             }

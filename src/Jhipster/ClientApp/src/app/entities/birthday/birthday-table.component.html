@@ -3,8 +3,8 @@
     <p-contextMenu #contextMenu [model]="menuItems" (mouseleave)="contextMenu.hide()" appendTo="body"></p-contextMenu>
     <p-confirmPopup></p-confirmPopup>
     <p-messages></p-messages>
-    <div *ngIf="tooManyMessage">
-      <span >{{tooManyMessage}}</span>
+    <div *ngIf="loadingMessage">
+      <span >{{loadingMessage}}</span>
     </div>    
     <super-table #birthdays [value]="birthday" 
       [resizableColumns]="true" 
@@ -82,9 +82,6 @@
         </td>
       </ng-template>
     </super-table>
-    <div id="no-result" *ngIf="loading">
-      <span >loading ...</span>
-    </div>
   </ng-container>
   <p-scrollTop
     target="parent"

@@ -37,7 +37,6 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
   ascending!: boolean;
   ngbPaginationPage = 1;
   expandedRows = {};
-  loading = true;
   faCheck = faCheck;
   @Input() parent: SuperTable | null = null;
   @Input() refresh: any = null;
@@ -86,7 +85,7 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
 
   @Output() setViewFocus:EventEmitter<IBirthday> = new EventEmitter<IBirthday>();
 
-  public tooManyMessage = "";
+  public loadingMessage = "";
 
   constructor(
     protected birthdayService: BirthdayService,
@@ -103,8 +102,6 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
 
   loadPage(page?: number, dontNavigate?: boolean): void {
     const pageToLoad: number = page || this.page || 1;
-
-    this.loading = true;
 
     const viewQuery: any = !this.parent || this.parent.selectedView === null ? {view: null} : {view:this.parent.selectedView};
     viewQuery.query = this.databaseQuery;
@@ -128,7 +125,8 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
         (res: HttpResponse<IBirthday[]>) => this.onSuccess(res.body, res.headers, pageToLoad, !dontNavigate),
         () => this.onError()
       );
-      this.rowData = of([]); // trigger showing the 'loading...'
+      this.loadingMessage = "Loading ...";
+      // this.rowData = of([]); // trigger showing the 'loading...'
   }
 
   refreshData(): void {
@@ -449,26 +447,47 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
       });
     }
     this.birthdays = data || [];
-    if (data && data.length > 1000){
-      this.tooManyMessage = data.length + " hits (too many to display, showing the first 1000)";
-      this.birthdays.length = 1000;
-    } else {
-      this.tooManyMessage = "";
-    }
+    this.birthdays = [...this.birthdays,...this.birthdays,...this.birthdays,...this.birthdays,...this.birthdays,...this.birthdays];
     this.birthdays.forEach((birthday)=>{
       this.birthdaysMap[birthday.id as number] = birthday;
     });
     this.ngbPaginationPage = this.page;
     
     if (data) {
-      this.rowData = of(this.birthdays);
+      const loadIncrement = 250;
+      const loadData : any[] = this.birthdays?.slice(0, loadIncrement);
+      let loaded = loadIncrement;
+      const rowLoader = ()=>{
+        loadData.splice(loaded, 0, ...(this.birthdays as any[]).slice(loaded, loaded + loadIncrement));
+        loaded += loadIncrement;
+        const limitData = 3000;
+        if (loadData.length > limitData){
+          this.loadingMessage = this.birthdays?.length + " hits (too many to display, showing the first " + limitData +")";
+          loadData.length = limitData;
+          this.rowData = of(loadData);
+          this.sortFilter();
+          return;
+        }
+        this.rowData = of(loadData);
+        if (loaded < (this.birthdays as any[]).length){
+          this.loadingMessage = "loading " + loaded + "..."
+          setTimeout(rowLoader, 10);
+        } else {
+          this.loadingMessage = "";
+          this.sortFilter();
+        }
+      }
+      this.rowData = of(this.birthdays.slice(0,loadIncrement));
+      setTimeout(rowLoader, 10);
     }
-    this.loading = false;
+    // this.sortFilter();
+  }
+
+  private sortFilter() : void{
     if (this.parent){
       const parent = this.parent;
       parent.doFilter();
       parent.sortSingle();
-
       setTimeout(function() : void{
         parent.setChildWidths();
       }, 0);

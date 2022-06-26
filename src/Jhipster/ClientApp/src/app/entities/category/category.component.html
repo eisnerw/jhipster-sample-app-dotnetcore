@@ -85,7 +85,7 @@
             <button aria-label="Clear" pButton label="Clear" style="margin-left: 9px;" class="p-button-outlined" icon="pi pi-filter-slash" (click)="clearFilters(categoriesTable, searchInput)"></button>
             &nbsp;
             <p-dropdown [options]="views" [(ngModel)]="selectedView" placeholder="Select a view" optionLabel="name" [showClear]="true" (onChange)="onViewChange($event, searchInput, categoriesTable)"></p-dropdown>            
-            <span *ngIf="checkboxSelectedRows.length > 100" style="font-weight: 100; padding-top: 10px;"><i>&nbsp;&nbsp;&nbsp;Too many rows selected</i></span>
+            <span *ngIf="checkboxSelectedRows.length > 100" style="font-weight: 100; padding-top: 10px;"><i>&nbsp;&nbsp;&nbsp;Too many rows selected {{checkboxSelectedRows.length}}</i></span>
             <span *ngIf="chipSelectedRows.length > 0">
               <p-menu #menu [popup]="true" [model]="menuItems" (onShow)="onMenuShow(menu, chips)" appendTo="body"></p-menu>
               <p-chips #chips pRipple
