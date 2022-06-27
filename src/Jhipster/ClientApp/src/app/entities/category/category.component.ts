@@ -73,7 +73,6 @@ export class CategoryComponent implements OnInit, OnDestroy {
   ascending!: boolean;
   ngbPaginationPage = 1;
   expandedRows = {};
-  loading = true;
   displayAsCategories = true;
   faCheck = faCheck;
   categoriesTable: SuperTable | null = null;
@@ -163,6 +162,8 @@ export class CategoryComponent implements OnInit, OnDestroy {
 
   public deletingNamedQueryError = "";
 
+  public loadingMessage = "";
+
   views: IView[] = [
     {name:"Category", field: "categories", aggregation: "categories.keyword", query: "categories:*"}
     ,{name:"Birth Year", field: "dob", aggregation: "dob", query: "*", categoryQuery: "dob:[{}-01-01 TO {}-12-31]", script: "\n            String st = doc['dob'].value.getYear().toString();\n            if (st==null){\n              return \"\";\n            } else {\n              return st.substring(0, 4);\n            }\n          "}
@@ -229,7 +230,6 @@ export class CategoryComponent implements OnInit, OnDestroy {
 
   loadPage(page?: number, dontNavigate?: boolean): void {
     const pageToLoad: number = page || this.page || 1;
-    this.loading = true;
     const viewQuery: any = this.selectedView === null ? {view: null} : {view:this.selectedView};
     if (this.selectedView && this.selectedView.topLevelView){
       this.selectedView.topLevelCategory = this.category?.notCategorized ? "-" : this.category?.categoryName;
@@ -917,7 +917,6 @@ export class CategoryComponent implements OnInit, OnDestroy {
             }
           });
           this.rowData = of(this.categories);
-          this.loading = false;
         } else {
           this.loadPage(pageNumber, true);
         }
@@ -975,9 +974,37 @@ export class CategoryComponent implements OnInit, OnDestroy {
     this.ngbPaginationPage = this.page;
     
     if (data) {
-      this.rowData = of(this.categories);
+      const loadIncrement = 50;
+      const loadData : any[] = this.categories?.slice(0, loadIncrement);
+      let loaded = loadIncrement;
+      const rowLoader = ()=>{
+        loadData.splice(loaded, 0, ...(this.categories as any[]).slice(loaded, loaded + loadIncrement));
+        loaded += loadIncrement;
+        const limitData = 2000;
+        if (loadData.length > limitData){
+          this.loadingMessage = this.categories?.length + " hits (too many to display, showing the first " + limitData +")";
+          loadData.length = limitData;
+          this.rowData = of(loadData);
+          this.runFilter()
+          return;
+        }
+        this.rowData = of(loadData);
+        if (loaded < (this.categories as any[]).length){
+          this.loadingMessage = "loading " + loaded + "..."
+          setTimeout(rowLoader, 10);
+        } else {
+          this.loadingMessage = "";
+          this.runFilter();
+        }
+      }
+      this.rowData = of(this.categories.slice(0,loadIncrement));
+      this.displayAsCategories = this.categories?.length !== 1 || !!this.views[this.views.length - 1].focus || (this.selectedView !== null && this.selectedView.field.startsWith("ruleset"));
+      this.loadingMessage = "Loading...";
+      setTimeout(rowLoader, 10);
     }
-    this.displayAsCategories = this.categories?.length !== 1 || !!this.views[this.views.length - 1].focus || (this.selectedView !== null && this.selectedView.field.startsWith("ruleset"));
+  }
+
+  private runFilter() : void {
     if (this.categoriesTable != null){
       const categoriesTable = this.categoriesTable;
       setTimeout(function() : void{
@@ -987,7 +1014,6 @@ export class CategoryComponent implements OnInit, OnDestroy {
         categoriesTable._filter();
       }, 0);
     }
-    this.loading = false;
   }
 
   protected onError(): void {

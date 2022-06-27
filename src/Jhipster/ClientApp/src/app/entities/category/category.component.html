@@ -148,6 +148,9 @@
             <th>Alive?</th>
             <th style="width:2rem"></th>
           </tr>
+          <tr *ngIf="loadingMessage">
+            <td colspan="7">{{loadingMessage}}</td>
+          </tr>             
         </ng-template>
         <ng-template pTemplate="body" let-category let-expanded="expanded">
           <tr [super-ContextMenuRow]="category" *ngIf="displayAsCategories">
@@ -245,9 +248,6 @@
         <ng-template pTemplate="footer">
         </ng-template>      
       </p-dialog>
-      <div class="alert alert-light" id="no-result" *ngIf="loading">
-        <span >loading ...</span>
-      </div>
     </ng-container>
     <p-scrollTop
       target="parent"
