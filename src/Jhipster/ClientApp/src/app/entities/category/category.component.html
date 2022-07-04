@@ -154,7 +154,7 @@
         </ng-template>
         <ng-template pTemplate="body" let-category let-expanded="expanded">
           <tr [super-ContextMenuRow]="category" *ngIf="displayAsCategories">
-              <td>
+              <td style="width:1vw">
                 <span>{{firstColumnIndent}}</span><button aria-label="Expand" type="button" pButton pRipple [super-RowToggler]="category" class="p-button-text p-button-rounded p-button-plain" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></button>
               </td>          
               <td #tt pTooltip="{{ category.description ? category.description : category.categoryName }}" [tooltipDisabled]='false' style="overflow:unset; border:none;font-weight: 700; ">{{firstColumnIndent}}{{ category.categoryName }}</td>

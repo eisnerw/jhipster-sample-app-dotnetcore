@@ -100,6 +100,18 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
     private primeNGConfig : PrimeNGConfig,
   ) {}
 
+  getTableStyle(stdiv: HTMLDivElement):object{
+
+    if (this.parent && this.parent.displayingAsCategories){
+      return {};
+    }
+    const screenHeight = window.innerHeight;
+    const divTop = stdiv.getBoundingClientRect().top;
+    const FOOTERHEIGHT = 40;
+    const divHeight = Math.floor(screenHeight - divTop - FOOTERHEIGHT);
+    return {"overflow-y":"scroll","height": divHeight + "px"};
+  }
+
   loadPage(page?: number, dontNavigate?: boolean): void {
     const pageToLoad: number = page || this.page || 1;
 

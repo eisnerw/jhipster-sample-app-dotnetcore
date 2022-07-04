@@ -70,7 +70,7 @@ import { TableState } from 'primeng/api';
                     <thead class="p-datatable-thead">
                         <ng-container *ngTemplateOutlet="headerTemplate; context: {$implicit: columns}"></ng-container>
                     </thead>
-                    <tbody class="p-datatable-tbody" [super-table-body]="columns" [pTableBodyTemplate]="bodyTemplate"></tbody>
+                    <tbody class="p-datatable-tbody" [ngStyle]="getRowStyle(table)" [super-table-body]="columns" [pTableBodyTemplate]="bodyTemplate"></tbody>
                     <tfoot *ngIf="footerTemplate" class="p-datatable-tfoot">
                         <ng-container *ngTemplateOutlet="footerTemplate; context {$implicit: columns}"></ng-container>
                     </tfoot>
@@ -459,6 +459,18 @@ export class SuperTable extends Table implements OnInit, AfterViewInit, AfterCon
 
     constructor(public el: ElementRef, public zone: NgZone, public tableService: TableService, public cd: ChangeDetectorRef, public filterService: FilterService) {
         super(el, zone, tableService, cd, filterService);
+    }
+
+    getRowStyle(tableElement : HTMLElement): object{
+        if (this.displayingAsCategories && this.parent === null){
+            const screenHeight = window.innerHeight;
+            const divTop = tableElement.getBoundingClientRect().top;
+            const FOOTERHEIGHT = 75;
+            const tableHeight = Math.floor(screenHeight - divTop - FOOTERHEIGHT);
+            const tableWidth = Math.floor(tableElement.clientWidth)
+            return {"display":"block", "overflow-y":"scroll","height": tableHeight + "px","width":tableWidth + "px","overflow-x":"clip"};
+        }
+        return {};
     }
 
     ngOnInit(): any {

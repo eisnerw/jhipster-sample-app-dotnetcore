@@ -1,4 +1,4 @@
-<div style="overflow: auto;">
+<div #stdiv [ngStyle]="getTableStyle(stdiv)">
   <ng-container *ngIf="rowData | async as birthday">
     <p-contextMenu #contextMenu [model]="menuItems" (mouseleave)="contextMenu.hide()" appendTo="body"></p-contextMenu>
     <p-confirmPopup></p-confirmPopup>
@@ -68,7 +68,7 @@
           <td *ngIf="birthday.isAlive">Yes</td>
           <td *ngIf="!birthday.isAlive">No</td>
           <td>
-            <button type="button" pButton pRipple [super-RowToggler]="birthday" class="p-button-text p-button-rounded p-button-plain" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></button>
+            <button type="button" style="margin-left:-7px;" pButton pRipple [super-RowToggler]="birthday" class="p-button-text p-button-rounded p-button-plain" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></button>
           </td>          
         </tr>
       </ng-template>
