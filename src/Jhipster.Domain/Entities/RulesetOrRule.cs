@@ -9,7 +9,7 @@ namespace Jhipster.Domain
     public class RulesetOrRule
     {
         public string condition { get; set; }
-        public string value { get; set; }
+        public object value { get; set; }
         public string @operator { get; set; }
         public Boolean @not { get; set; }
         public string field { get; set; }
@@ -17,7 +17,7 @@ namespace Jhipster.Domain
         public override string ToString()
         {
             if (rules == null){
-                return "{" + "\"field\":\"" + field + "\", \"operator\":\""  + @operator + "\", \"value\":\"" + value.Replace("\"","\\\"") + "\"}";
+                return "{" + "\"field\":\"" + field + "\", \"operator\":\""  + @operator + "\", \"value\":\"" + value.ToString().Replace("\"","\\\"") + "\"}";
             } else {
                 string listString = "";
                 rules.ForEach(r=>{

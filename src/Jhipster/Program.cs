@@ -33,11 +33,19 @@ namespace Jhipster
 
             var elastic = new ElasticClient(setting);
 
-            var searchResponse = elastic.Search<Birthday>(s => s
-                .Query(q => q
+
+            var searchResponse = elastic.Search<Birthday>(s => {
+                s.Query(q => q
                     .MatchAll()
-                )
-            );
+                );
+                return s;
+            });
+            var searchResponse2  = elastic.Search<Birthday>(s => {
+                s.Query(q => q
+                    .Raw("{\"regexp\": {\"lname.keyword\": {\"value\": \"J.*n\",\"flags\": \"ALL\",\"max_determinized_states\": 10000,\"rewrite\": \"constant_score\"}}}")
+                );
+                return s;
+            });
             Console.WriteLine(searchResponse.Hits.Count + " hits");
             foreach (var hit in searchResponse.Hits)
             {
