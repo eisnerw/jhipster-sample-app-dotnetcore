@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore.Query;
+using Newtonsoft.Json.Linq;
 
 namespace Jhipster.Infrastructure.Data.Repositories
 {
@@ -1603,6 +1604,27 @@ namespace Jhipster.Infrastructure.Data.Repositories
                     )
                 );
             } else {
+                if (birthdayRequest.ContainsKey("originalRuleset")){
+                    RulesetOrRule originalRuleset = JsonConvert.DeserializeObject<RulesetOrRule>((string)birthdayRequest["originalRuleset"]);
+                    JObject obj = new JObject{
+                        { "lname.keyword", new JObject
+                            {
+                                { "value", "J.*n" }
+                                ,{ "flags", "ALL" }
+                                ,{ "max_determinized_states", 10000 }
+                                ,{ "rewrite", "constant_score" }
+                            }
+                        }
+                    };
+                    obj = (JObject)originalRuleset.ToElasticSearch();
+                    searchResponse = await elastic.SearchAsync<ElasticBirthday>(s => s 
+                        .Index("birthdays")
+                        .Size(10000)
+                        .Query(q=> q
+                            .Raw(obj.ToString())
+                        )
+                    );
+                }
                 searchResponse = await elastic.SearchAsync<ElasticBirthday>(x => x	// use search method
                     .Index("birthdays")
                     .QueryOnQueryString(query)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Jhipster.Domain
 {
@@ -25,6 +26,42 @@ namespace Jhipster.Domain
                 });
                 return "{" + "\"condition\":\"" + condition + "\", \"not\":"  + (@not ? "true" : "false") + ", \"rules\":[" + listString + "]}";
             }
+        }
+        public Object ToElasticSearch(){
+            if (rules == null){
+                if (@operator == "contains"){
+                    return new JObject{{
+                        "term", new JObject{{
+                            field, (string)value
+                        }}
+                    }};
+                }
+                return new JObject{{
+                    "term", new JObject{{
+                        "lname","johnson"
+                    }}
+                }};
+            } else {
+                List<Object> rls = new List<Object>();
+                rules.ForEach(r=>{
+                    rls.Add(r.ToElasticSearch());
+                });
+                if (condition == "and"){
+                    return new JObject{{
+                        "bool", new JObject{{
+                            "must", JArray.FromObject(rls)
+                        }}
+                    }};
+                }
+                return new JObject{{
+                    "bool", new JObject{{
+                        "should", JArray.FromObject(rls)
+                    }}
+                }};          
+            }
+        }
+        private string ToCaseInsensitiveRegEx(){
+            return null;
         }
     }
 }

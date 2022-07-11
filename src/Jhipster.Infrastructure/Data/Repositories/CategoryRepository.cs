@@ -290,7 +290,6 @@ namespace Jhipster.Infrastructure.Data.Repositories
         private string queryAsString(Dictionary<string, object> query, bool bRecurse = false){
             string result = "";
             bool multipleConditions = false;
-            Newtonsoft.Json.Linq.JArray ja = null;
             List<Dictionary<string, object>> rules = ((Newtonsoft.Json.Linq.JArray)query["rules"]).ToObject<List<Dictionary<string, object>>>();
             rules.ForEach((r)=>{
                 if (result.Length > 0){
