@@ -1846,21 +1846,53 @@ namespace Jhipster.Infrastructure.Data.Repositories
         private string ToCaseInsensitiveRegEx(string pattern)
         {
             string ret = "";
-            bool bDontProcess = false;
-            pattern.ToCharArray().ToList().ForEach(c =>
-            {
-                string ch = c.ToString();
-                if (c == '\\'){
-                    bDontProcess = true;
-                } else if (bDontProcess)
-                {
-                    bDontProcess = false;
-                } else if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
-                {
-                    ch = "[" + ch.ToUpper() + ch.ToLower() + "]";
+            string[] regexTokens = Regex.Replace(pattern, @"([\[\]]|\\\\|\\\[|\\\]|\\s|\\S|\\w|\\W|\\d|\\D|.)", "`$1").Split('`');
+            Boolean bBracketed = false;
+            for (int i = 1; i < regexTokens.Length; i++){
+                if (bBracketed){
+                    switch (regexTokens[i]){
+                        case "]":
+                            bBracketed = false;
+                            ret += regexTokens[i];
+                            break;
+                        case @"\s":
+                            ret += " \n\t\r";
+                            break;
+                        case @"\d":
+                            ret += "0-9";
+                            break;
+                        case @"\w":
+                            ret += "A-Za-z_";
+                            break;
+                        default:
+                            if (Regex.IsMatch(regexTokens[i], @"^[A-Za-z]+$")){
+                                if ((i + 2) < regexTokens.Length && regexTokens[i + 1] == "-" && Regex.IsMatch(regexTokens[i + 2], @"^[A-Za-z]+$")){
+                                    // alpha rannge
+                                    ret += (regexTokens[i].ToLower() + "-" + regexTokens[i + 2].ToLower() + regexTokens[i].ToUpper() + "-" + regexTokens[i + 2].ToUpper());
+                                    i += 2;
+                                } else {
+                                    ret += (regexTokens[i].ToLower() + regexTokens[i].ToUpper());
+                                }
+                            } else {
+                                ret += regexTokens[i];
+                            }
+                            break;
+                    }
+                } else if (regexTokens[i] == "["){
+                    bBracketed = true;
+                    ret += regexTokens[i];
+                } else if (regexTokens[i] == @"\s"){
+                    ret += (@"[ \n\t\r]");
+                } else if (regexTokens[i] == @"\d"){
+                    ret += (@"[0-9]");
+                } else if (regexTokens[i] == @"\w"){
+                    ret += (@"[A-Za-z_]");
+                } else if (Regex.IsMatch(regexTokens[i], @"[A-Za-z]")){
+                    ret += ("[" + regexTokens[i].ToLower() + regexTokens[i].ToUpper() + "]");
+                } else {
+                    ret += regexTokens[i];
                 }
-                ret += ch;
-            });
+            }
             return ret;
         }
 
