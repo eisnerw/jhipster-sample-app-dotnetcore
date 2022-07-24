@@ -77,6 +77,11 @@ namespace Jhipster.Domain.Services
             var result = await _birthdayRepository
             .GetOneAsync(id, true);
             return result;
-        }        
+        }
+
+        public async Task<List<string>> GetUniqueFieldValueAsync(string field)
+        {
+            return await _birthdayRepository.GetUniqueFieldValueAsync(field);
+        }   
     }
 }

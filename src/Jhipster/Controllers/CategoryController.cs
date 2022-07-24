@@ -68,14 +68,14 @@ namespace Jhipster.Controllers
                 .WithHeaders(HeaderUtil.CreateEntityUpdateAlert(EntityName, category.Id.ToString()));
         }
 
-        [HttpGet("categories")]
-        public async Task<ActionResult<IEnumerable<CategoryDto>>> GetAllCategories(IPageable pageable)
+        [HttpPost("categoryQuery")]
+        public async Task<ActionResult<IEnumerable<BirthdayDto>>> GetAllCategories([FromBody] Dictionary<string, object> queryDictionary)
         {
             _log.LogDebug("REST request to get a page of Categories");
-            var queryDictionary = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(HttpContext.Request.QueryString.ToString());
+            var pageable = Pageable.Of(1, 10);
             String query = "";
             if (queryDictionary.Keys.Contains("query")){
-                query = queryDictionary["query"];
+                query = (string)queryDictionary["query"];
             }
             if (query.StartsWith("{")){
                 var categoryRequest = JsonConvert.DeserializeObject<Dictionary<string,object>>(query);

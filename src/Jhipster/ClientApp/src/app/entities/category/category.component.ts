@@ -188,12 +188,12 @@ export class CategoryComponent implements OnInit, OnDestroy {
   }));
 
   getLatestOptions$ : Observable<void> =
-    this.birthdayService.query({
+    this.birthdayService.postQuery({
       page: 0,
       size: this.itemsPerPage,
       sort: this.sort(),
       query: ""
-    }).pipe(take(1), map((res: HttpResponse<IBirthday[]>) => {
+    }).pipe(take(1), map((res: any) => {
       this.optionsMap.clear();
       let lnames : string[] = [];
       const options : Option[] = [];
@@ -236,14 +236,14 @@ export class CategoryComponent implements OnInit, OnDestroy {
     }
     viewQuery.query = this.databaseQuery;
     this.categoryService
-      .query({
+      .postQuery({
         page: pageToLoad - 1,
         size: this.itemsPerPage,
         sort: this.sort(),
         query: JSON.stringify(viewQuery)
       })
       .subscribe(
-        (res: HttpResponse<ICategory[]>) => this.onSuccess(res.body, res.headers, pageToLoad, !dontNavigate),
+        (res: any) => this.onSuccess(res.body, res.headers, pageToLoad, !dontNavigate),
         () => this.onError()
       );
   }

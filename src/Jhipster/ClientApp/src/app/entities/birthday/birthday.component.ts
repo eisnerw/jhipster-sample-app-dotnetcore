@@ -97,14 +97,14 @@ export class BirthdayComponent implements OnInit, OnDestroy {
 
     this.loading = true;
     this.birthdayService
-      .query({
+      .postQuery({
         page: pageToLoad - 1,
         size: this.itemsPerPage,
         sort: this.sort(),
         query: this.databaseQuery
       })
       .subscribe(
-        (res: HttpResponse<IBirthday[]>) => this.onSuccess(res.body, res.headers, pageToLoad, !dontNavigate),
+        (res: any) => this.onSuccess(res.body, res.headers, pageToLoad, !dontNavigate),
         () => this.onError()
       );
   }

@@ -29,7 +29,6 @@ export class BirthdayQueryParserService {
     }
     this.queryNames = [...(rulesetMap as Map<string, IQuery>).keys()].sort((a, b) => a > b ? -1 : 1);;
     const queryNameRegexString = this.queryNames.length > 0 ? "|(" + this.queryNames.join("|") + ")": "";
-    // query = query.replace(/\\\\/g,'\x01').replace(/\\"/g, '\x02').replace(/`/g,'\x03');
     const regexString = "\\s*(" + '(?<=IN\\s)(\\("(\\\\"|[^"])+"|\\/(\\\\/|[^/]+\\/)|[^"\\s]+\\s*)(,\\s*("(\\\\"|[^"])+"|[^"\\s]+\\s*))*\\s*\\)' + queryNameRegexString + '|[()]' + '|("(\\\\"|\\\\\\\\|[^"])+\\"|\\/(\\\\\\/|[^\\/])+\\/' + "|sign|dob|lname|fname|isAlive|document)|(=|!=|CONTAINS|LIKE|EXISTS|!EXISTS|IN|!IN|>=|<=|>|<)|(&|\\||!)|[^\"/=!<>() ]+)\\s*";
     const regex = new RegExp(regexString, "g");
     const tokens = query.replace(regex, '`$1').split('`');
@@ -94,8 +93,8 @@ export class BirthdayQueryParserService {
       return parse;
     }
     if (!/^(sign|dob|lname|fname|isAlive|document)$/.test(tokens[parse.i])){
-        if ((/^[A-Za-z0-9]+$/.test(tokens[i]) && /[a-z0-9]/.test(tokens[i])) || /^".*"$/.test(tokens[i]) || /^\/.*\/$/.test(tokens[i])){
-            let documentValue = '"' + tokens[i] + '"';
+        if ((/^[A-Za-z0-9?*]+$/.test(tokens[i]) && /[a-z0-9]/.test(tokens[i])) || /^".*"$/.test(tokens[i]) || /^\/.*\/$/.test(tokens[i])){
+            let documentValue = '"' + tokens[i].replace(/([\\"])/g, '\\$1') + '"';
             if (tokens[i].startsWith('"')){
               if (tokens[i].endsWith('\\"')){
                 parse.string = '[invalid quoted string]';

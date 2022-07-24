@@ -21,7 +21,7 @@ namespace Jhipster.Infrastructure.Data.Repositories
     public class BirthdayRepository : GenericRepository<Birthday>, IBirthdayRepository
     {
         private static Uri node = new Uri("https://texttemplate-testing-7087740692.us-east-1.bonsaisearch.net/");
-        private static Nest.ConnectionSettings setting = new Nest.ConnectionSettings(node).BasicAuthentication("7303xa0iq9","4cdkz0o14").DefaultIndex("birthdays");
+        private static Nest.ConnectionSettings setting = new Nest.ConnectionSettings(node).BasicAuthentication("7303xa0iq9", "4cdkz0o14").DefaultIndex("birthdays");
         private static ElasticClient elastic = new ElasticClient(setting);
         public BirthdayRepository(IUnitOfWork context) : base(context)
         {
@@ -1525,12 +1525,14 @@ namespace Jhipster.Infrastructure.Data.Repositories
             {"Pinchas Zukerman",  new List<string>{"Pinchas Zukerman"}}
         };
 
-        public override async Task<Birthday> CreateOrUpdateAsync(Birthday birthday){
+        public override async Task<Birthday> CreateOrUpdateAsync(Birthday birthday)
+        {
             List<string> categoryStrings = new List<string>();
-            birthday.Categories.ForEach(c=>{
+            birthday.Categories.ForEach(c => {
                 categoryStrings.Add(c.CategoryName);
             });
-            ElasticBirthday  elasticBirthday = new ElasticBirthday{
+            ElasticBirthday  elasticBirthday = new ElasticBirthday
+            {
                 dob = birthday.Dob,
                 fname = birthday.Fname,
                 Id = birthday.Id,
@@ -1539,17 +1541,19 @@ namespace Jhipster.Infrastructure.Data.Repositories
                 isAlive = birthday.IsAlive,
                 categories = categoryStrings.ToArray<string>()
             };
-            await elastic.UpdateAsync<ElasticBirthday>(new DocumentPath<ElasticBirthday>(elasticBirthday.Id), u => 
+            await elastic.UpdateAsync<ElasticBirthday>(new DocumentPath<ElasticBirthday>(elasticBirthday.Id), u =>
                 u.Index("birthdays").Doc(elasticBirthday)
             );
-            if (categoryStrings.Count == 0){
+            if (categoryStrings.Count == 0)
+            {
                 await elastic.UpdateAsync<ElasticBirthday>(new DocumentPath<ElasticBirthday>(elasticBirthday.Id), u => 
                     u.Script(s => s.Source("ctx._source.remove('categories')"))
-                );                
+                );
             }
-            return birthday; 
+            return birthday;
         }
-        public override async Task<IPage<Birthday>> GetPageAsync(IPageable pageable){
+        public override async Task<IPage<Birthday>> GetPageAsync(IPageable pageable)
+        {
             return await GetPageFilteredAsync(pageable, "");
         }
         
@@ -1561,24 +1565,29 @@ namespace Jhipster.Infrastructure.Data.Repositories
                 queryObject["view"] = null;
                 queryJson = JsonConvert.SerializeObject(queryObject);
             }
-            var birthdayRequest = JsonConvert.DeserializeObject<Dictionary<string,object>>(queryJson);
+            var birthdayRequest = JsonConvert.DeserializeObject<Dictionary<string, object>>(queryJson);
             View<Birthday> view = new View<Birthday>();
             string query = birthdayRequest.ContainsKey("query") ? (string)birthdayRequest["query"] : "";
-            if (birthdayRequest.ContainsKey("view") && birthdayRequest["view"] != null){
+            if (birthdayRequest.ContainsKey("view") && birthdayRequest["view"] != null)
+            {
                 view = JsonConvert.DeserializeObject<View<Birthday>>(birthdayRequest["view"].ToString());
             }
             string categoryClause = "";
-            if (birthdayRequest.ContainsKey("category") && view.field != null){
+            if (birthdayRequest.ContainsKey("category") && view.field != null)
+            {
                 if (view.categoryQuery != null){
                     categoryClause = view.categoryQuery.Replace("{}", (string)birthdayRequest["category"]);
-                } else if (!birthdayRequest.ContainsKey("focusType")){
+                } else if (!birthdayRequest.ContainsKey("focusType"))
+                {
                     categoryClause = (string)birthdayRequest["category"] == "-" ? "-" + view.field + ":*" : view.field + ":\"" + birthdayRequest["category"]  + "\"";
                 }
                     query = categoryClause + (query != "" ? " AND (" + query + ")" : "");
-                    if (view.topLevelView != null){
+                    if (view.topLevelView != null)
+                    {
                     View<Birthday> topLevelView = view.topLevelView;
                     categoryClause = "";
-                    if (view.topLevelCategory != null && topLevelView.field != null){
+                    if (view.topLevelCategory != null && topLevelView.field != null)
+                    {
                         if (birthdayRequest.ContainsKey("focusType")){
                             string focusType = (string)birthdayRequest["focusType"];
                             if (focusType == "FOCUS"){
@@ -1586,9 +1595,12 @@ namespace Jhipster.Infrastructure.Data.Repositories
                             } else {                            
                                 categoryClause = "*:columbus";
                             }
-                        } else if (topLevelView.categoryQuery != null){
+                        }
+                        else if (topLevelView.categoryQuery != null){
                             categoryClause = view.categoryQuery.Replace("{}", view.topLevelCategory);
-                        } else {
+                        }
+                        else
+                        {
                             categoryClause = view.topLevelCategory == "-" ? "-" + topLevelView.field + ":*" : topLevelView.field + ":\"" + view.topLevelCategory + "\"";
                         }
                         query = categoryClause + (query.Length > 1 ? " AND (" + query + ")" : "");
@@ -1596,27 +1608,21 @@ namespace Jhipster.Infrastructure.Data.Repositories
                 }
             }
             ISearchResponse<ElasticBirthday> searchResponse = null;
-            if (query == "" || query == "()"){
+            if (query == "" || query == "()")
+            {
                 searchResponse = await elastic.SearchAsync<ElasticBirthday>(s => s
                     .Size(10000)
                     .Query(q => q
                         .MatchAll()
                     )
                 );
-            } else {
-                if (birthdayRequest.ContainsKey("originalRuleset")){
-                    RulesetOrRule originalRuleset = JsonConvert.DeserializeObject<RulesetOrRule>((string)birthdayRequest["originalRuleset"]);
-                    JObject obj = new JObject{
-                        { "lname.keyword", new JObject
-                            {
-                                { "value", "J.*n" }
-                                ,{ "flags", "ALL" }
-                                ,{ "max_determinized_states", 10000 }
-                                ,{ "rewrite", "constant_score" }
-                            }
-                        }
-                    };
-                    obj = (JObject)originalRuleset.ToElasticSearch();
+            }
+            else
+            {
+                if (birthdayRequest.ContainsKey("queryRuleset"))
+                {
+                    RulesetOrRule queryRuleset = JsonConvert.DeserializeObject<RulesetOrRule>((string)birthdayRequest["queryRuleset"]);
+                    JObject obj = (JObject) await RulesetToElasticSearch(queryRuleset);
                     searchResponse = await elastic.SearchAsync<ElasticBirthday>(s => s 
                         .Index("birthdays")
                         .Size(10000)
@@ -1625,25 +1631,22 @@ namespace Jhipster.Infrastructure.Data.Repositories
                         )
                     );
                 }
-                searchResponse = await elastic.SearchAsync<ElasticBirthday>(x => x	// use search method
-                    .Index("birthdays")
-                    .QueryOnQueryString(query)
-                    .Size(10000)
-                );				// limit to page size
             }
             List<Birthday> content = new List<Birthday>();
             Console.WriteLine(searchResponse.Hits.Count + " hits");
             foreach (var hit in searchResponse.Hits)
             {
                 List<Category> listCategory = new List<Category>();
-                if (hit.Source.categories != null){
+                if (hit.Source.categories != null)
+                {
                     hit.Source.categories.ToList().ForEach(c=>{
                         listCategory.Add(new Category{
                             CategoryName = c
                         });
                     });
                 }
-                content.Add(new Birthday{
+                content.Add(new Birthday
+                {
                     Id = hit.Id,
                     Lname = hit.Source.lname,
                     Fname = hit.Source.fname,
@@ -1657,6 +1660,210 @@ namespace Jhipster.Infrastructure.Data.Repositories
             content = content.OrderBy(b => b.Dob).ToList();
             return new Page<Birthday>(content, pageable, content.Count);
         }
+
+        public async Task<List<string>> GetUniqueFieldValueAsync(string field){
+            var result = await elastic.SearchAsync<Aggregation>(q => q
+                .Size(0).Index("birthdays").Aggregations(agg => agg.Terms(
+                    "distinct", e =>
+                        e.Field(field).Size(10000)
+                    )
+                )
+            );
+            List<string> ret = new List<string>();
+            ((BucketAggregate)result.Aggregations.ToList()[0].Value).Items.ToList().ForEach(it =>
+            {
+                KeyedBucket<Object> kb = (KeyedBucket<Object>)it;
+                ret.Add(kb.KeyAsString != null ? kb.KeyAsString : (string)kb.Key);
+            });
+            return ret;
+        }
+
+        private async Task<Object> RulesetToElasticSearch(RulesetOrRule rr)
+        {
+            // this routine converts rulesets into elasticsearch DSL as json.  For inexact matching (contains), it use the field.  For exact matching (=),
+            // it uses the keyworkd fields.  Since those are case sensitive, it forces a search for all cased values that would match insenitively
+            if (rr.rules == null)
+            {
+                JObject ret = new JObject{{
+                    "term", new JObject{{
+                        "BOGUSFIELD", "CANTMATCH"
+                    }}
+                }};
+                if (rr.@operator.Contains("contains"))
+                {
+                    if (((string)rr.value).StartsWith("/") && ((string)rr.value).EndsWith("/"))
+                    {
+                        string regex = ToCaseInsensitiveRegEx(rr.value.ToString().Substring(1, rr.value.ToString().Length - 2).Replace(@"\\",@"\"));
+                        if (regex.StartsWith("^")){
+                            regex = regex.Substring(1, regex.Length - 1);
+                        }
+                        else
+                        {
+                            regex = ".*" + regex;
+                        }
+                        if (regex.EndsWith("$")){
+                            regex = regex.Substring(0, regex.Length - 1);
+                        }
+                        else
+                        {
+                            regex += ".*";
+                        }
+                        if (rr.field == "document")
+                        {
+                            List<JObject> lstRegexes = "wikipedia,fname,lname,categories,sign,id".Split(',').ToList().Select(s =>
+                            {
+                                return new JObject{{
+                                    "regexp", new JObject{{
+                                        s + ".keyword", new JObject{
+                                            { "value", regex}
+                                            ,{ "flags", "ALL" }
+                                            ,{ "rewrite", "constant_score" }
+                                        }
+                                    }}
+                                }};
+                            }).ToList();
+                            return new JObject{{
+                                "bool", new JObject{{
+                                    "should", JArray.FromObject(lstRegexes)
+                                }}
+                            }};
+                        }
+                        return new JObject{{
+                            "regexp", new JObject{{
+                                rr.field + ".keyword", new JObject{
+                                    { "value", regex}
+                                    ,{ "flags", "ALL" }
+                                    ,{ "rewrite", "constant_score" }
+                                }
+                            }}
+                        }};                        
+                    }
+                    string quote = Regex.IsMatch(rr.value.ToString(), @"\W") ? @"""" : "";
+                    ret = new JObject{{
+                        "query_string", new JObject{{
+                            "query", (rr.field != "document" ? (rr.field + ":") : "") + quote + ((string)rr.value).ToLower().Replace(@"""", @"\""") + quote
+                        }}
+                    }};
+                }
+                else if (rr.@operator.Contains("=")){
+                    List<string> uniqueValues = await GetUniqueFieldValueAsync(rr.field + ".keyword");
+                    List<JObject> oredTerms = uniqueValues.Where(v => v.ToLower() == rr.value.ToString().ToLower()).Select(s =>
+                    {
+                        return new JObject{{
+                            "term", new JObject{{
+                                rr.field + ".keyword", s
+                            }}
+                        }};
+                    }).ToList();
+                    if (oredTerms.Count > 1){
+                        ret = new JObject{{
+                            "bool", new JObject{{
+                                "should", JArray.FromObject(oredTerms)
+                            }}
+                        }};
+                    }
+                    else if (oredTerms.Count == 1){
+                        ret = oredTerms[0];
+                    }
+                } else if (rr.@operator.Contains("in")) {
+                    List<string> uniqueValues = await GetUniqueFieldValueAsync(rr.field + ".keyword");
+                    // The following creates a list of case sensisitive possibilities for the case sensitive 'term' query from case insensitive terms
+                    List<string> caseSensitiveMatches = ((JArray)rr.value).Select(v =>
+                    {
+                        return uniqueValues.Where(s => s.ToLower() == v.ToString().ToLower());
+                    }).Aggregate((agg,list) => {
+                        return agg.Concat(list).ToList();
+                    }).ToList();
+                    return new JObject{{
+                        "terms", new JObject{{
+                            rr.field + ".keyword", JArray.FromObject(caseSensitiveMatches)
+                        }}
+                    }};
+                } else if (rr.@operator.Contains("exists")) {
+                    List<JObject> lstExists = new List<JObject>();
+                    List<JObject> lstEmptyString = new List<JObject>();
+                    lstEmptyString.Add(new JObject{{
+                        "term", new JObject{{
+                            rr.field + ".keyword",""
+                        }}
+                    }});
+                    lstExists.Add(new JObject{{
+                        "exists", new JObject{{
+                            "field", rr.field
+                        }}
+                    }});
+                    lstExists.Add(new JObject{{
+                        "bool", new JObject{{
+                            "must_not", JArray.FromObject(lstEmptyString)
+                        }}
+                    }});
+                    ret = new JObject{{
+                        "bool", new JObject{{
+                            "must", JArray.FromObject(lstExists)
+                        }}
+                    }};
+                }
+                if (rr.@operator.Contains("!") || (rr.@operator == "exists" && !(rr.value != null && (Boolean)rr.value))){
+                    ret = new JObject {{
+                        "bool", new JObject{{
+                            "must_not", JObject.FromObject(ret)
+                        }}
+                    }};
+                }
+                return ret;
+            }
+            else
+            {
+                List<Object> rls = new List<Object>();
+                for (int i = 0; i < rr.rules.Count; i++)
+                {
+                    rls.Add(await RulesetToElasticSearch(rr.rules[i]));
+                }
+                if (rr.condition == "and")
+                {
+                    return new JObject{{
+                        "bool", new JObject{{
+                            rr.not == true ? "must_not" : "must", JArray.FromObject(rls)
+                        }}
+                    }};
+                }
+                Object ret = new JObject{{
+                    "bool", new JObject{{
+                        "should", JArray.FromObject(rls)
+                    }}
+                }};
+                if (rr.not == true)
+                {
+                    ret = new JObject{{
+                        "bool", new JObject{{
+                            "must_not", JObject.FromObject(ret)
+                        }}
+                    }};
+                }
+                return ret;
+            }
+        }
+        private string ToCaseInsensitiveRegEx(string pattern)
+        {
+            string ret = "";
+            bool bDontProcess = false;
+            pattern.ToCharArray().ToList().ForEach(c =>
+            {
+                string ch = c.ToString();
+                if (c == '\\'){
+                    bDontProcess = true;
+                } else if (bDontProcess)
+                {
+                    bDontProcess = false;
+                } else if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+                {
+                    ch = "[" + ch.ToUpper() + ch.ToLower() + "]";
+                }
+                ret += ch;
+            });
+            return ret;
+        }
+
         private class ElasticBirthday
         {
             public string Id { get; set; }
@@ -1668,13 +1875,15 @@ namespace Jhipster.Infrastructure.Data.Repositories
             public string[] categories {get; set; }
             public string wikipedia {get; set; } 
         }
-        public async override Task<Birthday> GetOneAsync(object id){
+        public async override Task<Birthday> GetOneAsync(object id)
+        {
             return await GetOneAsync(id, false);
         }
         public async Task<Birthday>  GetOneAsync(object id, bool bText)
         {
             var hit = await elastic.GetAsync<ElasticBirthday>((string)id);
-            Birthday birthday = new Birthday{
+            Birthday birthday = new Birthday
+            {
                 Id = hit.Id,
                 Lname = hit.Source.lname,
                 Fname = hit.Source.fname,
@@ -1683,10 +1892,12 @@ namespace Jhipster.Infrastructure.Data.Repositories
                 IsAlive = hit.Source.isAlive,
                 Categories = new List<Category>()
             };
-            if (bText){
+            if (bText)
+            {
                 birthday.Text = hit.Source.wikipedia;
             }
-            if (hit.Source.categories != null){
+            if (hit.Source.categories != null)
+            {
                 hit.Source.categories.ToList().ForEach(c => {
                     Category category = new Category
                     {
@@ -1697,12 +1908,14 @@ namespace Jhipster.Infrastructure.Data.Repositories
             }
             return birthday;
         }
-        public async Task<string> GetOneTextAsync(object id){
+        public async Task<string> GetOneTextAsync(object id)
+        {
             var hit = await elastic.GetAsync<ElasticBirthday>((string)id);
             return hit.Source.wikipedia;
         }
 
-        public async Task<List<Birthday>> GetReferencesFromAsync(string id){
+        public async Task<List<Birthday>> GetReferencesFromAsync(string id)
+        {
             return null;
         }
 
@@ -1711,25 +1924,31 @@ namespace Jhipster.Infrastructure.Data.Repositories
             Birthday bday = await GetOneAsync(id);
             string key = bday.Fname + " " + bday.Lname;
             string query = "\"" + bday.Fname + " " + bday.Lname + "\"~4";
-            if (refKeys.ContainsKey(key)){
+            if (refKeys.ContainsKey(key))
+            {
                 query = "\"" + String.Join("\"~4 OR \"", refKeys[key]) + "\"~4";
-            } 
+            }
             var searchResponse = await elastic.SearchAsync<ElasticBirthday>(x => x
                 .Index("birthdays")
                 .QueryOnQueryString(query)
                 .Size(10000)
             );
-            foreach (var hit in searchResponse.Hits){
-                if (hit.Id != id){
+            foreach (var hit in searchResponse.Hits)
+            {
+                if (hit.Id != id)
+                {
                     List<Category> listCategory = new List<Category>();
-                    if (hit.Source.categories != null){
+                    if (hit.Source.categories != null)
+                    {
                         hit.Source.categories.ToList().ForEach(c=>{
-                            listCategory.Add(new Category{
+                            listCategory.Add(new Category
+                            {
                                 CategoryName = c
                             });
                         });
                     }
-                    birthdays.Add(new Birthday{
+                    birthdays.Add(new Birthday
+                    {
                         Id = hit.Id,
                         Lname = hit.Source.lname,
                         Fname = hit.Source.fname,
@@ -1738,8 +1957,8 @@ namespace Jhipster.Infrastructure.Data.Repositories
                         IsAlive = hit.Source.isAlive,
                         Categories = listCategory
                     });
-                }         
-            }         
+                }
+            }
             return birthdays;
         }
     }

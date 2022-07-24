@@ -67,15 +67,15 @@ namespace Jhipster.Controllers
                 .WithHeaders(HeaderUtil.CreateEntityUpdateAlert(EntityName, birthday.Id.ToString()));
         }
 
-        [HttpGet("birthdays")]
-        public async Task<ActionResult<IEnumerable<BirthdayDto>>> GetAllBirthdays(IPageable pageable)
+        [HttpPost("birthdayQuery")]
+        public async Task<ActionResult<IEnumerable<BirthdayDto>>> GetAllBirthdays([FromBody] Dictionary<string, object> queryDictionary)
         {
             _log.LogDebug("REST request to get a page of Birthdays");
-            var queryDictionary = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(HttpContext.Request.QueryString.ToString());
+            var pageable = Pageable.Of(1, 10);
             String query = "";
             RulesetOrRule regexRulesetOrRule = null;
             if (queryDictionary.Keys.Contains("query")){
-                query = queryDictionary["query"];
+                query = (string)queryDictionary["query"];
             }
             if (query.StartsWith("{")){
                 var birthdayRequest = JsonConvert.DeserializeObject<Dictionary<string,object>>(query);
@@ -90,9 +90,9 @@ namespace Jhipster.Controllers
                         birthdayQuery = query;
                     }
                     if (birthdayQuery != ""){
-                        birthdayRequest["originalRuleset"] = birthdayQuery;
+                        birthdayRequest["queryRuleset"] = birthdayQuery;
                         RulesetOrRule rulesetOrRule = JsonConvert.DeserializeObject<RulesetOrRule>(birthdayQuery);
-                        if (ContainsRegex(rulesetOrRule)){
+                        if (false && ContainsRegex(rulesetOrRule)){
                             regexRulesetOrRule = DeMorganRemoveNot(rulesetOrRule, false);
                             RulesetOrRule removed = RemoveRegex(regexRulesetOrRule);
                             if (removed == null){
@@ -120,8 +120,8 @@ namespace Jhipster.Controllers
 
         private bool EvaluateWithRegex(Birthday result, RulesetOrRule rulesetOrRule){
             bool evalResult = rulesetOrRule.condition == "and" ? true : false;
-            string stringValue = rulesetOrRule.value.ToString();         
             if (rulesetOrRule.rules == null){
+                string stringValue = rulesetOrRule.value.ToString();
                 object value = "";
                 switch (rulesetOrRule.field){
                     case "lname":

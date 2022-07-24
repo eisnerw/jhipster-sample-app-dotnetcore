@@ -12,5 +12,7 @@ namespace Jhipster.Domain.Repositories.Interfaces
         Task<List<Birthday>> GetReferencesFromAsync(string id);
 
         Task<List<Birthday>> GetReferencesToAsync(string id);
+
+        Task<List<string>> GetUniqueFieldValueAsync(string field);
     }
 }

@@ -14,6 +14,7 @@
             "args": [],
             "cwd": "${workspaceFolder}/src/Jhipster",
             "stopAtEntry": false,
+            "enableStepFiltering": false,
             "serverReadyAction": {
                 "action": "openExternally",
                 "pattern": "\\bNow listening on:\\s+(https?://\\S+)"

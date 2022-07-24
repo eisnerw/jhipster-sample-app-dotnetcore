@@ -52,18 +52,10 @@ namespace Jhipster.Infrastructure.Data.Repositories
             List<Category> content = new List<Category>();
             if (!queryJson.StartsWith("{"))
             {
-                var result = await elastic.SearchAsync<Aggregation>(q => q
-                    .Size(0).Index("birthdays").Aggregations(agg => agg.Terms(
-                        "distinct", e =>
-                            e.Field("categories.keyword").Size(10000)
-                        )
-                    )
-                );
                 Dictionary<string, Category> allCategories = new Dictionary<string, Category>();
-                ((BucketAggregate)result.Aggregations.ToList()[0].Value).Items.ToList().ForEach(it =>
+                List<string> categoryNames = await _birthdayService.GetUniqueFieldValueAsync("categories.keyword");
+                categoryNames.ForEach(categoryName =>
                 {
-                    KeyedBucket<Object> kb = (KeyedBucket<Object>)it;
-                    string categoryName = kb.KeyAsString != null ? kb.KeyAsString : (string)kb.Key;
                     allCategories.Add(categoryName, new Category
                     {
                         CategoryName = categoryName,
@@ -103,9 +95,11 @@ namespace Jhipster.Infrastructure.Data.Repositories
             {
                 view = JsonConvert.DeserializeObject<View<Birthday>>(categoryRequest["view"].ToString());
                 if (view.focus != null){
-                    if (view.topLevelView != null){
+                    if (view.topLevelView != null)
+                    {
                         List<Birthday> topLevelFocus = view.topLevelView.focus;
-                        foreach(var bday in topLevelFocus){
+                        foreach(var bday in topLevelFocus)
+                        {
                             if ((bday.Fname + " " + bday.Lname) == view.topLevelCategory){
                                 content.Add(new Category
                                 {
@@ -113,7 +107,7 @@ namespace Jhipster.Infrastructure.Data.Repositories
                                     focusId = bday.Id,
                                     focusType = FocusType.FOCUS,
                                     Id = ++id
-                                });                                
+                                });
                                 content.Add(new Category
                                 {
                                     CategoryName = "References IN the " + bday.Fname + " " + bday.Lname + " article",
@@ -122,18 +116,19 @@ namespace Jhipster.Infrastructure.Data.Repositories
                                     Id = ++id
                                 });
                                 List<Birthday> referencesTo = await _birthdayService.GetReferencesTo(bday.Id);
-                                if (referencesTo.Count > 0){
+                                if (referencesTo.Count > 0)
+                                {
                                     content.Add(new Category
                                     {
                                         CategoryName = "References TO the " + bday.Fname + " " + bday.Lname + " article",
                                         focusId = bday.Id,
-                                        focusType = FocusType.REFERENCESTO,
-                                        Id = ++id                      
+                                        focusType = FocusType.REFERENCESTO,                   
                                     });
                                 }
                             }
                         }
-                    } else {
+                    } else 
+                    {
                         foreach (Birthday bday in view.focus){
                             content.Add(new Category
                             {
@@ -143,15 +138,18 @@ namespace Jhipster.Infrastructure.Data.Repositories
                             });
                         }
                     }
-                } else if (view.field.StartsWith("ruleset")){
+                }
+                else if (view.field.StartsWith("ruleset")){
                     // special view of rulesets
-                    var result = await _rulesetService.FindAll(pageable);{}
+                    var result = await _rulesetService.FindAll(pageable);
+                    {}
                     List<RulesetDto> lstRuleset = result.Content.Select(entity => _mapper.Map<RulesetDto>(entity)).ToList();
                     SortedDictionary<string, RulesetDto> dictRuleset = new SortedDictionary<string, RulesetDto>();
-                    lstRuleset.ForEach((r)=>{
+                    lstRuleset.ForEach((r) => {
                         dictRuleset.Add(r.Name, r);
                     });
-                    if (view.field == "ruleset"){
+                    if (view.field == "ruleset")
+                    {
                         dictRuleset.Keys.ToList().ForEach((k)=>{
                             Dictionary<string, object> dictCategory = JsonConvert.DeserializeObject<Dictionary<string, object>>(dictRuleset[k].JsonString);
                             content.Add(new Category
@@ -162,15 +160,18 @@ namespace Jhipster.Infrastructure.Data.Repositories
                                 Id = ++id
                             });
                         });
-                    } else {
+                    }
+                    else
+                    {
                         // ruleset2
                         List<object> usedBy = new List<object>();
                         List<object> uses = new List<object>();
-                        lstRuleset.ForEach((r)=>{
+                        lstRuleset.ForEach((r) => {
                             Dictionary<string, object> categoryRequest = JsonConvert.DeserializeObject<Dictionary<string, object>>(r.JsonString);
                             SortedDictionary<string, object> dictRulesetUses = new SortedDictionary<string, object>();
                             RulesetUses(categoryRequest, dictRulesetUses);                            
-                            if (r.Name == view.topLevelCategory){
+                            if (r.Name == view.topLevelCategory)
+                            {
                                 content.Add(new Category
                                 {
                                     CategoryName = "Query " + view.topLevelCategory,
@@ -178,16 +179,18 @@ namespace Jhipster.Infrastructure.Data.Repositories
                                     jsonString = r.JsonString,
                                     Id = ++id
                                 });
-                                dictRulesetUses.Keys.ToList().ForEach((k=>{
+                                dictRulesetUses.Keys.ToList().ForEach((k => {
                                     uses.Add(dictRulesetUses[k]);
                                 }));
-                            } else {
+                            }
+                            else
+                            {
                                 if (dictRulesetUses.ContainsKey(view.topLevelCategory)){
                                     usedBy.Add(categoryRequest);
                                 }
                             }
                         });
-                        uses.ForEach((u)=>{
+                        uses.ForEach((u) => {
                             Dictionary<string, object> ruleset = (Dictionary<string, object>)u;
                             content.Add(new Category
                             {
@@ -195,9 +198,9 @@ namespace Jhipster.Infrastructure.Data.Repositories
                                 description = queryAsString(ruleset),
                                 jsonString = JsonConvert.SerializeObject(ruleset),
                                 Id = ++id
-                            });                            
+                            });
                         });
-                        usedBy.ForEach((u)=>{
+                        usedBy.ForEach((u) => {
                             Dictionary<string, object> ruleset = (Dictionary<string, object>)u;
                             content.Add(new Category
                             {
@@ -205,24 +208,28 @@ namespace Jhipster.Infrastructure.Data.Repositories
                                 description = queryAsString(ruleset),
                                 jsonString = JsonConvert.SerializeObject(ruleset),
                                 Id = ++id
-                            });                            
+                            });
                         });                        
                     }
                 } else {
                     aggregationKey = view.aggregation;
                     query = view.query + ((string)categoryRequest["query"] != "" ? " AND " + categoryRequest["query"] : "");
-                    if (view.topLevelView != null){
+                    if (view.topLevelView != null)
+                    {
                         View<Birthday>topLevelView = view.topLevelView;
                         string categoryClause = "";
-                        if (view.topLevelCategory != null && topLevelView.field != null){
+                        if (view.topLevelCategory != null && topLevelView.field != null)
+                        {
                             if (topLevelView.categoryQuery != null){
                                 categoryClause = view.categoryQuery.Replace("{}", view.topLevelCategory);
-                            } else {
+                            }
+                            else
+                            {
                                 categoryClause = view.topLevelCategory == "-" ? "-" + topLevelView.field + ":*" : topLevelView.field + ":\"" + view.topLevelCategory + "\"";
                             }
                             query = categoryClause + " AND (" + query + ")";
                         }
-                    }                    
+                    }
                     var result = await elastic.SearchAsync<Aggregation>(q => q
                         .Size(0)
                         .Index("birthdays")
@@ -273,57 +280,59 @@ namespace Jhipster.Infrastructure.Data.Repositories
             return new Page<Category>(content, pageable, content.Count);
         }
 
-        private void RulesetUses(Dictionary<string, object> dictRuleset, SortedDictionary<string, object> dictRulesetUses){
+        private void RulesetUses(Dictionary<string, object> dictRuleset, SortedDictionary<string, object> dictRulesetUses)
+        {
             if (dictRuleset.ContainsKey("rules")){
                 List<Dictionary<string, object>> rules = ((Newtonsoft.Json.Linq.JArray)dictRuleset["rules"]).ToObject<List<Dictionary<string, object>>>();
-                rules.ForEach((r)=>{
+                rules.ForEach((r) => {
                     if (r.ContainsKey("name") && !dictRulesetUses.ContainsKey((string)r["name"])){
                         dictRulesetUses.Add((string)r["name"], (Dictionary<string, object>) r);
                     }
-                    if (r.ContainsKey("rules")){
+                    if (r.ContainsKey("rules"))
+                    {
                         RulesetUses(r, dictRulesetUses);
                     }
                 });
             }
         }
 
-        private string queryAsString(Dictionary<string, object> query, bool bRecurse = false){
+        private string queryAsString(Dictionary<string, object> query, bool bRecurse = false)
+        {
             string result = "";
             bool multipleConditions = false;
             List<Dictionary<string, object>> rules = ((Newtonsoft.Json.Linq.JArray)query["rules"]).ToObject<List<Dictionary<string, object>>>();
             rules.ForEach((r)=>{
-                if (result.Length > 0){
+                if (result.Length > 0)
+                {
                     result += (' ' + ((string)query["condition"] == "and" ? "&" : "|") + ' ');
                     multipleConditions = true;
                 }
-                if (r.ContainsKey("condition")){
+                if (r.ContainsKey("condition"))
+                {
                     if (r.ContainsKey("name")){
                         result += (string)r["name"];
                     } else {
                         result += this.queryAsString((Dictionary<string, object>)r, rules.Count > 1); // note: if only one rule, treat it as a top level
                     }
-                } else if (r.ContainsKey("field") && (string)r["field"] == "document" && r.ContainsKey("value")) { 
+                } else if (r.ContainsKey("field") && (string)r["field"] == "document" && r.ContainsKey("value"))
+                { 
                     result += (string)r["value"];
                 } else {
                     result += (string)r["field"];
                     result += (" " +  (string)r["operator"] + " ");
-                    if (r.ContainsKey("value")) {
+                    if (r.ContainsKey("value"))
+                    {
                         result += (string)r["value"];
                     }
                 }
             });
-            if (query.ContainsKey("not") && ((bool)query["not"])){
+            if (query.ContainsKey("not") && ((bool)query["not"]))
+            {
                 result = "!(" + result + ")";
             } else if (bRecurse && multipleConditions){
                 result = "(" + result + ")";
             }
             return result;            
-        }
-        class Aggregation
-        {
-            string key { get; set; }
-            int doc_count { get; set; }
-            object[] distinct { get; set; }
         }
     }
 }

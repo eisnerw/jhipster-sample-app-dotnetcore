@@ -32,6 +32,10 @@ export class CategoryService {
     return this.http.get<ICategory[]>(this.resourceUrl, { params: options, observe: 'response' });
   }
 
+  postQuery(req?: any): Observable<HttpResponse<{}>> {
+    return this.http.post<ICategory[]>(SERVER_API_URL + 'api/categoryQuery', req, { observe: 'response'});
+  }  
+
   delete(id: number): Observable<HttpResponse<{}>> {
     return this.http.delete(`${this.resourceUrl}/${id}`, { observe: 'response' });
   }
