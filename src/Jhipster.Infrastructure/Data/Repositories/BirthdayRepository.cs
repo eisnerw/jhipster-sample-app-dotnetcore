@@ -1626,20 +1626,24 @@ namespace Jhipster.Infrastructure.Data.Repositories
                     )
                 );
             }
-            else
+            else if (birthdayRequest.ContainsKey("queryRuleset"))
             {
-                if (birthdayRequest.ContainsKey("queryRuleset"))
-                {
-                    RulesetOrRule queryRuleset = JsonConvert.DeserializeObject<RulesetOrRule>((string)birthdayRequest["queryRuleset"]);
-                    JObject obj = (JObject) await RulesetToElasticSearch(queryRuleset);
-                    searchResponse = await elastic.SearchAsync<ElasticBirthday>(s => s
-                        .Index("birthdays")
-                        .Size(10000)
-                        .Query(q => q
-                            .Raw(obj.ToString())
-                        )
-                    );
-                }
+                RulesetOrRule queryRuleset = JsonConvert.DeserializeObject<RulesetOrRule>((string)birthdayRequest["queryRuleset"]);
+                JObject obj = (JObject) await RulesetToElasticSearch(queryRuleset);
+                searchResponse = await elastic.SearchAsync<ElasticBirthday>(s => s
+                    .Index("birthdays")
+                    .Size(10000)
+                    .Query(q => q
+                        .Raw(obj.ToString())
+                    )
+                );
+            } else
+            {
+                searchResponse = await elastic.SearchAsync<ElasticBirthday>(x => x
+                    .Index("birthdays")
+                    .QueryOnQueryString(query)
+                    .Size(10000)
+                );
             }
             List<Birthday> content = new List<Birthday>();
             Console.WriteLine(searchResponse.Hits.Count + " hits");
