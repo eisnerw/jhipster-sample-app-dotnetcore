@@ -332,14 +332,14 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
               this.birthdayDialogId = selectedRow ? selectedRow?.id?.toString() : "";
               this.birthdayDialogTitle = selectedRow ? selectedRow?.fname + " " + selectedRow?.lname : "";
               this.categoryService
-              .query({
+              .postQuery({
                 page: 0,
                 size: 10000,
                 sort: this.sortCategory(),
                 query: this.birthdayDialogId
               })
               .subscribe(
-                (res: HttpResponse<IBirthday[]>) => this.onCategorySuccess(res.body, res.headers),
+                (res: anny) => this.onCategorySuccess(res.body, res.headers),
                 () => this.onError()
               );
             }, 0);

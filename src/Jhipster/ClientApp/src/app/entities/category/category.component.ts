@@ -533,14 +533,14 @@ export class CategoryComponent implements OnInit, OnDestroy {
                   this.birthdayDialogId = selectedRow ? selectedRow?.id?.toString() : "";
                   this.birthdayDialogTitle = birthday.fname + " " + birthday.lname;
                   this.categoryService
-                  .query({
+                  .postQuery({
                     page: 0,
                     size: 10000,
                     sort: this.sortCategory(),
                     query: this.birthdayDialogId
                   })
                   .subscribe(
-                    (res: HttpResponse<IBirthday[]>) => this.onCategorySuccess(res.body, res.headers),
+                    (res: any) => this.onCategorySuccess(res.body, res.headers),
                     () => this.onError()
                   );
                 }, 0);
