@@ -1,31 +1,31 @@
 import { Option } from "angular2-query-builder";
 
 export interface IQueryRule {
-    field: string,
-    operator: string,
-    value: string | string[]
+  field: string,
+  operator: string,
+  value: string | string[]
 }
 
 export interface IQuery {
-    condition: string,
-    rules: IQueryRule[],
-    not: boolean,
-    name?: string,
-    Invalid?: boolean,
-    position?: number
+  condition: string,
+  rules: IQueryRule[],
+  not: boolean,
+  name?: string,
+  Invalid?: boolean,
+  position?: number
 }
 
 interface IParse {
-    matches: boolean,
-    string: string,
-    i: number
+  matches: boolean,
+  string: string,
+  i: number
 }
 
 export class BirthdayQueryParserService {
   queryNames: string[] = [];
   parse(query: string, rulesetMap: Map<string, IQuery | IQueryRule>, optionsMap : Map<string, Option[]>): IQuery {
     if (query.trim() === ""){
-        return {"condition":"or","not":false,"rules":[]};
+      return {"condition":"or","not":false,"rules":[]};
     }
     this.queryNames = [...(rulesetMap as Map<string, IQuery>).keys()].sort((a, b) => a > b ? -1 : 1);;
     const queryNameRegexString = this.queryNames.length > 0 ? "|(" + this.queryNames.join("|") + ")": "";
@@ -33,14 +33,14 @@ export class BirthdayQueryParserService {
     const regex = new RegExp(regexString, "g");
     const tokens = query.replace(regex, '`$1').split('`');
     /* NOT SURE WE STILL NEED THIS
-    // join adjacent words      
+    // join adjacent words
     let looping = tokens.length > 2;
     while (looping){
       for (let iTokens = 1; iTokens < (tokens.length - 1); iTokens++){
         looping = false;
-        if (!/^(&|\||CONTAINS|LIKE|CO|CON|CONT|CONTA|CONTAI|CONTAIN|LI|LIK)$/.test(tokens[iTokens]) 
+        if (!/^(&|\||CONTAINS|LIKE|CO|CON|CONT|CONTA|CONTAI|CONTAIN|LI|LIK)$/.test(tokens[iTokens])
           && /^[\w\d".*-]+/.test(tokens[iTokens])
-          && !/^(&|\||CONTAINS|LIKE|CO|CON|CONT|CONTA|CONTAI|CONTAIN|LI|LIK)$/.test(tokens[iTokens + 1]) 
+          && !/^(&|\||CONTAINS|LIKE|CO|CON|CONT|CONTA|CONTAI|CONTAIN|LI|LIK)$/.test(tokens[iTokens + 1])
           && /^[\w\d".*-]+/.test(tokens[iTokens + 1])){
             tokens[iTokens] += (" " + tokens[iTokens + 1]);
             tokens.splice(iTokens + 1, 1);
@@ -98,7 +98,7 @@ export class BirthdayQueryParserService {
             if (tokens[i].startsWith('"')){
               if (tokens[i].endsWith('\\"')){
                 parse.string = '[invalid quoted string]';
-                return parse;                
+                return parse;
               }
               documentValue = tokens[i];
             }
@@ -109,25 +109,25 @@ export class BirthdayQueryParserService {
                 parse.string = '[bad regex]'
                 return parse;
               }
-            }           
+            }
             parse.matches = true;
             parse.string = '{"field":"document", "operator":"contains","value":' + documentValue + '}';
             parse.i++;
             return parse;
-        }            
+        }
         parse.string = '[invalid field name]';
         return parse;
     }
     if ((i + 2) > tokens.length){
         return parse;
-    }        
+    }
     parse.i++;
     parse.string = '[invalid operator]'
     switch (tokens[i]){
       case 'isAlive':
         if (tokens[i + 1] !== '='){
           return parse;
-        }        
+        }
         break;
 
       case 'sign':
@@ -135,17 +135,17 @@ export class BirthdayQueryParserService {
           return parse;
         }
         break;
-      
+
       case 'dob':
         if (!/^(=|!=|>=|<=|>|<|EXISTS|!EXISTS)$/.test(tokens[i + 1])){
           return parse;
         }
         break;
-      
+
       case 'lname':
         if (!/^(=|!=|IN|!IN|EXISTS|!EXISTS)$/.test(tokens[i + 1])){
           return parse;
-        }        
+        }
         break;
 
       case 'fname':
@@ -159,7 +159,7 @@ export class BirthdayQueryParserService {
           return parse;
         }
         break;
-      
+
       default:
         return parse;
         break;
@@ -172,7 +172,7 @@ export class BirthdayQueryParserService {
       parse.string = '{"field":"' + tokens[i] + '","operator":"exists","value":' + (tokens[i + 1].startsWith('!') ? 'false' : 'true') + '}';
       return parse;
     }
-    const values : Map<string, string> = new Map<string, string>();    
+    const values : Map<string, string> = new Map<string, string>();
     switch (tokens[i]){
       case 'isAlive':
         if (!/^(true|false)$/.test(tokens[i + 2])){
@@ -208,13 +208,13 @@ export class BirthdayQueryParserService {
           }
         }
         break;
-      
+
       case 'dob':
         if (!/^\d{4,4}-\d{2,2}-\d{2,2}$/.test(tokens[i + 2])){
           return parse;
         }
         break;
-      
+
       case 'lname':
         if (optionsMap.has('lname')){
           optionsMap.get('lname')?.forEach(o=>{
@@ -222,7 +222,7 @@ export class BirthdayQueryParserService {
               values.set(o.value.toLowerCase(), o.value);
             }
           });
-        }        
+        }
         if ((tokens[i + 1] === 'IN' || tokens[i + 1] === '!IN') && tokens[i + 2] && tokens[i + 2].length > 2){
           let bValid = true;
           const trimmedAndQuoted : string[] = [];
@@ -230,7 +230,7 @@ export class BirthdayQueryParserService {
             let value = v.trim().toLowerCase();
             if (value.startsWith('"')){
               value = value.substring(1, value.length - 1).replace(/\\"/g,'"');
-            }            
+            }
             const quotedValue = '"' + value + '"';
             if (!values.has(value)){
               bValid = false;
@@ -246,7 +246,7 @@ export class BirthdayQueryParserService {
           let value = tokens[i + 2]?.toLowerCase();
           if (value?.startsWith('"')){
             value = value.substring(1, value.length - 1).replace(/\\"/g,'"');
-          }            
+          }
           const quotedValue = '"' + value + '"';
           if (!values.has(value)){
             return parse;
@@ -263,7 +263,7 @@ export class BirthdayQueryParserService {
             parse.string = '[bad regex]'
             return parse;
           }
-        } else if (!((tokens[i + 1] === 'IN' || tokens[i + 1] === '!IN') && /^\(.+\)$/.test(tokens[i + 2])) 
+        } else if (!((tokens[i + 1] === 'IN' || tokens[i + 1] === '!IN') && /^\(.+\)$/.test(tokens[i + 2]))
             && !/^[\w\d.* -]+$/.test(tokens[i + 2]) && !/^"[^"]+"$/.test(tokens[i + 2])){
           return parse;
         }
@@ -283,7 +283,7 @@ export class BirthdayQueryParserService {
     if (tokens[i + 2] === undefined){
       return parse; // no value
     }
-    if (tokens[i] === "isAlive" || tokens[i + 1] === "IN" || tokens[i + 1] === "!IN" || value || tokens[i + 2].startsWith('"')){
+    if (tokens[i].startsWith("is") || tokens[i + 1] === "IN" || tokens[i + 1] === "!IN" || value || tokens[i + 2].startsWith('"')){
       value = tokens[i + 2];
     } else {
       value = '"' + tokens[i + 2] + '"';
@@ -334,7 +334,7 @@ export class BirthdayQueryParserService {
           matches: true,
           i: ret.i,
           string: '{"condition":"or","rules":[' + ret.string + '],"not": true}'
-        }        
+        }
       }
       if (ret.matches){
         return ret;
@@ -367,7 +367,7 @@ export class BirthdayQueryParserService {
           loop = false;
         } else {
           parse.i++;
-        }        
+        }
       } else {
         loop = false;
       }
@@ -429,7 +429,7 @@ export class BirthdayQueryParserService {
         string: JSON.stringify(rulesetMap?.get(tokens[i])) ,
         i: i + 1
       };
-    }     
+    }
     if (tokens[i++] !== "("){
       return parse;
     }
@@ -484,9 +484,9 @@ export class BirthdayQueryParserService {
         } else if (r.operator === "in" || r.operator === "not in"){
           const quoted : string[] = [];
           (r.value as string[]).forEach(v =>{
-            quoted. push(/^[a-zA-Z\d]+$/.test(v) ? v : ('"' + v?.replace(/([\\"])/g, '\\$1') + '"'));
+            quoted.push(/^[a-zA-Z\d]+$/.test(v) ? v : ('"' + v?.replace(/([\\"])/g, '\\$1') + '"'));
           });
-          result += (' ' + (r.operator === "in" ? "" : "!") +'IN (' + quoted.join(', ') + ') ');          
+          result += (' ' + (r.operator === "in" ? "" : "!") +'IN (' + quoted.join(', ') + ') ');
         } else {
           result += (' ' +  r.operator.toUpperCase() + ' ');
           if (r.value !== undefined) {
@@ -496,7 +496,7 @@ export class BirthdayQueryParserService {
               result += ('"' + r.value.toString().replace(/([\\"])/g, '\\$1') + '"');
             } else {
               result += (r.value.toString().toLowerCase());
-            }            
+            }
           }
         }
       }
@@ -517,10 +517,10 @@ export class BirthdayQueryParserService {
       if ((r as any).rules !== undefined){
         // rule is a query
         this.simplifyQuery(r as unknown as IQuery);
-      } 
+      }
     });
-    if (query.rules.length === 1 && 
-        (query.rules[0] as any).rules !== undefined && 
+    if (query.rules.length === 1 &&
+        (query.rules[0] as any).rules !== undefined &&
         (query.rules[0] as any).rules.length === 1 &&
         (query as any).name !== undefined){
       // remove one level

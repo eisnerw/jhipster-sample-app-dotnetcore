@@ -78,7 +78,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
   categoriesTable: SuperTable | null = null;
   searchQueryAsString = "";
   searchQueryBeforeEdit = "";
-  
+
   columnDefs = [
     { field: 'categoryName', sortable: true, filter: true },
   ];
@@ -150,7 +150,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
 
   public bDeletingQuery = false;
 
-  public queryToDelete = "";  
+  public queryToDelete = "";
 
   public namedQueryUsedIn : string[] = [];
 
@@ -176,7 +176,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
   public analysisMatches: AnalysisMatch[] = [];
 
 
-  getLatestRulesets$ : Observable<void> = 
+  getLatestRulesets$ : Observable<void> =
     this.rulesetService.query().pipe(take(1), map((res: any): void=> {
       this.rulesetMap.clear();
       let rulesets : IStoredRuleset[] = [];
@@ -269,7 +269,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
     // this.checkboxSelectedRows = [];
     table.filterGlobal(searchInput.value, 'contains');  // Not sure why this is necessary, but otherwise filter stays active
   }
-  
+
   isDisplayingEllipsis(element : HTMLElement) : boolean{
     const tolerance = 3;
     return element.offsetWidth + tolerance < element.scrollWidth
@@ -379,7 +379,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
       if ((existingFocus.focus as IBirthday[]).includes(focus)){
         focusView = existingFocus; // the name already exists, so do nothing
       } else {
-        focusView.name = existingFocus.name + ' and ' + (focus.fname as string) + ' ' + (focus.lname as string); 
+        focusView.name = existingFocus.name + ' and ' + (focus.fname as string) + ' ' + (focus.lname as string);
         focusView.focus = existingFocus.focus as IBirthday[];
         focusView.focus.push(focus);
       }
@@ -394,7 +394,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
     this.selectedView = focusView;
     this.refreshData();
   }
-  
+
   onCheckboxChange() : void {
     this.chipSelectedRows = [];
     if (this.checkboxSelectedRows.length < 3){
@@ -450,7 +450,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
       this.menuItems = [{
         label: 'Edit query '+query.name,
         icon: 'pi pi-pencil',
-        id: query.name,      
+        id: query.name,
         command: (event: any)=>{
           const menuItem : MenuItem = event.item;
           const categoryComponent = this.parentComponent ? this.parentComponent : this;
@@ -459,7 +459,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
         }
       },{
         label: 'Rename query '+query.name,
-        icon: 'pi pi-user-edit',      
+        icon: 'pi pi-user-edit',
         command: ()=>{
           this.namedQueryUsedIn = []
           let storedRulesets : IStoredRuleset[] = [];
@@ -468,7 +468,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
             (storedRulesets = res.body || []);
             storedRulesets.forEach(r=>{
               let q : IQuery = JSON.parse(r.jsonString as string) as IQuery;
-              this.rulesetMap.set(r.name as string, this.birthdayQueryParserService.normalize(q, this.rulesetMap as Map<string, IQuery>));   
+              this.rulesetMap.set(r.name as string, this.birthdayQueryParserService.normalize(q, this.rulesetMap as Map<string, IQuery>));
               if ((r.name as string) === query.name){
                 this.storedQueryBeingRenamed = this.rulesetMap.get(query.name) as IQuery;
               }
@@ -479,12 +479,12 @@ export class CategoryComponent implements OnInit, OnDestroy {
             })
             this.bRenamingQuery = true;
             this.queryToRename = query.name;
-            this.newQueryName = "";          
-          })).subscribe()        
+            this.newQueryName = "";
+          })).subscribe()
         }
       },{
         label: 'Delete query '+query.name,
-        icon: 'pi pi-user-edit',      
+        icon: 'pi pi-user-edit',
         command: ()=>{
           this.namedQueryUsedIn = []
           let storedRulesets : IStoredRuleset[] = [];
@@ -493,7 +493,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
             (storedRulesets = res.body || []);
             storedRulesets.forEach(r=>{
               let q : IQuery = JSON.parse(r.jsonString as string) as IQuery;
-              this.rulesetMap.set(r.name as string, this.birthdayQueryParserService.normalize(q, this.rulesetMap as Map<string, IQuery>));   
+              this.rulesetMap.set(r.name as string, this.birthdayQueryParserService.normalize(q, this.rulesetMap as Map<string, IQuery>));
               if ((r.name as string) === query.name){
                 this.storedQueryBeingDeleted = this.rulesetMap.get(query.name) as IQuery;
               }
@@ -504,9 +504,9 @@ export class CategoryComponent implements OnInit, OnDestroy {
             })
             this.bDeletingQuery = true;
             this.queryToDelete = query.name;
-          })).subscribe()        
+          })).subscribe()
         }
-      }];    
+      }];
     } else {
       const birthday : IBirthday = CategoryOrBirthday;
       if (!birthday.lname){
@@ -561,7 +561,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
                 label: 'Ingest',
                 icon: 'pi pi-upload',
             },
-    
+
           ]},
           {
               label: 'Relationship',
@@ -605,7 +605,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
         } else {
           this.menuItems[1].label = `Select another birthday to relate`;
         }
-        this.contextSelectedRow = birthday;      
+        this.contextSelectedRow = birthday;
       }
     }
   }
@@ -619,7 +619,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
       ids
     }).subscribe((r) => {
       if (!r.ok){
-        alert("Analysis failed"); 
+        alert("Analysis failed");
       } else {
         this.analysisMatches = (r as any).body.matches;
         const analysisView : IView = {name: "Analysis", field: "", aggregation: "", query: "", secondLevelView:{name: "SecondLevelAnalysis", field: "analysis", aggregation: "", query: ""}};
@@ -644,7 +644,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
               case"none":
                 category = "Documents that matched no selectors";
                 break;
-                
+
               case"single":
                 category = "Documents that matched one selector";
                 break;
@@ -660,9 +660,9 @@ export class CategoryComponent implements OnInit, OnDestroy {
         this.rowData = of(this.categories);
         this.displayAsCategories = true;
       }
-    }); 
+    });
   }
-  
+
   cancelDeleteQuery():void{
     this.bDeletingQuery = false;
   }
@@ -689,7 +689,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
       } else {
         // all done
         this.rulesetMap.delete(name);
-        this.bDeletingQuery = false;        
+        this.bDeletingQuery = false;
         topLevel.refreshData();
       }
     };
@@ -786,7 +786,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
           hideMenu();
         }
       }, 0);
-    }       
+    }
     menuEl.addEventListener('mouseover', mouseOver);
     menuEl.addEventListener('mouseleave', hideMenu);
     chipsEl.addEventListener('mouseout', chipsMouseOut);
@@ -850,7 +850,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
         this.bDisplayCategories = false;
       }
     );
-  }  
+  }
   cancelCategorize() : void {
     this.bDisplayCategories = false;
   }
@@ -858,6 +858,9 @@ export class CategoryComponent implements OnInit, OnDestroy {
     this.handleNavigation();
     this.registerChangeInCategories();
     this.primeNGConfig.ripple = true;
+    window.onresize = () =>{
+      this.refreshData();
+    }
   }
   onCategorySuccess(data: ICategory[] | null, headers: HttpHeaders) : void{
     const totalItems = Number(headers.get('X-Total-Count'));
@@ -972,7 +975,7 @@ export class CategoryComponent implements OnInit, OnDestroy {
     }
     this.categories = data || [];
     this.ngbPaginationPage = this.page;
-    
+
     if (data) {
       const loadIncrement = 50;
       const loadData : any[] = this.categories?.slice(0, loadIncrement);

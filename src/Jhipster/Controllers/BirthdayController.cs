@@ -138,7 +138,7 @@ namespace Jhipster.Controllers
                         break;
                 }
                 switch (rulesetOrRule.@operator){
-                    case "!contains":                    
+                    case "!contains":
                     case "contains":
                         if (stringValue.StartsWith("/") && stringValue.EndsWith("/")){
                             evalResult = Regex.IsMatch(stringValue, stringValue.Substring(1, stringValue.Length - 2), RegexOptions.IgnoreCase);
@@ -147,7 +147,7 @@ namespace Jhipster.Controllers
                         }
                         return rulesetOrRule.@operator.StartsWith("!") ? !evalResult : evalResult;
 
-                    case "!=":                        
+                    case "!=":
                     case "=":
                         evalResult = stringValue == (string)value;
                         return rulesetOrRule.@operator.StartsWith("!") ? !evalResult : evalResult;
@@ -210,7 +210,7 @@ namespace Jhipster.Controllers
                             returned.rules.Add(removed);
                         } else {
                             bReturnNull = true;
-                        }                      
+                        }
                     }
                 });
             }
@@ -240,7 +240,7 @@ namespace Jhipster.Controllers
                         break;
                     case "<":
                         returned.@operator = "<=";
-                        break;                                                                        
+                        break;
                     case "<=":
                         returned.@operator = ">";
                         break;
@@ -272,10 +272,10 @@ namespace Jhipster.Controllers
                 returned.condition = rulesetOrRule.condition == "and" ? "or" : "and";
                 rulesetOrRule.rules.ForEach(r=>{
                     returned.rules.Add(DeMorganRemoveNot(r, true));
-                });                    
+                });
             }
             return returned;
-        }        
+        }
 
         [AllowAnonymous]
         [HttpGet("birthdays/text/{id}")]
@@ -287,7 +287,7 @@ namespace Jhipster.Controllers
             {
                 Content = ret,
                 ContentType = "text/html",
-            };        
+            };
         }
 
         [HttpGet("birthdays/{id}")]
@@ -296,7 +296,7 @@ namespace Jhipster.Controllers
             _log.LogDebug($"REST request to get Birthday : {id}");
             var result = await _birthdayService.FindOne(id);
             BirthdayDto birthdayDto = _mapper.Map<BirthdayDto>(result);
-            return ActionResultUtil.WrapOrNotFound(birthdayDto);            
+            return ActionResultUtil.WrapOrNotFound(birthdayDto);
          }
 
         [HttpDelete("birthdays/{id}")]

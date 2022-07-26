@@ -12,7 +12,7 @@ import { BirthdayService } from './birthday.service';
 import { CategoryService } from '../category/category.service';
 // import { BirthdayDeleteDialogComponent } from './birthday-delete-dialog.component';
 import { Observable } from 'rxjs';
-import { of } from 'rxjs';  
+import { of } from 'rxjs';
 import { SuperTable } from './super-table';
 import { MenuItem, MessageService } from 'primeng/api';
 import { DomSanitizer } from "@angular/platform-browser";
@@ -40,7 +40,7 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
   faCheck = faCheck;
   @Input() parent: SuperTable | null = null;
   @Input() refresh: any = null;
-  
+
   columnDefs = [
     { field: 'lname', sortable: true, filter: true },
     { field: 'fname', sortable: true, filter: true },
@@ -107,7 +107,7 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
     }
     const screenHeight = window.innerHeight;
     const divTop = stdiv.getBoundingClientRect().top;
-    const FOOTERHEIGHT = 40;
+    const FOOTERHEIGHT = 30;
     const divHeight = Math.floor(screenHeight - divTop - FOOTERHEIGHT);
     return {"overflow-y":"scroll","height": divHeight + "px"};
   }
@@ -159,7 +159,7 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
     // this.checkboxSelectedRows = [];
     table.filterGlobal(searchInput.value, 'contains');  // Not sure why this is necessary, but otherwise filter stays active
   }
-  
+
   isDisplayingEllipsis(element : HTMLElement) : boolean{
     const tolerance = 3;
     return element.offsetWidth + tolerance < element.scrollWidth
@@ -212,7 +212,7 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
           hideMenu();
         }
       }, 0);
-    }       
+    }
     menuEl.addEventListener('mouseover', mouseOver);
     menuEl.addEventListener('mouseleave', hideMenu);
     chipsEl.addEventListener('mouseout', chipsMouseOut);
@@ -248,7 +248,7 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
     if (expanded){
       // ignore
     }
-    /* 
+    /*
     this.chipSelectedRows = [];
     Object.keys(this.expandedRows).forEach((key)=>{
       if (this.expandedRows[key]){
@@ -301,7 +301,7 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
         this.bDisplayCategories = false;
       }
     );
-  }  
+  }
   cancelCategorize() : void {
     this.bDisplayCategories = false;
   }
@@ -317,7 +317,7 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
           icon: 'pi pi-angle-double-down',
           command: ()=>{
             setTimeout(()=>{
-              this.setViewFocus.emit(this.contextSelectedRow as IBirthday); // used to provide controller a reference to the table 
+              this.setViewFocus.emit(this.contextSelectedRow as IBirthday); // used to provide controller a reference to the table
             }, 0);
           }
         }
@@ -464,7 +464,7 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
       this.birthdaysMap[birthday.id as number] = birthday;
     });
     this.ngbPaginationPage = this.page;
-    
+
     if (data) {
       const loadIncrement = 250;
       const loadData : any[] = this.birthdays?.slice(0, loadIncrement);
