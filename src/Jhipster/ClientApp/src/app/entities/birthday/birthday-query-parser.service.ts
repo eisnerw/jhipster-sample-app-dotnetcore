@@ -29,7 +29,7 @@ export class BirthdayQueryParserService {
     }
     this.queryNames = [...(rulesetMap as Map<string, IQuery>).keys()].sort((a, b) => a > b ? -1 : 1);;
     const queryNameRegexString = this.queryNames.length > 0 ? "|(" + this.queryNames.join("|") + ")": "";
-    const regexString = "\\s*(" + '(?<=IN\\s)(\\("(\\\\"|[^"])+"|\\/(\\\\/|[^/]+\\/)|[^"\\s]+\\s*)(,\\s*("(\\\\"|[^"])+"|[^"\\s]+\\s*))*\\s*\\)' + queryNameRegexString + '|[()]' + '|("(\\\\"|\\\\\\\\|[^"])+\\"|\\/(\\\\\\/|[^\\/])+\\/' + "|sign|dob|lname|fname|isAlive|document)|(=|!=|CONTAINS|LIKE|EXISTS|!EXISTS|IN|!IN|>=|<=|>|<)|(&|\\||!)|[^\"/=!<>() ]+)\\s*";
+    const regexString = "\\s*(" + '(?<=IN\\s)(\\("(\\\\"|[^"])+"|\\/(\\\\/|[^/]+\\/)|[^"\\s]+\\s*)(,\\s*("(\\\\"|[^"])+"|[^"\\s]+\\s*))*\\s*\\)' + queryNameRegexString + '|[()]' + '|("(\\\\"|\\\\\\\\|[^"])+\\"|\\/(\\\\\\/|[^\\/])+\\/i?' + "|sign|dob|lname|fname|isAlive|document)|(=|!=|CONTAINS|LIKE|EXISTS|!EXISTS|IN|!IN|>=|<=|>|<)|(&|\\||!)|[^\"/=!<>() ]+)\\s*";
     const regex = new RegExp(regexString, "g");
     const tokens = query.replace(regex, '`$1').split('`');
     /* NOT SURE WE STILL NEED THIS
@@ -93,7 +93,7 @@ export class BirthdayQueryParserService {
       return parse;
     }
     if (!/^(sign|dob|lname|fname|isAlive|document)$/.test(tokens[parse.i])){
-        if ((/^[A-Za-z0-9?*]+$/.test(tokens[i]) && /[a-z0-9]/.test(tokens[i])) || /^".*"$/.test(tokens[i]) || /^\/.*\/$/.test(tokens[i])){
+        if ((/^[A-Za-z0-9?*]+$/.test(tokens[i]) && /[a-z0-9]/.test(tokens[i])) || /^".*"$/.test(tokens[i]) || /^\/.*\/i?$/.test(tokens[i])){
             let documentValue = '"' + tokens[i].replace(/([\\"])/g, '\\$1') + '"';
             if (tokens[i].startsWith('"')){
               if (tokens[i].endsWith('\\"')){
@@ -102,7 +102,7 @@ export class BirthdayQueryParserService {
               }
               documentValue = tokens[i];
             }
-            if (typeof documentValue === 'string' && documentValue.startsWith('"/') && documentValue.endsWith('/"')){
+            if (typeof documentValue === 'string' && documentValue.startsWith('"/') && (documentValue.endsWith('/"') || documentValue.endsWith('/i"'))){
               try {
                 RegExp(documentValue.substring(1, documentValue.length - 1));
               } catch(e){
@@ -256,7 +256,7 @@ export class BirthdayQueryParserService {
         break;
 
       case 'fname':
-        if (tokens[i + 1] === 'CONTAINS' && typeof tokens[i + 2] === 'string' && tokens[i + 2].startsWith('/')&& tokens[i + 2].endsWith('/')){
+        if (tokens[i + 1] === 'CONTAINS' && typeof tokens[i + 2] === 'string' && tokens[i + 2].startsWith('/') && (tokens[i + 2].endsWith('/') || tokens[i + 2].endsWith('/i'))){
           try {
             RegExp(tokens[i + 2]);
           } catch(e){
@@ -490,7 +490,7 @@ export class BirthdayQueryParserService {
         } else {
           result += (' ' +  r.operator.toUpperCase() + ' ');
           if (r.value !== undefined) {
-            if (r.value.toString().startsWith('/') && r.value.toString().endsWith('/')){
+            if (r.value.toString().startsWith('/') && (r.value.toString().endsWith('/') || r.value.toString().endsWith('/i'))){
               result += r.value.toString(); // regex
             } else if (/[\s\\"]/.test(r.value.toString())){
               result += ('"' + r.value.toString().replace(/([\\"])/g, '\\$1') + '"');

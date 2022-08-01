@@ -1706,9 +1706,12 @@ namespace Jhipster.Infrastructure.Data.Repositories
                 }};
                 if (rr.@operator.Contains("contains"))
                 {
-                    if (((string)rr.value).StartsWith("/") && ((string)rr.value).EndsWith("/"))
+                    string stringValue = (string)rr.value;
+                    if (stringValue.StartsWith("/") && (stringValue.EndsWith("/") || stringValue.EndsWith("/i")))
                     {
-                        string regex = ToCaseInsensitiveRegEx(rr.value.ToString().Substring(1, rr.value.ToString().Length - 2).Replace(@"\\",@"\"));
+                        Boolean bCaseInsensitive = stringValue.EndsWith("/i");
+                        string re = rr.value.ToString().Substring(1, rr.value.ToString().Length - (bCaseInsensitive ? 3 : 2));
+                        string regex = ToElasticRegEx(re.Replace(@"\\",@"\"), bCaseInsensitive);
                         if (regex.StartsWith("^"))
                         {
                             regex = regex.Substring(1, regex.Length - 1);
@@ -1717,7 +1720,7 @@ namespace Jhipster.Infrastructure.Data.Repositories
                         {
                             regex = ".*" + regex;
                         }
-                        if (regex.EndsWith("$")
+                        if (regex.EndsWith("$"))
                         {
                             regex = regex.Substring(0, regex.Length - 1);
                         }
@@ -1863,7 +1866,7 @@ namespace Jhipster.Infrastructure.Data.Repositories
                 return ret;
             }
         }
-        private string ToCaseInsensitiveRegEx(string pattern)
+        private string ToElasticRegEx(string pattern, Boolean bCaseInsensitive)
         {
             string ret = "";
             string[] regexTokens = Regex.Replace(pattern, @"([\[\]]|\\\\|\\\[|\\\]|\\s|\\S|\\w|\\W|\\d|\\D|.)", "`$1").Split('`');
@@ -1885,7 +1888,7 @@ namespace Jhipster.Infrastructure.Data.Repositories
                             ret += "A-Za-z_";
                             break;
                         default:
-                            if (Regex.IsMatch(regexTokens[i], @"^[A-Za-z]+$")){
+                            if (bCaseInsensitive && Regex.IsMatch(regexTokens[i], @"^[A-Za-z]+$")){
                                 if ((i + 2) < regexTokens.Length && regexTokens[i + 1] == "-" && Regex.IsMatch(regexTokens[i + 2], @"^[A-Za-z]+$")){
                                     // alpha rannge
                                     ret += (regexTokens[i].ToLower() + "-" + regexTokens[i + 2].ToLower() + regexTokens[i].ToUpper() + "-" + regexTokens[i + 2].ToUpper());
@@ -1907,7 +1910,7 @@ namespace Jhipster.Infrastructure.Data.Repositories
                     ret += (@"[0-9]");
                 } else if (regexTokens[i] == @"\w"){
                     ret += (@"[A-Za-z_]");
-                } else if (Regex.IsMatch(regexTokens[i], @"[A-Za-z]")){
+                } else if (bCaseInsensitive && Regex.IsMatch(regexTokens[i], @"[A-Za-z]")){
                     ret += ("[" + regexTokens[i].ToLower() + regexTokens[i].ToUpper() + "]");
                 } else {
                     ret += regexTokens[i];

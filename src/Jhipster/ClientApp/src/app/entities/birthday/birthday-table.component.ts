@@ -339,7 +339,7 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
                 query: this.birthdayDialogId
               })
               .subscribe(
-                (res: anny) => this.onCategorySuccess(res.body, res.headers),
+                (res: any) => this.onCategorySuccess(res.body, res.headers),
                 () => this.onError()
               );
             }, 0);

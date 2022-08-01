@@ -140,7 +140,7 @@ namespace Jhipster.Controllers
                 switch (rulesetOrRule.@operator){
                     case "!contains":
                     case "contains":
-                        if (stringValue.StartsWith("/") && stringValue.EndsWith("/")){
+                        if (stringValue.StartsWith("/") && (stringValue.EndsWith("/") || stringValue.EndsWith("/I"))){
                             evalResult = Regex.IsMatch(stringValue, stringValue.Substring(1, stringValue.Length - 2), RegexOptions.IgnoreCase);
                         } else if (((string)value).Contains(stringValue.ToLower())){
                             evalResult = true;
@@ -155,7 +155,7 @@ namespace Jhipster.Controllers
                 return false;
             } else {
                 rulesetOrRule.rules.ForEach(r=>{
-                    if (rulesetOrRule.condition != "and" || r.rules != null || (r.@operator.EndsWith("contains") && r.value.ToString().StartsWith("/") && r.value.ToString().EndsWith("/"))){
+                    if (rulesetOrRule.condition != "and" || r.rules != null || (r.@operator.EndsWith("contains") && r.value.ToString().StartsWith("/") && (r.value.ToString().EndsWith("/") || r.value.ToString().EndsWith("/I")))){
                         if (rulesetOrRule.condition == "and" && evalResult){
                             evalResult = evalResult && EvaluateWithRegex(result, r);
                         } else if (rulesetOrRule.condition == "or" && !evalResult){
@@ -169,7 +169,7 @@ namespace Jhipster.Controllers
 
         private bool ContainsRegex(RulesetOrRule rulesetOrRule){
             if (rulesetOrRule.rules == null){
-                return rulesetOrRule.@operator.EndsWith("contains") && rulesetOrRule.value.ToString().StartsWith("/") && rulesetOrRule.value.ToString().EndsWith("/");
+                return rulesetOrRule.@operator.EndsWith("contains") && rulesetOrRule.value.ToString().StartsWith("/") && (rulesetOrRule.value.ToString().EndsWith("/") || rulesetOrRule.value.ToString().EndsWith("/I"));
             }
             bool bContainsRegex = false;
             rulesetOrRule.rules.ForEach(r=>{
@@ -187,7 +187,7 @@ namespace Jhipster.Controllers
             bool bReturnNull = false;
             if (rulesetOrRule.condition == "and"){
                 rulesetOrRule.rules.ForEach(r=>{
-                    if (!(r.rules == null && r.@operator.EndsWith("contains") && r.value.ToString().StartsWith("/") && r.value.ToString().EndsWith("/"))){
+                    if (!(r.rules == null && r.@operator.EndsWith("contains") && r.value.ToString().StartsWith("/") && (r.value.ToString().EndsWith("/") || r.value.ToString().EndsWith("/I")))){
                         if (r.rules == null){
                             returned.rules.Add(r);
                         } else {
@@ -200,7 +200,7 @@ namespace Jhipster.Controllers
                 });
             } else { // OR
                 rulesetOrRule.rules.ForEach(r=>{
-                    if (r.rules == null && r.@operator.EndsWith("contains") && r.value.ToString().StartsWith("/") && r.value.ToString().EndsWith("/")){
+                    if (r.rules == null && r.@operator.EndsWith("contains") && r.value.ToString().StartsWith("/") && (r.value.ToString().EndsWith("/") || r.value.ToString().EndsWith("/I"))){
                         bReturnNull = true;
                     } else if (r.rules == null){
                         returned.rules.Add(r);
