@@ -72,7 +72,7 @@ namespace Jhipster.Controllers
         public async Task<ActionResult<IEnumerable<BirthdayDto>>> GetAllCategories([FromBody] Dictionary<string, object> queryDictionary)
         {
             _log.LogDebug("REST request to get a page of Categories");
-            var pageable = Pageable.Of(1, 10);
+            var pageable = Pageable.Of(0, 10000);
             String query = "";
             if (queryDictionary.Keys.Contains("query")){
                 query = (string)queryDictionary["query"];

@@ -71,7 +71,7 @@ namespace Jhipster.Controllers
         public async Task<ActionResult<IEnumerable<BirthdayDto>>> GetAllBirthdays([FromBody] Dictionary<string, object> queryDictionary)
         {
             _log.LogDebug("REST request to get a page of Birthdays");
-            var pageable = Pageable.Of(1, 10);
+            var pageable = Pageable.Of(0, 10000);
             String query = "";
             RulesetOrRule regexRulesetOrRule = null;
             if (queryDictionary.Keys.Contains("query")){
