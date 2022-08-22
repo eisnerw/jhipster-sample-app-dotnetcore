@@ -64,7 +64,7 @@ export class BirthdayQueryParserService {
     if (!ret.matches || ret.i < tokens.length){
       return { Invalid :true, position: ret.i, condition: "", rules:[], not: false}
     }
-    return this.normalize(JSON.parse(ret.string.replace(/\\/g,"\\\\")), rulesetMap as Map<string, IQuery>);
+    return this.normalize(JSON.parse(ret.string), rulesetMap as Map<string, IQuery>);
   }
 
   normalize(query: IQuery, rulesetMap: Map<string, IQuery>): IQuery{
