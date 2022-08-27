@@ -482,7 +482,7 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
         }
         this.rowData = of(loadData);
         if (loaded < (this.birthdays as any[]).length){
-          this.loadingMessage = "loading " + loaded + "..."
+          this.loadingMessage = "Loading " + loaded + "..."
           setTimeout(rowLoader, 10);
         } else {
           this.loadingMessage = "";
