@@ -92,16 +92,19 @@ namespace Jhipster.Controllers
                     if (birthdayQuery != ""){
                         birthdayRequest["queryRuleset"] = birthdayQuery;
                         RulesetOrRule rulesetOrRule = JsonConvert.DeserializeObject<RulesetOrRule>(birthdayQuery);
-                        if (false && ContainsRegex(rulesetOrRule)){
+                        if (ContainsUnhandledRegex(rulesetOrRule)){
                             regexRulesetOrRule = DeMorganRemoveNot(rulesetOrRule, false);
-                            RulesetOrRule removed = RemoveRegex(regexRulesetOrRule);
+                            RulesetOrRule removed = RemoveUnhandledRegex(regexRulesetOrRule);
                             if (removed == null){
                                 birthdayQuery = "";
                             } else {
                                 birthdayQuery = removed.ToString();
+                                birthdayRequest["queryRuleset"] = birthdayQuery;
                             }
                         }
-                        birthdayQuery = TextTemplate.Runner.Interpolate("LuceneQueryBuilder", birthdayQuery);
+                        if (birthdayQuery.StartsWith("{")){
+                            birthdayQuery = TextTemplate.Runner.Interpolate("LuceneQueryBuilder", birthdayQuery);
+                        }
                     }
                 }
                 birthdayRequest["query"] = birthdayQuery;
@@ -121,41 +124,68 @@ namespace Jhipster.Controllers
         private bool EvaluateWithRegex(Birthday result, RulesetOrRule rulesetOrRule){
             bool evalResult = rulesetOrRule.condition == "and" ? true : false;
             if (rulesetOrRule.rules == null){
-                string stringValue = rulesetOrRule.value.ToString();
+                string ruleValueAsString = rulesetOrRule.value.ToString();
                 object value = "";
                 switch (rulesetOrRule.field){
                     case "lname":
-                        value = result.Lname.ToLower();
+                        value = result.Lname;
                         break;
                     case "fname":
-                        value = result.Fname.ToLower();
+                        value = result.Fname;
                         break;
                     case "sign":
-                        value = result.Lname.ToLower();
+                        value = result.Lname;
                         break;
                     case "document":
-                        value = result.Text.ToLower();
+                        value = result.Text;
                         break;
                 }
                 switch (rulesetOrRule.@operator){
                     case "!contains":
                     case "contains":
-                        if (stringValue.StartsWith("/") && (stringValue.EndsWith("/") || stringValue.EndsWith("/I"))){
-                            evalResult = Regex.IsMatch(stringValue, stringValue.Substring(1, stringValue.Length - 2), RegexOptions.IgnoreCase);
-                        } else if (((string)value).Contains(stringValue.ToLower())){
+                        if (ruleValueAsString.StartsWith("/") && (ruleValueAsString.EndsWith("/") || ruleValueAsString.EndsWith("/i"))){
+                            bool bCaseInsensitive = ruleValueAsString.EndsWith("i");
+                            ruleValueAsString  = Regex.Replace(ruleValueAsString, "\\/(.*)\\/i?", "$1");
+                            string valueAddition = "";
+                            string regexAddition = "";
+                            string[] namedVariables = Regex.Split(ruleValueAsString, "\\\\k<([^>]+)>");
+                            for (int i = 1; i < namedVariables.Length; i += 2){
+                                switch (namedVariables[i]){
+                                    case "lname":
+                                        valueAddition += (String.IsNullOrEmpty(result.Lname) ? "" : "\n" + result.Lname + "\n");
+                                        regexAddition += (String.IsNullOrEmpty(result.Lname) ? @"(?<lname>\1)" : @"\n(?<lname>" + result.Lname + @")\n.*");
+                                        break;
+                                    case "fname":
+                                        valueAddition += (String.IsNullOrEmpty(result.Fname) ? "" : "\n" + result.Fname + "\n");
+                                        regexAddition += (String.IsNullOrEmpty(result.Fname) ? @"(?<fname>\1)"  : @"\n(?<fname>" + result.Fname + @")\n.*");
+                                        break;
+                                    case "sign":
+                                        valueAddition += (String.IsNullOrEmpty(result.Sign) ? "" : "\n" + result.Sign + "\n");
+                                        regexAddition += (String.IsNullOrEmpty(result.Sign) ? @"(?<sign>\1)"  : @"\n(?<sign>" + result.Sign + @")\n.*");
+                                        break;                                    
+                                }
+                            }
+                            evalResult = Regex.IsMatch(valueAddition + value.ToString(), regexAddition + ruleValueAsString, bCaseInsensitive ? RegexOptions.IgnoreCase | RegexOptions.Singleline : RegexOptions.Singleline);
+                            
+                        } else if (((string)value).ToLower().Contains(ruleValueAsString.ToLower())){ 
                             evalResult = true;
                         }
                         return rulesetOrRule.@operator.StartsWith("!") ? !evalResult : evalResult;
 
                     case "!=":
                     case "=":
-                        evalResult = stringValue == (string)value;
+                        evalResult = ruleValueAsString.ToLower() == ((string)value).ToLower();
                         return rulesetOrRule.@operator.StartsWith("!") ? !evalResult : evalResult;
                 }
                 return false;
             } else {
                 rulesetOrRule.rules.ForEach(r=>{
-                    if (rulesetOrRule.condition != "and" || r.rules != null || (r.@operator.EndsWith("contains") && r.value.ToString().StartsWith("/") && (r.value.ToString().EndsWith("/") || r.value.ToString().EndsWith("/I")))){
+                    if (rulesetOrRule.condition != "and" || r.rules != null || (
+                            r.@operator.EndsWith("contains") && 
+                            r.value.ToString().StartsWith("/") && 
+                            (r.value.ToString().EndsWith("/") || r.value.ToString().EndsWith("/i")) &&
+                            IsUnhandedRegex(r.value.ToString())
+                    )){
                         if (rulesetOrRule.condition == "and" && evalResult){
                             evalResult = evalResult && EvaluateWithRegex(result, r);
                         } else if (rulesetOrRule.condition == "or" && !evalResult){
@@ -167,31 +197,39 @@ namespace Jhipster.Controllers
             }
         }
 
-        private bool ContainsRegex(RulesetOrRule rulesetOrRule){
+        private bool ContainsUnhandledRegex(RulesetOrRule rulesetOrRule){
             if (rulesetOrRule.rules == null){
-                return rulesetOrRule.@operator.EndsWith("contains") && rulesetOrRule.value.ToString().StartsWith("/") && (rulesetOrRule.value.ToString().EndsWith("/") || rulesetOrRule.value.ToString().EndsWith("/I"));
+                if (rulesetOrRule.@operator.EndsWith("contains") && rulesetOrRule.value.ToString().StartsWith("/") && (rulesetOrRule.value.ToString().EndsWith("/") || rulesetOrRule.value.ToString().EndsWith("/i"))){
+                    return IsUnhandedRegex(rulesetOrRule.value.ToString());
+                }
+                return false;
             }
-            bool bContainsRegex = false;
+            bool bContainsUnhandledRegex = false;
             rulesetOrRule.rules.ForEach(r=>{
-                if (ContainsRegex(r)){
-                    bContainsRegex = true;
+                if (ContainsUnhandledRegex(r)){
+                    bContainsUnhandledRegex = true;
                 }
             });
-            return bContainsRegex;
+            return bContainsUnhandledRegex;
         }
 
-        private RulesetOrRule RemoveRegex(RulesetOrRule rulesetOrRule){
+        private bool IsUnhandedRegex(string regex){
+            return Regex.IsMatch(regex, @"\\[kKWDSbB]"); // unhandled: \k \K \b \B \W \S \D
+        }
+
+        private RulesetOrRule RemoveUnhandledRegex(RulesetOrRule rulesetOrRule){
             RulesetOrRule returned = new RulesetOrRule();
             returned.rules = new List<RulesetOrRule>();
             returned.condition = rulesetOrRule.condition;
             bool bReturnNull = false;
             if (rulesetOrRule.condition == "and"){
                 rulesetOrRule.rules.ForEach(r=>{
-                    if (!(r.rules == null && r.@operator.EndsWith("contains") && r.value.ToString().StartsWith("/") && (r.value.ToString().EndsWith("/") || r.value.ToString().EndsWith("/I")))){
+                    bool bIsRegex = r.rules == null && r.@operator.EndsWith("contains") && r.value.ToString().StartsWith("/") && (r.value.ToString().EndsWith("/") || r.value.ToString().EndsWith("/i"));
+                    if (!(bIsRegex && IsUnhandedRegex(r.value.ToString()))){
                         if (r.rules == null){
                             returned.rules.Add(r);
                         } else {
-                            RulesetOrRule removed = RemoveRegex(r);
+                            RulesetOrRule removed = RemoveUnhandledRegex(r);
                             if (removed != null){
                                 returned.rules.Add(removed);
                             }
@@ -200,12 +238,12 @@ namespace Jhipster.Controllers
                 });
             } else { // OR
                 rulesetOrRule.rules.ForEach(r=>{
-                    if (r.rules == null && r.@operator.EndsWith("contains") && r.value.ToString().StartsWith("/") && (r.value.ToString().EndsWith("/") || r.value.ToString().EndsWith("/I"))){
+                    if (r.rules == null && r.@operator.EndsWith("contains") && r.value.ToString().StartsWith("/") && (r.value.ToString().EndsWith("/") || r.value.ToString().EndsWith("/i"))){
                         bReturnNull = true;
                     } else if (r.rules == null){
                         returned.rules.Add(r);
                     } else {
-                        RulesetOrRule removed = RemoveRegex(r);
+                        RulesetOrRule removed = RemoveUnhandledRegex(r);
                         if (removed != null){
                             returned.rules.Add(removed);
                         } else {

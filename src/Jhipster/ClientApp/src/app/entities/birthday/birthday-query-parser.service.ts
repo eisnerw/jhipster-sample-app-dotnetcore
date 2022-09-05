@@ -64,7 +64,13 @@ export class BirthdayQueryParserService {
     if (!ret.matches || ret.i < tokens.length){
       return { Invalid :true, position: ret.i, condition: "", rules:[], not: false}
     }
-    return this.normalize(JSON.parse(ret.string), rulesetMap as Map<string, IQuery>);
+    let tryParse : any = {};
+    try {
+      tryParse = this.normalize(JSON.parse(ret.string), rulesetMap as Map<string, IQuery>);
+    } catch (e){
+      tryParse = { Invalid :true, position: ret.i, condition: "", rules:[], not: false, string: "invalid string"}
+    }
+    return tryParse;
   }
 
   normalize(query: IQuery, rulesetMap: Map<string, IQuery>): IQuery{
@@ -286,7 +292,7 @@ export class BirthdayQueryParserService {
     if (tokens[i].startsWith("is") || tokens[i + 1] === "IN" || tokens[i + 1] === "!IN" || value || tokens[i + 2].startsWith('"')){
       value = tokens[i + 2];
     } else {
-      value = '"' + tokens[i + 2] + '"';
+      value = '"' + tokens[i + 2].replace(/([\\"])/g, '\\$1') + '"';
     }
     parse.matches = true;
     const  op = tokens[i + 1] === "!IN" ? "not in" : tokens[i + 1].toLowerCase();

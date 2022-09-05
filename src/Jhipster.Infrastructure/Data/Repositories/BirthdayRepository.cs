@@ -1869,8 +1869,8 @@ namespace Jhipster.Infrastructure.Data.Repositories
         private string ToElasticRegEx(string pattern, Boolean bCaseInsensitive)
         {
             string ret = "";
-            string[] regexTokens = Regex.Replace(pattern, @"([\[\]]|\\\\|\\\[|\\\]|\\s|\\S|\\w|\\W|\\d|\\D|.)", "`$1").Split('`');
-            Boolean bBracketed = false;
+            string[] regexTokens = Regex.Split(pattern, @"([\[\]]|\\\\|\\\[|\\\]|\\s|\\n|\\w|\\t|\\d|\\D|.)");
+            bool bBracketed = false;
             for (int i = 1; i < regexTokens.Length; i++){
                 if (bBracketed){
                     switch (regexTokens[i]){
@@ -1886,6 +1886,12 @@ namespace Jhipster.Infrastructure.Data.Repositories
                             break;
                         case @"\w":
                             ret += "A-Za-z_";
+                            break;
+                        case @"\n":
+                            ret += "\n";
+                            break;
+                        case @"\t":
+                            ret += "\t";
                             break;
                         default:
                             if (bCaseInsensitive && Regex.IsMatch(regexTokens[i], @"^[A-Za-z]+$")){
