@@ -81,6 +81,7 @@ namespace Jhipster.Controllers
                 var categoryRequest = JsonConvert.DeserializeObject<Dictionary<string,object>>(query);
                 string categoryQuery = (string)categoryRequest["query"];
                 if (categoryQuery != ""){
+                    categoryRequest["queryRuleset"] = categoryQuery;
                     categoryQuery = TextTemplate.Runner.Interpolate("LuceneQueryBuilder", categoryQuery);
                 }
                 categoryRequest["query"] = categoryQuery;

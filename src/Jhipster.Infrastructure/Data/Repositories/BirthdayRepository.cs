@@ -1585,11 +1585,10 @@ namespace Jhipster.Infrastructure.Data.Repositories
                 {
                     categoryClause = (string)birthdayRequest["category"] == "-" ? "-" + view.field + ":*" : view.field + ":\"" + birthdayRequest["category"] + "\"";
                 }
-                query = categoryClause + (query != "" ? " AND (" + query + ")" : "");
                 if (view.topLevelView != null)
                 {
                     View<Birthday> topLevelView = view.topLevelView;
-                    categoryClause = "";
+                    string otherCategoryClause = "";
                     if (view.topLevelCategory != null && topLevelView.field != null)
                     {
                         if (birthdayRequest.ContainsKey("focusType"))
@@ -1597,21 +1596,22 @@ namespace Jhipster.Infrastructure.Data.Repositories
                             string focusType = (string)birthdayRequest["focusType"];
                             if (focusType == "FOCUS")
                             {
-                                categoryClause = "_id:" + birthdayRequest["focusId"];
+                                otherCategoryClause = "_id:" + birthdayRequest["focusId"];
                             }
                             else
                             {
-                                categoryClause = "*:columbus";
+                                otherCategoryClause = "*:columbus"; // obviously, a partial implementation of this
                             }
                         }
                         else if (topLevelView.categoryQuery != null)
                         {
-                            categoryClause = view.categoryQuery.Replace("{}", view.topLevelCategory);
+                            otherCategoryClause = view.categoryQuery.Replace("{}", view.topLevelCategory);
                         }
                         else
                         {
-                            categoryClause = view.topLevelCategory == "-" ? "-" + topLevelView.field + ":*" : topLevelView.field + ":\"" + view.topLevelCategory + "\"";
+                            otherCategoryClause = view.topLevelCategory == "-" ? "-" + topLevelView.field + ":*" : topLevelView.field + ":\"" + view.topLevelCategory + "\"";
                         }
+                        categoryClause = otherCategoryClause + (categoryClause.Length > 1 ? " AND (" + categoryClause + ")" : "");
                         query = categoryClause + (query.Length > 1 ? " AND (" + query + ")" : "");
                     }
                 }
@@ -1630,6 +1630,12 @@ namespace Jhipster.Infrastructure.Data.Repositories
             {
                 RulesetOrRule queryRuleset = JsonConvert.DeserializeObject<RulesetOrRule>((string)birthdayRequest["queryRuleset"]);
                 JObject obj = (JObject) await RulesetToElasticSearch(queryRuleset);
+                if (categoryClause != ""){
+                    JObject categoryObject = JObject.Parse("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"\"}}]}}");
+                    categoryObject["bool"]["must"][0]["query_string"]["query"] = categoryClause;
+                    ((JArray)categoryObject["bool"]["must"]).Add(obj);
+                    obj = categoryObject;
+                }
                 searchResponse = await elastic.SearchAsync<ElasticBirthday>(s => s
                     .Index("birthdays")
                     .Size(10000)

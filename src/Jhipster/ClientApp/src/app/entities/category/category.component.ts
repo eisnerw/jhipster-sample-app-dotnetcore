@@ -1001,7 +1001,8 @@ export class CategoryComponent implements OnInit, OnDestroy {
         }
       }
       this.rowData = of(this.categories.slice(0,loadIncrement));
-      this.displayAsCategories = this.categories?.length !== 1 || !!this.views[this.views.length - 1].focus || (this.selectedView !== null && this.selectedView.field.startsWith("ruleset"));
+      const hasCategories = this.categories?.length !== 1 || this.parentComponent != null;
+      this.displayAsCategories = hasCategories || !!this.views[this.views.length - 1].focus || (this.selectedView !== null && this.selectedView.field.startsWith("ruleset"));
       this.loadingMessage = "Loading...";
       setTimeout(rowLoader, 10);
     }
