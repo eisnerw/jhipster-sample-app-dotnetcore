@@ -262,7 +262,11 @@ export class BirthdayQueryParserService {
         break;
 
       case 'fname':
-        if (tokens[i + 1] === 'CONTAINS' && typeof tokens[i + 2] === 'string' && tokens[i + 2].startsWith('/') && (tokens[i + 2].endsWith('/') || tokens[i + 2].endsWith('/i'))){
+        if (tokens[i + 1].endsWith('CONTAINS') && typeof tokens[i + 2] === 'string' && tokens[i + 2].startsWith('/')){
+          if (tokens[i + 2].length === 1 || !(tokens[i + 2].endsWith('/') || tokens[i + 2].endsWith('/i'))){
+            parse.string = '[bad regex]'
+            return parse;            
+          }
           try {
             RegExp(tokens[i + 2]);
           } catch(e){
