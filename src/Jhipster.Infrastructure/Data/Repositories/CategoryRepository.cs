@@ -270,7 +270,11 @@ namespace Jhipster.Infrastructure.Data.Repositories
 
                         var x = kb.Key;
                     });
-                    content = content.OrderBy(cat => cat.CategoryName).ToList();
+                    if (view != null && view.order != null && view.order == "desc"){
+                        content = content.OrderByDescending(cat => cat.CategoryName).ToList();
+                    } else {
+                        content = content.OrderBy(cat => cat.CategoryName).ToList();
+                    }
                     result = await elastic.SearchAsync<Aggregation>(q => q
                         .Size(0)
                         .Index("birthdays")

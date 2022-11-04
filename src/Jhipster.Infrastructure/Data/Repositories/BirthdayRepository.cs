@@ -1612,8 +1612,10 @@ namespace Jhipster.Infrastructure.Data.Repositories
                             otherCategoryClause = view.topLevelCategory == "-" ? "-" + topLevelView.field + ":*" : topLevelView.field + ":\"" + view.topLevelCategory + "\"";
                         }
                         categoryClause = otherCategoryClause + (categoryClause.Length > 1 ? " AND (" + categoryClause + ")" : "");
-                        query = categoryClause + (query.Length > 1 ? " AND (" + query + ")" : "");
                     }
+                }
+                if (categoryClause != ""){
+                    query = categoryClause + (query.Length > 1 ? " AND (" + query + ")" : "");
                 }
             }
             ISearchResponse<ElasticBirthday> searchResponse = null;

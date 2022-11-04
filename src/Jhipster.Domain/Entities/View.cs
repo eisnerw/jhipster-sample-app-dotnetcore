@@ -13,5 +13,6 @@
             public List<T> focus { get; set; }
             public View<T> topLevelView { get; set; }
             public string topLevelCategory { get; set; }
+            public string order { get; set; }
         }
     }
