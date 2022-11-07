@@ -518,6 +518,18 @@ export class SuperTable extends Table implements OnInit, AfterViewInit, AfterCon
         });        
     }
 
+    removeInvisibleChildren(){
+        // called when a supertable row is collapsed.  Expanding will add a new child
+        const visibleChildren : SuperTable[]= [];
+        this.children.forEach(c=>{
+          if (c.el.nativeElement.isConnected){
+            c.removeInvisibleChildren();
+            visibleChildren.push(c);
+          }
+        });
+        this.children = visibleChildren;
+    }
+
     toggleRowsWithCheckbox(event: any, check: any){
         if (this.children.length == 1 && this._totalRecords == 1){
             this.children[0].toggleRowsWithCheckbox(event, check);
@@ -528,13 +540,42 @@ export class SuperTable extends Table implements OnInit, AfterViewInit, AfterCon
             //this.selection = selection; // use the selection changed by the child
             this.selectionChange.emit(selection);
         } else {
-            if (this.children.length > 0){
-                check = false;
-                this.children.forEach(c=>{
-                    c.toggleRowsWithCheckbox(event, check);
-                });
+            if (!this.parent){
+                // top level
+                super.toggleRowsWithCheckbox(event, check); // used to turn master checkbox on/off
+                this.selection = [];
+                this.selectionKeys = {};
+                (this as any).selectionKeyStrings = [];
             }
-            super.toggleRowsWithCheckbox(event, check);
+            if (this.children.length > 0){
+                let topParent : SuperTable = this;
+                while (topParent.parent){
+                    topParent = topParent.parent;
+                }
+                this.children.forEach(c=>{
+                    if (!check || c.el.nativeElement.isConnected){ // only add selections for  children who are visible (in the DOM)
+                        c.toggleRowsWithCheckbox(event, check);
+                    }
+                    for (let i = 0; i < c.selection.length; i++){
+                        if (!(topParent as any).selectionKeyStrings.includes(c.selection[i][this.dataKey])){ // avoid duplicates
+                            topParent.selection.push(c.selection[i]);
+                            (topParent as any).selectionKeyStrings.push(c.selection[i][this.dataKey]);
+                        }
+                    }
+                    Object.keys(c.selectionKeys).forEach(k=>{
+                        topParent.selectionKeys[k] = c.selectionKeys[k];
+                    });
+
+                });
+                this.selectionChange.emit(this.selection);                
+                if (!this.parent){
+                    delete (this as any).selectionKeyStrings;
+                } 
+            } else if (this.value.length > 0 && typeof this.value[0][this.dataKey] === "string"){
+                // rows with numeric ids are categories
+                // only toggle rows at the lowest level with real data
+                super.toggleRowsWithCheckbox(event, check);
+            }
         }
     }
 
@@ -1027,11 +1068,23 @@ export class SuperTableRadioButton extends TableRadioButton  {
     changeDetection: ChangeDetectionStrategy.OnPush,
     encapsulation: ViewEncapsulation.None
 })
-export class SuperTableCheckbox extends TableCheckbox  {
+export class SuperTableCheckbox extends TableCheckbox  implements OnInit {
 
     constructor(public dt: SuperTable, public tableService: TableService, public cd: ChangeDetectorRef) {
         super(dt, tableService, cd);
     }
+
+    ngOnInit() {
+        if (this.dt.selection.length !== Object.keys(this.dt.selectionKeys).length){
+            // clean selectionKeys
+            this.dt.selectionKeys = {};
+            this.dt.selection.forEach((s:any)=>{
+                const key = s[this.dt.dataKey];
+                this.dt.selectionKeys[key] = 1;
+            });
+        }
+        super.ngOnInit();
+    }    
 
     onClick(event: Event) {
         const dt = this.dt;

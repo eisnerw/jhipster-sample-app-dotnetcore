@@ -797,8 +797,11 @@ export class CategoryComponent implements OnInit, OnDestroy {
     return event;
   }
   onExpandChange(expanded : boolean) : void {
-    if (expanded){
-      // ignore
+    if (!expanded){
+      setTimeout(()=>{
+        // remove any collapsed (non-connected) children.  Expansion will add them back in
+        this.categoriesTable?.removeInvisibleChildren();
+      },0); // seems to require some time for elastic to catch up
     }
   }
 

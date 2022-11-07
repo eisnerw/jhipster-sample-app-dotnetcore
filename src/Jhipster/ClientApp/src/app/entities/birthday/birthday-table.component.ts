@@ -459,7 +459,8 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
       });
     }
     this.birthdays = data || [];
-    this.birthdays = [...this.birthdays,...this.birthdays,...this.birthdays,...this.birthdays,...this.birthdays,...this.birthdays];
+    // uncomment next to simulate more data
+    // this.birthdays = [...this.birthdays,...this.birthdays,...this.birthdays,...this.birthdays,...this.birthdays,...this.birthdays];
     this.birthdays.forEach((birthday)=>{
       this.birthdaysMap[birthday.id as number] = birthday;
     });
