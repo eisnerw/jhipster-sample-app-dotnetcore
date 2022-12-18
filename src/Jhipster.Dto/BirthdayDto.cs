@@ -15,6 +15,7 @@ namespace Jhipster.Dto
         public string Sign { get; set; }
         public bool IsAlive { get; set; }
         public List<CategoryDto> Categories { get; set; }
+        public List<string> Ids { get; set; }
 
         // jhipster-needle-dto-add-field - JHipster will add fields here, do not remove
     }

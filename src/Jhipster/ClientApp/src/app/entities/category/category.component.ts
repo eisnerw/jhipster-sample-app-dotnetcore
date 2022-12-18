@@ -8,7 +8,7 @@ import { Directive } from '@angular/core';
 import { AbstractControl, NG_ASYNC_VALIDATORS, ValidationErrors, AsyncValidator } from '@angular/forms';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 
-import { IBirthday } from 'app/shared/model/birthday.model';
+import { Birthday, IBirthday } from 'app/shared/model/birthday.model';
 
 import { Category, ICategory } from 'app/shared/model/category.model';
 
@@ -519,6 +519,12 @@ export class CategoryComponent implements OnInit, OnDestroy {
           command: ()=>{
             this.analyzeSelected();
           }
+        },{
+          label: 'Categorize selected documents',
+          icon: 'pi pi-bookmark',
+          command: ()=>{
+            this.categorizeSelected();
+          }
         }];
       } else {
         this.menuItems = [{
@@ -609,6 +615,78 @@ export class CategoryComponent implements OnInit, OnDestroy {
         this.contextSelectedRow = birthday;
       }
     }
+  }
+
+  categorizeSelected(): void{
+    const idQuery = {
+      ids: [] as string[]
+    };
+    this.checkboxSelectedRows.forEach(r=>{
+      idQuery.ids.push(r.id as unknown as string);
+    });
+    this.birthdayService
+    .postQuery({
+      page: 0,
+      size: this.itemsPerPage,
+      sort: this.sort(),
+      query: JSON.stringify(idQuery)
+    })
+    .subscribe(
+      (resSelected: any) => {
+        const selectedRows = resSelected.body as IBirthday[];
+        const firstCategories : ICategory[] = this.checkboxSelectedRows[0].categories === null ? [] : this.checkboxSelectedRows[0].categories as ICategory[];
+        let categoryNames : string[] = [];
+        firstCategories.forEach(cat=>{
+          categoryNames.push(cat.categoryName as string);
+        });
+        selectedRows.forEach(r=>{
+          if (categoryNames.length === 0 || r.categories === null || r.categories?.length === 0){
+            categoryNames = [];
+          } else {
+            const refinedCategoryNames : string[] = [];
+            r.categories?.forEach(c=>{
+              if (categoryNames.includes(c.categoryName as string) && !refinedCategoryNames.includes(c.categoryName as string)){
+                refinedCategoryNames.push(c.categoryName as string);
+              }
+            });
+            categoryNames = refinedCategoryNames;
+          }
+          this.selectedCategories.length = 0;
+          this.birthdayDialogTitle = "multiple";
+          this.categoryService
+          .postQuery({
+            page: 0,
+            size: 10000,
+            sort: this.sortCategory(),
+            query: selectedRows[0].id // this request requires an id
+          })
+          .subscribe(
+            (res: any) => {
+              const retrievedCategories : ICategory[] = res.body as ICategory[];
+              this.selectedCategories = [];
+              this.categories = [];
+
+              retrievedCategories.forEach(rc=>{
+                this.categories.push(rc);
+                if (categoryNames.includes(rc.categoryName as string)){
+                  rc.selected = true;
+                  this.selectedCategories.push(rc);
+                } else {
+                  rc.selected = false;
+                }
+              });
+              this.initialSelectedCategories = categoryNames.join(",");
+              this.bDisplayCategories = true;
+              this.contextSelectedRow = new Birthday();
+              this.contextSelectedRow.ids = idQuery.ids;
+            },
+            () => this.onError()
+          );
+        });
+
+      },
+      () => this.onError()
+    ); 
   }
 
   analyzeSelected():void{
@@ -832,8 +910,23 @@ export class CategoryComponent implements OnInit, OnDestroy {
     return ret;
   }
   okCategorize() : void{
-    if (this.selectedCategories.join(",") !== this.initialSelectedCategories){
-      (this.contextSelectedRow as IBirthday).categories = this.selectedCategories;
+    const selectedCategoryNames : string[] = [];
+    this.selectedCategories.forEach(s=>{
+      selectedCategoryNames.push(s.categoryName as string);
+    });
+    if (selectedCategoryNames.join(",") !== this.initialSelectedCategories){
+      const selectedCategories : ICategory[] = [];
+      this.categories.forEach(c=>{
+        // single category passes select or not; multiple categories passes selected
+        if ((!c.selected || this.contextSelectedRow?.ids != null) && selectedCategoryNames.includes(c.categoryName as string)){
+          c.selected = true;
+          selectedCategories.push(c);
+        } else if (c.selected && this.contextSelectedRow?.ids == null && !selectedCategoryNames.includes(c.categoryName as string)){
+          c.selected = false;
+          selectedCategories.push(c);
+        }
+      });
+      (this.contextSelectedRow as IBirthday).categories = selectedCategories;
       this.subscribeToSaveResponse(this.birthdayService.update(this.contextSelectedRow as IBirthday));
     }
     this.bDisplayCategories = false;

@@ -60,9 +60,48 @@ namespace Jhipster.Controllers
         public async Task<IActionResult> UpdateBirthday([FromBody] BirthdayDto birthdayDto)
         {
             _log.LogDebug($"REST request to update Birthday : {birthdayDto}");
-            if (birthdayDto.Id == "") throw new BadRequestAlertException("Invalid Id", EntityName, "idnull");
-            Birthday birthday = _mapper.Map<Birthday>(birthdayDto);
-            await _birthdayService.Save(birthday);
+            Birthday birthday = _mapper.Map<Birthday>(birthdayDto);            
+            if (birthdayDto.Ids != null && birthdayDto.Ids.Count > 0){
+                // update multiple rows (categories)
+                birthday.Id = "";  // provide fake id for header
+                List<Category> lstCommonCategories = new List<Category>();
+                Birthday firstIdBirthday = await _birthdayService.FindOne(birthdayDto.Ids[0]);
+                if (firstIdBirthday.Categories != null && firstIdBirthday.Categories.Count > 0){
+                    lstCommonCategories = firstIdBirthday.Categories;
+                    foreach (string id in birthdayDto.Ids){
+                        Birthday idBirthday = await _birthdayService.FindOne(id);
+                        List<Category> oldLstCommonCategories = lstCommonCategories;
+                        lstCommonCategories = new List<Category>();
+                        oldLstCommonCategories.ForEach(c=>{
+                            if (idBirthday.Categories.Exists(ic=>ic.CategoryName == c.CategoryName)){
+                                lstCommonCategories.Add(c);
+                            }
+                        });
+                    }
+                }
+                foreach (string id in birthdayDto.Ids){
+                    Birthday b = await _birthdayService.FindOne(id);
+                    List<Category> updatedCategories = new List<Category>();
+                    if (b.Categories != null){
+                        b.Categories.ForEach(oc=>{
+                            if (!lstCommonCategories.Exists(tc=>tc.CategoryName == oc.CategoryName) || birthdayDto.Categories.Exists(tc=>tc.CategoryName == oc.CategoryName)){
+                                // the category isn't common or it is still in the list of selected
+                                updatedCategories.Add(oc);
+                            }
+                        });
+                    }
+                    birthdayDto.Categories.ForEach(ac=>{
+                        if (!b.Categories.Exists(tc=>tc.CategoryName == ac.CategoryName)){
+                            updatedCategories.Add(_mapper.Map<Category>(ac));
+                        }
+                    });
+                    b.Categories = updatedCategories;
+                    await _birthdayService.Save(b);
+                }
+            } else {
+                if (birthdayDto.Id == "") throw new BadRequestAlertException("Invalid Id", EntityName, "idnull");
+                await _birthdayService.Save(birthday);
+            }
             return Ok(birthday)
                 .WithHeaders(HeaderUtil.CreateEntityUpdateAlert(EntityName, birthday.Id.ToString()));
         }
