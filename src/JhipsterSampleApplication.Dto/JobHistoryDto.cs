@@ -13,11 +13,11 @@ namespace JhipsterSampleApplication.Dto
         public DateTime EndDate { get; set; }
         public Language Language { get; set; }
         public long? JobId { get; set; }
-        public JobDto Job { get; set; }
+        public JobDto? Job { get; set; }
         public long? DepartmentId { get; set; }
-        public DepartmentDto Department { get; set; }
+        public DepartmentDto? Department { get; set; }
         public long? EmployeeId { get; set; }
-        public EmployeeDto Employee { get; set; }
+        public EmployeeDto? Employee { get; set; }
 
         // jhipster-needle-dto-add-field - JHipster will add fields here, do not remove
     }

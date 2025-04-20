@@ -4,11 +4,11 @@ namespace JhipsterSampleApplication.Crosscutting.Exceptions;
 
 public abstract class BaseException : Exception
 {
-    public BaseException(string type, string detail) : this(type, detail, null, null)
+    public BaseException(string type, string detail) : this(type, detail, null!, null!)
     {
     }
 
-    public BaseException(string type, string detail, string entityName) : this(type, detail, entityName, null)
+    public BaseException(string type, string detail, string entityName) : this(type, detail, entityName, null!)
     {
     }
 

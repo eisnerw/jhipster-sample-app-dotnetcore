@@ -24,22 +24,22 @@ public class JobHistoryService : IJobHistoryService
         return jobHistory;
     }
 
-    public virtual async Task<IPage<JobHistory>> FindAll(IPageable pageable)
+    public virtual async Task<IPage<JobHistory?>> FindAll(IPageable pageable)
     {
         var page = await _jobHistoryRepository.QueryHelper()
-            .Include(jobHistory => jobHistory.Job)
-            .Include(jobHistory => jobHistory.Department)
-            .Include(jobHistory => jobHistory.Employee)
+            .Include(jobHistory => jobHistory.Job!)
+            .Include(jobHistory => jobHistory.Department!)
+            .Include(jobHistory => jobHistory.Employee!)
             .GetPageAsync(pageable);
-        return page;
+        return page!;
     }
 
-    public virtual async Task<JobHistory> FindOne(long? id)
+    public virtual async Task<JobHistory?> FindOne(long? id)
     {
         var result = await _jobHistoryRepository.QueryHelper()
-            .Include(jobHistory => jobHistory.Job)
-            .Include(jobHistory => jobHistory.Department)
-            .Include(jobHistory => jobHistory.Employee)
+            .Include(jobHistory => jobHistory.Job!)
+            .Include(jobHistory => jobHistory.Department!)
+            .Include(jobHistory => jobHistory.Employee!)
             .GetOneAsync(jobHistory => jobHistory.Id == id);
         return result;
     }

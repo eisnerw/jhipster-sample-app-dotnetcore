@@ -1,3 +1,4 @@
+#pragma warning disable CS8613
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -57,8 +58,8 @@ public abstract class GenericRepository<TEntity, TKey> : ReadOnlyGenericReposito
 
     public async virtual Task<TEntity> CreateOrUpdateAsync(TEntity entity)
     {
-        bool exists = await Exists(x => x.Id.Equals(entity.Id));
-        if (entity.Id.Equals(0) && exists)
+        bool exists = await Exists(x => x!.Id!.Equals(entity!.Id!));
+        if (entity!.Id!.Equals(0) && exists)
         {
             Update(entity);
         }
@@ -66,13 +67,13 @@ public abstract class GenericRepository<TEntity, TKey> : ReadOnlyGenericReposito
         {
             _context.AddOrUpdateGraph(entity);
         }
-        return entity;
+        return entity!;
     }
 
     public async virtual Task<TEntity> CreateOrUpdateAsync(TEntity entity, ICollection<Type> entitiesToBeUpdated)
     {
-        bool exists = await Exists(x => x.Id.Equals(entity.Id));
-        if (entity.Id.Equals(0) && exists)
+        bool exists = await Exists(x => x!.Id!.Equals(entity!.Id!));
+        if (entity!.Id!.Equals(0) && exists)
         {
             Update(entity);
         }

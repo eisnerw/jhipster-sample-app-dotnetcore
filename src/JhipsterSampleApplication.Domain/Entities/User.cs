@@ -10,7 +10,7 @@ namespace JhipsterSampleApplication.Domain.Entities;
 
 public class User : IdentityUser, IAuditedEntityBase
 {
-    public string Login
+    public string? Login
     {
         get => UserName;
         set => UserName = value;
@@ -18,43 +18,43 @@ public class User : IdentityUser, IAuditedEntityBase
 
     [StringLength(50)]
     [Column("first_name")]
-    public string FirstName { get; set; }
+    public string FirstName { get; set; } = string.Empty;
 
     [StringLength(50)]
     [Column("last_name")]
-    public string LastName { get; set; }
+    public string LastName { get; set; } = string.Empty;
 
     [Required] public bool Activated { get; set; }
 
     [StringLength(6, MinimumLength = 2)]
     [Column("lang_key")]
-    public string LangKey { get; set; }
+    public string? LangKey { get; set; }
 
     [Url]
     [StringLength(256)]
     [Column("image_url")]
-    public string ImageUrl { get; set; }
+    public string ImageUrl { get; set; } = string.Empty;
 
     [StringLength(20)]
     [Column("activation_key")]
     [JsonIgnore]
-    public string ActivationKey { get; set; }
+    public string? ActivationKey { get; set; }
 
     [StringLength(20)]
     [Column("reset_key")]
     [JsonIgnore]
-    public string ResetKey { get; set; }
+    public string? ResetKey { get; set; }
 
     [Column("reset_date")] public DateTime? ResetDate { get; set; }
 
-    [JsonIgnore] public virtual ICollection<UserRole> UserRoles { get; set; }
+    [JsonIgnore] public virtual ICollection<UserRole>? UserRoles { get; set; }
 
-    public string CreatedBy { get; set; }
+    public string CreatedBy { get; set; } = string.Empty;
     public DateTime CreatedDate { get; set; }
-    public string LastModifiedBy { get; set; }
+    public string LastModifiedBy { get; set; } = string.Empty;
     public DateTime LastModifiedDate { get; set; }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (this == obj) return true;
 

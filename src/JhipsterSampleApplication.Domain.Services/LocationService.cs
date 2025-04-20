@@ -24,18 +24,18 @@ public class LocationService : ILocationService
         return location;
     }
 
-    public virtual async Task<IPage<Location>> FindAll(IPageable pageable)
+    public virtual async Task<IPage<Location?>> FindAll(IPageable pageable)
     {
         var page = await _locationRepository.QueryHelper()
-            .Include(location => location.Country)
+            .Include(location => location.Country!)
             .GetPageAsync(pageable);
-        return page;
+        return page!;
     }
 
     public virtual async Task<Location> FindOne(long? id)
     {
         var result = await _locationRepository.QueryHelper()
-            .Include(location => location.Country)
+            .Include(location => location.Country!)
             .GetOneAsync(location => location.Id == id);
         return result;
     }

@@ -1,3 +1,5 @@
+#pragma warning disable CS8613
+#pragma warning disable CS8618
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -61,7 +63,7 @@ public class FluentRepository<TEntity> : IFluentRepository<TEntity> where TEntit
     {
         _filter = filter;
         IQueryable<TEntity> query = BuildQuery();
-        return await query.SingleOrDefaultAsync();
+        return (await query.SingleOrDefaultAsync())!;
     }
 
     public async Task<IEnumerable<TEntity>> GetAllAsync()

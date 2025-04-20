@@ -9,9 +9,9 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
     {
         Task<JobHistory> Save(JobHistory jobHistory);
 
-        Task<IPage<JobHistory>> FindAll(IPageable pageable);
+        Task<IPage<JobHistory?>> FindAll(IPageable pageable);
 
-        Task<JobHistory> FindOne(long? id);
+        Task<JobHistory?> FindOne(long? id);
 
         Task Delete(long? id);
     }

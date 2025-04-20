@@ -24,20 +24,20 @@ public class TimeSheetEntryService : ITimeSheetEntryService
         return timeSheetEntry;
     }
 
-    public virtual async Task<IPage<TimeSheetEntry>> FindAll(IPageable pageable)
+    public virtual async Task<IPage<TimeSheetEntry?>> FindAll(IPageable pageable)
     {
         var page = await _timeSheetEntryRepository.QueryHelper()
-            .Include(timeSheetEntry => timeSheetEntry.TimeSheet)
+            .Include(timeSheetEntry => timeSheetEntry.TimeSheet!)
             .GetPageAsync(pageable);
-        return page;
+        return page!;
     }
 
-    public virtual async Task<TimeSheetEntry> FindOne(long? id)
+    public virtual async Task<TimeSheetEntry?> FindOne(long? id)
     {
         var result = await _timeSheetEntryRepository.QueryHelper()
-            .Include(timeSheetEntry => timeSheetEntry.TimeSheet)
+            .Include(timeSheetEntry => timeSheetEntry.TimeSheet!)
             .GetOneAsync(timeSheetEntry => timeSheetEntry.Id == id);
-        return result;
+        return result!;
     }
 
     public virtual async Task Delete(long? id)

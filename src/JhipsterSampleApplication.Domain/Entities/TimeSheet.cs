@@ -11,11 +11,11 @@ namespace JhipsterSampleApplication.Domain.Entities
         public DateTime? TimeSheetDate { get; set; }
         public IList<TimeSheetEntry> TimeSheetEntries { get; set; } = new List<TimeSheetEntry>();
         public long? EmployeeId { get; set; }
-        public Employee Employee { get; set; }
+        public Employee? Employee { get; set; }
 
         // jhipster-needle-entity-add-field - JHipster will add fields here, do not remove
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (this == obj) return true;
             if (obj == null || GetType() != obj.GetType()) return false;

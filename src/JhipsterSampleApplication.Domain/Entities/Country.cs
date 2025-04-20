@@ -10,17 +10,17 @@ namespace JhipsterSampleApplication.Domain.Entities
     {
         public string? CountryName { get; set; }
         public long? RegionId { get; set; }
-        public Region Region { get; set; }
+        public Region? Region { get; set; }
 
         // jhipster-needle-entity-add-field - JHipster will add fields here, do not remove
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (this == obj) return true;
             if (obj == null || GetType() != obj.GetType()) return false;
             var country = obj as Country;
-            if (country?.Id == null || country?.Id == 0 || Id == 0) return false;
-            return EqualityComparer<long>.Equals(Id, country.Id);
+            if (country == null || country.Id == 0 || Id == null || Id == 0) return false;
+            return EqualityComparer<long>.Equals(Id!, country.Id!);
         }
 
         public override int GetHashCode()

@@ -6,11 +6,11 @@ public class LoginDto
 {
     [Required]
     [StringLength(50, MinimumLength = 1)]
-    public string Username { get; set; }
+    public string Username { get; set; } = string.Empty;
 
     [Required]
     [StringLength(100, MinimumLength = 4)]
-    public string Password { get; set; }
+    public string Password { get; set; } = string.Empty;
 
     [Required] public bool RememberMe { get; set; }
 

@@ -11,7 +11,7 @@ public class ManagedUserDto : UserDto
     [Required]
     [MinLength(PasswordMinLength)]
     [MaxLength(PasswordMaxLength)]
-    public string Password { get; set; }
+    public string Password { get; set; } = string.Empty;
 
     public override string ToString()
     {

@@ -13,17 +13,17 @@ namespace JhipsterSampleApplication.Domain.Entities
         public int? EndTimeMilitary { get; set; }
         public decimal? TotalTime { get; set; }
         public Guid? TimeSheetId { get; set; }
-        public TimeSheet TimeSheet { get; set; }
+        public TimeSheet? TimeSheet { get; set; }
 
         // jhipster-needle-entity-add-field - JHipster will add fields here, do not remove
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (this == obj) return true;
             if (obj == null || GetType() != obj.GetType()) return false;
             var timeSheetEntry = obj as TimeSheetEntry;
-            if (timeSheetEntry?.Id == null || timeSheetEntry?.Id == 0 || Id == 0) return false;
-            return EqualityComparer<long>.Equals(Id, timeSheetEntry.Id);
+            if (timeSheetEntry == null || timeSheetEntry.Id == null || timeSheetEntry.Id == 0 || Id == null || Id == 0) return false;
+            return EqualityComparer<long>.Equals(Id!, timeSheetEntry.Id!);
         }
 
         public override int GetHashCode()

@@ -18,19 +18,19 @@ namespace JhipsterSampleApplication.Domain.Entities
         public IList<Job> Jobs { get; set; } = new List<Job>();
         public IList<TimeSheet> TimeSheets { get; set; } = new List<TimeSheet>();
         public long? ManagerId { get; set; }
-        public Employee Manager { get; set; }
+        public Employee? Manager { get; set; }
         public long? DepartmentId { get; set; }
-        public Department Department { get; set; }
+        public Department? Department { get; set; }
 
         // jhipster-needle-entity-add-field - JHipster will add fields here, do not remove
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (this == obj) return true;
             if (obj == null || GetType() != obj.GetType()) return false;
             var employee = obj as Employee;
-            if (employee?.Id == null || employee?.Id == 0 || Id == 0) return false;
-            return EqualityComparer<long>.Equals(Id, employee.Id);
+            if (employee == null || employee.Id == null || employee.Id == 0 || Id == null || Id == 0) return false;
+            return EqualityComparer<long>.Equals(Id!, employee.Id!);
         }
 
         public override int GetHashCode()

@@ -24,8 +24,8 @@ public static class PropertyAccessorCache<T> where T : class
         _cache = storage;
     }
 
-    public static LambdaExpression Get(string propertyName)
+    public static LambdaExpression? Get(string propertyName)
     {
-        return _cache.TryGetValue(propertyName, out LambdaExpression result) ? result : null;
+        return _cache.TryGetValue(propertyName, out LambdaExpression? result) ? result : null;
     }
 }

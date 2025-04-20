@@ -1,3 +1,7 @@
+#pragma warning disable CS8613
+#pragma warning disable CS8767
+#pragma warning disable CS8625
+#pragma warning disable CS8620
 using System;
 using System.Linq;
 using System.Linq.Expressions;
@@ -21,7 +25,7 @@ public class UnitOfWork : IUnitOfWork
 
     public void UpdateState<TEntity>(TEntity entity, EntityState state)
     {
-        _context.Entry(entity).State = state;
+        _context.Entry(entity!).State = state;
     }
 
     public void SetEntityStateModified<TEntiy, TProperty>(TEntiy entity, Expression<Func<TEntiy, TProperty>> propertyExpression) where TEntiy : class where TProperty : class

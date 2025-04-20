@@ -5,10 +5,12 @@ namespace JhipsterSampleApplication.Security;
 
 public class BCryptPasswordHasher : IPasswordHasher<User>
 {
-    public string HashPassword(User user, string password)
+    #nullable enable
+    public string HashPassword(User? user, string password)
     {
         return BCrypt.Net.BCrypt.HashPassword(password);
     }
+    #nullable restore
 
     public PasswordVerificationResult VerifyHashedPassword(User user, string hashedPassword,
         string providedPassword)

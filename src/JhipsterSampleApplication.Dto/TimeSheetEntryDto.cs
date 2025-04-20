@@ -13,7 +13,7 @@ namespace JhipsterSampleApplication.Dto
         public int? EndTimeMilitary { get; set; }
         public decimal? TotalTime { get; set; }
         public Guid? TimeSheetId { get; set; }
-        public TimeSheetDto TimeSheet { get; set; }
+        public TimeSheetDto? TimeSheet { get; set; }
 
         // jhipster-needle-dto-add-field - JHipster will add fields here, do not remove
     }

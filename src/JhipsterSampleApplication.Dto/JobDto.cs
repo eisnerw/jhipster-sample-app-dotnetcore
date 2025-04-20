@@ -14,7 +14,7 @@ namespace JhipsterSampleApplication.Dto
         public long? MaxSalary { get; set; }
         public IList<PieceOfWorkDto> Chores { get; set; } = new List<PieceOfWorkDto>();
         public long? EmployeeId { get; set; }
-        public EmployeeDto Employee { get; set; }
+        public EmployeeDto? Employee { get; set; }
 
         // jhipster-needle-dto-add-field - JHipster will add fields here, do not remove
     }

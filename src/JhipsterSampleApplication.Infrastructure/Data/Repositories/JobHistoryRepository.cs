@@ -20,7 +20,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
         public override async Task<JobHistory> CreateOrUpdateAsync(JobHistory jobHistory)
         {
             List<Type> entitiesToBeUpdated = new List<Type>();
-            return await base.CreateOrUpdateAsync(jobHistory, entitiesToBeUpdated);
+            return (await base.CreateOrUpdateAsync(jobHistory, entitiesToBeUpdated))!;
         }
     }
 }

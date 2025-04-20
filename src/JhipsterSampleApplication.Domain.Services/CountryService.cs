@@ -24,20 +24,19 @@ public class CountryService : ICountryService
         return country;
     }
 
-    public virtual async Task<IPage<Country>> FindAll(IPageable pageable)
+    public virtual async Task<IPage<Country?>> FindAll(IPageable pageable)
     {
-        var page = await _countryRepository.QueryHelper()
-            .Include(country => country.Region)
-            .GetPageAsync(pageable);
-        return page;
+        return (await _countryRepository.QueryHelper()
+            .Include(country => country.Region!)
+            .GetPageAsync(pageable))!;
     }
 
-    public virtual async Task<Country> FindOne(long? id)
+    public virtual async Task<Country?> FindOne(long? id)
     {
         var result = await _countryRepository.QueryHelper()
-            .Include(country => country.Region)
+            .Include(country => country.Region!)
             .GetOneAsync(country => country.Id == id);
-        return result;
+        return result!;
     }
 
     public virtual async Task Delete(long? id)

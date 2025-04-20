@@ -4,6 +4,7 @@
         <TargetFramework>net9.0</TargetFramework>
         <RootNamespace>JhipsterSampleApplication.Domain.Services</RootNamespace>
         <OutputType>Library</OutputType>
+        <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <ItemGroup>

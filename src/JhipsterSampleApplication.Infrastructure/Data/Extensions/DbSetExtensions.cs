@@ -16,12 +16,12 @@ public static class DbSetExtensions
     {
         var container = Activator.CreateInstance<TEntity>();
         var idProperty = GetKeyProperty(container.GetType());
-        idProperty.SetValue(container, id, null);
+        idProperty!.SetValue(container, id, null);
         receiver.Attach(container);
         return receiver.Remove(container);
     }
 
-    private static PropertyInfo GetKeyProperty(Type type)
+    private static PropertyInfo? GetKeyProperty(Type type)
     {
         var key = type.GetProperties().FirstOrDefault(p =>
             p.Name.Equals("ID", StringComparison.OrdinalIgnoreCase)
@@ -92,7 +92,7 @@ public static class DbSetExtensions
         // 4. Construct new query
         MethodCallExpression resultExpression = Expression.Call(
             null,
-            GetMethodInfo(Queryable.Where, source, (Expression<Func<T, bool>>)null),
+            GetMethodInfo(Queryable.Where, source, (Expression<Func<T, bool>>)null!),
             new[] { source.Expression, Expression.Quote(expression) });
         return source.Provider.CreateQuery<T>(resultExpression);
     }

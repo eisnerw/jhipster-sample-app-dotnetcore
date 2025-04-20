@@ -66,7 +66,7 @@ public class AuthenticationService : IAuthenticationService
     private async Task<IPrincipal> CreatePrincipal(User user)
     {
         var claims = new List<Claim> {
-            new Claim(ClaimTypes.Name, user.UserName)
+            new Claim(ClaimTypes.Name, user.UserName!)
         };
         var roles = await _userManager.GetRolesAsync(user);
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));

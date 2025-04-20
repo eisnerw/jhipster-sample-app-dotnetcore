@@ -9,9 +9,9 @@ namespace JhipsterSampleApplication.Dto
     {
         public long? Id { get; set; }
         [Required]
-        public string DepartmentName { get; set; }
+        public string DepartmentName { get; set; } = string.Empty;
         public long? LocationId { get; set; }
-        public LocationDto Location { get; set; }
+        public LocationDto? Location { get; set; }
 
         // jhipster-needle-dto-add-field - JHipster will add fields here, do not remove
     }

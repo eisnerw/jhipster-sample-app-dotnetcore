@@ -64,10 +64,12 @@ public class AccountController : ControllerBase
 
     [HttpGet("authorities")]
     [Authorize(Roles = RolesConstants.ADMIN)]
-    public ActionResult<IEnumerable<string>> GetAuthorities()
+#nullable enable
+    public ActionResult<IEnumerable<string?>> GetAuthorities()
     {
         return Ok(_userService.GetAuthorities());
     }
+#nullable restore
 
     [Authorize]
     [HttpGet("account")]

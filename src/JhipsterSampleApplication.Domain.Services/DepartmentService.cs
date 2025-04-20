@@ -24,20 +24,20 @@ public class DepartmentService : IDepartmentService
         return department;
     }
 
-    public virtual async Task<IPage<Department>> FindAll(IPageable pageable)
+    public virtual async Task<IPage<Department?>> FindAll(IPageable pageable)
     {
         var page = await _departmentRepository.QueryHelper()
-            .Include(department => department.Location)
+            .Include(department => department.Location!)
             .GetPageAsync(pageable);
-        return page;
+        return page!;
     }
 
     public virtual async Task<Department> FindOne(long? id)
     {
         var result = await _departmentRepository.QueryHelper()
-            .Include(department => department.Location)
+            .Include(department => department.Location!)
             .GetOneAsync(department => department.Id == id);
-        return result;
+        return result!;
     }
 
     public virtual async Task Delete(long? id)

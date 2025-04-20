@@ -12,13 +12,13 @@ namespace JhipsterSampleApplication.Domain.Entities
 
         // jhipster-needle-entity-add-field - JHipster will add fields here, do not remove
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (this == obj) return true;
             if (obj == null || GetType() != obj.GetType()) return false;
             var region = obj as Region;
-            if (region?.Id == null || region?.Id == 0 || Id == 0) return false;
-            return EqualityComparer<long>.Equals(Id, region.Id);
+            if (region == null || region.Id == null || region.Id == 0 || Id == null || Id == 0) return false;
+            return EqualityComparer<long>.Equals(Id!, region.Id!);
         }
 
         public override int GetHashCode()

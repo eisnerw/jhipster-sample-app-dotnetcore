@@ -13,21 +13,21 @@ namespace JhipsterSampleApplication.Domain.Entities
         public DateTime EndDate { get; set; }
         public Language Language { get; set; }
         public long? JobId { get; set; }
-        public Job Job { get; set; }
+        public Job? Job { get; set; }
         public long? DepartmentId { get; set; }
-        public Department Department { get; set; }
+        public Department? Department { get; set; }
         public long? EmployeeId { get; set; }
-        public Employee Employee { get; set; }
+        public Employee? Employee { get; set; }
 
         // jhipster-needle-entity-add-field - JHipster will add fields here, do not remove
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (this == obj) return true;
             if (obj == null || GetType() != obj.GetType()) return false;
             var jobHistory = obj as JobHistory;
-            if (jobHistory?.Id == null || jobHistory?.Id == 0 || Id == 0) return false;
-            return EqualityComparer<long>.Equals(Id, jobHistory.Id);
+            if (jobHistory == null || jobHistory.Id == null || jobHistory.Id == 0 || Id == null || Id == 0) return false;
+            return EqualityComparer<long>.Equals(Id!, jobHistory.Id!);
         }
 
         public override int GetHashCode()

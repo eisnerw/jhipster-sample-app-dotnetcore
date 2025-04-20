@@ -9,9 +9,9 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
     {
         Task<TimeSheet> Save(TimeSheet timeSheet);
 
-        Task<IPage<TimeSheet>> FindAll(IPageable pageable);
+        Task<IPage<TimeSheet?>> FindAll(IPageable pageable);
 
-        Task<TimeSheet> FindOne(Guid? id);
+        Task<TimeSheet?> FindOne(Guid? id);
 
         Task Delete(Guid? id);
     }

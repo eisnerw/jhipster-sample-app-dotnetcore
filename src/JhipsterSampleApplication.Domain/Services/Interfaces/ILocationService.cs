@@ -9,7 +9,7 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
     {
         Task<Location> Save(Location location);
 
-        Task<IPage<Location>> FindAll(IPageable pageable);
+        Task<IPage<Location?>> FindAll(IPageable pageable);
 
         Task<Location> FindOne(long? id);
 

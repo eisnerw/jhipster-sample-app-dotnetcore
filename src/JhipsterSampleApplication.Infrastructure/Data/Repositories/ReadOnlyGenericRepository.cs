@@ -1,3 +1,4 @@
+#pragma warning disable CS8613
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,7 +27,7 @@ public abstract class ReadOnlyGenericRepository<TEntity, TKey> : IReadOnlyGeneri
 
     public virtual async Task<TEntity> GetOneAsync(TKey id)
     {
-        return await _dbSet.FindAsync(id);
+        return (await _dbSet.FindAsync(id))!;
     }
 
     public virtual async Task<IEnumerable<TEntity>> GetAllAsync()

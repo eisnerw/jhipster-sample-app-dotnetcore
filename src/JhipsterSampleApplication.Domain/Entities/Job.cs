@@ -14,17 +14,17 @@ namespace JhipsterSampleApplication.Domain.Entities
         public long? MaxSalary { get; set; }
         public IList<PieceOfWork> Chores { get; set; } = new List<PieceOfWork>();
         public long? EmployeeId { get; set; }
-        public Employee Employee { get; set; }
+        public Employee? Employee { get; set; }
 
         // jhipster-needle-entity-add-field - JHipster will add fields here, do not remove
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (this == obj) return true;
             if (obj == null || GetType() != obj.GetType()) return false;
             var job = obj as Job;
-            if (job?.Id == null || job?.Id == 0 || Id == 0) return false;
-            return EqualityComparer<long>.Equals(Id, job.Id);
+            if (job == null || job.Id == null || job.Id == 0 || Id == null || Id == 0) return false;
+            return EqualityComparer<long>.Equals(Id!, job.Id!);
         }
 
         public override int GetHashCode()

@@ -16,9 +16,9 @@ namespace JhipsterSampleApplication.Dto
         public long? Salary { get; set; }
         public long? CommissionPct { get; set; }
         public long? ManagerId { get; set; }
-        public EmployeeDto Manager { get; set; }
+        public EmployeeDto? Manager { get; set; }
         public long? DepartmentId { get; set; }
-        public DepartmentDto Department { get; set; }
+        public DepartmentDto? Department { get; set; }
 
         // jhipster-needle-dto-add-field - JHipster will add fields here, do not remove
     }

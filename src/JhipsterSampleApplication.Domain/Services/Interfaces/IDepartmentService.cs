@@ -9,7 +9,7 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
     {
         Task<Department> Save(Department department);
 
-        Task<IPage<Department>> FindAll(IPageable pageable);
+        Task<IPage<Department?>> FindAll(IPageable pageable);
 
         Task<Department> FindOne(long? id);
 

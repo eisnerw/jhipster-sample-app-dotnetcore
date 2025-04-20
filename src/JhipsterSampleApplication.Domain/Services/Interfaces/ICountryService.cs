@@ -9,9 +9,9 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
     {
         Task<Country> Save(Country country);
 
-        Task<IPage<Country>> FindAll(IPageable pageable);
+        Task<IPage<Country?>> FindAll(IPageable pageable);
 
-        Task<Country> FindOne(long? id);
+        Task<Country?> FindOne(long? id);
 
         Task Delete(long? id);
     }
