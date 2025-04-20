@@ -3,6 +3,7 @@
   "include": ["src/**/*.ts"],
   "compilerOptions": {
     "composite": true,
+    "declaration": true,
     "outDir": "../../../tmp/out-tsc/spec",
     "types": ["jest", "node"]
   }
