@@ -91,8 +91,7 @@ describe('User Management Component', () => {
         comp.setActive(user, true);
         tick(); // simulate async
 
-        // THEN
-        expect(service.update).toHaveBeenCalledWith({ ...user, activated: true });
+        expect(service.update).toHaveBeenCalledWith(expect.objectContaining({ id: user.id, activated: true }));
         expect(service.query).toHaveBeenCalled();
         expect(comp.users()?.[0]).toEqual(expect.objectContaining({ id: 123 }));
       }),

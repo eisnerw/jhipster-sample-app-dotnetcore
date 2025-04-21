@@ -149,10 +149,10 @@ The `./src/JhipsterSampleApplication/app/out` directory will contain your applic
 
 ### .Net Backend tests
 
-To launch your application's tests, run:
+To launch your application's tests, from the test/JhipsterSamplepplication.Test folder run:
 
 ```
-dotnet test --verbosity normal
+DOTNET_USE_POLLING_FILE_WATCHER=1 dotnet test --no-build --logger "console;verbosity=quiet" > raw.log 2>&1
 ```
 
 ### Client tests

@@ -39,7 +39,10 @@ export default class UserManagementComponent implements OnInit {
   }
 
   setActive(user: User, isActivated: boolean): void {
-    this.userService.update({ ...user, activated: isActivated }).subscribe(() => this.loadAll());
+    // Clone only the enumerable own‑properties into a plain object
+    const dto = Object.assign({}, user);
+    dto.activated = isActivated;
+    this.userService.update(dto).subscribe(() => this.loadAll());
   }
 
   trackIdentity(item: User): number {
