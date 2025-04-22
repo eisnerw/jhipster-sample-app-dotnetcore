@@ -21,7 +21,7 @@ using System.Threading;
 
 PrintBanner(10 * 1000);
 
-if (!Debugger.IsAttached)
+if (false && !Debugger.IsAttached)
 {
     while (!Debugger.IsAttached)
     {

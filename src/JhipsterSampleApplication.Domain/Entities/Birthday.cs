@@ -26,7 +26,7 @@ namespace JhipsterSampleApplication.Domain.Entities
             if (obj == null || GetType() != obj.GetType()) return false;
             var birthday = obj as Birthday;
             if (birthday?.Id == null || birthday?.Id == 0 || Id == 0) return false;
-            if (birthday == null || birthday.Id == null || birthday.Id == 0 || Id == null ||  Id == 0) return false;
+            if (birthday == null || birthday.Id == 0 ||  Id == 0) return false;
             return EqualityComparer<long?>.Default.Equals(Id!, birthday.Id!);
         }
 

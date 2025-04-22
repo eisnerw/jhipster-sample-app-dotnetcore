@@ -9,16 +9,16 @@ namespace JhipsterSampleApplication.Domain.Entities
 
     public class RulesetOrRule
     {
-        public string condition { get; set; }
-        public object value { get; set; }
-        public string @operator { get; set; }
+        public string? condition { get; set; }
+        public object? value { get; set; }
+        public string? @operator { get; set; }
         public Boolean @not { get; set; }
-        public string field { get; set; }
-        public List<RulesetOrRule> rules { get; set; }
+        public string? field { get; set; }
+        public List<RulesetOrRule>? rules { get; set; }
         public override string ToString()
         {
             if (rules == null){
-                return "{" + "\"field\":\"" + field + "\", \"operator\":\""  + @operator + "\", \"value\":\"" + value.ToString().Replace("\"","\\\"") + "\"}";
+                return "{" + "\"field\":\"" + field + "\", \"operator\":\""  + @operator + "\", \"value\":\"" + ((string)value!).ToString().Replace("\"","\\\"") + "\"}";
             } else {
                 string listString = "";
                 rules.ForEach(r=>{
@@ -32,7 +32,7 @@ namespace JhipsterSampleApplication.Domain.Entities
                 if (@operator == "contains"){
                     return new JObject{{
                         "term", new JObject{{
-                            field, (string)value
+                            field!, (string)value!
                         }}
                     }};
                 }
@@ -61,7 +61,7 @@ namespace JhipsterSampleApplication.Domain.Entities
             }
         }
         private string ToCaseInsensitiveRegEx(){
-            return null;
+            return null!;
         }
     }
 }

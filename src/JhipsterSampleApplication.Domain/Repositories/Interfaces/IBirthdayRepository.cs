@@ -11,7 +11,7 @@ namespace JhipsterSampleApplication.Domain.Repositories.Interfaces
 
         Task<string> GetOneTextAsync(object id);
 
-        Task<List<Birthday>> GetReferencesFromAsync(string id);
+        Task<List<Birthday>?> GetReferencesFromAsync(string id);
 
         Task<List<Birthday>> GetReferencesToAsync(string id);
 
