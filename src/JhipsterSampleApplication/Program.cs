@@ -11,9 +11,31 @@ using JhipsterSampleApplication.Configuration;
 using IStartup = JhipsterSampleApplication.IStartup;
 using static JHipsterNet.Core.Boot.BannerPrinter;
 using Microsoft.Extensions.Hosting;
+using JhipsterSampleApplication.Domain;
+using System.Globalization;
+using Nest;
+using System.Numerics;
+using System.Diagnostics;
+using JhipsterSampleApplication.Domain.Entities;
+using System.Threading;
 
 PrintBanner(10 * 1000);
 
+if (!Debugger.IsAttached)
+{
+    while (!Debugger.IsAttached)
+    {
+        Thread.Sleep(100);  // Wait for debugger to attach
+    }
+}
+
+var node = new Uri("https://7303xa0iq9:4cdkz0o14@texttemplate-testing-7087740692.us-east-1.bonsaisearch.net/");
+var setting = new Nest.ConnectionSettings(node).BasicAuthentication("7303xa0iq9", "4cdkz0o14").DefaultIndex("birthdays");
+var elastic = new ElasticClient(setting);
+var SearchResponse = elastic.Search<Birthday>(s => s
+    .Query(q => q.MatchAll())
+);
+Console.WriteLine($"Got {SearchResponse.Hits.Count} hits");
 try
 {
     var webAppOptions = new WebApplicationOptions
