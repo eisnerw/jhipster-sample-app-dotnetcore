@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": ".NET Core Launch (manual)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "/home/ubuntu/Documents/git/jhipster-sample-app-dotnetcore/src/JhipsterSampleApplication/bin/Debug/net9.0/JhipsterSampleApplication.dll",
+      "args": [],
+      "cwd": "/home/bill/Documents/git/jhipster-sample-app-dotnetcore",
+      "stopAtEntry": true,
+      "console": "internalConsole"
+    }
+  ]
+}

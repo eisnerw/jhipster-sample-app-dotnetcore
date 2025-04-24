@@ -58,8 +58,8 @@ public abstract class GenericRepository<TEntity, TKey> : ReadOnlyGenericReposito
 
     public async virtual Task<TEntity> CreateOrUpdateAsync(TEntity entity)
     {
-        bool exists = await Exists(x => x!.Id!.Equals(entity!.Id!));
-        if (entity!.Id!.Equals(0) && exists)
+        bool exists = await Exists(x => x.Id.Equals(entity.Id));
+        if (entity.Id.Equals(0) && exists)
         {
             Update(entity);
         }
@@ -67,13 +67,13 @@ public abstract class GenericRepository<TEntity, TKey> : ReadOnlyGenericReposito
         {
             _context.AddOrUpdateGraph(entity);
         }
-        return entity!;
+        return entity;
     }
 
     public async virtual Task<TEntity> CreateOrUpdateAsync(TEntity entity, ICollection<Type> entitiesToBeUpdated)
     {
-        bool exists = await Exists(x => x!.Id!.Equals(entity!.Id!));
-        if (entity!.Id!.Equals(0) && exists)
+        bool exists = await Exists(x => x.Id.Equals(entity.Id));
+        if (entity.Id.Equals(0) && exists)
         {
             Update(entity);
         }
@@ -93,7 +93,10 @@ public abstract class GenericRepository<TEntity, TKey> : ReadOnlyGenericReposito
     public virtual async Task DeleteByIdAsync(TKey id)
     {
         var entity = await GetOneAsync(id);
-        _dbSet.Remove(entity);
+        if (entity != null)
+        {
+            _dbSet.Remove(entity);
+        }
     }
 
     public virtual async Task DeleteAsync(TEntity entity)

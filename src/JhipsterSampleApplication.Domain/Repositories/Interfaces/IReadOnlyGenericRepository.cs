@@ -12,7 +12,7 @@ namespace JhipsterSampleApplication.Domain.Repositories.Interfaces;
 
 public interface IReadOnlyGenericRepository<TEntity, TKey> where TEntity : BaseEntity<TKey>
 {
-    Task<TEntity> GetOneAsync(TKey id);
+    Task<TEntity?> GetOneAsync(TKey id);
     Task<IEnumerable<TEntity>> GetAllAsync();
     Task<IPage<TEntity>> GetPageAsync(IPageable pageable);
     Task<bool> Exists(Expression<Func<TEntity, bool>> predicate);

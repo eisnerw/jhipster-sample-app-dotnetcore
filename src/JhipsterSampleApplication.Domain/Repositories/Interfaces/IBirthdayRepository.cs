@@ -7,7 +7,7 @@ namespace JhipsterSampleApplication.Domain.Repositories.Interfaces
 {
     public interface IBirthdayRepository : IGenericRepository<Birthday, long>
     {
-        Task<Birthday> GetOneAsync(object id, bool bText);
+        Task<Birthday?> GetOneAsync(object id, bool bText);
 
         Task<string> GetOneTextAsync(object id);
 

@@ -9,6 +9,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using JhipsterSampleApplication.Domain.Services.Interfaces;
+using JhipsterSampleApplication.Infrastructure.Services;
+using Nest;
 
 [assembly: ApiController]
 
@@ -21,12 +24,12 @@ public class Startup : IStartup
         services
             .AddAppSettingsModule(configuration);
 
-
         AddDatabase(configuration, services);
     }
 
     public virtual void ConfigureServices(IServiceCollection services, IHostEnvironment environment)
     {
+        var configuration = services.BuildServiceProvider().GetRequiredService<IConfiguration>();
         services
             .AddSecurityModule()
             .AddProblemDetailsModule()
@@ -35,6 +38,18 @@ public class Startup : IStartup
             .AddWebModule()
             .AddRepositoryModule()
             .AddServiceModule();
+
+        // Add ElasticSearch services
+        var elasticsearchSettings = configuration.GetSection("Elasticsearch").Get<ElasticsearchSettings>();
+        var settings = new ConnectionSettings(new Uri(elasticsearchSettings.Url))
+            .BasicAuthentication(elasticsearchSettings.Username, elasticsearchSettings.Password)
+            .DefaultIndex(elasticsearchSettings.DefaultIndex);
+        var client = new ElasticClient(settings);
+        services.AddSingleton<IElasticClient>(client);
+
+        services.AddScoped<IElasticSearchService, ElasticSearchService>();
+        services.AddScoped<IGenericElasticSearchService, ElasticSearchService>();
+        services.AddScoped<Domain.Services.Interfaces.IQueryBuilder, ElasticSearchQueryBuilder>();
     }
 
     public virtual void ConfigureMiddleware(IApplicationBuilder app, IHostEnvironment environment)
@@ -60,4 +75,12 @@ public class Startup : IStartup
     {
         services.AddDatabaseModule(configuration);
     }
+}
+
+public class ElasticsearchSettings
+{
+    public string Url { get; set; }
+    public string Username { get; set; }
+    public string Password { get; set; }
+    public string DefaultIndex { get; set; }
 }

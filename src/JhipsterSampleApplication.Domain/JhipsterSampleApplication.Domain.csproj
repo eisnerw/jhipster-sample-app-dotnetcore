@@ -12,6 +12,7 @@
         <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
         <PackageReference Include="Newtonsoft.Json" />
         <PackageReference Include="JHipsterNet.Core" />
+        <PackageReference Include="NEST" />
     </ItemGroup>
 
     <ItemGroup>
