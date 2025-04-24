@@ -7,6 +7,8 @@ using JhipsterSampleApplication.Domain.Entities;
 using System.Collections.Generic;
 using JHipsterNet.Core.Pagination;
 using Microsoft.AspNetCore.Authorization;
+using Newtonsoft.Json.Linq;
+using System.Linq;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -32,6 +34,7 @@ namespace JhipsterSampleApplication.Controllers
             public object? value { get; set; }
             public string? condition { get; set; }
             public bool @not { get; set; }
+            public List<object> rules { get; set; }
         }
 
         public class BirthdayDto
@@ -71,17 +74,34 @@ namespace JhipsterSampleApplication.Controllers
             public int ActiveShards { get; set; }
             public int ActivePrimaryShards { get; set; }
         }
-
-        private RulesetOrRule ConvertDtoToModel(RulesetOrRuleDto dto)
+        private RulesetOrRule ConvertDtoToModel(object dto)
         {
+            var jObj = dto switch
+            {
+                JObject jobj => jobj,
+                JToken jtoken => jtoken as JObject,
+                string json => JObject.Parse(json),
+                _ => JObject.FromObject(dto)
+            };
+
+            // If it has "rules", it's a compound ruleset
+            if (jObj.ContainsKey("rules"))
+            {
+                return new RulesetOrRule
+                {
+                    condition = jObj["condition"]?.ToString(),
+                    @not = jObj["not"]?.ToObject<bool>() ?? false,
+                    rules = jObj["rules"] is JArray array
+                        ? array.Select(rule => ConvertDtoToModel((JObject)rule)).ToList()
+                        : new List<RulesetOrRule>()
+                };
+            }
+            // Otherwise, treat it as a leaf rule
             return new RulesetOrRule
             {
-                field = dto.field,
-                @operator = dto.@operator,
-                value = dto.value,
-                condition = dto.condition,
-                @not = dto.@not,
-                rules = null // Not included in the DTO; adjust if needed
+                field = jObj["field"]?.ToString(),
+                @operator = jObj["operator"]?.ToString(),
+                value = jObj["value"]?.ToObject<object>()
             };
         }
 
