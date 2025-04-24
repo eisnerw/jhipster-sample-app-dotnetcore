@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace JhipsterSampleApplication.Controllers
 {
-    // Temporarily removing [Authorize] for testing
     [ApiController]
     [Route("api/elasticsearch")]
     public class ElasticSearchController : ControllerBase
@@ -26,63 +25,138 @@ namespace JhipsterSampleApplication.Controllers
             _elasticClient = elasticClient;
         }
 
-        /// <summary>
-        /// Test endpoint - no authentication required
-        /// </summary>
-        [HttpGet("test")]
-        [AllowAnonymous]
-        public async Task<IActionResult> Test()
+        public class RulesetOrRuleDto
         {
-            var response = await _elasticClient.Cluster.HealthAsync();
-            return Ok(new { 
-                status = response.Status,
-                numberOfNodes = response.NumberOfNodes,
-                numberOfDataNodes = response.NumberOfDataNodes,
-                activeShards = response.ActiveShards,
-                activePrimaryShards = response.ActivePrimaryShards
-            });
+            public string? field { get; set; }
+            public string? @operator { get; set; }
+            public object? value { get; set; }
+            public string? condition { get; set; }
+            public bool @not { get; set; }
         }
 
-        /// <summary>
-        /// Search birthdays using a ruleset
-        /// </summary>
+        public class BirthdayDto
+        {
+            public long Id { get; set; }
+            public string? ElasticId { get; set; }
+            public string? Lname { get; set; }
+            public string? Fname { get; set; }
+            public string? Sign { get; set; }
+            public DateTime? Dob { get; set; }
+            public bool? IsAlive { get; set; }
+            public string? Text { get; set; }
+        }
+
+        public class BirthdayCreateUpdateDto
+        {
+            public string? ElasticId { get; set; }
+            public string? Lname { get; set; }
+            public string? Fname { get; set; }
+            public string? Sign { get; set; }
+            public DateTime? Dob { get; set; }
+            public bool? IsAlive { get; set; }
+            public string? Text { get; set; }
+            public List<long>? CategoryIds { get; set; }  // Flattened relationship
+        }
+
+        public class SearchResult<T>
+        {
+            public List<T> Hits { get; set; } = new();
+        }
+
+        public class ClusterHealthDto
+        {
+            public string Status { get; set; } = string.Empty;
+            public int NumberOfNodes { get; set; }
+            public int NumberOfDataNodes { get; set; }
+            public int ActiveShards { get; set; }
+            public int ActivePrimaryShards { get; set; }
+        }
+
+        private RulesetOrRule ConvertDtoToModel(RulesetOrRuleDto dto)
+        {
+            return new RulesetOrRule
+            {
+                field = dto.field,
+                @operator = dto.@operator,
+                value = dto.value,
+                condition = dto.condition,
+                @not = dto.@not,
+                rules = null // Not included in the DTO; adjust if needed
+            };
+        }
+
         [HttpPost("search")]
-        [ProducesResponseType(typeof(ISearchResponse<Birthday>), 200)]
-        public async Task<IActionResult> Search([FromBody] RulesetOrRule ruleset, [FromQuery] int size = 10000)
+        [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
+        public async Task<IActionResult> Search([FromBody] RulesetOrRuleDto rulesetDto, [FromQuery] int size = 10000)
         {
+            var ruleset = ConvertDtoToModel(rulesetDto);
             var response = await _elasticSearchService.SearchWithRulesetAsync(ruleset, size);
-            return Ok(response);
+
+            var birthdayDtos = new List<BirthdayDto>();
+            foreach (var hit in response.Hits)
+            {
+                var b = hit.Source;
+                birthdayDtos.Add(new BirthdayDto
+                {
+                    Id = b.Id,
+                    ElasticId = b.ElasticId,
+                    Lname = b.Lname,
+                    Fname = b.Fname,
+                    Sign = b.Sign,
+                    Dob = b.Dob,
+                    IsAlive = b.IsAlive,
+                    Text = b.Text
+                });
+            }
+
+            return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
         }
 
-        /// <summary>
-        /// Get a birthday by ID
-        /// </summary>
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(Birthday), 200)]
+        [ProducesResponseType(typeof(BirthdayDto), 200)]
         public async Task<IActionResult> GetById(string id)
         {
             var response = await _elasticClient.GetAsync<Birthday>(id);
-            if (!response.IsValid)
+            if (!response.IsValid || response.Source == null)
             {
                 return NotFound();
             }
-            return Ok(response.Source);
+
+            var b = response.Source;
+            var dto = new BirthdayDto
+            {
+                Id = b.Id,
+                ElasticId = b.ElasticId,
+                Lname = b.Lname,
+                Fname = b.Fname,
+                Sign = b.Sign,
+                Dob = b.Dob,
+                IsAlive = b.IsAlive,
+                Text = b.Text
+            };
+
+            return Ok(dto);
         }
 
-        /// <summary>
-        /// Create or update a birthday
-        /// </summary>
         [HttpPost]
         [ProducesResponseType(typeof(IndexResponse), 200)]
-        public async Task<IActionResult> Index([FromBody] Birthday birthday)
+        public async Task<IActionResult> Index([FromBody] BirthdayCreateUpdateDto dto)
         {
+            var birthday = new Birthday
+            {
+                ElasticId = dto.ElasticId,
+                Lname = dto.Lname,
+                Fname = dto.Fname,
+                Sign = dto.Sign,
+                Dob = dto.Dob,
+                IsAlive = dto.IsAlive,
+                Text = dto.Text
+            };
+
             var response = await _elasticSearchService.IndexAsync(birthday);
             return Ok(response);
         }
 
-        /// <summary>
-        /// Delete a birthday by ID
-        /// </summary>
         [HttpDelete("{id}")]
         [ProducesResponseType(typeof(DeleteResponse), 200)]
         public async Task<IActionResult> Delete(string id)
@@ -91,20 +165,25 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(response);
         }
 
-        /// <summary>
-        /// Update a birthday
-        /// </summary>
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(UpdateResponse<Birthday>), 200)]
-        public async Task<IActionResult> Update(string id, [FromBody] Birthday birthday)
+        public async Task<IActionResult> Update(string id, [FromBody] BirthdayCreateUpdateDto dto)
         {
+            var birthday = new Birthday
+            {
+                ElasticId = dto.ElasticId,
+                Lname = dto.Lname,
+                Fname = dto.Fname,
+                Sign = dto.Sign,
+                Dob = dto.Dob,
+                IsAlive = dto.IsAlive,
+                Text = dto.Text
+            };
+
             var response = await _elasticSearchService.UpdateAsync(id, birthday);
             return Ok(response);
         }
 
-        /// <summary>
-        /// Get unique values for a field
-        /// </summary>
         [HttpGet("unique-values/{field}")]
         [ProducesResponseType(typeof(IReadOnlyCollection<string>), 200)]
         public async Task<IActionResult> GetUniqueFieldValues(string field)
@@ -113,15 +192,20 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(values);
         }
 
-        /// <summary>
-        /// Get cluster health
-        /// </summary>
         [HttpGet("health")]
-        [ProducesResponseType(typeof(ClusterHealthResponse), 200)]
+        [ProducesResponseType(typeof(ClusterHealthDto), 200)]
         public async Task<IActionResult> GetHealth()
         {
-            var response = await _elasticClient.Cluster.HealthAsync();
-            return Ok(response);
+            var res = await _elasticClient.Cluster.HealthAsync();
+            var dto = new ClusterHealthDto
+            {
+                Status = res.Status.ToString(),
+                NumberOfNodes = res.NumberOfNodes,
+                NumberOfDataNodes = res.NumberOfDataNodes,
+                ActiveShards = res.ActiveShards,
+                ActivePrimaryShards = res.ActivePrimaryShards
+            };
+            return Ok(dto);
         }
     }
-} 
+}
