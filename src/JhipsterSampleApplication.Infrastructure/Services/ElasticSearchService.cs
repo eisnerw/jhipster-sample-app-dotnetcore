@@ -12,11 +12,19 @@ using System.Text.RegularExpressions;
 
 namespace JhipsterSampleApplication.Infrastructure.Services;
 
+/// <summary>
+/// Service for interacting with Elasticsearch
+/// </summary>
 public class ElasticSearchService : IElasticSearchService, IGenericElasticSearchService
 {
     private readonly IElasticClient _elasticClient;
     private const string IndexName = "birthdays";
 
+    /// <summary>
+    /// Initializes a new instance of the ElasticSearchService
+    /// </summary>
+    /// <param name="configuration">The configuration containing Elasticsearch settings</param>
+    /// <exception cref="ArgumentNullException">Thrown when ElasticSearch:Url is not configured</exception>
     public ElasticSearchService(IConfiguration configuration)
     {
         var url = configuration["ElasticSearch:Url"] ?? throw new ArgumentNullException("ElasticSearch:Url");
@@ -30,72 +38,123 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
         _elasticClient = new ElasticClient(settings);
     }
 
-    // IElasticSearchService implementation
+    /// <summary>
+    /// Searches for Birthday documents using the provided search request
+    /// </summary>
+    /// <param name="request">The search request to execute</param>
+    /// <returns>The search response containing Birthday documents</returns>
     public async Task<ISearchResponse<Birthday>> SearchAsync(ISearchRequest request)
     {
         return await _elasticClient.SearchAsync<Birthday>(request);
     }
 
+    /// <summary>
+    /// Indexes a new Birthday document
+    /// </summary>
+    /// <param name="birthday">The Birthday document to index</param>
+    /// <returns>The index response</returns>
     public async Task<IndexResponse> IndexAsync(Birthday birthday)
     {
         return await _elasticClient.IndexDocumentAsync(birthday);
     }
 
+    /// <summary>
+    /// Deletes a Birthday document by ID
+    /// </summary>
+    /// <param name="id">The ID of the Birthday document to delete</param>
+    /// <returns>The delete response</returns>
     public async Task<DeleteResponse> DeleteAsync(string id)
     {
         return await _elasticClient.DeleteAsync<Birthday>(id);
     }
 
+    /// <summary>
+    /// Updates an existing Birthday document
+    /// </summary>
+    /// <param name="id">The ID of the Birthday document to update</param>
+    /// <param name="birthday">The updated Birthday document</param>
+    /// <returns>The update response</returns>
     public async Task<UpdateResponse<Birthday>> UpdateAsync(string id, Birthday birthday)
     {
         return await _elasticClient.UpdateAsync<Birthday>(id, u => u.Doc(birthday));
     }
 
-    // IGenericElasticSearchService implementation
+    /// <summary>
+    /// Searches for documents of type T using the provided search request
+    /// </summary>
+    /// <typeparam name="T">The type of document to search for</typeparam>
+    /// <param name="searchRequest">The search request to execute</param>
+    /// <returns>The search response containing documents of type T</returns>
     public async Task<ISearchResponse<T>> SearchAsync<T>(ISearchRequest searchRequest) where T : class
     {
         return await _elasticClient.SearchAsync<T>(searchRequest);
     }
 
+    /// <summary>
+    /// Indexes a new document of type T
+    /// </summary>
+    /// <typeparam name="T">The type of document to index</typeparam>
+    /// <param name="document">The document to index</param>
+    /// <param name="indexName">The name of the index to use</param>
+    /// <returns>The index response</returns>
     public async Task<IndexResponse> IndexAsync<T>(T document, string indexName) where T : class
     {
         return await _elasticClient.IndexDocumentAsync(document);
     }
 
+    /// <summary>
+    /// Deletes a document of type T by ID
+    /// </summary>
+    /// <typeparam name="T">The type of document to delete</typeparam>
+    /// <param name="id">The ID of the document to delete</param>
+    /// <param name="indexName">The name of the index to use</param>
+    /// <returns>The delete response</returns>
     public async Task<DeleteResponse> DeleteAsync<T>(string id, string indexName) where T : class
     {
         return await _elasticClient.DeleteAsync<T>(id);
     }
 
+    /// <summary>
+    /// Gets a document of type T by ID
+    /// </summary>
+    /// <typeparam name="T">The type of document to get</typeparam>
+    /// <param name="id">The ID of the document to get</param>
+    /// <param name="indexName">The name of the index to use</param>
+    /// <returns>The get response containing the document</returns>
     public async Task<IGetResponse<T>> GetAsync<T>(string id, string indexName) where T : class
     {
         return await _elasticClient.GetAsync<T>(id);
     }
 
+    /// <summary>
+    /// Gets unique values for a field in the Birthday index
+    /// </summary>
+    /// <param name="field">The field to get unique values for</param>
+    /// <returns>A collection of unique field values</returns>
     public async Task<IReadOnlyCollection<string>> GetUniqueFieldValuesAsync(string field)
     {
-        var response = await _elasticClient.SearchAsync<Birthday>(s => s
-            .Size(0)
-            .Index(IndexName)
-            .Aggregations(a => a
-                .Terms("distinct", t => t
-                    .Field(field)
-                    .Size(10000)
+        var result = await _elasticClient.SearchAsync<Aggregation>(q => q
+            .Size(0).Index("birthdays").Aggregations(agg => agg.Terms(
+                "distinct", e =>
+                    e.Field(field).Size(10000)
                 )
             )
         );
-
-        var termsAggregation = response.Aggregations.Terms("distinct");
-        var values = new List<string>();
-        
-        foreach (var bucket in termsAggregation.Buckets)
+        List<string> ret = new List<string>();
+        ((BucketAggregate)result.Aggregations.ToList()[0].Value).Items.ToList().ForEach(it =>
         {
-            values.Add(bucket.KeyAsString);
-        }
-
-        return values;
+            KeyedBucket<Object> kb = (KeyedBucket<Object>)it;
+            ret.Add(kb.KeyAsString != null ? kb.KeyAsString : (string)kb.Key);
+        });
+        return ret;
     }
 
+    /// <summary>
+    /// Searches for Birthday documents using a ruleset
+    /// </summary>
+    /// <param name="ruleset">The ruleset to use for searching</param>
+    /// <param name="size">The maximum number of results to return</param>
+    /// <returns>The search response containing Birthday documents</returns>
     public async Task<ISearchResponse<Birthday>> SearchWithRulesetAsync(RulesetOrRule ruleset, int size = 10000)
     {
         var queryObject = await ConvertRulesetToElasticSearch(ruleset);
@@ -109,33 +168,54 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
         );
     }
 
+    /// <summary>
+    /// Converts a ruleset to an Elasticsearch query
+    /// </summary>
+    /// <param name="rr">The ruleset to convert</param>
+    /// <returns>A JObject containing the Elasticsearch query</returns>
     private async Task<JObject> ConvertRulesetToElasticSearch(RulesetOrRule rr)
     {
-        // this routine converts rulesets into elasticsearch DSL as json.  For inexact matching (contains), it uses the field.  For exact matching (=),
-        // it uses the keyworkd fields.  Since those are case sensitive, it forces a search for all cased values that would match insenitively
+        if (rr == null)
+            throw new ArgumentNullException(nameof(rr));
+
+        // For inexact matching (contains), uses the field
+        // For exact matching (=), uses the keyword fields
+        // Forces a search for all cased values that would match insensitively
         if (rr.rules == null)
         {
-            JObject ret = new JObject{{
-                "term", new JObject{{
-                    "BOGUSFIELD", "CANTMATCH"
-                }}
-            }};
-            if (rr.@operator.Contains("contains"))
+            if (rr.@operator == null || rr.value == null || rr.field == null)
             {
-                string stringValue = (string)rr.value;
+                return new JObject
+                {
+                    {
+                        "term", new JObject
+                        {
+                            { "BOGUSFIELD", "CANTMATCH" }
+                        }
+                    }
+                };
+            }
+
+            if (rr.@operator.Contains("contains", StringComparison.OrdinalIgnoreCase))
+            {
+                string stringValue = rr.value.ToString() ?? string.Empty;
                 if (stringValue.StartsWith("/") && (stringValue.EndsWith("/") || stringValue.EndsWith("/i")))
                 {
-                    Boolean bCaseInsensitive = stringValue.EndsWith("/i");
-                    string re = rr.value.ToString().Substring(1, rr.value.ToString().Length - (bCaseInsensitive ? 3 : 2));
-                    string regex = ToElasticRegEx(re.Replace(@"\\",@"\"), bCaseInsensitive);
-                    if (regex.StartsWith("^"))
+                    bool bCaseInsensitive = stringValue.EndsWith("/i");
+                    string re = stringValue.Substring(1, stringValue.Length - (bCaseInsensitive ? 3 : 2));
+                    string regex = ToElasticRegEx(re.Replace(@"\\", @"\"), bCaseInsensitive);
+                    
+                    if (!string.IsNullOrEmpty(regex))
                     {
-                        regex = regex.Substring(1, regex.Length - 1);
+                        if (regex.StartsWith("^"))
+                        {
+                            regex = regex.Substring(1);
                     }
                     else
                     {
                         regex = ".*" + regex;
                     }
+                        
                     if (regex.EndsWith("$"))
                     {
                         regex = regex.Substring(0, regex.Length - 1);
@@ -144,57 +224,92 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
                     {
                         regex += ".*";
                     }
+
                     if (rr.field == "document")
-                    {
-                        List<JObject> lstRegexes = "wikipedia,fname,lname,categories,sign,id".Split(',').ToList().Select(s =>
                         {
-                            return new JObject{{
-                                "regexp", new JObject{{
-                                    s + ".keyword", new JObject{
-                                        { "value", regex}
-                                        ,{ "flags", "ALL" }
-                                        ,{ "rewrite", "constant_score" }
+                            var fields = new[] { "wikipedia", "fname", "lname", "categories", "sign", "id" };
+                            var lstRegexes = fields.Select(s => new JObject
+                            {
+                                {
+                                    "regexp", new JObject
+                                    {
+                                        {
+                                            s + ".keyword", new JObject
+                                            {
+                                                { "value", regex },
+                                                { "flags", "ALL" },
+                                                { "rewrite", "constant_score" }
+                                            }
+                                        }
                                     }
-                                }}
-                            }};
-                        }).ToList();
-                        return new JObject{{
-                            "bool", new JObject{{
-                                "should", JArray.FromObject(lstRegexes)
-                            }}
-                        }};
-                    }
-                    return new JObject{{
-                        "regexp", new JObject{{
-                            rr.field + ".keyword", new JObject{
-                                { "value", regex}
-                                ,{ "flags", "ALL" }
-                                ,{ "rewrite", "constant_score" }
+                                }
+                            }).ToList();
+
+                            return new JObject
+                            {
+                                {
+                                    "bool", new JObject
+                                    {
+                                        { "should", JArray.FromObject(lstRegexes) }
+                                    }
+                                }
+                            };
+                        }
+
+                        return new JObject
+                        {
+                            {
+                                "regexp", new JObject
+                                {
+                                    {
+                                        rr.field + ".keyword", new JObject
+                                        {
+                                            { "value", regex },
+                                            { "flags", "ALL" },
+                                            { "rewrite", "constant_score" }
+                                        }
+                                    }
+                                }
                             }
-                        }}
-                    }};
+                        };
+                    }
                 }
-                string quote = Regex.IsMatch(rr.value.ToString(), @"\W") ? @"""" : "";
-                ret = new JObject{{
-                    "query_string", new JObject{{
-                        "query", (rr.field != "document" ? (rr.field + ":") : "") + quote + ((string)rr.value).ToLower().Replace(@"""", @"\""") + quote
-                    }}
-                }};
+
+                string quote = Regex.IsMatch(rr.value.ToString() ?? string.Empty, @"\W") ? @"""" : "";
+                return new JObject
+                {
+                    {
+                        "query_string", new JObject
+                        {
+                            {
+                                "query",
+                                (rr.field != "document" ? (rr.field + ":") : "") + 
+                                quote + 
+                                (rr.value?.ToString()?.ToLower()?.Replace(@"""", @"\""") ?? string.Empty) + 
+                                quote
+                            }
+                        }
+                    }
+                };
             }
             else if (rr.@operator.Contains("="))
             {
                 List<string> uniqueValues = (await GetUniqueFieldValuesAsync(rr.field + ".keyword")).ToList();
-                List<JObject> oredTerms = uniqueValues.Where(v => v.ToLower() == rr.value.ToString().ToLower()).Select(s =>
-                {
-                    return new JObject{{
-                        "term", new JObject{{
-                            rr.field + ".keyword", s
-                        }}
-                    }};
-                }).ToList();
+                List<JObject> oredTerms = uniqueValues
+                    .Where(v => v?.ToLower() == rr.value?.ToString()?.ToLower())
+                    .Select(s => new JObject
+                    {
+                        {
+                            "term", new JObject
+                            {
+                                { rr.field + ".keyword", s }
+                            }
+                        }
+                    })
+                    .ToList();
                 if (oredTerms.Count > 1)
                 {
-                    ret = new JObject{{
+                    return new JObject{{
                         "bool", new JObject{{
                             "should", JArray.FromObject(oredTerms)
                         }}
@@ -202,7 +317,7 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
                 }
                 else if (oredTerms.Count == 1)
                 {
-                    ret = oredTerms[0];
+                    return oredTerms[0];
                 }
             } else if (rr.@operator.Contains("in")) {
                 List<string> uniqueValues = (await GetUniqueFieldValuesAsync(rr.field + ".keyword")).ToList();
@@ -236,20 +351,20 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
                         "must_not", JArray.FromObject(lstEmptyString)
                     }}
                 }});
-                ret = new JObject{{
+                return new JObject{{
                     "bool", new JObject{{
                         "must", JArray.FromObject(lstExists)
                     }}
                 }};
             }
             if (rr.@operator.Contains("!") || (rr.@operator == "exists" && !(rr.value != null && (Boolean)rr.value))){
-                ret = new JObject {{
+                return new JObject {{
                     "bool", new JObject{{
-                        "must_not", JObject.FromObject(ret)
+                        "must_not", JObject.FromObject(await ConvertRulesetToElasticSearch(rr))
                     }}
                 }};
             }
-            return ret;
+            return await ConvertRulesetToElasticSearch(rr);
         }
         else
         {
@@ -283,6 +398,12 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
         }
     }
 
+    /// <summary>
+    /// Converts a regex pattern to an Elasticsearch-compatible regex
+    /// </summary>
+    /// <param name="pattern">The regex pattern to convert</param>
+    /// <param name="bCaseInsensitive">Whether the regex should be case insensitive</param>
+    /// <returns>The Elasticsearch-compatible regex pattern</returns>
     private string ToElasticRegEx(string pattern, Boolean bCaseInsensitive)
     {
         string ret = "";

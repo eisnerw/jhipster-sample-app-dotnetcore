@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +17,7 @@ namespace JhipsterSampleApplication.Controllers
     [Route("api/elasticsearch")]
     public class ElasticSearchController : ControllerBase
     {
-        private readonly IElasticSearchService _elasticSearchService;
+        private readonly IElasticSearchService _elasticSearchService;       
         private readonly IElasticClient _elasticClient;
 
         public ElasticSearchController(
@@ -34,7 +35,7 @@ namespace JhipsterSampleApplication.Controllers
             public object? value { get; set; }
             public string? condition { get; set; }
             public bool @not { get; set; }
-            public List<object> rules { get; set; }
+            public List<object> rules { get; set; } = new List<object>();
         }
 
         public class BirthdayDto
@@ -84,8 +85,7 @@ namespace JhipsterSampleApplication.Controllers
                 _ => JObject.FromObject(dto)
             };
 
-            // If it has "rules", it's a compound ruleset
-            if (jObj.ContainsKey("rules"))
+            if (jObj?.ContainsKey("rules") == true && jObj["rules"] is JArray rulesArray && rulesArray.Count > 0)
             {
                 return new RulesetOrRule
                 {
@@ -96,12 +96,11 @@ namespace JhipsterSampleApplication.Controllers
                         : new List<RulesetOrRule>()
                 };
             }
-            // Otherwise, treat it as a leaf rule
             return new RulesetOrRule
             {
-                field = jObj["field"]?.ToString(),
-                @operator = jObj["operator"]?.ToString(),
-                value = jObj["value"]?.ToObject<object>()
+                field = jObj?["field"]?.ToString(),
+                @operator = jObj?["operator"]?.ToString(),
+                value = jObj?["value"]?.ToObject<object>()
             };
         }
 

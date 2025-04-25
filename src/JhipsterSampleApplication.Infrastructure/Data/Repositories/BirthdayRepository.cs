@@ -118,8 +118,9 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
                 return null;
             }
 
+            var idString = id.ToString() ?? throw new ArgumentException("ID cannot be converted to string", nameof(id));
             var searchRequest = _queryBuilder
-                .WithFilter("_id", id.ToString())
+                .WithFilter("_id", idString)
                 .Build();
 
             var response = await _elasticSearchService.SearchAsync(searchRequest);
@@ -140,8 +141,9 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
                 return string.Empty;
             }
 
+            var idString = id.ToString() ?? throw new ArgumentException("ID cannot be converted to string", nameof(id));
             var searchRequest = _queryBuilder
-                .WithFilter("_id", id.ToString())
+                .WithFilter("_id", idString)
                 .Build();
 
             var response = await _elasticSearchService.SearchAsync(searchRequest);

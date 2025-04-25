@@ -58,8 +58,11 @@ public abstract class GenericRepository<TEntity, TKey> : ReadOnlyGenericReposito
 
     public async virtual Task<TEntity> CreateOrUpdateAsync(TEntity entity)
     {
-        bool exists = await Exists(x => x.Id.Equals(entity.Id));
-        if (entity.Id.Equals(0) && exists)
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
+
+        bool exists = await Exists(x => x.Id != null && x.Id.Equals(entity.Id));
+        if (entity.Id != null && exists)
         {
             Update(entity);
         }
@@ -72,8 +75,11 @@ public abstract class GenericRepository<TEntity, TKey> : ReadOnlyGenericReposito
 
     public async virtual Task<TEntity> CreateOrUpdateAsync(TEntity entity, ICollection<Type> entitiesToBeUpdated)
     {
-        bool exists = await Exists(x => x.Id.Equals(entity.Id));
-        if (entity.Id.Equals(0) && exists)
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
+
+        bool exists = await Exists(x => x.Id != null && x.Id.Equals(entity.Id));
+        if (entity.Id != null && exists)
         {
             Update(entity);
         }

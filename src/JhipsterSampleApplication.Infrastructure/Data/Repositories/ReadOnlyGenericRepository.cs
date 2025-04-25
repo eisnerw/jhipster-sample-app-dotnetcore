@@ -25,9 +25,9 @@ public abstract class ReadOnlyGenericRepository<TEntity, TKey> : IReadOnlyGeneri
         _dbSet = context.Set<TEntity>();
     }
 
-    public virtual async Task<TEntity> GetOneAsync(TKey id)
+    public virtual async Task<TEntity?> GetOneAsync(TKey id)
     {
-        return (await _dbSet.FindAsync(id))!;
+        return await _dbSet.FindAsync(id);
     }
 
     public virtual async Task<IEnumerable<TEntity>> GetAllAsync()

@@ -12,13 +12,13 @@ namespace JhipsterSampleApplication.Infrastructure.Data
 {
     public class ElasticSearchQueryBuilder : IQueryBuilder
     {
-        private RulesetOrRule _ruleset;
+        private RulesetOrRule? _ruleset;
         private int _page;
         private int _size;
-        private string _sortField;
+        private string _sortField = string.Empty;
         private bool _ascending;
-        private string _filterField;
-        private object _filterValue;
+        private string _filterField = string.Empty;
+        private object? _filterValue;
 
         public IQueryBuilder WithRuleset(RulesetOrRule ruleset)
         {
@@ -35,14 +35,14 @@ namespace JhipsterSampleApplication.Infrastructure.Data
 
         public IQueryBuilder WithSort(string field, bool ascending)
         {
-            _sortField = field;
+            _sortField = field ?? string.Empty;
             _ascending = ascending;
             return this;
         }
 
-        public IQueryBuilder WithFilter(string field, object value)
+        public IQueryBuilder WithFilter(string field, object? value)
         {
-            _filterField = field;
+            _filterField = field ?? string.Empty;
             _filterValue = value;
             return this;
         }
@@ -83,22 +83,25 @@ namespace JhipsterSampleApplication.Infrastructure.Data
 
         private static object GetFilterValue(object value)
         {
+            if (value == null)
+                throw new ArgumentNullException(nameof(value));
+
             return value switch
             {
                 string s => s,
                 int i => i,
                 bool b => b,
                 DateTime dt => dt,
-                _ => value.ToString()
+                _ => value.ToString() ?? string.Empty
             };
         }
 
         public SearchDescriptor<T> BuildSearchDescriptor<T>(string searchTerm, string[] fields, int from, int size) where T : class
         {
-            return BuildSearchDescriptor<T>(searchTerm, fields, from, size, null, true);
+            return BuildSearchDescriptor<T>(searchTerm, fields, from, size, sortField: null!, true);
         }
 
-        public SearchDescriptor<T> BuildSearchDescriptor<T>(string searchTerm, string[] fields, int from, int size, string sortField, bool ascending) where T : class
+        public SearchDescriptor<T> BuildSearchDescriptor<T>(string searchTerm, string[] fields, int from, int size, string? sortField, bool ascending) where T : class
         {
             var searchDescriptor = new SearchDescriptor<T>();
 
