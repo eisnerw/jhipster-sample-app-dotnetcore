@@ -141,11 +141,24 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
             )
         );
         List<string> ret = new List<string>();
-        ((BucketAggregate)result.Aggregations.ToList()[0].Value).Items.ToList().ForEach(it =>
+        if (result.Aggregations != null && result.Aggregations.Any())
         {
-            KeyedBucket<Object> kb = (KeyedBucket<Object>)it;
-            ret.Add(kb.KeyAsString != null ? kb.KeyAsString : (string)kb.Key);
-        });
+            var firstAggregation = result.Aggregations.First();
+            if (firstAggregation.Value is BucketAggregate bucketAggregate && bucketAggregate.Items != null)
+            {
+                foreach (var item in bucketAggregate.Items)
+                {
+                    if (item is KeyedBucket<Object> kb)
+                    {
+                        string value = kb.KeyAsString ?? kb.Key?.ToString() ?? string.Empty;
+                        if (!string.IsNullOrEmpty(value))
+                        {
+                            ret.Add(value);
+                        }
+                    }
+                }
+            }
+        }
         return ret;
     }
 
@@ -184,13 +197,13 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
                     "BOGUSFIELD", "CANTMATCH"
                 }}
             }};
-            if (rr.@operator.Contains("contains"))
+            if (rr.@operator != null && rr.@operator.Contains("contains"))
             {
-                string stringValue = (string)rr.value;
+                string stringValue = rr.value?.ToString() ?? string.Empty;
                 if (stringValue.StartsWith("/") && (stringValue.EndsWith("/") || stringValue.EndsWith("/i")))
                 {
                     Boolean bCaseInsensitive = stringValue.EndsWith("/i");
-                    string re = rr.value.ToString().Substring(1, rr.value.ToString().Length - (bCaseInsensitive ? 3 : 2));
+                    string re = stringValue.Substring(1, stringValue.Length - (bCaseInsensitive ? 3 : 2));
                     string regex = ToElasticRegEx(re.Replace(@"\\",@"\"), bCaseInsensitive);
                     if (regex.StartsWith("^"))
                     {
@@ -238,17 +251,18 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
                         }}
                     }};
                 }
-                string quote = Regex.IsMatch(rr.value.ToString(), @"\W") ? @"""" : "";
+                string quote = Regex.IsMatch(stringValue, @"\W") ? @"""" : "";
                 ret = new JObject{{
                     "query_string", new JObject{{
-                        "query", (rr.field != "document" ? (rr.field + ":") : "") + quote + ((string)rr.value).ToLower().Replace(@"""", @"\""") + quote
+                        "query", (rr.field != "document" ? (rr.field + ":") : "") + quote + stringValue.ToLower().Replace(@"""", @"\""") + quote
                     }}
                 }};
             }
-            else if (rr.@operator.Contains("="))
+            else if (rr.@operator != null && rr.@operator.Contains("="))
             {
                 List<string> uniqueValues = (await GetUniqueFieldValuesAsync(rr.field + ".keyword")).ToList();
-                List<JObject> oredTerms = uniqueValues.Where(v => v.ToLower() == rr.value.ToString().ToLower()).Select(s =>
+                string valueToMatch = rr.value?.ToString() ?? string.Empty;
+                List<JObject> oredTerms = uniqueValues.Where(v => v.ToLower() == valueToMatch.ToLower()).Select(s =>
                 {
                     return new JObject{{
                         "term", new JObject{{
@@ -268,21 +282,26 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
                 {
                     ret = oredTerms[0];
                 }
-            } else if (rr.@operator.Contains("in")) {
+            } else if (rr.@operator != null && rr.@operator.Contains("in")) {
                 List<string> uniqueValues = (await GetUniqueFieldValuesAsync(rr.field + ".keyword")).ToList();
                 // The following creates a list of case sensitive possibilities for the case sensitive 'term' query from case insensitive terms
-                List<string> caseSensitiveMatches = ((JArray)rr.value).Select(v =>
+                List<string> caseSensitiveMatches = new List<string>();
+                if (rr.value is JArray jArray)
                 {
-                    return uniqueValues.Where(s => s.ToLower() == v.ToString().ToLower());
-                }).Aggregate((agg,list) => {
-                    return agg.Concat(list).ToList();
-                }).ToList();
+                    caseSensitiveMatches = jArray.Select(v =>
+                    {
+                        string value = v?.ToString() ?? string.Empty;
+                        return uniqueValues.Where(s => s.ToLower() == value.ToLower());
+                    }).Aggregate((agg, list) => {
+                        return agg.Concat(list).ToList();
+                    }).ToList();
+                }
                 return new JObject{{
                     "terms", new JObject{{
                         rr.field + ".keyword", JArray.FromObject(caseSensitiveMatches)
                     }}
                 }};
-            } else if (rr.@operator.Contains("exists")) {
+            } else if (rr.@operator != null && rr.@operator.Contains("exists")) {
                 List<JObject> lstExists = new List<JObject>();
                 List<JObject> lstEmptyString = new List<JObject>();
                 lstEmptyString.Add(new JObject{{
@@ -306,7 +325,7 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
                     }}
                 }};
             }
-            if (rr.@operator.Contains("!") || (rr.@operator == "exists" && !(rr.value != null && (Boolean)rr.value))){
+            if ((rr.@operator != null && rr.@operator.Contains("!")) || (rr.@operator == "exists" && !(rr.value != null && (Boolean)rr.value))){
                 ret = new JObject {{
                     "bool", new JObject{{
                         "must_not", JObject.FromObject(ret)
@@ -318,9 +337,12 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
         else
         {
             List<Object> rls = new List<Object>();
-            for (int i = 0; i < rr.rules.Count; i++)
+            if (rr.rules != null)
             {
-                rls.Add(await ConvertRulesetToElasticSearch(rr.rules[i]));
+                for (int i = 0; i < rr.rules.Count; i++)
+                {
+                    rls.Add(await ConvertRulesetToElasticSearch(rr.rules[i]));
+                }
             }
             if (rr.condition == "and")
             {
