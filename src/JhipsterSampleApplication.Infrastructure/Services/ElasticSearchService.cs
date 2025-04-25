@@ -175,47 +175,31 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
     /// <returns>A JObject containing the Elasticsearch query</returns>
     private async Task<JObject> ConvertRulesetToElasticSearch(RulesetOrRule rr)
     {
-        if (rr == null)
-            throw new ArgumentNullException(nameof(rr));
-
-        // For inexact matching (contains), uses the field
-        // For exact matching (=), uses the keyword fields
-        // Forces a search for all cased values that would match insensitively
+        // this routine converts rulesets into elasticsearch DSL as json.  For inexact matching (contains), it uses the field.  For exact matching (=),
+        // it uses the keyworkd fields.  Since those are case sensitive, it forces a search for all cased values that would match insenitively
         if (rr.rules == null)
         {
-            if (rr.@operator == null || rr.value == null || rr.field == null)
+            JObject ret = new JObject{{
+                "term", new JObject{{
+                    "BOGUSFIELD", "CANTMATCH"
+                }}
+            }};
+            if (rr.@operator.Contains("contains"))
             {
-                return new JObject
-                {
-                    {
-                        "term", new JObject
-                        {
-                            { "BOGUSFIELD", "CANTMATCH" }
-                        }
-                    }
-                };
-            }
-
-            if (rr.@operator.Contains("contains", StringComparison.OrdinalIgnoreCase))
-            {
-                string stringValue = rr.value.ToString() ?? string.Empty;
+                string stringValue = (string)rr.value;
                 if (stringValue.StartsWith("/") && (stringValue.EndsWith("/") || stringValue.EndsWith("/i")))
                 {
-                    bool bCaseInsensitive = stringValue.EndsWith("/i");
-                    string re = stringValue.Substring(1, stringValue.Length - (bCaseInsensitive ? 3 : 2));
-                    string regex = ToElasticRegEx(re.Replace(@"\\", @"\"), bCaseInsensitive);
-                    
-                    if (!string.IsNullOrEmpty(regex))
+                    Boolean bCaseInsensitive = stringValue.EndsWith("/i");
+                    string re = rr.value.ToString().Substring(1, rr.value.ToString().Length - (bCaseInsensitive ? 3 : 2));
+                    string regex = ToElasticRegEx(re.Replace(@"\\",@"\"), bCaseInsensitive);
+                    if (regex.StartsWith("^"))
                     {
-                        if (regex.StartsWith("^"))
-                        {
-                            regex = regex.Substring(1);
+                        regex = regex.Substring(1, regex.Length - 1);
                     }
                     else
                     {
                         regex = ".*" + regex;
                     }
-                        
                     if (regex.EndsWith("$"))
                     {
                         regex = regex.Substring(0, regex.Length - 1);
@@ -224,92 +208,57 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
                     {
                         regex += ".*";
                     }
-
                     if (rr.field == "document")
-                        {
-                            var fields = new[] { "wikipedia", "fname", "lname", "categories", "sign", "id" };
-                            var lstRegexes = fields.Select(s => new JObject
-                            {
-                                {
-                                    "regexp", new JObject
-                                    {
-                                        {
-                                            s + ".keyword", new JObject
-                                            {
-                                                { "value", regex },
-                                                { "flags", "ALL" },
-                                                { "rewrite", "constant_score" }
-                                            }
-                                        }
-                                    }
-                                }
-                            }).ToList();
-
-                            return new JObject
-                            {
-                                {
-                                    "bool", new JObject
-                                    {
-                                        { "should", JArray.FromObject(lstRegexes) }
-                                    }
-                                }
-                            };
-                        }
-
-                        return new JObject
-                        {
-                            {
-                                "regexp", new JObject
-                                {
-                                    {
-                                        rr.field + ".keyword", new JObject
-                                        {
-                                            { "value", regex },
-                                            { "flags", "ALL" },
-                                            { "rewrite", "constant_score" }
-                                        }
-                                    }
-                                }
-                            }
-                        };
-                    }
-                }
-
-                string quote = Regex.IsMatch(rr.value.ToString() ?? string.Empty, @"\W") ? @"""" : "";
-                return new JObject
-                {
                     {
-                        "query_string", new JObject
+                        List<JObject> lstRegexes = "wikipedia,fname,lname,categories,sign,id".Split(',').ToList().Select(s =>
                         {
-                            {
-                                "query",
-                                (rr.field != "document" ? (rr.field + ":") : "") + 
-                                quote + 
-                                (rr.value?.ToString()?.ToLower()?.Replace(@"""", @"\""") ?? string.Empty) + 
-                                quote
-                            }
-                        }
+                            return new JObject{{
+                                "regexp", new JObject{{
+                                    s + ".keyword", new JObject{
+                                        { "value", regex}
+                                        ,{ "flags", "ALL" }
+                                        ,{ "rewrite", "constant_score" }
+                                    }
+                                }}
+                            }};
+                        }).ToList();
+                        return new JObject{{
+                            "bool", new JObject{{
+                                "should", JArray.FromObject(lstRegexes)
+                            }}
+                        }};
                     }
-                };
+                    return new JObject{{
+                        "regexp", new JObject{{
+                            rr.field + ".keyword", new JObject{
+                                { "value", regex}
+                                ,{ "flags", "ALL" }
+                                ,{ "rewrite", "constant_score" }
+                            }
+                        }}
+                    }};
+                }
+                string quote = Regex.IsMatch(rr.value.ToString(), @"\W") ? @"""" : "";
+                ret = new JObject{{
+                    "query_string", new JObject{{
+                        "query", (rr.field != "document" ? (rr.field + ":") : "") + quote + ((string)rr.value).ToLower().Replace(@"""", @"\""") + quote
+                    }}
+                }};
             }
             else if (rr.@operator.Contains("="))
             {
                 List<string> uniqueValues = (await GetUniqueFieldValuesAsync(rr.field + ".keyword")).ToList();
-                List<JObject> oredTerms = uniqueValues
-                    .Where(v => v?.ToLower() == rr.value?.ToString()?.ToLower())
-                    .Select(s => new JObject
-                    {
-                        {
-                            "term", new JObject
-                            {
-                                { rr.field + ".keyword", s }
-                            }
-                        }
-                    })
-                    .ToList();
-                if (oredTerms.Count > 1)
+                List<JObject> oredTerms = uniqueValues.Where(v => v.ToLower() == rr.value.ToString().ToLower()).Select(s =>
                 {
                     return new JObject{{
+                        "term", new JObject{{
+                            rr.field + ".keyword", s
+                        }}
+                    }};
+                }).ToList();
+                if (oredTerms.Count > 1)
+                {
+                    ret = new JObject{{
                         "bool", new JObject{{
                             "should", JArray.FromObject(oredTerms)
                         }}
@@ -317,7 +266,7 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
                 }
                 else if (oredTerms.Count == 1)
                 {
-                    return oredTerms[0];
+                    ret = oredTerms[0];
                 }
             } else if (rr.@operator.Contains("in")) {
                 List<string> uniqueValues = (await GetUniqueFieldValuesAsync(rr.field + ".keyword")).ToList();
@@ -351,20 +300,20 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
                         "must_not", JArray.FromObject(lstEmptyString)
                     }}
                 }});
-                return new JObject{{
+                ret = new JObject{{
                     "bool", new JObject{{
                         "must", JArray.FromObject(lstExists)
                     }}
                 }};
             }
             if (rr.@operator.Contains("!") || (rr.@operator == "exists" && !(rr.value != null && (Boolean)rr.value))){
-                return new JObject {{
+                ret = new JObject {{
                     "bool", new JObject{{
-                        "must_not", JObject.FromObject(await ConvertRulesetToElasticSearch(rr))
+                        "must_not", JObject.FromObject(ret)
                     }}
                 }};
             }
-            return await ConvertRulesetToElasticSearch(rr);
+            return ret;
         }
         else
         {
