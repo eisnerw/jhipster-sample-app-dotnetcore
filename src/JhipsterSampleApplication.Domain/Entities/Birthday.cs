@@ -7,15 +7,15 @@ using Newtonsoft.Json;
 namespace JhipsterSampleApplication.Domain.Entities
 {
     [Table("birthday")]
-    public class Birthday : BaseEntity<long>
+    public class Birthday : BaseEntity<string>
     {
-        public string? ElasticId { get; set;}
         public string? Lname { get; set; }
         public string? Fname { get; set; }
         public string? Sign { get; set; }
         public DateTime? Dob { get; set; }
         public bool? IsAlive { get; set; }
         public string? Text { get; set; }
+        public string? Wikipedia { get; set; }
         public List<Category> Categories { get; set; } = new List<Category>();
 
         // jhipster-needle-entity-add-field - JHipster will add fields here, do not remove
@@ -25,9 +25,8 @@ namespace JhipsterSampleApplication.Domain.Entities
             if (this == obj) return true;
             if (obj == null || GetType() != obj.GetType()) return false;
             var birthday = obj as Birthday;
-            if (birthday?.Id == null || birthday?.Id == 0 || Id == 0) return false;
-            if (birthday == null || birthday.Id == 0 ||  Id == 0) return false;
-            return EqualityComparer<long?>.Default.Equals(Id!, birthday.Id!);
+            if (birthday?.Id == null || Id == null) return false;
+            return EqualityComparer<string>.Default.Equals(Id, birthday.Id);
         }
 
         public override int GetHashCode()

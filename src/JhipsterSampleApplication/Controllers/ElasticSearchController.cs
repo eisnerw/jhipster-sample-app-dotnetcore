@@ -40,25 +40,26 @@ namespace JhipsterSampleApplication.Controllers
 
         public class BirthdayDto
         {
-            public long Id { get; set; }
-            public string? ElasticId { get; set; }
+            public string Id { get; set; } = string.Empty;
             public string? Lname { get; set; }
             public string? Fname { get; set; }
             public string? Sign { get; set; }
             public DateTime? Dob { get; set; }
             public bool? IsAlive { get; set; }
             public string? Text { get; set; }
+            public string? Wikipedia { get; set; }
         }
 
         public class BirthdayCreateUpdateDto
         {
-            public string? ElasticId { get; set; }
+            public string? Id { get; set; }
             public string? Lname { get; set; }
             public string? Fname { get; set; }
             public string? Sign { get; set; }
             public DateTime? Dob { get; set; }
             public bool? IsAlive { get; set; }
             public string? Text { get; set; }
+            public string? Wikipedia { get; set; }
             public List<long>? CategoryIds { get; set; }  // Flattened relationship
         }
 
@@ -74,6 +75,11 @@ namespace JhipsterSampleApplication.Controllers
             public int NumberOfDataNodes { get; set; }
             public int ActiveShards { get; set; }
             public int ActivePrimaryShards { get; set; }
+        }
+        public class SimpleApiResponse
+        {
+            public bool Success { get; set; }
+            public string? Message { get; set; }
         }
         private RulesetOrRule ConvertDtoToModel(object dto)
         {
@@ -117,14 +123,14 @@ namespace JhipsterSampleApplication.Controllers
                 var b = hit.Source;
                 birthdayDtos.Add(new BirthdayDto
                 {
-                    Id = b.Id,
-                    ElasticId = b.ElasticId,
+                    Id = b.Id!,
                     Lname = b.Lname,
                     Fname = b.Fname,
                     Sign = b.Sign,
                     Dob = b.Dob,
                     IsAlive = b.IsAlive,
-                    Text = b.Text
+                    Text = b.Text,
+                    Wikipedia = b.Wikipedia
                 });
             }
 
@@ -144,14 +150,14 @@ namespace JhipsterSampleApplication.Controllers
             var b = response.Source;
             var dto = new BirthdayDto
             {
-                Id = b.Id,
-                ElasticId = b.ElasticId,
+                Id = response.Id,
                 Lname = b.Lname,
                 Fname = b.Fname,
                 Sign = b.Sign,
                 Dob = b.Dob,
                 IsAlive = b.IsAlive,
-                Text = b.Text
+                Text = b.Text,
+                Wikipedia = b.Wikipedia
             };
 
             return Ok(dto);
@@ -163,17 +169,23 @@ namespace JhipsterSampleApplication.Controllers
         {
             var birthday = new Birthday
             {
-                ElasticId = dto.ElasticId,
+                Id = dto.Id,
                 Lname = dto.Lname,
                 Fname = dto.Fname,
                 Sign = dto.Sign,
                 Dob = dto.Dob,
                 IsAlive = dto.IsAlive,
-                Text = dto.Text
+                Text = dto.Text,
+                Wikipedia = dto.Wikipedia
             };
 
             var response = await _elasticSearchService.IndexAsync(birthday);
-            return Ok(response);
+            
+            // Return both the response and the ID of the indexed document
+            return Ok(new { 
+                Response = response,
+                Id = response.Id
+            });
         }
 
         [HttpDelete("{id}")]
@@ -185,22 +197,36 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpPut("{id}")]
-        [ProducesResponseType(typeof(UpdateResponse<Birthday>), 200)]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         public async Task<IActionResult> Update(string id, [FromBody] BirthdayCreateUpdateDto dto)
         {
+            // First, try to get the existing document to preserve its ID
+            var existingResponse = await _elasticClient.GetAsync<Birthday>(id);
+            if (!existingResponse.IsValid || existingResponse.Source == null)
+            {
+                return NotFound($"Document with ID {id} not found");
+            }
+            
+            // Update the existing document with the new values
             var birthday = new Birthday
             {
-                ElasticId = dto.ElasticId,
+                Id = id, // Use the ID from the URL
                 Lname = dto.Lname,
                 Fname = dto.Fname,
                 Sign = dto.Sign,
                 Dob = dto.Dob,
                 IsAlive = dto.IsAlive,
-                Text = dto.Text
+                Text = dto.Text,
+                Wikipedia = dto.Wikipedia
             };
 
-            var response = await _elasticSearchService.UpdateAsync(id, birthday);
-            return Ok(response);
+            UpdateResponse<Birthday> updateResponse = await _elasticSearchService.UpdateAsync(id, birthday);
+            var simpleResponse = new SimpleApiResponse
+            {
+                Success = updateResponse.IsValid,
+                Message = updateResponse.DebugInformation.Split('\n')[0]
+            };
+            return Ok(simpleResponse);
         }
 
         [HttpGet("unique-values/{field}")]

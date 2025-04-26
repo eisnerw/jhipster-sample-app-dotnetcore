@@ -5,7 +5,7 @@ using JhipsterSampleApplication.Domain.Entities;
 
 namespace JhipsterSampleApplication.Domain.Repositories.Interfaces
 {
-    public interface IBirthdayRepository : IGenericRepository<Birthday, long>
+    public interface IBirthdayRepository : IGenericRepository<Birthday, string>
     {
         Task<Birthday?> GetOneAsync(object id, bool bText);
 

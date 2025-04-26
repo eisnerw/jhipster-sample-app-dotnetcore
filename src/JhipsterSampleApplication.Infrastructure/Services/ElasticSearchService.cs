@@ -45,7 +45,22 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
     /// <returns>The search response containing Birthday documents</returns>
     public async Task<ISearchResponse<Birthday>> SearchAsync(ISearchRequest request)
     {
-        return await _elasticClient.SearchAsync<Birthday>(request);
+        var response = await _elasticClient.SearchAsync<Birthday>(request);
+
+        // Map Elasticsearch document IDs to Birthday.Id properties
+        if (response.IsValid && response.Hits.Count > 0)
+        {
+            foreach (var hit in response.Hits)
+            {
+                if (hit.Source != null)
+                {
+                    // Set the Birthday.Id to the Elasticsearch document ID
+                    hit.Source.Id = hit.Id;
+                }
+            }
+        }
+
+        return response;
     }
 
     /// <summary>
@@ -172,13 +187,28 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
     {
         var queryObject = await ConvertRulesetToElasticSearch(ruleset);
         string query = queryObject.ToString();
-        return await _elasticClient.SearchAsync<Birthday>(s => s
+        var response = await _elasticClient.SearchAsync<Birthday>(s => s
             .Index(IndexName)
             .Size(size)
             .Query(q => q
                 .Raw(queryObject.ToString())
             )
         );
+
+        // Map Elasticsearch document IDs to Birthday.Id properties
+        if (response.IsValid && response.Hits.Count > 0)
+        {
+            foreach (var hit in response.Hits)
+            {
+                if (hit.Source != null)
+                {
+                    // Set the Birthday.Id to the Elasticsearch document ID
+                    hit.Source.Id = hit.Id;
+                }
+            }
+        }
+
+        return response;
     }
 
     /// <summary>

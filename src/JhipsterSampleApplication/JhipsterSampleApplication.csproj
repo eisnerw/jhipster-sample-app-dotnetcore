@@ -76,7 +76,7 @@
         <Exec WorkingDirectory="$(RepoRoot)" Command="npm install" />
     </Target>
 
-    <Target Name="RunClientBundler" BeforeTargets="Build" DependsOnTargets="NpmInstall">
+    <Target Name="RunClientBundler" BeforeTargets="Build" DependsOnTargets="NpmInstall" Condition="'$(SkipClientBuild)' != 'true'">
         <Exec WorkingDirectory="$(SpaRoot)" Command="npm run webapp:build" IgnoreStandardErrorWarningFormat="true" Condition="'$(Configuration)'=='Debug'" />
         <Exec WorkingDirectory="$(SpaRoot)" Command="npm run webapp:prod" IgnoreStandardErrorWarningFormat="true" Condition="'$(Configuration)'=='Release'" />
     </Target>

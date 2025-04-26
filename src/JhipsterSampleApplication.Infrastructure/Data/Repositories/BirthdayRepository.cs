@@ -20,7 +20,7 @@ using JhipsterSampleApplication.Domain.Services.Interfaces;
 
 namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
 {
-    public class BirthdayRepository : GenericRepository<Birthday, long>, IBirthdayRepository
+    public class BirthdayRepository : GenericRepository<Birthday, string>, IBirthdayRepository
     {
         private readonly IElasticSearchService _elasticSearchService;
         private readonly IQueryBuilder _queryBuilder;
@@ -63,13 +63,17 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
 
         public override async Task<Birthday> CreateOrUpdateAsync(Birthday birthday)
         {
-            if (string.IsNullOrEmpty(birthday.ElasticId))
+            if (string.IsNullOrEmpty(birthday.Id))
             {
-                await _elasticSearchService.IndexAsync(birthday);
+                var response = await _elasticSearchService.IndexAsync(birthday);
+                if (response.IsValid && !string.IsNullOrEmpty(response.Id))
+                {
+                    birthday.Id = response.Id;
+                }
             }
             else
             {
-                await _elasticSearchService.UpdateAsync(birthday.ElasticId, birthday);
+                await _elasticSearchService.UpdateAsync(birthday.Id, birthday);
             }
 
             return birthday;
@@ -113,18 +117,41 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
 
         public async Task<Birthday?> GetOneAsync(object id, bool bText)
         {
+            Birthday? birthday = null!;
             if (id == null)
             {
                 return null;
             }
 
-            var idString = id.ToString() ?? throw new ArgumentException("ID cannot be converted to string", nameof(id));
+            // Convert the ID to string for Elasticsearch
+            string idString = id.ToString() ?? throw new ArgumentException("ID cannot be converted to string", nameof(id));
+            
+            // Try to get the document directly by ID first
+            try
+            {
+                var response = await _elasticClient.GetAsync<Birthday>(idString);
+                if (response.IsValid && response.Source != null)
+                {
+                    birthday = response.Source;
+                    if (bText)
+                    {
+                        birthday.Text = await GetOneTextAsync(id);
+                    }
+                    return birthday;
+                }
+            }
+            catch (Exception)
+            {
+                // If direct retrieval fails, fall back to search
+            }
+            
+            // Fall back to search if direct retrieval fails
             var searchRequest = _queryBuilder
                 .WithFilter("_id", idString)
                 .Build();
 
-            var response = await _elasticSearchService.SearchAsync(searchRequest);
-            var birthday = response.Documents.FirstOrDefault();
+            var searchResponse = await _elasticSearchService.SearchAsync(searchRequest);
+            birthday = searchResponse.Documents.FirstOrDefault();
 
             if (birthday != null && bText)
             {
@@ -141,13 +168,30 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
                 return string.Empty;
             }
 
-            var idString = id.ToString() ?? throw new ArgumentException("ID cannot be converted to string", nameof(id));
+            // Convert the ID to string for Elasticsearch
+            string idString = id.ToString() ?? throw new ArgumentException("ID cannot be converted to string", nameof(id));
+            
+            // Try to get the document directly by ID first
+            try
+            {
+                var response = await _elasticClient.GetAsync<Birthday>(idString);
+                if (response.IsValid && response.Source != null)
+                {
+                    return response.Source.Text ?? string.Empty;
+                }
+            }
+            catch (Exception)
+            {
+                // If direct retrieval fails, fall back to search
+            }
+            
+            // Fall back to search if direct retrieval fails
             var searchRequest = _queryBuilder
                 .WithFilter("_id", idString)
                 .Build();
 
-            var response = await _elasticSearchService.SearchAsync(searchRequest);
-            var birthday = response.Documents.FirstOrDefault();
+            var searchResponse = await _elasticSearchService.SearchAsync(searchRequest);
+            var birthday = searchResponse.Documents.FirstOrDefault();
             return birthday?.Text ?? string.Empty;
         }
 
@@ -158,8 +202,11 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
                 return null;
             }
 
+            // Ensure the ID is a string for Elasticsearch
+            string idString = id;
+
             var searchRequest = _queryBuilder
-                .WithFilter("references.from", id)
+                .WithFilter("references.from", idString)
                 .Build();
 
             var response = await _elasticSearchService.SearchAsync(searchRequest);
@@ -173,17 +220,20 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
                 return new List<Birthday>();
             }
 
+            // Ensure the ID is a string for Elasticsearch
+            string idString = id;
+
             var searchRequest = _queryBuilder
-                .WithFilter("references.to", id)
+                .WithFilter("references.to", idString)
                 .Build();
 
             var response = await _elasticSearchService.SearchAsync(searchRequest);
             return response.Documents?.ToList() ?? new List<Birthday>();
         }
 
-        public override async Task<Birthday?> GetOneAsync(long id)
+        public override async Task<Birthday?> GetOneAsync(string id)
         {
-            return await GetOneAsync(id.ToString(), false);
+            return await GetOneAsync(id, false);
         }
 
         public async Task<IReadOnlyCollection<Birthday>> GetAllAsync(ISearchRequest searchRequest)
