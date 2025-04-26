@@ -322,31 +322,50 @@ namespace JhipsterSampleApplication.Controllers
                 var jsonObject = JObject.Parse(jsonString);
                 
                 // Apply the query from the JSON
-                if (jsonObject["query"] != null)
+                var queryToken = jsonObject["query"];
+                if (queryToken != null)
                 {
-                    searchRequest.Query = new QueryContainerDescriptor<Birthday>()
-                        .Raw(jsonObject["query"].ToString());
+                    var queryString = queryToken.ToString();
+                    if (!string.IsNullOrEmpty(queryString))
+                    {
+                        searchRequest.Query = new QueryContainerDescriptor<Birthday>()
+                            .Raw(queryString);
+                    }
                 }
                 
                 // Apply sorting if present
-                if (jsonObject["sort"] != null)
+                var sortToken = jsonObject["sort"];
+                if (sortToken != null)
                 {
-                    var sortJson = jsonObject["sort"].ToString();
-                    searchRequest.Sort = new List<ISort>
+                    var sortString = sortToken.ToString();
+                    if (!string.IsNullOrEmpty(sortString))
                     {
-                        new FieldSort { Field = sortJson.Trim('"', '\'') }
-                    };
+                        searchRequest.Sort = new List<ISort>
+                        {
+                            new FieldSort { Field = sortString.Trim('"', '\'') }
+                        };
+                    }
                 }
                 
                 // Apply pagination if present (override defaults)
-                if (jsonObject["from"] != null)
+                var fromToken = jsonObject["from"];
+                if (fromToken != null && fromToken.Type != JTokenType.Null)
                 {
-                    searchRequest.From = jsonObject["from"].Value<int>();
+                    var fromValue = fromToken.Value<int?>();
+                    if (fromValue.HasValue)
+                    {
+                        searchRequest.From = fromValue.Value;
+                    }
                 }
                 
-                if (jsonObject["size"] != null)
+                var sizeToken = jsonObject["size"];
+                if (sizeToken != null && sizeToken.Type != JTokenType.Null)
                 {
-                    searchRequest.Size = jsonObject["size"].Value<int>();
+                    var sizeValue = sizeToken.Value<int?>();
+                    if (sizeValue.HasValue)
+                    {
+                        searchRequest.Size = sizeValue.Value;
+                    }
                 }
             }
             catch (Exception ex)
