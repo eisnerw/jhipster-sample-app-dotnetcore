@@ -164,7 +164,7 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(IndexResponse), 200)]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         public async Task<IActionResult> Index([FromBody] BirthdayCreateUpdateDto dto)
         {
             var birthday = new Birthday
@@ -183,17 +183,20 @@ namespace JhipsterSampleApplication.Controllers
             
             // Return both the response and the ID of the indexed document
             return Ok(new { 
-                Response = response,
-                Id = response.Id
+                Success = response.IsValid,
+                Message = response.DebugInformation.Split('\n')[0]
             });
         }
 
         [HttpDelete("{id}")]
-        [ProducesResponseType(typeof(DeleteResponse), 200)]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         public async Task<IActionResult> Delete(string id)
         {
             var response = await _elasticSearchService.DeleteAsync(id);
-            return Ok(response);
+            return Ok(new {
+                Success = response.IsValid,
+                Message = response.DebugInformation.Split('\n')[0]
+            });
         }
 
         [HttpPut("{id}")]
