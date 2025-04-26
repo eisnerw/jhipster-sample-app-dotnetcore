@@ -39,7 +39,7 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
     }
 
     /// <summary>
-    /// Searches for Birthday documents using the provided search request
+    /// Searches for Birthday documents using the provided search request in json format
     /// </summary>
     /// <param name="request">The search request to execute</param>
     /// <returns>The search response containing Birthday documents</returns>
@@ -60,6 +60,36 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
             }
         }
 
+        return response;
+    }
+
+    /// <summary>
+    /// Searches for Birthday documents using the provided search request in lucene format
+    /// </summary>
+    /// <param name="luceneQuery">The search request to execute</param>
+    /// <returns>The search response containing Birthday documents</returns>
+    public async Task<ISearchResponse<Birthday>> SearchWithLuceneQueryAsync(string luceneQuery)
+    {
+        var response = await _elasticClient.SearchAsync<Birthday>(s => s
+            .Index("birthdays")
+            .Query(q => q
+                .QueryString(qs => qs
+                    .Query(luceneQuery)
+                )
+            )
+        );
+        // Map Elasticsearch document IDs to Birthday.Id properties
+        if (response.IsValid && response.Hits.Count > 0)
+        {
+            foreach (var hit in response.Hits)
+            {
+                if (hit.Source != null)
+                {
+                    // Set the Birthday.Id to the Elasticsearch document ID
+                    hit.Source.Id = hit.Id;
+                }
+            }
+        }
         return response;
     }
 

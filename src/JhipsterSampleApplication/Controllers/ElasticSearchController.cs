@@ -10,6 +10,7 @@ using JHipsterNet.Core.Pagination;
 using Microsoft.AspNetCore.Authorization;
 using Newtonsoft.Json.Linq;
 using System.Linq;
+using System.IO;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -81,6 +82,15 @@ namespace JhipsterSampleApplication.Controllers
             public bool Success { get; set; }
             public string? Message { get; set; }
         }
+
+        public class RawSearchRequestDto
+        {
+            public string? Query { get; set; }
+            public int? From { get; set; }
+            public int? Size { get; set; }
+            public string? Sort { get; set; }
+        }
+
         private RulesetOrRule ConvertDtoToModel(object dto)
         {
             var jObj = dto switch
@@ -254,6 +264,120 @@ namespace JhipsterSampleApplication.Controllers
                 ActivePrimaryShards = res.ActivePrimaryShards
             };
             return Ok(dto);
+        }
+
+        [HttpGet("search/lucene")]
+        [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
+        public async Task<IActionResult> SearchWithLuceneQuery([FromQuery] string query)
+        {
+            var response = await _elasticSearchService.SearchWithLuceneQueryAsync(query);
+
+            var birthdayDtos = new List<BirthdayDto>();
+            foreach (var hit in response.Hits)
+            {
+                var b = hit.Source;
+                birthdayDtos.Add(new BirthdayDto
+                {
+                    Id = b.Id!,
+                    Lname = b.Lname,
+                    Fname = b.Fname,
+                    Sign = b.Sign,
+                    Dob = b.Dob,
+                    IsAlive = b.IsAlive,
+                    Text = b.Text,
+                    Wikipedia = b.Wikipedia
+                });
+            }
+
+            return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
+        }
+
+        [HttpPost("search/raw")]
+        [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
+        public async Task<IActionResult> Search([FromBody] object elasticsearchQuery)
+        {
+            // Set default parameters
+            var searchRequest = new SearchRequest<Birthday>
+            {
+                Size = 10000,
+                From = 0
+            };
+            
+            // Parse the JSON and apply it to the search request
+            try
+            {
+                string jsonString;
+                
+                // Handle different input types
+                if (elasticsearchQuery is string jsonStr)
+                {
+                    jsonString = jsonStr;
+                }
+                else
+                {
+                    jsonString = Newtonsoft.Json.JsonConvert.SerializeObject(elasticsearchQuery);
+                }
+                
+                // Parse the JSON to validate it
+                var jsonObject = JObject.Parse(jsonString);
+                
+                // Apply the query from the JSON
+                if (jsonObject["query"] != null)
+                {
+                    searchRequest.Query = new QueryContainerDescriptor<Birthday>()
+                        .Raw(jsonObject["query"].ToString());
+                }
+                
+                // Apply sorting if present
+                if (jsonObject["sort"] != null)
+                {
+                    var sortJson = jsonObject["sort"].ToString();
+                    searchRequest.Sort = new List<ISort>
+                    {
+                        new FieldSort { Field = sortJson.Trim('"', '\'') }
+                    };
+                }
+                
+                // Apply pagination if present (override defaults)
+                if (jsonObject["from"] != null)
+                {
+                    searchRequest.From = jsonObject["from"].Value<int>();
+                }
+                
+                if (jsonObject["size"] != null)
+                {
+                    searchRequest.Size = jsonObject["size"].Value<int>();
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new SimpleApiResponse
+                {
+                    Success = false,
+                    Message = $"Invalid Elasticsearch query: {ex.Message}"
+                });
+            }
+
+            var response = await _elasticSearchService.SearchAsync(searchRequest);
+
+            var birthdayDtos = new List<BirthdayDto>();
+            foreach (var hit in response.Hits)
+            {
+                var b = hit.Source;
+                birthdayDtos.Add(new BirthdayDto
+                {
+                    Id = b.Id!,
+                    Lname = b.Lname,
+                    Fname = b.Fname,
+                    Sign = b.Sign,
+                    Dob = b.Dob,
+                    IsAlive = b.IsAlive,
+                    Text = b.Text,
+                    Wikipedia = b.Wikipedia
+                });
+            }
+
+            return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
         }
     }
 }
