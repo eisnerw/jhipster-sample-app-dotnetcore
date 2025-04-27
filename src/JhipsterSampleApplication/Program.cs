@@ -23,6 +23,7 @@ PrintBanner(10 * 1000);
 
 if (false && !Debugger.IsAttached)
 {
+    Console.WriteLine($"PID: {System.Diagnostics.Process.GetCurrentProcess().Id}");
     while (!Debugger.IsAttached)
     {
         Thread.Sleep(100);  // Wait for debugger to attach

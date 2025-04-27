@@ -30,6 +30,11 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
         var url = configuration["ElasticSearch:Url"] ?? throw new ArgumentNullException("ElasticSearch:Url");
         var node = new Uri(url);
         var settings = new ConnectionSettings(node)
+        /*
+            .DisableDirectStreaming() // Add this when debugging ElasticSearch
+            .PrettyJson()
+            .EnableDebugMode()
+        */
             .BasicAuthentication(
                 configuration["ElasticSearch:Username"],
                 configuration["ElasticSearch:Password"])
@@ -46,7 +51,12 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
     public async Task<ISearchResponse<Birthday>> SearchAsync(ISearchRequest request)
     {
         var response = await _elasticClient.SearchAsync<Birthday>(request);
-
+        /*
+            // 🚀 Add the following when debugging ElasticSearch
+            Console.WriteLine("======= NEST Request Debug Information =======");
+            Console.WriteLine(response.DebugInformation);
+            Console.WriteLine("===============================================");
+        */
         // Map Elasticsearch document IDs to Birthday.Id properties
         if (response.IsValid && response.Hits.Count > 0)
         {
@@ -217,28 +227,13 @@ public class ElasticSearchService : IElasticSearchService, IGenericElasticSearch
     {
         var queryObject = await ConvertRulesetToElasticSearch(ruleset);
         string query = queryObject.ToString();
-        var response = await _elasticClient.SearchAsync<Birthday>(s => s
-            .Index(IndexName)
-            .Size(size)
-            .Query(q => q
-                .Raw(queryObject.ToString())
-            )
-        );
-
-        // Map Elasticsearch document IDs to Birthday.Id properties
-        if (response.IsValid && response.Hits.Count > 0)
+        var searchRequest = new SearchRequest<Birthday>
         {
-            foreach (var hit in response.Hits)
-            {
-                if (hit.Source != null)
-                {
-                    // Set the Birthday.Id to the Elasticsearch document ID
-                    hit.Source.Id = hit.Id;
-                }
-            }
-        }
-
-        return response;
+            Size = 10000,
+            From = 0,
+            Query = new QueryContainerDescriptor<Birthday>().Raw(query)
+        };
+        return await SearchAsync(searchRequest);     
     }
 
     /// <summary>
