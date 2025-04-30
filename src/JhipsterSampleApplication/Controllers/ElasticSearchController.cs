@@ -246,7 +246,7 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(IReadOnlyCollection<string>), 200)]
         public async Task<IActionResult> GetUniqueFieldValues(string field)
         {
-            var values = await _elasticSearchService.GetUniqueFieldValuesAsync(field);
+            var values = await _elasticSearchService.GetUniqueFieldValuesAsync(field+".keyword");
             return Ok(values);
         }
 
