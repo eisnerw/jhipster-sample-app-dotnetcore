@@ -5,6 +5,7 @@
         <RootNamespace>JhipsterSampleApplication.Dto</RootNamespace>
         <OutputType>Library</OutputType>
         <Nullable>enable</Nullable>
+        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     </PropertyGroup>
 
     <ItemGroup>
@@ -16,6 +17,10 @@
 
     <ItemGroup>
         <ProjectReference Include="..\JhipsterSampleApplication.Crosscutting\JhipsterSampleApplication.Crosscutting.csproj" />
-   </ItemGroup>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="**/*.cs" />
+    </ItemGroup>
 
 </Project>

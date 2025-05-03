@@ -38,6 +38,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data
         public DbSet<Region> Regions { get; set; }
         public DbSet<TimeSheet> TimeSheets { get; set; }
         public DbSet<TimeSheetEntry> TimeSheetEntries { get; set; }
+        public DbSet<Category> Categories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -82,6 +83,24 @@ namespace JhipsterSampleApplication.Infrastructure.Data
                     x => x.HasOne<PieceOfWork>().WithMany(),
                     x => x.HasOne<Job>().WithMany());
 
+            builder.Entity<Category>(entity =>
+            {
+                entity.ToTable("category");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.CategoryName).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.FocusType).HasMaxLength(50);
+                entity.Property(e => e.FocusId).HasMaxLength(100);
+                entity.Property(e => e.Description).HasMaxLength(500);
+                
+                entity.HasMany(x => x.Birthdays)
+                    .WithMany(x => x.Categories)
+                    .UsingEntity<Dictionary<string, object>>(
+                        "BirthdaysCategories",
+                        x => x.HasOne<Birthday>().WithMany().HasForeignKey("BirthdayId"),
+                        x => x.HasOne<Category>().WithMany().HasForeignKey("CategoryId"),
+                        x => x.ToTable("BirthdaysCategories")
+                    );
+            });
         }
 
         /// <summary>

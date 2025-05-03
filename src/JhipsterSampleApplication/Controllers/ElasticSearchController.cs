@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using System.IO;
+using JhipsterSampleApplication.Dto;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -37,18 +38,6 @@ namespace JhipsterSampleApplication.Controllers
             public string? condition { get; set; }
             public bool @not { get; set; }
             public List<object> rules { get; set; } = new List<object>();
-        }
-
-        public class BirthdayDto
-        {
-            public string Id { get; set; } = string.Empty;
-            public string? Lname { get; set; }
-            public string? Fname { get; set; }
-            public string? Sign { get; set; }
-            public DateTime? Dob { get; set; }
-            public bool? IsAlive { get; set; }
-            public string? Text { get; set; }
-            public string? Wikipedia { get; set; }
         }
 
         public class BirthdayCreateUpdateDto

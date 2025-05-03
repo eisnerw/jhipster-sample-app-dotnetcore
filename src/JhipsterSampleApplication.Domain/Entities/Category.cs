@@ -7,16 +7,27 @@ using Newtonsoft.Json;
 namespace JhipsterSampleApplication.Domain.Entities
 {
     [Table("category")]
-    public class Category : BaseEntity<long?>
+    public class Category : BaseEntity<long>
     {
         [Required]
-        public string? CategoryName { get; set; }
-        public bool? selected { get; set; }
-        public bool? notCategorized { get; set; }
-        public FocusType? focusType { get; set; }
-        public string? focusId { get; set; }
-        public string? jsonString { get; set; }
-        public string? description { get; set; }
+        [StringLength(100)]
+        public string CategoryName { get; set; }
+
+        public bool? Selected { get; set; }
+        public bool? NotCategorized { get; set; }
+        
+        [StringLength(50)]
+        public string FocusType { get; set; }
+        
+        [StringLength(100)]
+        public string FocusId { get; set; }
+        
+        [Column(TypeName = "text")]
+        public string JsonString { get; set; }
+        
+        [StringLength(500)]
+        public string Description { get; set; }
+
         [JsonIgnore]
         public IList<Birthday> Birthdays { get; set; } = new List<Birthday>();
 
@@ -27,8 +38,8 @@ namespace JhipsterSampleApplication.Domain.Entities
             if (this == obj) return true;
             if (obj == null || GetType() != obj.GetType()) return false;
             var category = obj as Category;
-            if (category ==  null || category.Id == null || category.Id == 0 || Id == 0) return false;
-            return EqualityComparer<long?>.Default.Equals(Id!, category.Id!);
+            if (category?.Id == null || category?.Id == 0 || Id == 0) return false;
+            return EqualityComparer<long>.Default.Equals(Id, category.Id);
         }
 
         public override int GetHashCode()
@@ -41,12 +52,12 @@ namespace JhipsterSampleApplication.Domain.Entities
             return "Category{" +
                     $"ID='{Id}'" +
                     $", CategoryName='{CategoryName}'" +
-                    $", selected='{selected}'" +
-                    $", notCategorized='{notCategorized}'" +
-                    $", focusType='{focusType}'" +
-                    $", focusId='{focusId}'" +
-                    $", jsonString='{jsonString}'" +
-                    $", description='{description}'" +
+                    $", Selected='{Selected}'" +
+                    $", NotCategorized='{NotCategorized}'" +
+                    $", FocusType='{FocusType}'" +
+                    $", FocusId='{FocusId}'" +
+                    $", JsonString='{JsonString}'" +
+                    $", Description='{Description}'" +
                     "}";
         }
     }
