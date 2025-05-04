@@ -17,12 +17,12 @@ namespace JhipsterSampleApplication.Controllers
 {
     [ApiController]
     [Route("api/birthdays")]
-    public class BirthdayController : ControllerBase
+    public class BirthdaysController : ControllerBase
     {
         private readonly IBirthdayService _birthdayService;       
         private readonly IElasticClient _elasticClient;
 
-        public BirthdayController(
+        public BirthdaysController(
             IBirthdayService birthdayService,
             IElasticClient elasticClient)
         {

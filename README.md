@@ -153,7 +153,7 @@ To launch your application's tests, from the test/JhipsterSamplepplication.Test 
 
 ```
 DOTNET_USE_POLLING_FILE_WATCHER=1 dotnet test --no-build --logger "console;verbosity=quiet" > raw.log 2>&1
-DOTNET_USE_POLLING_FILE_WATCHER=1 dotnet test --no-build --logger "console;verbosity=quiet" --filter "FullyQualifiedName~BirthdayControllerIntTest"
+DOTNET_USE_POLLING_FILE_WATCHER=1 dotnet test --no-build --logger "console;verbosity=quiet" --filter "FullyQualifiedName~BirthdaysControllerIntTest"
 ```
 
 The results will be available in raw.log
