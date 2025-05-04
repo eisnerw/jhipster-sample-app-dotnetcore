@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
-using JhipsterSampleApplication.Infrastructure.Services;
+using JhipsterSampleApplication.Domain.Services;
 using Nest;
 using JhipsterSampleApplication.Domain.Entities;
 
@@ -47,12 +47,6 @@ public class Startup : IStartup
             .DefaultIndex(elasticsearchSettings.DefaultIndex);
         var client = new ElasticClient(settings);
         services.AddSingleton<IElasticClient>(client);
-
-        services.AddScoped<IGenericBirthdayService<Birthday>, BirthdayService>();
-        services.AddScoped<Domain.Services.Interfaces.IQueryBuilder, BirthdayQueryBuilder>();
-
-        services.AddScoped<IBirthdayService, BirthdayService>();
-        services.AddScoped<BirthdayService>();
     }
 
     public virtual void ConfigureMiddleware(IApplicationBuilder app, IHostEnvironment environment)

@@ -5,7 +5,7 @@ using JhipsterSampleApplication.Domain.Entities;
 
 namespace JhipsterSampleApplication.Domain.Services.Interfaces
 {
-    public interface IGenericBirthdayService<T> where T : class
+    public interface IGenericElasticSearchService<T> where T : class
     {
         Task<ISearchResponse<T>> SearchAsync(ISearchRequest request);
         Task<ISearchResponse<T>> SearchWithLuceneQueryAsync(string luceneQuery);
@@ -16,7 +16,7 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
         Task<ISearchResponse<T>> SearchWithRulesetAsync(RulesetOrRule ruleset, int size = 10000);
     }
 
-    public interface IGenericBirthdayService : IGenericBirthdayService<Birthday>
+    public interface IGenericElasticSearchService : IGenericElasticSearchService<Birthday>
     {
     }
 } 

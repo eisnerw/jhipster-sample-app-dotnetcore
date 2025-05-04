@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Nest;
 using Elasticsearch.Net;
 
-namespace JhipsterSampleApplication.Infrastructure.Services;
+namespace JhipsterSampleApplication.Domain.Services.Interfaces;
 
 public interface IGenericElasticSearchService
 {

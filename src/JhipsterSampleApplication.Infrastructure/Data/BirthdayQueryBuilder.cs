@@ -6,7 +6,6 @@ using JHipsterNet.Core.Pagination;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Entities;
 using Newtonsoft.Json.Linq;
-using JhipsterSampleApplication.Infrastructure.Services;
 
 namespace JhipsterSampleApplication.Infrastructure.Data
 {

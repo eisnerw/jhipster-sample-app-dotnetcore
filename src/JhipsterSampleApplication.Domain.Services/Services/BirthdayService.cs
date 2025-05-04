@@ -10,12 +10,12 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
 
-namespace JhipsterSampleApplication.Infrastructure.Services;
+namespace JhipsterSampleApplication.Domain.Services;
 
 /// <summary>
 /// Service for interacting with Elasticsearch for Birthday operations
 /// </summary>
-public class BirthdayService : IBirthdayService, IGenericBirthdayService<Birthday>
+public class BirthdayService : IBirthdayService, IGenericElasticSearchService<Birthday>
 {
     private readonly IElasticClient _elasticClient;
     private const string IndexName = "birthdays";
@@ -23,19 +23,10 @@ public class BirthdayService : IBirthdayService, IGenericBirthdayService<Birthda
     /// <summary>
     /// Initializes a new instance of the BirthdayService
     /// </summary>
-    /// <param name="configuration">The configuration containing Elasticsearch settings</param>
-    /// <exception cref="ArgumentNullException">Thrown when ElasticSearch:Url is not configured</exception>
-    public BirthdayService(IConfiguration configuration)
+    /// <param name="elasticClient">The Elasticsearch client</param>
+    public BirthdayService(IElasticClient elasticClient)
     {
-        var url = configuration["ElasticSearch:Url"] ?? throw new ArgumentNullException("ElasticSearch:Url");
-        var node = new Uri(url);
-        var settings = new ConnectionSettings(node)
-            .BasicAuthentication(
-                configuration["ElasticSearch:Username"],
-                configuration["ElasticSearch:Password"])
-            .DefaultIndex(IndexName);
-
-        _elasticClient = new ElasticClient(settings);
+        _elasticClient = elasticClient ?? throw new ArgumentNullException(nameof(elasticClient));
     }
 
     /// <summary>
