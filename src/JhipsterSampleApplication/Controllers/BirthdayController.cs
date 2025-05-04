@@ -16,17 +16,17 @@ using JhipsterSampleApplication.Dto;
 namespace JhipsterSampleApplication.Controllers
 {
     [ApiController]
-    [Route("api/elasticsearch")]
-    public class ElasticSearchController : ControllerBase
+    [Route("api/birthdays")]
+    public class BirthdayController : ControllerBase
     {
-        private readonly IElasticSearchService _elasticSearchService;       
+        private readonly IBirthdayService _birthdayService;       
         private readonly IElasticClient _elasticClient;
 
-        public ElasticSearchController(
-            IElasticSearchService elasticSearchService,
+        public BirthdayController(
+            IBirthdayService birthdayService,
             IElasticClient elasticClient)
         {
-            _elasticSearchService = elasticSearchService;
+            _birthdayService = birthdayService;
             _elasticClient = elasticClient;
         }
 
@@ -114,24 +114,19 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<IActionResult> Search([FromBody] RulesetOrRuleDto rulesetDto, [FromQuery] int size = 10000)
         {
             var ruleset = ConvertDtoToModel(rulesetDto);
-            var response = await _elasticSearchService.SearchWithRulesetAsync(ruleset, size);
+            var response = await _birthdayService.SearchWithRulesetAsync(ruleset, size);
 
-            var birthdayDtos = new List<BirthdayDto>();
-            foreach (var hit in response.Hits)
+            var birthdayDtos = response.Hits.Select(hit => new BirthdayDto
             {
-                var b = hit.Source;
-                birthdayDtos.Add(new BirthdayDto
-                {
-                    Id = b.Id!,
-                    Lname = b.Lname,
-                    Fname = b.Fname,
-                    Sign = b.Sign,
-                    Dob = b.Dob,
-                    IsAlive = b.IsAlive,
-                    Text = b.Text,
-                    Wikipedia = b.Wikipedia
-                });
-            }
+                Id = hit.Id,
+                Text = hit.Source.Text,
+                Lname = hit.Source.Lname,
+                Fname = hit.Source.Fname,
+                Sign = hit.Source.Sign,
+                Dob = hit.Source.Dob,
+                IsAlive = hit.Source.IsAlive ?? false,
+                Wikipedia = hit.Source.Wikipedia
+            }).ToList();
 
             return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
         }
@@ -140,31 +135,36 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(BirthdayDto), 200)]
         public async Task<IActionResult> GetById(string id)
         {
-            var response = await _elasticClient.GetAsync<Birthday>(id);
-            if (!response.IsValid || response.Source == null)
+            var searchRequest = new SearchRequest<Birthday>
+            {
+                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
+            };
+            
+            var response = await _birthdayService.SearchAsync(searchRequest);
+            if (!response.IsValid || !response.Documents.Any())
             {
                 return NotFound();
             }
 
-            var b = response.Source;
-            var dto = new BirthdayDto
+            var birthday = response.Documents.First();
+            var birthdayDto = new BirthdayDto
             {
-                Id = response.Id,
-                Lname = b.Lname,
-                Fname = b.Fname,
-                Sign = b.Sign,
-                Dob = b.Dob,
-                IsAlive = b.IsAlive,
-                Text = b.Text,
-                Wikipedia = b.Wikipedia
+                Id = id,
+                Text = birthday.Text,
+                Lname = birthday.Lname,
+                Fname = birthday.Fname,
+                Sign = birthday.Sign,
+                Dob = birthday.Dob,
+                IsAlive = birthday.IsAlive ?? false,
+                Wikipedia = birthday.Wikipedia
             };
 
-            return Ok(dto);
+            return Ok(birthdayDto);
         }
 
         [HttpPost]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public async Task<IActionResult> Index([FromBody] BirthdayCreateUpdateDto dto)
+        public async Task<IActionResult> Create([FromBody] BirthdayCreateUpdateDto dto)
         {
             var birthday = new Birthday
             {
@@ -178,41 +178,47 @@ namespace JhipsterSampleApplication.Controllers
                 Wikipedia = dto.Wikipedia
             };
 
-            var response = await _elasticSearchService.IndexAsync(birthday);
-            
-            // Return both the response and the ID of the indexed document
-            return Ok(new { 
+            var response = await _birthdayService.IndexAsync(birthday);
+            var simpleResponse = new SimpleApiResponse
+            {
                 Success = response.IsValid,
                 Message = response.DebugInformation.Split('\n')[0]
-            });
+            };
+            return Ok(simpleResponse);
         }
 
         [HttpDelete("{id}")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         public async Task<IActionResult> Delete(string id)
         {
-            var response = await _elasticSearchService.DeleteAsync(id);
-            return Ok(new {
+            var response = await _birthdayService.DeleteAsync(id);
+            var simpleResponse = new SimpleApiResponse
+            {
                 Success = response.IsValid,
                 Message = response.DebugInformation.Split('\n')[0]
-            });
+            };
+            return Ok(simpleResponse);
         }
 
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         public async Task<IActionResult> Update(string id, [FromBody] BirthdayCreateUpdateDto dto)
         {
-            // First, try to get the existing document to preserve its ID
-            var existingResponse = await _elasticClient.GetAsync<Birthday>(id);
-            if (!existingResponse.IsValid || existingResponse.Source == null)
+            // Check if document exists using the service layer
+            var searchRequest = new SearchRequest<Birthday>
+            {
+                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
+            };
+            
+            var existingResponse = await _birthdayService.SearchAsync(searchRequest);
+            if (!existingResponse.IsValid || !existingResponse.Documents.Any())
             {
                 return NotFound($"Document with ID {id} not found");
             }
             
-            // Update the existing document with the new values
             var birthday = new Birthday
             {
-                Id = id, // Use the ID from the URL
+                Id = id,
                 Lname = dto.Lname,
                 Fname = dto.Fname,
                 Sign = dto.Sign,
@@ -222,7 +228,7 @@ namespace JhipsterSampleApplication.Controllers
                 Wikipedia = dto.Wikipedia
             };
 
-            UpdateResponse<Birthday> updateResponse = await _elasticSearchService.UpdateAsync(id, birthday);
+            var updateResponse = await _birthdayService.UpdateAsync(id, birthday);
             var simpleResponse = new SimpleApiResponse
             {
                 Success = updateResponse.IsValid,
@@ -231,11 +237,31 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(simpleResponse);
         }
 
+        [HttpGet("search/lucene")]
+        [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
+        public async Task<IActionResult> SearchWithLuceneQuery([FromQuery] string query)
+        {
+            var response = await _birthdayService.SearchWithLuceneQueryAsync(query);
+            var birthdayDtos = response.Hits.Select(hit => new BirthdayDto
+            {
+                Id = hit.Id,
+                Text = hit.Source.Text,
+                Lname = hit.Source.Lname,
+                Fname = hit.Source.Fname,
+                Sign = hit.Source.Sign,
+                Dob = hit.Source.Dob,
+                IsAlive = hit.Source.IsAlive ?? false,
+                Wikipedia = hit.Source.Wikipedia
+            }).ToList();
+
+            return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
+        }
+
         [HttpGet("unique-values/{field}")]
         [ProducesResponseType(typeof(IReadOnlyCollection<string>), 200)]
         public async Task<IActionResult> GetUniqueFieldValues(string field)
         {
-            var values = await _elasticSearchService.GetUniqueFieldValuesAsync(field+".keyword");
+            var values = await _birthdayService.GetUniqueFieldValuesAsync(field+".keyword");
             return Ok(values);
         }
 
@@ -253,32 +279,6 @@ namespace JhipsterSampleApplication.Controllers
                 ActivePrimaryShards = res.ActivePrimaryShards
             };
             return Ok(dto);
-        }
-
-        [HttpGet("search/lucene")]
-        [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
-        public async Task<IActionResult> SearchWithLuceneQuery([FromQuery] string query)
-        {
-            var response = await _elasticSearchService.SearchWithLuceneQueryAsync(query);
-
-            var birthdayDtos = new List<BirthdayDto>();
-            foreach (var hit in response.Hits)
-            {
-                var b = hit.Source;
-                birthdayDtos.Add(new BirthdayDto
-                {
-                    Id = b.Id!,
-                    Lname = b.Lname,
-                    Fname = b.Fname,
-                    Sign = b.Sign,
-                    Dob = b.Dob,
-                    IsAlive = b.IsAlive,
-                    Text = b.Text,
-                    Wikipedia = b.Wikipedia
-                });
-            }
-
-            return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
         }
 
         [HttpPost("search/raw")]
@@ -366,7 +366,7 @@ namespace JhipsterSampleApplication.Controllers
                 });
             }
 
-            var response = await _elasticSearchService.SearchAsync(searchRequest);
+            var response = await _birthdayService.SearchAsync(searchRequest);
 
             var birthdayDtos = new List<BirthdayDto>();
             foreach (var hit in response.Hits)

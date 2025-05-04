@@ -10,7 +10,7 @@ using JhipsterSampleApplication.Infrastructure.Services;
 
 namespace JhipsterSampleApplication.Infrastructure.Data
 {
-    public class ElasticSearchQueryBuilder : IQueryBuilder
+    public class BirthdayQueryBuilder : IQueryBuilder
     {
         private RulesetOrRule? _ruleset;
         private int _page;

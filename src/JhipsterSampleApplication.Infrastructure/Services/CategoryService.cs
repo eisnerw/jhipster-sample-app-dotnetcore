@@ -15,12 +15,12 @@ namespace JhipsterSampleApplication.Infrastructure.Services
     public class CategoryService : ICategoryService
     {
         private readonly ILogger<CategoryService> _log;
-        private readonly IElasticSearchService _elasticSearchService;
+        private readonly IBirthdayService _birthdayService;
 
-        public CategoryService(ILogger<CategoryService> log, IElasticSearchService elasticSearchService)
+        public CategoryService(ILogger<CategoryService> log, IBirthdayService birthdayService)
         {
             _log = log;
-            _elasticSearchService = elasticSearchService;
+            _birthdayService = birthdayService;
         }
 
         public async Task<Category> Save(Category category)
@@ -37,7 +37,7 @@ namespace JhipsterSampleApplication.Infrastructure.Services
                 Id = category.Id.ToString(),
                 Text = JsonConvert.SerializeObject(category)
             };
-            await _elasticSearchService.IndexAsync(birthday);
+            await _birthdayService.IndexAsync(birthday);
             return category;
         }
 
@@ -56,7 +56,7 @@ namespace JhipsterSampleApplication.Infrastructure.Services
                 Query = new QueryStringQuery { Query = query ?? string.Empty }
             };
             
-            var response = await _elasticSearchService.SearchAsync(searchRequest);
+            var response = await _birthdayService.SearchAsync(searchRequest);
             var categories = response.Documents
                 .Where(doc => doc?.Text != null)
                 .Select(doc => JsonConvert.DeserializeObject<Category>(doc.Text!))
@@ -75,7 +75,7 @@ namespace JhipsterSampleApplication.Infrastructure.Services
                 Query = new TermQuery { Field = "id", Value = id.ToString() }
             };
             
-            var response = await _elasticSearchService.SearchAsync(searchRequest);
+            var response = await _birthdayService.SearchAsync(searchRequest);
             var birthday = response.Documents.FirstOrDefault();
             
             if (birthday?.Text == null) return null;
@@ -86,7 +86,7 @@ namespace JhipsterSampleApplication.Infrastructure.Services
         public async Task Delete(long id)
         {
             _log.LogDebug($"Request to delete Category : {id}");
-            await _elasticSearchService.DeleteAsync(id.ToString());
+            await _birthdayService.DeleteAsync(id.ToString());
         }
 
         public async Task<AnalysisResultDto> Analyze(IList<string> ids)
@@ -102,7 +102,7 @@ namespace JhipsterSampleApplication.Infrastructure.Services
                 Query = new TermsQuery { Field = "id", Terms = ids }
             };
             
-            var response = await _elasticSearchService.SearchAsync(searchRequest);
+            var response = await _birthdayService.SearchAsync(searchRequest);
             
             // Process the results and create AnalysisResultDto
             var result = new AnalysisResultDto

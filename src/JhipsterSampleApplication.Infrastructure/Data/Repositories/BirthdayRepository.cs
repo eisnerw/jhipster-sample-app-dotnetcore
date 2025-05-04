@@ -22,17 +22,17 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
 {
     public class BirthdayRepository : GenericRepository<Birthday, string>, IBirthdayRepository
     {
-        private readonly IElasticSearchService _elasticSearchService;
+        private readonly IBirthdayService _birthdayService;
         private readonly IQueryBuilder _queryBuilder;
         private readonly IElasticClient _elasticClient;
 
         public BirthdayRepository(
             IUnitOfWork context,
-            IElasticSearchService elasticSearchService,
+            IBirthdayService birthdayService,
             IQueryBuilder queryBuilder,
             IElasticClient elasticClient) : base(context)
         {
-            _elasticSearchService = elasticSearchService;
+            _birthdayService = birthdayService;
             _queryBuilder = queryBuilder;
             _elasticClient = elasticClient;
         }
@@ -65,7 +65,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
         {
             if (string.IsNullOrEmpty(birthday.Id))
             {
-                var response = await _elasticSearchService.IndexAsync(birthday);
+                var response = await _birthdayService.IndexAsync(birthday);
                 if (response.IsValid && !string.IsNullOrEmpty(response.Id))
                 {
                     birthday.Id = response.Id;
@@ -73,7 +73,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
             }
             else
             {
-                await _elasticSearchService.UpdateAsync(birthday.Id, birthday);
+                await _birthdayService.UpdateAsync(birthday.Id, birthday);
             }
 
             return birthday;
@@ -85,7 +85,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
                 .WithPagination(pageable.PageNumber, pageable.PageSize)
                 .Build();
 
-            var response = await _elasticSearchService.SearchAsync(searchRequest);
+            var response = await _birthdayService.SearchAsync(searchRequest);
             
             return new Page<Birthday>(
                 response.Documents.ToList(),
@@ -101,7 +101,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
                 return new Page<Birthday>(new List<Birthday>(), pageable, 0);
             }
 
-            var response = await _elasticSearchService.SearchWithRulesetAsync(ruleset, pageable.PageSize);
+            var response = await _birthdayService.SearchWithRulesetAsync(ruleset, pageable.PageSize);
             
             return new Page<Birthday>(
                 response.Documents.ToList(),
@@ -111,7 +111,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
 
         public async Task<List<string>> GetUniqueFieldValuesAsync(string field)
         {
-            var values = await _elasticSearchService.GetUniqueFieldValuesAsync(field);
+            var values = await _birthdayService.GetUniqueFieldValuesAsync(field);
             return values.ToList();
         }
 
@@ -150,7 +150,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
                 .WithFilter("_id", idString)
                 .Build();
 
-            var searchResponse = await _elasticSearchService.SearchAsync(searchRequest);
+            var searchResponse = await _birthdayService.SearchAsync(searchRequest);
             birthday = searchResponse.Documents.FirstOrDefault();
 
             if (birthday != null && bText)
@@ -190,7 +190,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
                 .WithFilter("_id", idString)
                 .Build();
 
-            var searchResponse = await _elasticSearchService.SearchAsync(searchRequest);
+            var searchResponse = await _birthdayService.SearchAsync(searchRequest);
             var birthday = searchResponse.Documents.FirstOrDefault();
             return birthday?.Text ?? string.Empty;
         }
@@ -209,7 +209,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
                 .WithFilter("references.from", idString)
                 .Build();
 
-            var response = await _elasticSearchService.SearchAsync(searchRequest);
+            var response = await _birthdayService.SearchAsync(searchRequest);
             return response.Documents?.ToList();
         }
 
@@ -227,7 +227,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
                 .WithFilter("references.to", idString)
                 .Build();
 
-            var response = await _elasticSearchService.SearchAsync(searchRequest);
+            var response = await _birthdayService.SearchAsync(searchRequest);
             return response.Documents?.ToList() ?? new List<Birthday>();
         }
 

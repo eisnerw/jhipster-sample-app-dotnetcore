@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Infrastructure.Services;
 using Nest;
+using JhipsterSampleApplication.Domain.Entities;
 
 [assembly: ApiController]
 
@@ -47,9 +48,11 @@ public class Startup : IStartup
         var client = new ElasticClient(settings);
         services.AddSingleton<IElasticClient>(client);
 
-        services.AddScoped<IElasticSearchService, ElasticSearchService>();
-        services.AddScoped<IGenericElasticSearchService, ElasticSearchService>();
-        services.AddScoped<Domain.Services.Interfaces.IQueryBuilder, ElasticSearchQueryBuilder>();
+        services.AddScoped<IGenericBirthdayService<Birthday>, BirthdayService>();
+        services.AddScoped<Domain.Services.Interfaces.IQueryBuilder, BirthdayQueryBuilder>();
+
+        services.AddScoped<IBirthdayService, BirthdayService>();
+        services.AddScoped<BirthdayService>();
     }
 
     public virtual void ConfigureMiddleware(IApplicationBuilder app, IHostEnvironment environment)

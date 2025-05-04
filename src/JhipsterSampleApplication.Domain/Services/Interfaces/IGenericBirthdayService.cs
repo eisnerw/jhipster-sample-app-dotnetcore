@@ -6,7 +6,7 @@ using JhipsterSampleApplication.Domain.Entities;
 
 namespace JhipsterSampleApplication.Domain.Services.Interfaces
 {
-    public interface IElasticSearchService
+    public interface IBirthdayService
     {
         Task<ISearchResponse<Birthday>> SearchAsync(ISearchRequest request);
         Task<IndexResponse> IndexAsync(Birthday birthday);
