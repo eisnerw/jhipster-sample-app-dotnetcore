@@ -11,22 +11,22 @@ namespace JhipsterSampleApplication.Domain.Entities
     {
         [Required]
         [StringLength(100)]
-        public string CategoryName { get; set; }
+        public required string CategoryName { get; set; }
 
         public bool? Selected { get; set; }
         public bool? NotCategorized { get; set; }
         
         [StringLength(50)]
-        public string FocusType { get; set; }
+        public required string FocusType { get; set; }
         
         [StringLength(100)]
-        public string FocusId { get; set; }
+        public required string FocusId { get; set; }
         
         [Column(TypeName = "text")]
-        public string JsonString { get; set; }
+        public required string JsonString { get; set; }
         
         [StringLength(500)]
-        public string Description { get; set; }
+        public required string Description { get; set; }
 
         [JsonIgnore]
         public IList<Birthday> Birthdays { get; set; } = new List<Birthday>();
@@ -36,9 +36,8 @@ namespace JhipsterSampleApplication.Domain.Entities
         public override bool Equals(object? obj)
         {
             if (this == obj) return true;
-            if (obj == null || GetType() != obj.GetType()) return false;
-            var category = obj as Category;
-            if (category?.Id == null || category?.Id == 0 || Id == 0) return false;
+            if (obj is not Category category) return false;
+            if (category.Id == 0 || Id == 0) return false;
             return EqualityComparer<long>.Default.Equals(Id, category.Id);
         }
 

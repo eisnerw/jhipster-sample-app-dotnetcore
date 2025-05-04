@@ -12,7 +12,7 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
 
         Task<IPage<Category>> FindAll(IPageable pageable, string query);
 
-        Task<Category> FindOne(long id);
+        Task<Category?> FindOne(long id);
 
         Task Delete(long id);
 

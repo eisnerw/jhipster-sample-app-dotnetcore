@@ -17,6 +17,7 @@ using System;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
 using JhipsterSampleApplication.Infrastructure.Web.Rest.Utilities;
+using Microsoft.Extensions.Primitives;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -88,7 +89,12 @@ namespace JhipsterSampleApplication.Controllers
             }
             var result = await _categoryService.FindAll(pageable, query);
             var page = new Page<CategoryDto>(result.Content.Select(entity => _mapper.Map<CategoryDto>(entity)).ToList(), pageable, result.TotalElements);
-            return Ok(((IPage<CategoryDto>)page).Content).WithHeaders(page.GeneratePaginationHttpHeaders());
+            var headers = page.GeneratePaginationHttpHeaders();
+            foreach (var header in headers)
+            {
+                Response.Headers[header.Key] = header.Value.ToArray();
+            }
+            return Ok(((IPage<CategoryDto>)page).Content);
         }
 
         [HttpGet("{id}")]
@@ -113,10 +119,9 @@ namespace JhipsterSampleApplication.Controllers
         {
             _log.LogDebug($"REST request to analyze {documentAnalysisDto.ids.Count} documents");
             AnalysisResultDto result = await _categoryService.Analyze(documentAnalysisDto.ids);
-            IHeaderDictionary headers = new HeaderDictionary();
-            headers.Add($"X-{APPLICATION_NAME}-alert", $"{APPLICATION_NAME}.{EntityName}.analyzed");
-            headers.Add($"X-{APPLICATION_NAME}-params", result.result);
-            return Ok(result).WithHeaders(headers);
+            Response.Headers[$"X-{APPLICATION_NAME}-alert"] = new StringValues($"{APPLICATION_NAME}.{EntityName}.analyzed");
+            Response.Headers[$"X-{APPLICATION_NAME}-params"] = new StringValues(result.result);
+            return Ok(result);
         }
     }
 } 

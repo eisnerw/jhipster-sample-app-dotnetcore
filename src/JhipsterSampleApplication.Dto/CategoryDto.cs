@@ -11,21 +11,30 @@ namespace JhipsterSampleApplication.Dto
 
         [Required]
         [StringLength(100)]
-        public string CategoryName { get; set; }
+        public required string CategoryName { get; set; }
 
-        public bool? Selected { get; set; }
-        public bool? NotCategorized { get; set; }
+        public string? ParentCategoryName { get; set; }
+        public long? ParentCategoryId { get; set; }
         
+        [Required]
         [StringLength(50)]
-        public string FocusType { get; set; }
+        public required string FocusType { get; set; }
         
+        public string? FocusName { get; set; }
+        
+        [Required]
         [StringLength(100)]
-        public string FocusId { get; set; }
+        public required string FocusId { get; set; }
         
-        public string JsonString { get; set; }
+        [Required]
+        [StringLength(100)]
+        public required string JsonString { get; set; }
         
+        public string? JsonString2 { get; set; }
+        
+        [Required]
         [StringLength(500)]
-        public string Description { get; set; }
+        public required string Description { get; set; }
 
         [JsonIgnore]
         public IList<BirthdayDto> Birthdays { get; set; } = new List<BirthdayDto>();

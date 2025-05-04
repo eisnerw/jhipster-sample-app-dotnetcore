@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using JHipsterNet.Core.Pagination;
 using JhipsterSampleApplication.Domain.Entities;
@@ -7,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Nest;
+using Newtonsoft.Json;
 
 namespace JhipsterSampleApplication.Infrastructure.Services
 {
@@ -14,41 +16,71 @@ namespace JhipsterSampleApplication.Infrastructure.Services
     {
         private readonly ILogger<CategoryService> _log;
         private readonly IElasticSearchService _elasticSearchService;
-        private readonly IQueryBuilder _queryBuilder;
 
-        public CategoryService(ILogger<CategoryService> log, IElasticSearchService elasticSearchService, IQueryBuilder queryBuilder)
+        public CategoryService(ILogger<CategoryService> log, IElasticSearchService elasticSearchService)
         {
             _log = log;
             _elasticSearchService = elasticSearchService;
-            _queryBuilder = queryBuilder;
         }
 
         public async Task<Category> Save(Category category)
         {
             _log.LogDebug($"Request to save Category : {category}");
-            // Convert Category to Birthday for ElasticSearch
-            // TODO: determine how to save
+            if (category == null)
+            {
+                throw new ArgumentNullException(nameof(category));
+            }
 
+            // Store category data in Birthday's Text field as JSON
+            var birthday = new Birthday
+            {
+                Id = category.Id.ToString(),
+                Text = JsonConvert.SerializeObject(category)
+            };
+            await _elasticSearchService.IndexAsync(birthday);
             return category;
         }
 
         public async Task<IPage<Category>> FindAll(IPageable pageable, string query)
         {
             _log.LogDebug($"Request to get all Categories");
-            // TODO: fingure out how to get categories
-            var searchRequest = _queryBuilder
-                .WithFilter("_id", "")
-                .Build();            
+            if (pageable == null)
+            {
+                throw new ArgumentNullException(nameof(pageable));
+            }
+
+            var searchRequest = new SearchRequest
+            {
+                From = pageable.PageNumber * pageable.PageSize,
+                Size = pageable.PageSize,
+                Query = new QueryStringQuery { Query = query ?? string.Empty }
+            };
+            
             var response = await _elasticSearchService.SearchAsync(searchRequest);
-            List<Category> categories = null;
+            var categories = response.Documents
+                .Where(doc => doc?.Text != null)
+                .Select(doc => JsonConvert.DeserializeObject<Category>(doc.Text!))
+                .Where(c => c != null)
+                .Cast<Category>()
+                .ToList();
+
             return new Page<Category>(categories, pageable, (int)response.Total);
         }
 
-        public async Task<Category> FindOne(long id)
+        public async Task<Category?> FindOne(long id)
         {
             _log.LogDebug($"Request to get Category : {id}");
-            // TODO: What does FindOne mean for Category            
-            return null;
+            var searchRequest = new SearchRequest
+            {
+                Query = new TermQuery { Field = "id", Value = id.ToString() }
+            };
+            
+            var response = await _elasticSearchService.SearchAsync(searchRequest);
+            var birthday = response.Documents.FirstOrDefault();
+            
+            if (birthday?.Text == null) return null;
+            
+            return JsonConvert.DeserializeObject<Category>(birthday.Text);
         }
 
         public async Task Delete(long id)
@@ -60,12 +92,19 @@ namespace JhipsterSampleApplication.Infrastructure.Services
         public async Task<AnalysisResultDto> Analyze(IList<string> ids)
         {
             _log.LogDebug($"Request to analyze {ids.Count} documents");
-            // TODO: perform analysis            
-            // Process the results and create AnalysisResultDto
-            var searchRequest = _queryBuilder
-                .WithFilter("_id", "")
-                .Build();            
+            if (ids == null)
+            {
+                throw new ArgumentNullException(nameof(ids));
+            }
+
+            var searchRequest = new SearchRequest
+            {
+                Query = new TermsQuery { Field = "id", Terms = ids }
+            };
+            
             var response = await _elasticSearchService.SearchAsync(searchRequest);
+            
+            // Process the results and create AnalysisResultDto
             var result = new AnalysisResultDto
             {
                 result = $"Analyzed {response.Documents.Count} documents",
