@@ -30,29 +30,6 @@ namespace JhipsterSampleApplication.Controllers
             _elasticClient = elasticClient;
         }
 
-        public class RulesetOrRuleDto
-        {
-            public string? field { get; set; }
-            public string? @operator { get; set; }
-            public object? value { get; set; }
-            public string? condition { get; set; }
-            public bool @not { get; set; }
-            public List<object> rules { get; set; } = new List<object>();
-        }
-
-        public class BirthdayCreateUpdateDto
-        {
-            public string? Id { get; set; }
-            public string? Lname { get; set; }
-            public string? Fname { get; set; }
-            public string? Sign { get; set; }
-            public DateTime? Dob { get; set; }
-            public bool? IsAlive { get; set; }
-            public string? Text { get; set; }
-            public string? Wikipedia { get; set; }
-            public List<long>? CategoryIds { get; set; }  // Flattened relationship
-        }
-
         public class SearchResult<T>
         {
             public List<T> Hits { get; set; } = new();
