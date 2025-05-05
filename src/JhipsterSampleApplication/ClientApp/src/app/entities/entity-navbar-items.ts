@@ -2,6 +2,11 @@ import NavbarItem from 'app/layouts/navbar/navbar-item.model';
 
 export const ENTITY_NAV_ITEMS: NavbarItem[] = [
   {
+    name: 'Birthday',
+    route: '/birthday',
+    translationKey: 'global.menu.entities.birthday',
+  },
+  {
     name: 'Country',
     route: '/country',
     translationKey: 'global.menu.entities.country',
@@ -50,10 +55,5 @@ export const ENTITY_NAV_ITEMS: NavbarItem[] = [
     name: 'TimeSheetEntry',
     route: '/time-sheet-entry',
     translationKey: 'global.menu.entities.timeSheetEntry',
-  },
-  {
-    name: 'Birthday',
-    route: '/birthday',
-    translationKey: 'global.menu.entities.birthday',
   },
 ];

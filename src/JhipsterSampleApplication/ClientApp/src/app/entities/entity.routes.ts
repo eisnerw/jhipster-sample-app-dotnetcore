@@ -2,6 +2,11 @@ import { Routes } from '@angular/router';
 
 const routes: Routes = [
   {
+    path: 'birthday',
+    data: { pageTitle: 'Birthdays' },
+    loadChildren: () => import('./birthday/birthday.routes'),
+  },
+  {
     path: 'country',
     data: { pageTitle: 'Countries' },
     loadChildren: () => import('./country/country.routes'),
@@ -50,11 +55,6 @@ const routes: Routes = [
     path: 'time-sheet-entry',
     data: { pageTitle: 'TimeSheetEntries' },
     loadChildren: () => import('./time-sheet-entry/time-sheet-entry.routes'),
-  },
-  {
-    path: 'birthday',
-    data: { pageTitle: 'Birthdays' },
-    loadChildren: () => import('./birthday/birthday.routes'),
   },
   /* jhipster-needle-add-entity-route - JHipster will add entity modules routes here */
 ];
