@@ -1,0 +1,19 @@
+{
+  "global": {
+    "menu": {
+      "entities": {
+        "birthday": "Birthday",
+        "country": "Country",
+        "department": "Department",
+        "employee": "Employee",
+        "job": "Job",
+        "jobHistory": "Job History",
+        "location": "Location",
+        "pieceOfWork": "Piece Of Work",
+        "region": "Region",
+        "timeSheet": "Time Sheet",
+        "timeSheetEntry": "Time Sheet Entry"
+      }
+    }
+  }
+} 
