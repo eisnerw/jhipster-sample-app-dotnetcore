@@ -6,7 +6,7 @@ import HasAnyAuthorityDirective from 'app/shared/auth/has-any-authority.directiv
 import { AccountService } from 'app/core/auth/account.service';
 import { LoginService } from 'app/login/login.service';
 import { ProfileService } from 'app/layouts/profiles/profile.service';
-import { EntityNavbarItems } from 'app/entities/entity-navbar-items';
+import { ENTITY_NAV_ITEMS } from 'app/entities/entity-navbar-items';
 import { environment } from 'environments/environment';
 import NavbarItem from './navbar-item.model';
 
@@ -36,7 +36,7 @@ export default class NavbarComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.entitiesNavbarItems = EntityNavbarItems;
+    this.entitiesNavbarItems = ENTITY_NAV_ITEMS;
     this.profileService.getProfileInfo().subscribe(profileInfo => {
       this.inProduction = profileInfo.inProduction;
       this.openAPIEnabled = profileInfo.openAPIEnabled;

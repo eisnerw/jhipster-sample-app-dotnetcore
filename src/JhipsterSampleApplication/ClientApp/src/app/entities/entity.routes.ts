@@ -51,6 +51,11 @@ const routes: Routes = [
     data: { pageTitle: 'TimeSheetEntries' },
     loadChildren: () => import('./time-sheet-entry/time-sheet-entry.routes'),
   },
+  {
+    path: 'birthday',
+    data: { pageTitle: 'Birthdays' },
+    loadChildren: () => import('./birthday/birthday.routes'),
+  },
   /* jhipster-needle-add-entity-route - JHipster will add entity modules routes here */
 ];
 
