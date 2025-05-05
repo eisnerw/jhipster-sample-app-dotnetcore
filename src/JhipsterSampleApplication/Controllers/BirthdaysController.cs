@@ -216,9 +216,10 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpGet("search/lucene")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
-        public async Task<IActionResult> SearchWithLuceneQuery([FromQuery] string query)
+        public async Task<IActionResult> SearchWithLuceneQuery([FromQuery] string query, [FromQuery] int? from = 0, [FromQuery] int? size = 20)
         {
-            var response = await _birthdayService.SearchWithLuceneQueryAsync(query);
+            var response = await _birthdayService.SearchWithLuceneQueryAsync(query, from ?? 0, size ?? 20);
+
             var birthdayDtos = response.Hits.Select(hit => new BirthdayDto
             {
                 Id = hit.Id,
@@ -227,11 +228,17 @@ namespace JhipsterSampleApplication.Controllers
                 Fname = hit.Source.Fname,
                 Sign = hit.Source.Sign,
                 Dob = hit.Source.Dob,
-                IsAlive = hit.Source.IsAlive ?? false,
+                IsAlive = hit.Source.IsAlive,
                 Wikipedia = hit.Source.Wikipedia
             }).ToList();
 
-            return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
+            var result = new SearchResult<BirthdayDto>
+            {
+                Hits = birthdayDtos
+            };
+
+            Response.Headers.Add("X-Total-Count", response.Total.ToString());
+            return Ok(result);
         }
 
         [HttpGet("unique-values/{field}")]

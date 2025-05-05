@@ -12,7 +12,7 @@ export type EntityArrayResponseType = HttpResponse<IBirthday[]>;
 
 @Injectable({ providedIn: 'root' })
 export class BirthdayService {
-  protected resourceUrl = this.applicationConfigService.getEndpointFor('api/birthdays');
+  protected resourceUrl = this.applicationConfigService.getEndpointFor('api/birthdays/search/lucene');
 
   constructor(
     protected http: HttpClient,
@@ -33,7 +33,9 @@ export class BirthdayService {
 
   query(req?: any): Observable<EntityArrayResponseType> {
     const options = createRequestOption(req);
-    return this.http.get<IBirthday[]>(this.resourceUrl, { params: options, observe: 'response' });
+    const page = req?.page ?? 0;
+    const size = req?.size ?? 20;
+    return this.http.get<IBirthday[]>(`${this.resourceUrl}?query=*&from=${page}&size=${size}`, { params: options, observe: 'response' });
   }
 
   delete(id: string): Observable<HttpResponse<{}>> {

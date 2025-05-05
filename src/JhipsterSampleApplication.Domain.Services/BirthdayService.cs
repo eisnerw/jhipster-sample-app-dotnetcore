@@ -54,11 +54,15 @@ public class BirthdayService : IBirthdayService, IGenericElasticSearchService<Bi
     /// Searches for Birthday documents using the provided search request in lucene format
     /// </summary>
     /// <param name="luceneQuery">The search request to execute</param>
+    /// <param name="from">The starting index for pagination</param>
+    /// <param name="size">The number of documents to return</param>
     /// <returns>The search response containing Birthday documents</returns>
-    public async Task<ISearchResponse<Birthday>> SearchWithLuceneQueryAsync(string luceneQuery)
+    public async Task<ISearchResponse<Birthday>> SearchWithLuceneQueryAsync(string luceneQuery, int from = 0, int size = 20)
     {
         var response = await _elasticClient.SearchAsync<Birthday>(s => s
             .Index("birthdays")
+            .From(from)
+            .Size(size)
             .Query(q => q
                 .QueryString(qs => qs
                     .Query(luceneQuery)
