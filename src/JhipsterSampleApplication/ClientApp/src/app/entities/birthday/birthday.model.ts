@@ -1,15 +1,19 @@
 export interface IBirthday {
   id?: string;
-  name?: string;
-  date?: Date;
-  description?: string;
+  lname?: string;
+  fname?: string;
+  sign?: string;
+  dob?: Date;
+  isAlive?: boolean;
 }
 
 export class Birthday implements IBirthday {
   constructor(
     public id?: string,
-    public name?: string,
-    public date?: Date,
-    public description?: string,
+    public lname?: string,
+    public fname?: string,
+    public sign?: string,
+    public dob?: Date,
+    public isAlive?: boolean,
   ) {}
 }

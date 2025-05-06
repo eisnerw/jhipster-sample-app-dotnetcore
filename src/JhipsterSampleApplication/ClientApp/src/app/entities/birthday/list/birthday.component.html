@@ -32,16 +32,24 @@
             <span jhiTranslate="global.field.id">ID</span>
             <fa-icon icon="sort"></fa-icon>
           </th>
-          <th scope="col" [jhiSortBy]="'name'">
-            <span jhiTranslate="jhipsterSampleApplicationApp.birthday.name">Name</span>
+          <th scope="col" [jhiSortBy]="'lname'">
+            <span jhiTranslate="jhipsterSampleApplicationApp.birthday.lname">Last Name</span>
             <fa-icon icon="sort"></fa-icon>
           </th>
-          <th scope="col" [jhiSortBy]="'date'">
-            <span jhiTranslate="jhipsterSampleApplicationApp.birthday.date">Date</span>
+          <th scope="col" [jhiSortBy]="'fname'">
+            <span jhiTranslate="jhipsterSampleApplicationApp.birthday.fname">First Name</span>
             <fa-icon icon="sort"></fa-icon>
           </th>
-          <th scope="col" [jhiSortBy]="'description'">
-            <span jhiTranslate="jhipsterSampleApplicationApp.birthday.description">Description</span>
+          <th scope="col" [jhiSortBy]="'sign'">
+            <span jhiTranslate="jhipsterSampleApplicationApp.birthday.sign">Sign</span>
+            <fa-icon icon="sort"></fa-icon>
+          </th>
+          <th scope="col" [jhiSortBy]="'dob'">
+            <span jhiTranslate="jhipsterSampleApplicationApp.birthday.dob">Date of Birth</span>
+            <fa-icon icon="sort"></fa-icon>
+          </th>
+          <th scope="col" [jhiSortBy]="'isAlive'">
+            <span jhiTranslate="jhipsterSampleApplicationApp.birthday.isAlive">Is Alive</span>
             <fa-icon icon="sort"></fa-icon>
           </th>
           <th scope="col"></th>
@@ -54,9 +62,11 @@
               {{ birthday.id }}
             </button>
           </td>
-          <td>{{ birthday.name }}</td>
-          <td>{{ birthday.date | date: 'mediumDate' }}</td>
-          <td>{{ birthday.description }}</td>
+          <td>{{ birthday.lname }}</td>
+          <td>{{ birthday.fname }}</td>
+          <td>{{ birthday.sign }}</td>
+          <td>{{ birthday.dob | date: 'mediumDate' }}</td>
+          <td>{{ birthday.isAlive ? 'Yes' : 'No' }}</td>
           <td class="text-right">
             <div class="btn-group">
               <button type="button" [routerLink]="['/birthday', birthday.id, 'view']" class="btn btn-info btn-sm" data-cy="entityDetailsButton">

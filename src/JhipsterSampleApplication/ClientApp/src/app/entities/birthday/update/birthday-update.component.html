@@ -14,54 +14,92 @@
         </div>
 
         <div class="form-group">
-          <label class="form-control-label" jhiTranslate="jhipsterSampleApplicationApp.birthday.name" for="field_name">Name</label>
+          <label class="form-control-label" jhiTranslate="jhipsterSampleApplicationApp.birthday.lname" for="field_lname">Last Name</label>
           <input
             type="text"
             class="form-control"
-            name="name"
-            id="field_name"
-            data-cy="name"
-            formControlName="name"
-            [ngClass]="{ valid: !editForm.get('name')!.invalid, invalid: editForm.get('name')!.invalid }"
+            name="lname"
+            id="field_lname"
+            data-cy="lname"
+            formControlName="lname"
+            [ngClass]="{ valid: !editForm.get('lname')!.invalid, invalid: editForm.get('lname')!.invalid }"
           />
-          <div *ngIf="editForm.get('name')!.invalid && (editForm.get('name')!.dirty || editForm.get('name')!.touched)">
-            <small class="form-text text-danger" *ngIf="editForm.get('name')?.errors?.required" jhiTranslate="entity.validation.required">
+          <div *ngIf="editForm.get('lname')!.invalid && (editForm.get('lname')!.dirty || editForm.get('lname')!.touched)">
+            <small class="form-text text-danger" *ngIf="editForm.get('lname')?.errors?.required" jhiTranslate="entity.validation.required">
               This field is required.
             </small>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-control-label" jhiTranslate="jhipsterSampleApplicationApp.birthday.date" for="field_date">Date</label>
+          <label class="form-control-label" jhiTranslate="jhipsterSampleApplicationApp.birthday.fname" for="field_fname">First Name</label>
+          <input
+            type="text"
+            class="form-control"
+            name="fname"
+            id="field_fname"
+            data-cy="fname"
+            formControlName="fname"
+            [ngClass]="{ valid: !editForm.get('fname')!.invalid, invalid: editForm.get('fname')!.invalid }"
+          />
+          <div *ngIf="editForm.get('fname')!.invalid && (editForm.get('fname')!.dirty || editForm.get('fname')!.touched)">
+            <small class="form-text text-danger" *ngIf="editForm.get('fname')?.errors?.required" jhiTranslate="entity.validation.required">
+              This field is required.
+            </small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-control-label" jhiTranslate="jhipsterSampleApplicationApp.birthday.sign" for="field_sign">Sign</label>
+          <input
+            type="text"
+            class="form-control"
+            name="sign"
+            id="field_sign"
+            data-cy="sign"
+            formControlName="sign"
+            [ngClass]="{ valid: !editForm.get('sign')!.invalid, invalid: editForm.get('sign')!.invalid }"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-control-label" jhiTranslate="jhipsterSampleApplicationApp.birthday.dob" for="field_dob">Date of Birth</label>
           <div class="d-flex">
             <input
-              id="field_date"
-              data-cy="date"
+              id="field_dob"
+              data-cy="dob"
               type="datetime-local"
               class="form-control"
-              name="date"
-              formControlName="date"
-              [ngClass]="{ valid: !editForm.get('date')!.invalid, invalid: editForm.get('date')!.invalid }"
+              name="dob"
+              formControlName="dob"
+              [ngClass]="{ valid: !editForm.get('dob')!.invalid, invalid: editForm.get('dob')!.invalid }"
             />
           </div>
-          <div *ngIf="editForm.get('date')!.invalid && (editForm.get('date')!.dirty || editForm.get('date')!.touched)">
-            <small class="form-text text-danger" *ngIf="editForm.get('date')?.errors?.required" jhiTranslate="entity.validation.required">
+          <div *ngIf="editForm.get('dob')!.invalid && (editForm.get('dob')!.dirty || editForm.get('dob')!.touched)">
+            <small class="form-text text-danger" *ngIf="editForm.get('dob')?.errors?.required" jhiTranslate="entity.validation.required">
               This field is required.
             </small>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-control-label" jhiTranslate="jhipsterSampleApplicationApp.birthday.description" for="field_description">Description</label>
-          <input
-            type="text"
-            class="form-control"
-            name="description"
-            id="field_description"
-            data-cy="description"
-            formControlName="description"
-            [ngClass]="{ valid: !editForm.get('description')!.invalid, invalid: editForm.get('description')!.invalid }"
-          />
+          <label class="form-control-label" jhiTranslate="jhipsterSampleApplicationApp.birthday.isAlive" for="field_isAlive">Is Alive</label>
+          <div class="custom-control custom-checkbox">
+            <input
+              type="checkbox"
+              class="custom-control-input"
+              id="field_isAlive"
+              name="isAlive"
+              formControlName="isAlive"
+              data-cy="isAlive"
+            />
+            <label class="custom-control-label" for="field_isAlive">Yes</label>
+          </div>
+          <div *ngIf="editForm.get('isAlive')!.invalid && (editForm.get('isAlive')!.dirty || editForm.get('isAlive')!.touched)">
+            <small class="form-text text-danger" *ngIf="editForm.get('isAlive')?.errors?.required" jhiTranslate="entity.validation.required">
+              This field is required.
+            </small>
+          </div>
         </div>
       </div>
 

@@ -21,9 +21,11 @@ export class BirthdayUpdateComponent implements OnInit {
 
   editForm = this.fb.group({
     id: [undefined as string | null | undefined],
-    name: [undefined as string | null | undefined, [Validators.required]],
-    date: [undefined as Date | null | undefined, [Validators.required]],
-    description: [undefined as string | null | undefined],
+    lname: [undefined as string | null | undefined, [Validators.required]],
+    fname: [undefined as string | null | undefined, [Validators.required]],
+    sign: [undefined as string | null | undefined],
+    dob: [undefined as Date | null | undefined, [Validators.required]],
+    isAlive: [undefined as boolean | null | undefined, [Validators.required]],
   });
 
   constructor(
@@ -74,23 +76,29 @@ export class BirthdayUpdateComponent implements OnInit {
   protected updateForm(birthday: IBirthday): void {
     this.editForm.patchValue({
       id: birthday.id as string | null | undefined,
-      name: birthday.name as string | null | undefined,
-      date: birthday.date as Date | null | undefined,
-      description: birthday.description as string | null | undefined,
+      lname: birthday.lname as string | null | undefined,
+      fname: birthday.fname as string | null | undefined,
+      sign: birthday.sign as string | null | undefined,
+      dob: birthday.dob as Date | null | undefined,
+      isAlive: birthday.isAlive as boolean | null | undefined,
     });
   }
 
   protected createFromForm(): IBirthday {
     const birthday = new Birthday();
     const id = this.editForm.get(['id'])!.value;
-    const name = this.editForm.get(['name'])!.value;
-    const date = this.editForm.get(['date'])!.value;
-    const description = this.editForm.get(['description'])!.value;
+    const lname = this.editForm.get(['lname'])!.value;
+    const fname = this.editForm.get(['fname'])!.value;
+    const sign = this.editForm.get(['sign'])!.value;
+    const dob = this.editForm.get(['dob'])!.value;
+    const isAlive = this.editForm.get(['isAlive'])!.value;
 
     birthday.id = id ?? undefined;
-    birthday.name = name ?? undefined;
-    birthday.date = date ?? undefined;
-    birthday.description = description ?? undefined;
+    birthday.lname = lname ?? undefined;
+    birthday.fname = fname ?? undefined;
+    birthday.sign = sign ?? undefined;
+    birthday.dob = dob ?? undefined;
+    birthday.isAlive = isAlive ?? undefined;
 
     return birthday;
   }
