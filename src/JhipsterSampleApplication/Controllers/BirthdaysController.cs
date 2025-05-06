@@ -236,8 +236,7 @@ namespace JhipsterSampleApplication.Controllers
             {
                 Hits = birthdayDtos
             };
-
-            Response.Headers.Add("X-Total-Count", response.Total.ToString());
+            Response.Headers["X-Total-Count"] = response.Total.ToString();
             return Ok(result);
         }
 

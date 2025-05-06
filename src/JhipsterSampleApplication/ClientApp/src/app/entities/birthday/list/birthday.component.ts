@@ -51,7 +51,7 @@ export class BirthdayComponent implements OnInit {
         sort: this.sort(),
       })
       .subscribe({
-        next: (res: HttpResponse<IBirthday[]>) => {
+        next: (res: HttpResponse<{ hits: IBirthday[] }>) => {
           this.isLoading = false;
           this.onSuccess(res.body, res.headers, pageToLoad, !dontNavigate);
         },
@@ -104,9 +104,10 @@ export class BirthdayComponent implements OnInit {
     });
   }
 
-  protected onSuccess(data: IBirthday[] | null, headers: HttpHeaders, page: number, navigate: boolean): void {
+  protected onSuccess(data: { hits: IBirthday[] } | null, headers: HttpHeaders, page: number, navigate: boolean): void {
     this.totalItems = Number(headers.get('X-Total-Count'));
     this.page = page;
+    this.birthdays = data?.hits ?? [];
     if (navigate) {
       this.router.navigate(['/birthday'], {
         queryParams: {
@@ -116,7 +117,6 @@ export class BirthdayComponent implements OnInit {
         },
       });
     }
-    this.birthdays = data ?? [];
     this.ngbPaginationPage = this.page;
   }
 
