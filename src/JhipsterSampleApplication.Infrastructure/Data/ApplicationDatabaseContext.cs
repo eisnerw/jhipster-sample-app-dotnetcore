@@ -12,33 +12,28 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JhipsterSampleApplication.Infrastructure.Data
 {
-    public class ApplicationDatabaseContext : IdentityDbContext<
+    public class ApplicationDatabaseContext(DbContextOptions<ApplicationDatabaseContext> options, IHttpContextAccessor httpContextAccessor) : IdentityDbContext<
         User, Role, string,
         IdentityUserClaim<string>,
         UserRole,
         IdentityUserLogin<string>,
         IdentityRoleClaim<string>,
         IdentityUserToken<string>
-    >
+    >(options)
     {
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
-        public ApplicationDatabaseContext(DbContextOptions<ApplicationDatabaseContext> options, IHttpContextAccessor httpContextAccessor) : base(options)
-        {
-            _httpContextAccessor = httpContextAccessor;
-        }
-
-        public DbSet<Country> Countries { get; set; }
-        public DbSet<Department> Departments { get; set; }
-        public DbSet<Employee> Employees { get; set; }
-        public DbSet<Job> Jobs { get; set; }
-        public DbSet<JobHistory> JobHistories { get; set; }
-        public DbSet<Location> Locations { get; set; }
-        public DbSet<PieceOfWork> PieceOfWorks { get; set; }
-        public DbSet<Region> Regions { get; set; }
-        public DbSet<TimeSheet> TimeSheets { get; set; }
-        public DbSet<TimeSheetEntry> TimeSheetEntries { get; set; }
-        public DbSet<Category> Categories { get; set; }
+        public required DbSet<Country> Countries { get; set; }
+        public required DbSet<Department> Departments { get; set; }
+        public required DbSet<Employee> Employees { get; set; }
+        public required DbSet<Job> Jobs { get; set; }
+        public required DbSet<JobHistory> JobHistories { get; set; }
+        public required DbSet<Location> Locations { get; set; }
+        public required DbSet<PieceOfWork> PieceOfWorks { get; set; }
+        public required DbSet<Region> Regions { get; set; }
+        public required DbSet<TimeSheet> TimeSheets { get; set; }
+        public required DbSet<TimeSheetEntry> TimeSheetEntries { get; set; }
+        public required DbSet<Category> Categories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -108,9 +103,9 @@ namespace JhipsterSampleApplication.Infrastructure.Data
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            var entries = ChangeTracker
+            IEnumerable<Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry> entries = ChangeTracker
               .Entries()
               .Where(e => e.Entity is IAuditedEntityBase && (
                   e.State == EntityState.Added
@@ -118,7 +113,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data
 
             string modifiedOrCreatedBy = _httpContextAccessor?.HttpContext?.User?.Identity?.Name ?? "System";
 
-            foreach (var entityEntry in entries)
+            foreach (Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entityEntry in entries)
             {
                 if (entityEntry.State == EntityState.Added)
                 {
