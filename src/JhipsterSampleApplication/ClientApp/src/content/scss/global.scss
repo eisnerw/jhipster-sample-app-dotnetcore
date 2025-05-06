@@ -1,10 +1,18 @@
-@import 'bootstrap-variables';
-@import 'bootstrap/scss/functions';
-@import 'bootstrap/scss/variables';
+// Optional: your own variable overrides before loading Bootstrap
+@use 'bootstrap-variables' as *;
+
+// Correct: use Bootstrap entrypoint and optionally override variables here
+@use "bootstrap" with (
+  // Example override (if defined in bootstrap-variables)
+  $dropdown-link-hover-color: $dropdown-link-hover-color
+);
+
+// Use Bootstrap variables via namespace
+@use "bootstrap" as bs;
 
 /* ==============================================================
-Bootstrap tweaks
-===============================================================*/
+   Bootstrap tweaks
+=============================================================== */
 
 body,
 h1,
@@ -14,34 +22,31 @@ h4 {
   font-weight: 300;
 }
 
-/* Increase contrast of links to get 100% on Lighthouse Accessibility Audit. Override this color if you want to change the link color, or use a Bootswatch theme */
 a {
   color: #533f03;
   font-weight: bold;
 }
 
-/* override hover color for dropdown-item forced by bootstrap to all a:not([href]):not([tabindex]) elements in _reboot.scss */
 a:not([href]):not([tabindex]):hover.dropdown-item {
-  color: $dropdown-link-hover-color;
+  color: bs.$dropdown-link-hover-color;
 }
 
-/* override .dropdown-item.active background-color on hover */
+/* 🛠 Cannot use mix() on CSS vars — fallback to one variable or hardcoded value */
 .dropdown-item.active:hover {
-  background-color: mix($dropdown-link-hover-bg, $dropdown-link-active-bg, 50%);
+  background-color: bs.$dropdown-link-hover-bg; // or a custom color like #f0f0f0
 }
 
 a:hover {
   color: #533f03;
-  /* make sure browsers use the pointer cursor for anchors, even with no href */
   cursor: pointer;
 }
 
 .dropdown-item:hover {
-  color: $dropdown-link-hover-color;
+  color: bs.$dropdown-link-hover-color;
 }
 
 /* ==========================================================================
-Browser Upgrade Prompt
+   Browser Upgrade Prompt
 ========================================================================== */
 .browserupgrade {
   margin: 0.2em 0;
@@ -51,10 +56,8 @@ Browser Upgrade Prompt
 }
 
 /* ==========================================================================
-Generic styles
+   Generic styles
 ========================================================================== */
-
-/* Error highlight on input fields */
 .ng-valid[required],
 .ng-valid.required {
   border-left: 5px solid green;
@@ -63,8 +66,6 @@ Generic styles
 .ng-invalid:not(form) {
   border-left: 5px solid red;
 }
-
-/* other generic styles */
 
 .jh-card {
   padding: 1.5%;
@@ -113,11 +114,12 @@ Generic styles
 }
 
 /* ==========================================================================
-Custom alerts for notification
+   Custom alerts for notification
 ========================================================================== */
 .alerts {
   .alert {
     text-overflow: ellipsis;
+
     pre {
       background: none;
       border: none;
@@ -126,22 +128,28 @@ Custom alerts for notification
       padding: 0;
       margin: 0;
     }
+
     .popover pre {
       font-size: 10px;
     }
   }
+
   .jhi-toast {
     position: fixed;
     width: 100%;
+
     &.left {
       left: 5px;
     }
+
     &.right {
       right: 5px;
     }
+
     &.top {
       top: 55px;
     }
+
     &.bottom {
       bottom: 55px;
     }
@@ -155,15 +163,14 @@ Custom alerts for notification
 }
 
 /* ==========================================================================
-entity list page css
+   Entity list page
 ========================================================================== */
-
 .table-entities thead th .d-flex > * {
   margin: auto 0;
 }
 
 /* ==========================================================================
-entity detail page css
+   Entity detail page
 ========================================================================== */
 .row-md.jh-entity-details {
   display: grid;
@@ -183,6 +190,7 @@ entity detail page css
       white-space: nowrap;
       padding: 0.5em 0;
     }
+
     dd {
       border-bottom: 1px solid #eee;
       padding: 0.5em 0;
@@ -192,7 +200,7 @@ entity detail page css
 }
 
 /* ==========================================================================
-ui bootstrap tweaks
+   UI Bootstrap tweaks
 ========================================================================== */
 .nav,
 .pagination,
@@ -213,19 +221,15 @@ ui bootstrap tweaks
 }
 
 /* ==========================================================================
-angular-cli removes postcss-rtl processed inline css, processed rules must be added here instead
+   RTL patch (inline style patching)
 ========================================================================== */
-/* page-ribbon.component.scss */
 .ribbon {
   left: -3.5em;
-  -moz-transform: rotate(-45deg);
-  -ms-transform: rotate(-45deg);
-  -o-transform: rotate(-45deg);
-  -webkit-transform: rotate(-45deg);
   transform: rotate(-45deg);
+  -webkit-transform: rotate(-45deg);
 }
 
-/* navbar.component.scss */
+/* navbar.component.scss tweaks */
 .navbar {
   ul.navbar-nav {
     .nav-item {
@@ -233,4 +237,5 @@ angular-cli removes postcss-rtl processed inline css, processed rules must be ad
     }
   }
 }
-/* jhipster-needle-scss-add-main JHipster will add new css style */
+
+/* jhipster-needle-scss-add-main */

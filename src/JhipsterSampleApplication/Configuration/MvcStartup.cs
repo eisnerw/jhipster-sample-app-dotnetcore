@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using System.IO;
 
 namespace JhipsterSampleApplication.Configuration;
 
@@ -53,10 +54,22 @@ public static class WebConfiguration
 
 
         app.UseHealthChecks("/health");
+        app.Use(async (context, next) =>
+        {
+            if (!context.Request.Path.StartsWithSegments("/api") &&
+                !context.Request.Path.StartsWithSegments("/management") &&
+                !context.Request.Path.StartsWithSegments("/swagger") &&
+                !Path.HasExtension(context.Request.Path.Value))
+            {
+                context.Request.Path = "/";
+            }
 
-        app.UseSpa(spa =>
+            await next();
+        }); 
+       app.UseSpa(spa =>
         {
             spa.Options.SourcePath = "ClientApp";
+            spa.UseProxyToSpaDevelopmentServer("http://localhost:9000");
         });
         if (!env.IsDevelopment())
         {

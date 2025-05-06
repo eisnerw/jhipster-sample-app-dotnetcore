@@ -34,10 +34,18 @@ In ./src/JhipsterSampleApplication/ClientApp run
 
 We use npm scripts and [Webpack][] as our build system.
 
+A development index.html needs to be in the ClientApp/dist directory.  This can be accompished by doing a dotnet build and then deleting everything except index.html from the dist directory
+
+In development, Dotnet should be built without building the UI
+
+    dotnet build  -p:SkipClientBuild=true
+
 Run the following commands in two separate terminals to create a blissful development experience where your browser
 auto-refreshes when files change on your hard drive.
 
     npm --prefix ./src/JhipsterSampleApplication/ClientApp start
+    dotnet run --environment Development --no-build --project ./src/JhipsterSampleApplication/JhipsterSampleApplication.csproj 
+
 
 npm is also used to manage CSS and JavaScript dependencies used in this application. You can upgrade dependencies by
 specifying a newer version in [package.json](package.json). You can also run `npm update` and `npm install` to manage dependencies.

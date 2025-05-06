@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using JhipsterSampleApplication.Dto.ProfileInfo;
+using System.IO;
 
 namespace JhipsterSampleApplication.Controllers;
 
@@ -28,6 +29,13 @@ public class ProfileInfoController : ControllerBase
     {
         _log.LogDebug("REST request to get profile informations");
         return Ok(new ProfileInfoDto(GetDisplayRibbonOnProfiles(), GetActiveProfile()));
+    }
+
+    [HttpGet("jhiopenapigroups")]
+    public IActionResult Index()
+    {
+        var filePath = System.IO.Path.Combine(Path.Combine(Directory.GetCurrentDirectory(), "ClientApp", "dist"), "index.html");
+        return PhysicalFile(filePath, "text/html");
     }
 
     private List<string> GetActiveProfile()
