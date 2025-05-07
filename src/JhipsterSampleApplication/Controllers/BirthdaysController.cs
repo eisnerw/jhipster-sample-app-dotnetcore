@@ -12,6 +12,7 @@ using Newtonsoft.Json.Linq;
 using System.Linq;
 using System.IO;
 using JhipsterSampleApplication.Dto;
+using Microsoft.Extensions.Logging;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -21,13 +22,19 @@ namespace JhipsterSampleApplication.Controllers
     {
         private readonly IBirthdayService _birthdayService;       
         private readonly IElasticClient _elasticClient;
+        private readonly IBirthdayBqlService _bqlService;
+        private readonly ILogger<BirthdaysController> _log;
 
         public BirthdaysController(
             IBirthdayService birthdayService,
-            IElasticClient elasticClient)
+            IElasticClient elasticClient,
+            IBirthdayBqlService bqlService,
+            ILogger<BirthdaysController> log)
         {
             _birthdayService = birthdayService;
             _elasticClient = elasticClient;
+            _bqlService = bqlService;
+            _log = log;
         }
 
         public class SearchResult<T>
@@ -369,6 +376,60 @@ namespace JhipsterSampleApplication.Controllers
             }
 
             return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
+        }
+
+        /// <summary>
+        /// Converts a BQL query string to a Ruleset
+        /// </summary>
+        /// <param name="bqlQuery">The BQL query string to convert</param>
+        /// <returns>The converted Ruleset</returns>
+        [HttpPost("bql-to-ruleset")]
+        [ProducesResponseType(typeof(RulesetOrRuleDto), 200)]
+        [ProducesResponseType(400)]
+        public async Task<ActionResult<RulesetOrRuleDto>> ConvertBqlToRuleset([FromBody] string bqlQuery)
+        {
+            _log.LogDebug("REST request to convert BQL to Ruleset: {}", bqlQuery);
+            try
+            {
+                var ruleset = await _bqlService.Bql2Ruleset(bqlQuery);
+                return Ok(ruleset);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Error converting BQL to Ruleset");
+                return StatusCode(500, "An error occurred while converting BQL to Ruleset");
+            }
+        }
+
+        /// <summary>
+        /// Converts a Ruleset to a BQL query string
+        /// </summary>
+        /// <param name="ruleset">The Ruleset to convert</param>
+        /// <returns>The converted BQL query string</returns>
+        [HttpPost("ruleset-to-bql")]
+        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(400)]
+        public async Task<ActionResult<string>> ConvertRulesetToBql([FromBody] RulesetOrRuleDto ruleset)
+        {
+            _log.LogDebug("REST request to convert Ruleset to BQL");
+            try
+            {
+                var bqlQuery = await _bqlService.Ruleset2Bql(ruleset);
+                return Ok(bqlQuery);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Error converting Ruleset to BQL");
+                return StatusCode(500, "An error occurred while converting Ruleset to BQL");
+            }
         }
     }
 }
