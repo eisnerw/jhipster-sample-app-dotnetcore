@@ -64,6 +64,11 @@ namespace JhipsterSampleApplication.Controllers
             public string? Sort { get; set; }
         }
 
+        public class BqlQueryDto
+        {
+            public string Query { get; set; } = string.Empty;
+        }
+
         private RulesetOrRule ConvertDtoToModel(object dto)
         {
             var jObj = dto switch
@@ -381,35 +386,30 @@ namespace JhipsterSampleApplication.Controllers
         /// <summary>
         /// Converts a BQL query string to a Ruleset
         /// </summary>
-        /// <param name="query">The BQL query string to convert (e.g. "sign = \"aries\"")</param>
-        /// <param name="from">Starting index for pagination (default: 0)</param>
-        /// <param name="size">Number of results per page (default: 20)</param>
         /// <returns>The converted Ruleset</returns>
         /// <response code="200">Returns the converted Ruleset</response>
         /// <response code="400">If the query is invalid or empty</response>
-        [HttpGet("bql-to-ruleset")]
+        [HttpPost("bql-to-ruleset")]
+        [Consumes("text/plain")]
         [ProducesResponseType(typeof(RulesetOrRuleDto), 200)]
         [ProducesResponseType(400)]
         [Produces("application/json")]
-        public async Task<ActionResult<RulesetOrRuleDto>> ConvertBqlToRuleset(
-            [FromQuery(Name = "query")] string query,
-            [FromQuery(Name = "from")] int? from = 0,
-            [FromQuery(Name = "size")] int? size = 20)
+        public async Task<ActionResult<RulesetOrRuleDto>> ConvertBqlToRuleset([FromBody] string query)
         {
-            if (string.IsNullOrWhiteSpace(query))
-            {
-                return BadRequest(new { error = "The BQL query cannot be empty." });
-            }
-
             try
             {
+                if (string.IsNullOrWhiteSpace(query))
+                {
+                    return BadRequest("Query cannot be empty");
+                }
+
                 var ruleset = await _bqlService.Bql2Ruleset(query);
                 return Ok(ruleset);
             }
             catch (Exception ex)
             {
                 _log.LogError(ex, "Error converting BQL to ruleset");
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(ex.Message);
             }
         }
 

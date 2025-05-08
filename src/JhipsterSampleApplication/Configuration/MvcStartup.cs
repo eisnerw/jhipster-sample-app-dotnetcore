@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.IO;
+using JhipsterSampleApplication.Formatters;
 
 namespace JhipsterSampleApplication.Configuration;
 
@@ -22,7 +23,10 @@ public static class WebConfiguration
         //https://docs.microsoft.com/en-us/aspnet/core/host-and-deploy/health-checks?view=aspnetcore-2.2
         services.AddHealthChecks();
 
-        services.AddControllers(options => { options.ModelBinderProviders.Insert(0, new PageableBinderProvider()); })
+        services.AddControllers(options => { 
+            options.ModelBinderProviders.Insert(0, new PageableBinderProvider());
+            options.InputFormatters.Insert(0, new PlainTextInputFormatter());
+        })
         .AddNewtonsoftJson(options =>
         {
             options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
