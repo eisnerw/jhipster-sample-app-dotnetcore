@@ -381,27 +381,35 @@ namespace JhipsterSampleApplication.Controllers
         /// <summary>
         /// Converts a BQL query string to a Ruleset
         /// </summary>
-        /// <param name="bqlQuery">The BQL query string to convert</param>
+        /// <param name="query">The BQL query string to convert (e.g. "sign = \"aries\"")</param>
+        /// <param name="from">Starting index for pagination (default: 0)</param>
+        /// <param name="size">Number of results per page (default: 20)</param>
         /// <returns>The converted Ruleset</returns>
-        [HttpPost("bql-to-ruleset")]
+        /// <response code="200">Returns the converted Ruleset</response>
+        /// <response code="400">If the query is invalid or empty</response>
+        [HttpGet("bql-to-ruleset")]
         [ProducesResponseType(typeof(RulesetOrRuleDto), 200)]
         [ProducesResponseType(400)]
-        public async Task<ActionResult<RulesetOrRuleDto>> ConvertBqlToRuleset([FromBody] string bqlQuery)
+        [Produces("application/json")]
+        public async Task<ActionResult<RulesetOrRuleDto>> ConvertBqlToRuleset(
+            [FromQuery(Name = "query")] string query,
+            [FromQuery(Name = "from")] int? from = 0,
+            [FromQuery(Name = "size")] int? size = 20)
         {
-            _log.LogDebug("REST request to convert BQL to Ruleset: {}", bqlQuery);
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return BadRequest(new { error = "The BQL query cannot be empty." });
+            }
+
             try
             {
-                var ruleset = await _bqlService.Bql2Ruleset(bqlQuery);
+                var ruleset = await _bqlService.Bql2Ruleset(query);
                 return Ok(ruleset);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                _log.LogError(ex, "Error converting BQL to Ruleset");
-                return StatusCode(500, "An error occurred while converting BQL to Ruleset");
+                _log.LogError(ex, "Error converting BQL to ruleset");
+                return BadRequest(new { error = ex.Message });
             }
         }
 

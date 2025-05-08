@@ -176,11 +176,13 @@ public class BirthdayService : IBirthdayService, IGenericElasticSearchService<Bi
     /// </summary>
     /// <param name="rr">The ruleset to convert</param>
     /// <returns>A JObject containing the Elasticsearch query</returns>
-    private async Task<JObject> ConvertRulesetToElasticSearch(RulesetOrRule rr)
+    public async Task<JObject> ConvertRulesetToElasticSearch(RulesetOrRule rr)
     {
         if (rr.rules == null)
         {
             string stringValue = rr.value?.ToString() ?? string.Empty;
+            JObject query;
+            
             if (rr.@operator != null && rr.@operator.Contains("contains"))
             {
                 string regex = stringValue.ToLower().Replace(@"\", @"\\").Replace(@".", @"\.").Replace(@"*", @".*");
@@ -202,7 +204,7 @@ public class BirthdayService : IBirthdayService, IGenericElasticSearchService<Bi
                             }
                         };
                     }).ToList();
-                    return new JObject{
+                    query = new JObject{
                         {
                             "bool", new JObject{
                                 { "should", JArray.FromObject(lstRegexes) }
@@ -210,21 +212,24 @@ public class BirthdayService : IBirthdayService, IGenericElasticSearchService<Bi
                         }
                     };
                 }
-                return new JObject{
-                    {
-                        "regexp", new JObject{
-                            {
-                                rr.field + ".keyword", new JObject{
-                                    { "value", regex },
-                                    { "flags", "ALL" },
-                                    { "rewrite", "constant_score" }
+                else
+                {
+                    query = new JObject{
+                        {
+                            "regexp", new JObject{
+                                {
+                                    rr.field + ".keyword", new JObject{
+                                        { "value", regex },
+                                        { "flags", "ALL" },
+                                        { "rewrite", "constant_score" }
+                                    }
                                 }
                             }
                         }
-                    }
-                };
+                    };
+                }
             }
-            else if (rr.@operator != null && rr.@operator.Contains("="))
+            else if (rr.@operator != null && (rr.@operator.Contains("=") || rr.@operator.Contains("!=")))
             {
                 List<string> uniqueValues = (await GetUniqueFieldValuesAsync(rr.field + ".keyword")).ToList();
                 string valueToMatch = rr.value?.ToString() ?? string.Empty;
@@ -240,7 +245,7 @@ public class BirthdayService : IBirthdayService, IGenericElasticSearchService<Bi
                 }).ToList();
                 if (oredTerms.Count > 1)
                 {
-                    return new JObject{
+                    query = new JObject{
                         {
                             "bool", new JObject{
                                 { "should", JArray.FromObject(oredTerms) }
@@ -250,10 +255,14 @@ public class BirthdayService : IBirthdayService, IGenericElasticSearchService<Bi
                 }
                 else if (oredTerms.Count == 1)
                 {
-                    return oredTerms[0];
+                    query = oredTerms[0];
+                }
+                else
+                {
+                    query = new JObject();
                 }
             }
-            else if (rr.@operator != null && rr.@operator.Contains("in"))
+            else if (rr.@operator != null && (rr.@operator.Contains("in") || rr.@operator.Contains("!in")))
             {
                 List<string> uniqueValues = (await GetUniqueFieldValuesAsync(rr.field + ".keyword")).ToList();
                 List<string> caseSensitiveMatches = new List<string>();
@@ -267,7 +276,7 @@ public class BirthdayService : IBirthdayService, IGenericElasticSearchService<Bi
                         return agg.Concat(list).ToList();
                     }).ToList();
                 }
-                return new JObject{
+                query = new JObject{
                     {
                         "terms", new JObject{
                             { rr.field + ".keyword", JArray.FromObject(caseSensitiveMatches) }
@@ -275,7 +284,73 @@ public class BirthdayService : IBirthdayService, IGenericElasticSearchService<Bi
                     }
                 };
             }
+            else
+            {
+                query = new JObject();
+            }
+
+            // Handle NOT operators and not flag
+            if ((rr.@operator != null && (rr.@operator.StartsWith("!") || rr.@operator.Contains("!="))) || rr.not)
+            {
+                return new JObject
+                {
+                    {
+                        "bool", new JObject
+                        {
+                            { "must_not", query }
+                        }
+                    }
+                };
+            }
+
+            return query;
         }
-        return new JObject();
+        else
+        {
+            // Handle ruleset with multiple rules
+            var rules = new List<JObject>();
+            foreach (var rule in rr.rules)
+            {
+                var ruleQuery = await ConvertRulesetToElasticSearch(rule);
+                if (ruleQuery.Count > 0)
+                {
+                    rules.Add(ruleQuery);
+                }
+            }
+
+            if (rules.Count == 0)
+            {
+                return new JObject();
+            }
+
+            var boolQuery = new JObject();
+            if (rr.condition == "and")
+            {
+                boolQuery["must"] = JArray.FromObject(rules);
+            }
+            else
+            {
+                boolQuery["should"] = JArray.FromObject(rules);
+            }
+
+            // Handle NOT for rulesets
+            if (rr.not)
+            {
+                return new JObject
+                {
+                    {
+                        "bool", new JObject
+                        {
+                            { "must_not", boolQuery }
+                        }
+                    }
+                };
+            }
+
+            return new JObject
+            {
+                { "bool", boolQuery }
+            };
+        }
     }
 } 
