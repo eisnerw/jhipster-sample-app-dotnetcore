@@ -338,7 +338,7 @@ namespace JhipsterSampleApplication.Domain.Services
                     var values = tokens[index].TrimStart('(').TrimEnd(')')
                         .Split(',')
                         .Select(v => v.Trim().ToLower())
-                        .Where(v => IsValidValue(field, v))
+                        .Where(v => IsValidValue(field, v.StartsWith('"') && v.EndsWith('"') ? v.Substring(1, v.Length - 2) : v))
                         .Select(v => $"\"{v}\"")
                         .ToList();
 
@@ -358,7 +358,12 @@ namespace JhipsterSampleApplication.Domain.Services
             }
 
             // Handle single value
-            var value = tokens[index];
+            string value = tokens[index];
+            if (value.StartsWith('"') && value.EndsWith('"'))
+            {
+                value = value.Substring(1, value.Length - 2);
+            }
+
             if (!IsValidValue(field, value))
             {
                 return (false, index, new RulesetOrRuleDto());
@@ -388,11 +393,6 @@ namespace JhipsterSampleApplication.Domain.Services
 
         private bool IsValidValue(string field, string value)
         {
-            if (value.StartsWith("\"") && value.EndsWith("\""))
-            {
-                value = value.Trim('"');
-            }
-
             return field switch
             {
                 "isAlive" => value == "true" || value == "false",

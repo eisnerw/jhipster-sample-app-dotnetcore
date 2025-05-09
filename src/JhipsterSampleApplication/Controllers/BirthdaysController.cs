@@ -403,7 +403,7 @@ namespace JhipsterSampleApplication.Controllers
                     return BadRequest("Query cannot be empty");
                 }
 
-                var ruleset = await _bqlService.Bql2Ruleset(query);
+                var ruleset = await _bqlService.Bql2Ruleset(query.Trim());
                 return Ok(ruleset);
             }
             catch (Exception ex)
