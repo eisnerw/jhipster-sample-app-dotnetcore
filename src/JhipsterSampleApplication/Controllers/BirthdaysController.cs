@@ -371,5 +371,49 @@ namespace JhipsterSampleApplication.Controllers
                 return StatusCode(500, "An error occurred while converting Ruleset to Elasticsearch query");
             }
         }
+
+        /// <summary>
+        /// Search birthdays using BQL query with pagination (BQL in plain text body)
+        /// </summary>
+        /// <param name="from">The starting index for pagination</param>
+        /// <param name="size">The number of documents to return</param>
+        /// <returns>The search response containing Birthday documents</returns>
+        [HttpPost("search/bql")]
+        [Consumes("text/plain")]
+        [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
+        public async Task<IActionResult> SearchWithBqlPlainText(
+            [FromBody] string bqlQuery,
+            [FromQuery] int from = 0,
+            [FromQuery] int size = 20)
+        {
+            if (string.IsNullOrWhiteSpace(bqlQuery))
+                return BadRequest("Query cannot be empty");
+            try
+            {
+                var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
+                var ruleset = _mapper.Map<RulesetOrRule>(rulesetDto);
+                var response = await _birthdayService.SearchWithRulesetAsync(ruleset, size);
+                var birthdayDtos = response.Hits
+                    .Skip(from)
+                    .Take(size)
+                    .Select(hit => new BirthdayDto
+                    {
+                        Id = hit.Id,
+                        Text = hit.Source.Text,
+                        Lname = hit.Source.Lname,
+                        Fname = hit.Source.Fname,
+                        Sign = hit.Source.Sign,
+                        Dob = hit.Source.Dob,
+                        IsAlive = hit.Source.IsAlive ?? false,
+                        Wikipedia = hit.Source.Wikipedia
+                    }).ToList();
+                return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Error searching birthdays with BQL query");
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }
