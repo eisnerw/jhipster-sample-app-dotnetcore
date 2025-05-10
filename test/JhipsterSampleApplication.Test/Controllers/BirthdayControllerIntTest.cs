@@ -93,7 +93,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             luceneResult.Hits.First().Lname.Should().Be(_birthdayDto.Lname);
             Console.WriteLine($"<><><><><>Lucene response: {luceneContent}");
 
-            // 4. Search with raw query (POST /api/Birthdays/search/raw)
+            // 4. Search with raw query (POST /api/Birthdays/search/elasticsearch)
             Console.WriteLine($"<><><><><>Starting RAW test");
             var rawQuery = new
             {
@@ -106,7 +106,7 @@ namespace JhipsterSampleApplication.Test.Controllers
                 }
             };
             var rawResponse = await _client.PostAsync(
-                "/api/Birthdays/search/raw",
+                "/api/Birthdays/search/elasticsearch",
                 TestUtil.ToJsonContent(rawQuery));
             rawResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var rawContent = await rawResponse.Content.ReadAsStringAsync();
@@ -115,7 +115,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             rawResult.Hits.First().Lname.Should().Be(_birthdayDto.Lname);
             Console.WriteLine($"<><><><><>Lucene response: {rawContent}");
 
-            // 5. Search with ruleset (POST /api/Birthdays/search)
+            // 5. Search with ruleset (POST /api/Birthdays/search/ruleset)
             Console.WriteLine($"<><><><><>Starting RULE test");
             var rulesetQuery = new RulesetOrRule()
             {
@@ -124,7 +124,7 @@ namespace JhipsterSampleApplication.Test.Controllers
                 value = _birthdayDto.Lname
             };
             var rulesetResponse = await _client.PostAsync(
-                "/api/Birthdays/search",
+                "/api/Birthdays/search/ruleset",
                 TestUtil.ToJsonContent(rulesetQuery));
             rulesetResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var rulesetContent = await rulesetResponse.Content.ReadAsStringAsync();

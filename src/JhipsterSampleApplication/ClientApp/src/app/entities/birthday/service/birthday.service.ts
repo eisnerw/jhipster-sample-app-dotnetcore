@@ -14,6 +14,7 @@ export type EntityArrayResponseType = HttpResponse<{ hits: IBirthday[] }>;
 export class BirthdayService {
   protected resourceUrl = this.applicationConfigService.getEndpointFor('api/birthdays');
   protected searchUrl = this.applicationConfigService.getEndpointFor('api/birthdays/search/lucene');
+  protected rulesetSearchUrl = this.applicationConfigService.getEndpointFor('api/birthdays/search/ruleset');
 
   constructor(
     protected http: HttpClient,
@@ -40,6 +41,10 @@ export class BirthdayService {
       params: options,
       observe: 'response',
     });
+  }
+
+  searchWithRuleset(ruleset: any): Observable<EntityArrayResponseType> {
+    return this.http.post<{ hits: IBirthday[] }>(this.rulesetSearchUrl, ruleset, { observe: 'response' });
   }
 
   delete(id: string): Observable<HttpResponse<{}>> {

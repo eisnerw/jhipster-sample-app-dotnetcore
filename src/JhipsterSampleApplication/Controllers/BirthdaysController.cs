@@ -73,8 +73,17 @@ namespace JhipsterSampleApplication.Controllers
             public string Query { get; set; } = string.Empty;
         }
 
-        [HttpPost("search")]
+        /// <summary>
+        /// Search birthdays using a ruleset
+        /// </summary>
+        /// <param name="rulesetDto">The ruleset to use for searching</param>
+        /// <param name="size">The maximum number of results to return</param>
+        /// <returns>The search response containing Birthday documents</returns>
+        /// <response code="200">Returns the list of matching birthdays</response>
+        /// <response code="400">If the ruleset is invalid</response>
+        [HttpPost("search/ruleset")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
+        [ProducesResponseType(400)]
         public async Task<IActionResult> Search([FromBody] RulesetOrRuleDto rulesetDto, [FromQuery] int size = 10000)
         {
             var ruleset = _mapper.Map<RulesetOrRule>(rulesetDto);
@@ -251,8 +260,16 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(dto);
         }
 
-        [HttpPost("search/raw")]
+        /// <summary>
+        /// Search birthdays using a raw Elasticsearch query
+        /// </summary>
+        /// <param name="elasticsearchQuery">The raw Elasticsearch query to execute</param>
+        /// <returns>The search response containing Birthday documents</returns>
+        /// <response code="200">Returns the list of matching birthdays</response>
+        /// <response code="400">If the query is invalid</response>
+        [HttpPost("search/elasticsearch")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
+        [ProducesResponseType(400)]
         public async Task<IActionResult> Search([FromBody] object elasticsearchQuery)
         {
             // Set default parameters
