@@ -164,17 +164,33 @@ public class BirthdayService : IBirthdayService
     /// </summary>
     /// <param name="ruleset">The ruleset to use for searching</param>
     /// <param name="size">The maximum number of results to return</param>
+    /// <param name="from">The starting index for pagination</param>
+    /// <param name="sort">The sort descriptor for the search</param>
     /// <returns>The search response containing Birthday documents</returns>
-    public async Task<ISearchResponse<Birthday>> SearchWithRulesetAsync(RulesetOrRule ruleset, int size = 10000)
+    public async Task<ISearchResponse<Birthday>> SearchWithRulesetAsync(RulesetOrRule ruleset, int size = 20, int from = 0, IList<ISort>? sort = null)
     {
         var queryObject = await ConvertRulesetToElasticSearch(ruleset);
         string query = queryObject.ToString();
         var searchRequest = new SearchRequest<Birthday>
         {
             Size = size,
-            From = 0,
+            From = from,
             Query = new QueryContainerDescriptor<Birthday>().Raw(query)
         };
+
+        if (sort != null && sort.Any())
+        {
+            searchRequest.Sort = sort;
+        }
+        else
+        {
+            // Default sort by _id if no sort is provided
+            searchRequest.Sort = new List<ISort>
+            {
+                new FieldSort { Field = "_id", Order = SortOrder.Ascending }
+            };
+        }
+
         return await SearchAsync(searchRequest);     
     }
 

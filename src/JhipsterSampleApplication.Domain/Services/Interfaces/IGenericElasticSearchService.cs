@@ -14,7 +14,7 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
         Task<UpdateResponse<T>> UpdateAsync(string id, T document);
         Task<DeleteResponse> DeleteAsync(string id);
         Task<List<string>> GetUniqueFieldValuesAsync(string field);
-        Task<ISearchResponse<T>> SearchWithRulesetAsync(RulesetOrRule ruleset, int size = 10000);
+        Task<ISearchResponse<T>> SearchWithRulesetAsync(RulesetOrRule ruleset, int size = 20, int from = 0, IList<ISort>? sort = null);
         Task<JObject> ConvertRulesetToElasticSearch(RulesetOrRule rr);
     }
 

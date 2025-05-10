@@ -153,10 +153,29 @@ namespace JhipsterSampleApplication.Controllers
         [HttpPost("search/ruleset")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> Search([FromBody] RulesetOrRuleDto rulesetDto, [FromQuery] int pageSize = 10000)
+        public async Task<IActionResult> Search([FromBody] RulesetOrRuleDto rulesetDto, 
+            [FromQuery] int pageSize = 20,
+            [FromQuery] int from = 0,
+            [FromQuery] string? sort = null)
         {
             var ruleset = _mapper.Map<RulesetOrRule>(rulesetDto);
-            var response = await _birthdayService.SearchWithRulesetAsync(ruleset, pageSize);
+            
+            // Build sort descriptor
+            var sortDescriptor = new List<ISort>();
+            if (!string.IsNullOrEmpty(sort))
+            {
+                var sortParts = sort.Split(':');
+                if (sortParts.Length == 2)
+                {
+                    var field = sortParts[0];
+                    var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
+                    sortDescriptor.Add(new FieldSort { Field = field, Order = order });
+                }
+            }
+            // Always add _id as the last sort field for consistent pagination
+            sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
+
+            var response = await _birthdayService.SearchWithRulesetAsync(ruleset, pageSize, from, sortDescriptor);
 
             var birthdayDtos = response.Hits.Select(hit => new BirthdayDto
             {
@@ -179,15 +198,34 @@ namespace JhipsterSampleApplication.Controllers
         [HttpPost("search/elasticsearch")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> Search([FromBody] object elasticsearchQuery)
+        public async Task<IActionResult> Search([FromBody] object elasticsearchQuery,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] int from = 0,
+            [FromQuery] string? sort = null)
         {
             var searchRequest = new SearchRequest<Birthday>
             {
-                Size = 10000,
-                From = 0
+                Size = pageSize,
+                From = from
             };
             
-            searchRequest.Query = new QueryContainerDescriptor<Birthday>().Raw(elasticsearchQuery.ToString());                
+            // Build sort descriptor
+            var sortDescriptor = new List<ISort>();
+            if (!string.IsNullOrEmpty(sort))
+            {
+                var sortParts = sort.Split(':');
+                if (sortParts.Length == 2)
+                {
+                    var field = sortParts[0];
+                    var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
+                    sortDescriptor.Add(new FieldSort { Field = field, Order = order });
+                }
+            }
+            // Always add _id as the last sort field for consistent pagination
+            sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
+            
+            searchRequest.Query = new QueryContainerDescriptor<Birthday>().Raw(elasticsearchQuery.ToString());
+            searchRequest.Sort = sortDescriptor;
             var response = await _birthdayService.SearchAsync(searchRequest);
 
             var birthdayDtos = new List<BirthdayDto>();
@@ -219,8 +257,9 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(400)]
         public async Task<IActionResult> SearchWithBqlPlainText(
             [FromBody] string bqlQuery,
+            [FromQuery] int pageSize = 20,
             [FromQuery] int from = 0,
-            [FromQuery] int pageSize = 20)
+            [FromQuery] string? sort = null)
         {
             if (string.IsNullOrWhiteSpace(bqlQuery))
                 return BadRequest("Query cannot be empty");
@@ -228,10 +267,24 @@ namespace JhipsterSampleApplication.Controllers
             {
                 var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
                 var ruleset = _mapper.Map<RulesetOrRule>(rulesetDto);
-                var response = await _birthdayService.SearchWithRulesetAsync(ruleset, pageSize);
+
+                // Build sort descriptor
+                var sortDescriptor = new List<ISort>();
+                if (!string.IsNullOrEmpty(sort))
+                {
+                    var sortParts = sort.Split(':');
+                    if (sortParts.Length == 2)
+                    {
+                        var field = sortParts[0];
+                        var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
+                        sortDescriptor.Add(new FieldSort { Field = field, Order = order });
+                    }
+                }
+                // Always add _id as the last sort field for consistent pagination
+                sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
+
+                var response = await _birthdayService.SearchWithRulesetAsync(ruleset, pageSize, from, sortDescriptor);
                 var birthdayDtos = response.Hits
-                    .Skip(from)
-                    .Take(pageSize)
                     .Select(hit => new BirthdayDto
                     {
                         Id = hit.Id,
