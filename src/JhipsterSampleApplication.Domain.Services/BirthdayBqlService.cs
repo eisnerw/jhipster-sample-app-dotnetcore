@@ -302,7 +302,7 @@ namespace JhipsterSampleApplication.Domain.Services
                     {
                         field = "document",
                         @operator = "contains",
-                        value = docValue
+                        value = docValue ?? string.Empty
                     });
                 }
                 return (false, index, new RulesetOrRuleDto());
@@ -360,7 +360,7 @@ namespace JhipsterSampleApplication.Domain.Services
                     {
                         field = field,
                         @operator = op.ToLower(),
-                        value = values
+                        value = values ?? new List<string>()
                     });
                 }
                 return (false, index, new RulesetOrRuleDto());
@@ -382,7 +382,7 @@ namespace JhipsterSampleApplication.Domain.Services
             {
                 field = field,
                 @operator = op.ToLower(),
-                value = value
+                value = value ?? string.Empty
             });
         }
 
