@@ -13,7 +13,7 @@ public static class SwaggerConfiguration
         services.AddSwaggerGen(c =>
         {
             c.SwaggerDoc("v3", new OpenApiInfo { Title = "JhipsterSampleApplication API", Version = "0.0.1" });
-            c.OperationFilter<PageableModelFilter>();
+            // c.OperationFilter<PageableModelFilter>(); // Removed to prevent unwanted parameters
         });
 
         return services;

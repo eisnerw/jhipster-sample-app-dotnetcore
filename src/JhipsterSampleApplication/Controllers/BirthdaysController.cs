@@ -73,30 +73,78 @@ namespace JhipsterSampleApplication.Controllers
             public string Query { get; set; } = string.Empty;
         }
 
+        /// <summary>
+        /// Search birthdays using a Lucene query
+        /// </summary>
         [HttpGet("search/lucene")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
-        public async Task<IActionResult> SearchWithLuceneQuery([FromQuery] string query, [FromQuery] int? from = 0, [FromQuery] int? size = 20)
+        public async Task<IActionResult> SearchWithLuceneQuery(
+            [FromQuery] string query,
+            [FromQuery] int from = 0,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? sort = null)
         {
-            var response = await _birthdayService.SearchWithLuceneQueryAsync(query, from ?? 0, size ?? 20);
-
-            var birthdayDtos = response.Hits.Select(hit => new BirthdayDto
+            if (string.IsNullOrWhiteSpace(query))
             {
-                Id = hit.Id,
-                Text = hit.Source.Text,
-                Lname = hit.Source.Lname,
-                Fname = hit.Source.Fname,
-                Sign = hit.Source.Sign,
-                Dob = hit.Source.Dob,
-                IsAlive = hit.Source.IsAlive,
-                Wikipedia = hit.Source.Wikipedia
-            }).ToList();
+                return BadRequest("Query cannot be empty");
+            }
 
-            var result = new SearchResult<BirthdayDto>
+            try
             {
-                Hits = birthdayDtos
-            };
-            Response.Headers["X-Total-Count"] = response.Total.ToString();
-            return Ok(result);
+                var searchRequest = new SearchRequest<Birthday>
+                {
+                    From = from,
+                    Size = pageSize,
+                    Query = new QueryContainerDescriptor<Birthday>().QueryString(qs => qs.Query(query))
+                };
+
+                if (!string.IsNullOrEmpty(sort))
+                {
+                    var sortParts = sort.Split(':');
+                    if (sortParts.Length == 2)
+                    {
+                        var field = sortParts[0];
+                        var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
+                        searchRequest.Sort = new List<ISort>
+                        {
+                            new FieldSort { Field = field, Order = order }
+                        };
+                    }
+                }
+
+                var response = await _birthdayService.SearchAsync(searchRequest);
+
+                if (!response.IsValid)
+                {
+                    _log.LogError($"Invalid search response: {response.DebugInformation}");
+                    return BadRequest("Invalid search response");
+                }
+
+                var birthdayDtos = response.Hits.Select(hit => new BirthdayDto
+                {
+                    Id = hit.Id,
+                    Text = hit.Source.Text,
+                    Lname = hit.Source.Lname,
+                    Fname = hit.Source.Fname,
+                    Sign = hit.Source.Sign,
+                    Dob = hit.Source.Dob,
+                    IsAlive = hit.Source.IsAlive,
+                    Wikipedia = hit.Source.Wikipedia
+                }).ToList();
+
+                var result = new SearchResult<BirthdayDto>
+                {
+                    Hits = birthdayDtos
+                };
+
+                Response.Headers["X-Total-Count"] = response.Total.ToString();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Error searching birthdays with Lucene query");
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         /// <summary>
@@ -105,10 +153,10 @@ namespace JhipsterSampleApplication.Controllers
         [HttpPost("search/ruleset")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> Search([FromBody] RulesetOrRuleDto rulesetDto, [FromQuery] int size = 10000)
+        public async Task<IActionResult> Search([FromBody] RulesetOrRuleDto rulesetDto, [FromQuery] int pageSize = 10000)
         {
             var ruleset = _mapper.Map<RulesetOrRule>(rulesetDto);
-            var response = await _birthdayService.SearchWithRulesetAsync(ruleset, size);
+            var response = await _birthdayService.SearchWithRulesetAsync(ruleset, pageSize);
 
             var birthdayDtos = response.Hits.Select(hit => new BirthdayDto
             {
@@ -172,7 +220,7 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<IActionResult> SearchWithBqlPlainText(
             [FromBody] string bqlQuery,
             [FromQuery] int from = 0,
-            [FromQuery] int size = 20)
+            [FromQuery] int pageSize = 20)
         {
             if (string.IsNullOrWhiteSpace(bqlQuery))
                 return BadRequest("Query cannot be empty");
@@ -180,10 +228,10 @@ namespace JhipsterSampleApplication.Controllers
             {
                 var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
                 var ruleset = _mapper.Map<RulesetOrRule>(rulesetDto);
-                var response = await _birthdayService.SearchWithRulesetAsync(ruleset, size);
+                var response = await _birthdayService.SearchWithRulesetAsync(ruleset, pageSize);
                 var birthdayDtos = response.Hits
                     .Skip(from)
-                    .Take(size)
+                    .Take(pageSize)
                     .Select(hit => new BirthdayDto
                     {
                         Id = hit.Id,
