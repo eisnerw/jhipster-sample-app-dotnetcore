@@ -73,14 +73,35 @@ namespace JhipsterSampleApplication.Controllers
             public string Query { get; set; } = string.Empty;
         }
 
+        [HttpGet("search/lucene")]
+        [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
+        public async Task<IActionResult> SearchWithLuceneQuery([FromQuery] string query, [FromQuery] int? from = 0, [FromQuery] int? size = 20)
+        {
+            var response = await _birthdayService.SearchWithLuceneQueryAsync(query, from ?? 0, size ?? 20);
+
+            var birthdayDtos = response.Hits.Select(hit => new BirthdayDto
+            {
+                Id = hit.Id,
+                Text = hit.Source.Text,
+                Lname = hit.Source.Lname,
+                Fname = hit.Source.Fname,
+                Sign = hit.Source.Sign,
+                Dob = hit.Source.Dob,
+                IsAlive = hit.Source.IsAlive,
+                Wikipedia = hit.Source.Wikipedia
+            }).ToList();
+
+            var result = new SearchResult<BirthdayDto>
+            {
+                Hits = birthdayDtos
+            };
+            Response.Headers["X-Total-Count"] = response.Total.ToString();
+            return Ok(result);
+        }
+
         /// <summary>
         /// Search birthdays using a ruleset
         /// </summary>
-        /// <param name="rulesetDto">The ruleset to use for searching</param>
-        /// <param name="size">The maximum number of results to return</param>
-        /// <returns>The search response containing Birthday documents</returns>
-        /// <response code="200">Returns the list of matching birthdays</response>
-        /// <response code="400">If the ruleset is invalid</response>
         [HttpPost("search/ruleset")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
         [ProducesResponseType(400)]
@@ -102,6 +123,85 @@ namespace JhipsterSampleApplication.Controllers
             }).ToList();
 
             return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
+        }
+
+        /// <summary>
+        /// Search birthdays using a raw Elasticsearch query
+        /// </summary>
+        [HttpPost("search/elasticsearch")]
+        [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> Search([FromBody] object elasticsearchQuery)
+        {
+            var searchRequest = new SearchRequest<Birthday>
+            {
+                Size = 10000,
+                From = 0
+            };
+            
+            searchRequest.Query = new QueryContainerDescriptor<Birthday>().Raw(elasticsearchQuery.ToString());                
+            var response = await _birthdayService.SearchAsync(searchRequest);
+
+            var birthdayDtos = new List<BirthdayDto>();
+            foreach (var hit in response.Hits)
+            {
+                var b = hit.Source;
+                birthdayDtos.Add(new BirthdayDto
+                {
+                    Id = b.Id!,
+                    Lname = b.Lname,
+                    Fname = b.Fname,
+                    Sign = b.Sign,
+                    Dob = b.Dob,
+                    IsAlive = b.IsAlive,
+                    Text = b.Text,
+                    Wikipedia = b.Wikipedia
+                });
+            }
+
+            return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
+        }
+
+        /// <summary>
+        /// Search birthdays using a BQL query with pagination
+        /// </summary>
+        [HttpPost("search/bql")]
+        [Consumes("text/plain")]
+        [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> SearchWithBqlPlainText(
+            [FromBody] string bqlQuery,
+            [FromQuery] int from = 0,
+            [FromQuery] int size = 20)
+        {
+            if (string.IsNullOrWhiteSpace(bqlQuery))
+                return BadRequest("Query cannot be empty");
+            try
+            {
+                var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
+                var ruleset = _mapper.Map<RulesetOrRule>(rulesetDto);
+                var response = await _birthdayService.SearchWithRulesetAsync(ruleset, size);
+                var birthdayDtos = response.Hits
+                    .Skip(from)
+                    .Take(size)
+                    .Select(hit => new BirthdayDto
+                    {
+                        Id = hit.Id,
+                        Text = hit.Source.Text,
+                        Lname = hit.Source.Lname,
+                        Fname = hit.Source.Fname,
+                        Sign = hit.Source.Sign,
+                        Dob = hit.Source.Dob,
+                        IsAlive = hit.Source.IsAlive ?? false,
+                        Wikipedia = hit.Source.Wikipedia
+                    }).ToList();
+                return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Error searching birthdays with BQL query");
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpGet("{id}")]
@@ -210,32 +310,6 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(simpleResponse);
         }
 
-        [HttpGet("search/lucene")]
-        [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
-        public async Task<IActionResult> SearchWithLuceneQuery([FromQuery] string query, [FromQuery] int? from = 0, [FromQuery] int? size = 20)
-        {
-            var response = await _birthdayService.SearchWithLuceneQueryAsync(query, from ?? 0, size ?? 20);
-
-            var birthdayDtos = response.Hits.Select(hit => new BirthdayDto
-            {
-                Id = hit.Id,
-                Text = hit.Source.Text,
-                Lname = hit.Source.Lname,
-                Fname = hit.Source.Fname,
-                Sign = hit.Source.Sign,
-                Dob = hit.Source.Dob,
-                IsAlive = hit.Source.IsAlive,
-                Wikipedia = hit.Source.Wikipedia
-            }).ToList();
-
-            var result = new SearchResult<BirthdayDto>
-            {
-                Hits = birthdayDtos
-            };
-            Response.Headers["X-Total-Count"] = response.Total.ToString();
-            return Ok(result);
-        }
-
         [HttpGet("unique-values/{field}")]
         [ProducesResponseType(typeof(IReadOnlyCollection<string>), 200)]
         public async Task<IActionResult> GetUniqueFieldValues(string field)
@@ -258,49 +332,6 @@ namespace JhipsterSampleApplication.Controllers
                 ActivePrimaryShards = res.ActivePrimaryShards
             };
             return Ok(dto);
-        }
-
-        /// <summary>
-        /// Search birthdays using a raw Elasticsearch query
-        /// </summary>
-        /// <param name="elasticsearchQuery">The raw Elasticsearch query to execute</param>
-        /// <returns>The search response containing Birthday documents</returns>
-        /// <response code="200">Returns the list of matching birthdays</response>
-        /// <response code="400">If the query is invalid</response>
-        [HttpPost("search/elasticsearch")]
-        [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
-        [ProducesResponseType(400)]
-        public async Task<IActionResult> Search([FromBody] object elasticsearchQuery)
-        {
-            // Set default parameters
-            var searchRequest = new SearchRequest<Birthday>
-            {
-                Size = 10000,
-                From = 0
-            };
-            
-            // Parse the JSON and apply it to the search request
-            searchRequest.Query = new QueryContainerDescriptor<Birthday>().Raw(elasticsearchQuery.ToString());                
-            var response = await _birthdayService.SearchAsync(searchRequest);
-
-            var birthdayDtos = new List<BirthdayDto>();
-            foreach (var hit in response.Hits)
-            {
-                var b = hit.Source;
-                birthdayDtos.Add(new BirthdayDto
-                {
-                    Id = b.Id!,
-                    Lname = b.Lname,
-                    Fname = b.Fname,
-                    Sign = b.Sign,
-                    Dob = b.Dob,
-                    IsAlive = b.IsAlive,
-                    Text = b.Text,
-                    Wikipedia = b.Wikipedia
-                });
-            }
-
-            return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
         }
 
         /// <summary>
@@ -386,50 +417,6 @@ namespace JhipsterSampleApplication.Controllers
             {
                 _log.LogError(ex, "Error converting Ruleset to Elasticsearch query");
                 return StatusCode(500, "An error occurred while converting Ruleset to Elasticsearch query");
-            }
-        }
-
-        /// <summary>
-        /// Search birthdays using BQL query with pagination (BQL in plain text body)
-        /// </summary>
-        /// <param name="from">The starting index for pagination</param>
-        /// <param name="size">The number of documents to return</param>
-        /// <returns>The search response containing Birthday documents</returns>
-        [HttpPost("search/bql")]
-        [Consumes("text/plain")]
-        [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
-        public async Task<IActionResult> SearchWithBqlPlainText(
-            [FromBody] string bqlQuery,
-            [FromQuery] int from = 0,
-            [FromQuery] int size = 20)
-        {
-            if (string.IsNullOrWhiteSpace(bqlQuery))
-                return BadRequest("Query cannot be empty");
-            try
-            {
-                var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
-                var ruleset = _mapper.Map<RulesetOrRule>(rulesetDto);
-                var response = await _birthdayService.SearchWithRulesetAsync(ruleset, size);
-                var birthdayDtos = response.Hits
-                    .Skip(from)
-                    .Take(size)
-                    .Select(hit => new BirthdayDto
-                    {
-                        Id = hit.Id,
-                        Text = hit.Source.Text,
-                        Lname = hit.Source.Lname,
-                        Fname = hit.Source.Fname,
-                        Sign = hit.Source.Sign,
-                        Dob = hit.Source.Dob,
-                        IsAlive = hit.Source.IsAlive ?? false,
-                        Wikipedia = hit.Source.Wikipedia
-                    }).ToList();
-                return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
-            }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, "Error searching birthdays with BQL query");
-                return BadRequest(new { message = ex.Message });
             }
         }
     }
