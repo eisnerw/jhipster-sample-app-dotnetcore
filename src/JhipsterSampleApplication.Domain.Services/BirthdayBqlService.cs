@@ -34,7 +34,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 {
                     condition = "or",
                     not = false,
-                    rules = new List<object>()
+                    rules = new List<RulesetOrRuleDto>()
                 });
             }
 
@@ -43,7 +43,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 @"(?<=IN\s)(\(""(\\""|[^""])+""|\/(\\/|[^/]+\/)|[^""\s]+\s*)(,\s*(""(\\""|[^""])+""|[^""\s]+\s*))*\s*\)" +
                 @"|[()]" +
                 @"|(""(\\""|\\\\|[^""])+\""|\/(\\\/|[^\/])+\/i?" +
-                @"|sign|dob|lname|fname|isAlive|document)|(=|!=|CONTAINS|LIKE|EXISTS|!EXISTS|IN|!IN|>=|<=|>|<)|(&|\||!)|[^""/=!<>() ]+)\s*";
+                @"|sign|dob|lname|fname|isAlive|document)|(=|!=|CONTAINS|!CONTAINS|EXISTS|!EXISTS|IN|!IN|>=|<=|>|<)|(&|\||!)|[^""/=!<>() ]+)\s*";
             
             var regex = new Regex(regexString);
             var matches = regex.Matches(bqlQuery);
@@ -97,7 +97,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 return (false, index, new RulesetOrRuleDto());
             }
 
-            var rules = new List<object>();
+            var rules = new List<RulesetOrRuleDto>();
             var result = ParseParened(tokens, index, not);
             if (!result.matches)
             {
@@ -115,7 +115,7 @@ namespace JhipsterSampleApplication.Domain.Services
                     return (true, result.index, new RulesetOrRuleDto
                     {
                         condition = "or",
-                        rules = new List<object> { result.ruleset },
+                        rules = new List<RulesetOrRuleDto> { result.ruleset },
                         not = true
                     });
                 }
@@ -211,7 +211,7 @@ namespace JhipsterSampleApplication.Domain.Services
                         return (true, index + 1, new RulesetOrRuleDto
                         {
                             condition = "or",
-                            rules = new List<object> { ruleset },
+                            rules = new List<RulesetOrRuleDto> { ruleset },
                             not = true
                         });
                     }
@@ -236,7 +236,7 @@ namespace JhipsterSampleApplication.Domain.Services
                     result.ruleset = new RulesetOrRuleDto
                     {
                         condition = "or",
-                        rules = new List<object> { result.ruleset },
+                        rules = new List<RulesetOrRuleDto> { result.ruleset },
                         not = not
                     };
                 }
@@ -281,7 +281,16 @@ namespace JhipsterSampleApplication.Domain.Services
                     {
                         try
                         {
-                            new Regex(docValue.TrimStart('/').TrimEnd('i', '/'));
+                            var pattern = docValue.Substring(1); // Remove leading '/'
+                            if (pattern.EndsWith("/i"))
+                            {
+                                pattern = pattern.Substring(0, pattern.Length - 2); // Remove trailing '/i'
+                            }
+                            else if (pattern.EndsWith("/"))
+                            {
+                                pattern = pattern.Substring(0, pattern.Length - 1); // Remove trailing '/'
+                            }
+                            new Regex(pattern);
                         }
                         catch
                         {
@@ -335,7 +344,7 @@ namespace JhipsterSampleApplication.Domain.Services
             {
                 if (tokens[index].StartsWith("(") && tokens[index].EndsWith(")"))
                 {
-                    var values = tokens[index].TrimStart('(').TrimEnd(')')
+                    var values = tokens[index].Substring(1, tokens[index].Length - 2)
                         .Split(',')
                         .Select(v => v.Trim().ToLower())
                         .Where(v => IsValidValue(field, v.StartsWith('"') && v.EndsWith('"') ? v.Substring(1, v.Length - 2) : v))
@@ -385,8 +394,8 @@ namespace JhipsterSampleApplication.Domain.Services
                 "sign" => new[] { "=", "!=", "IN", "!IN" }.Contains(op),
                 "dob" => new[] { "=", "!=", ">=", "<=", ">", "<", "EXISTS", "!EXISTS" }.Contains(op),
                 "lname" => new[] { "=", "!=", "IN", "!IN", "EXISTS", "!EXISTS" }.Contains(op),
-                "fname" => new[] { "=", "!=", "CONTAINS", "LIKE", "IN", "!IN", "EXISTS", "!EXISTS" }.Contains(op),
-                "document" => op == "CONTAINS",
+                "fname" => new[] { "=", "!=", "CONTAINS", "!CONTAINS", "LIKE", "IN", "!IN", "EXISTS", "!EXISTS" }.Contains(op),
+                "document" => new[] { "CONTAINS", "!CONTAINS" }.Contains(op),
                 _ => false
             };
         }

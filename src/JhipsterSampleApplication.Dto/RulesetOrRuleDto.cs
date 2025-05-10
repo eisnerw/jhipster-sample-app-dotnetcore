@@ -9,6 +9,6 @@ namespace JhipsterSampleApplication.Dto
         public object? value { get; set; }
         public string? condition { get; set; }
         public bool @not { get; set; }
-        public List<object> rules { get; set; } = new List<object>();
+        public List<RulesetOrRuleDto> rules { get; set; } = new List<RulesetOrRuleDto>();
     }
 } 

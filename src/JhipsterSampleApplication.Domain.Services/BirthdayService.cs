@@ -9,24 +9,28 @@ using JhipsterSampleApplication.Domain.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
+using JhipsterSampleApplication.Dto;
 
 namespace JhipsterSampleApplication.Domain.Services;
 
 /// <summary>
 /// Service for interacting with Elasticsearch for Birthday operations
 /// </summary>
-public class BirthdayService : IBirthdayService, IGenericElasticSearchService<Birthday>
+public class BirthdayService : IBirthdayService
 {
     private readonly IElasticClient _elasticClient;
     private const string IndexName = "birthdays";
+    private readonly IBirthdayBqlService _bqlService;
 
     /// <summary>
     /// Initializes a new instance of the BirthdayService
     /// </summary>
     /// <param name="elasticClient">The Elasticsearch client</param>
-    public BirthdayService(IElasticClient elasticClient)
+    /// <param name="bqlService">The BQL service</param>
+    public BirthdayService(IElasticClient elasticClient, IBirthdayBqlService bqlService)
     {
         _elasticClient = elasticClient ?? throw new ArgumentNullException(nameof(elasticClient));
+        _bqlService = bqlService ?? throw new ArgumentNullException(nameof(bqlService));
     }
 
     /// <summary>
@@ -37,7 +41,10 @@ public class BirthdayService : IBirthdayService, IGenericElasticSearchService<Bi
     public async Task<ISearchResponse<Birthday>> SearchAsync(ISearchRequest request)
     {
         var response = await _elasticClient.SearchAsync<Birthday>(request);
-        if (response.IsValid && response.Hits.Count > 0)
+        if (!response.IsValid){
+            throw new Exception(response.DebugInformation);
+        }
+        if (response.Hits.Count > 0)
         {
             foreach (var hit in response.Hits)
             {
@@ -121,7 +128,7 @@ public class BirthdayService : IBirthdayService, IGenericElasticSearchService<Bi
     /// </summary>
     /// <param name="field">The field to get unique values for</param>
     /// <returns>A collection of unique field values</returns>
-    public async Task<IReadOnlyCollection<string>> GetUniqueFieldValuesAsync(string field)
+    public async Task<List<string>> GetUniqueFieldValuesAsync(string field)
     {
         var result = await _elasticClient.SearchAsync<Aggregation>(q => q
             .Size(0).Index("birthdays").Aggregations(agg => agg.Terms(
@@ -164,7 +171,7 @@ public class BirthdayService : IBirthdayService, IGenericElasticSearchService<Bi
         string query = queryObject.ToString();
         var searchRequest = new SearchRequest<Birthday>
         {
-            Size = 10000,
+            Size = size,
             From = 0,
             Query = new QueryContainerDescriptor<Birthday>().Raw(query)
         };
@@ -178,179 +185,227 @@ public class BirthdayService : IBirthdayService, IGenericElasticSearchService<Bi
     /// <returns>A JObject containing the Elasticsearch query</returns>
     public async Task<JObject> ConvertRulesetToElasticSearch(RulesetOrRule rr)
     {
-        if (rr.rules == null)
+        // this routine converts rulesets into elasticsearch DSL as json.  For inexact matching (contains), it uses the field.  For exact matching (=),
+        // it uses the keyworkd fields.  Since those are case sensitive, it forces a search for all cased values that would match insenitively
+        if (rr.rules == null || rr.rules.Count == 0)
         {
-            string stringValue = rr.value?.ToString() ?? string.Empty;
-            JObject query;
-            
-            if (rr.@operator != null && rr.@operator.Contains("contains"))
+            JObject ret = new JObject{{
+                "term", new JObject{{
+                    "BOGUSFIELD", "CANTMATCH"
+                }}
+            }};
+            if (rr.@operator.Contains("contains"))
             {
-                string regex = stringValue.ToLower().Replace(@"\", @"\\").Replace(@".", @"\.").Replace(@"*", @".*");
-                if (rr.field == "document")
+                string stringValue = (string)rr.value;
+                if (stringValue.StartsWith("/") && (stringValue.EndsWith("/") || stringValue.EndsWith("/i")))
                 {
-                    List<JObject> lstRegexes = "wikipedia,fname,lname,categories,sign,id".Split(',').ToList().Select(s =>
+                    Boolean bCaseInsensitive = stringValue.EndsWith("/i");
+                    string re = rr.value.ToString().Substring(1, rr.value.ToString().Length - (bCaseInsensitive ? 3 : 2));
+                    string regex = ToElasticRegEx(re.Replace(@"\\",@"\"), bCaseInsensitive);
+                    if (regex.StartsWith("^"))
                     {
-                        return new JObject{
-                            {
-                                "regexp", new JObject{
-                                    {
-                                        s + ".keyword", new JObject{
-                                            { "value", regex },
-                                            { "flags", "ALL" },
-                                            { "rewrite", "constant_score" }
-                                        }
-                                    }
-                                }
-                            }
-                        };
-                    }).ToList();
-                    query = new JObject{
+                        regex = regex.Substring(1, regex.Length - 1);
+                    }
+                    else
+                    {
+                        regex = ".*" + regex;
+                    }
+                    if (regex.EndsWith("$"))
+                    {
+                        regex = regex.Substring(0, regex.Length - 1);
+                    }
+                    else
+                    {
+                        regex += ".*";
+                    }
+                    if (rr.field == "document")
+                    {
+                        List<JObject> lstRegexes = "wikipedia,fname,lname,categories,sign,id".Split(',').ToList().Select(s =>
                         {
-                            "bool", new JObject{
-                                { "should", JArray.FromObject(lstRegexes) }
-                            }
-                        }
-                    };
-                }
-                else
-                {
-                    query = new JObject{
-                        {
-                            "regexp", new JObject{
-                                {
-                                    rr.field + ".keyword", new JObject{
-                                        { "value", regex },
-                                        { "flags", "ALL" },
-                                        { "rewrite", "constant_score" }
+                            return new JObject{{
+                                "regexp", new JObject{{
+                                    s + ".keyword", new JObject{
+                                        { "value", regex}
+                                        ,{ "flags", "ALL" }
+                                        ,{ "rewrite", "constant_score" }
                                     }
-                                }
+                                }}
+                            }};
+                        }).ToList();
+                        return new JObject{{
+                            "bool", new JObject{{
+                                "should", JArray.FromObject(lstRegexes)
+                            }}
+                        }};
+                    }
+                    return new JObject{{
+                        "regexp", new JObject{{
+                            rr.field + ".keyword", new JObject{
+                                { "value", regex}
+                                ,{ "flags", "ALL" }
+                                ,{ "rewrite", "constant_score" }
                             }
-                        }
-                    };
+                        }}
+                    }};
                 }
+                string quote = Regex.IsMatch(rr.value.ToString(), @"\W") ? @"""" : "";
+                ret = new JObject{{
+                    "query_string", new JObject{{
+                        "query", (rr.field != "document" ? (rr.field + ":") : "") + quote + ((string)rr.value).ToLower().Replace(@"""", @"\""") + quote
+                    }}
+                }};
             }
-            else if (rr.@operator != null && (rr.@operator.Contains("=") || rr.@operator.Contains("!=")))
+            else if (rr.@operator.Contains("="))
             {
-                List<string> uniqueValues = (await GetUniqueFieldValuesAsync(rr.field + ".keyword")).ToList();
-                string valueToMatch = rr.value?.ToString() ?? string.Empty;
-                List<JObject> oredTerms = uniqueValues.Where(v => v.ToLower() == valueToMatch.ToLower()).Select(s =>
+                List<string> uniqueValues = await GetUniqueFieldValuesAsync(rr.field + ".keyword");
+                List<JObject> oredTerms = uniqueValues.Where(v => v.ToLower() == rr.value.ToString().ToLower()).Select(s =>
                 {
-                    return new JObject{
-                        {
-                            "term", new JObject{
-                                { rr.field + ".keyword", s }
-                            }
-                        }
-                    };
+                    return new JObject{{
+                        "term", new JObject{{
+                            rr.field + ".keyword", s
+                        }}
+                    }};
                 }).ToList();
                 if (oredTerms.Count > 1)
                 {
-                    query = new JObject{
-                        {
-                            "bool", new JObject{
-                                { "should", JArray.FromObject(oredTerms) }
-                            }
-                        }
-                    };
+                    ret = new JObject{{
+                        "bool", new JObject{{
+                            "should", JArray.FromObject(oredTerms)
+                        }}
+                    }};
                 }
                 else if (oredTerms.Count == 1)
                 {
-                    query = oredTerms[0];
+                    ret = oredTerms[0];
                 }
-                else
+            } else if (rr.@operator.Contains("in")) {
+                List<string> uniqueValues = await GetUniqueFieldValuesAsync(rr.field + ".keyword");
+                // The following creates a list of case sensitive possibilities for the case sensitive 'term' query from case insensitive terms
+                List<string> caseSensitiveMatches = ((JArray)rr.value).Select(v =>
                 {
-                    query = new JObject();
-                }
+                    return uniqueValues.Where(s => s.ToLower() == v.ToString().ToLower());
+                }).Aggregate((agg,list) => {
+                    return agg.Concat(list).ToList();
+                }).ToList();
+                return new JObject{{
+                    "terms", new JObject{{
+                        rr.field + ".keyword", JArray.FromObject(caseSensitiveMatches)
+                    }}
+                }};
+            } else if (rr.@operator.Contains("exists")) {
+                List<JObject> lstExists = new List<JObject>();
+                List<JObject> lstEmptyString = new List<JObject>();
+                lstEmptyString.Add(new JObject{{
+                    "term", new JObject{{
+                        rr.field + ".keyword",""
+                    }}
+                }});
+                lstExists.Add(new JObject{{
+                    "exists", new JObject{{
+                        "field", rr.field
+                    }}
+                }});
+                lstExists.Add(new JObject{{
+                    "bool", new JObject{{
+                        "must_not", JArray.FromObject(lstEmptyString)
+                    }}
+                }});
+                ret = new JObject{{
+                    "bool", new JObject{{
+                        "must", JArray.FromObject(lstExists)
+                    }}
+                }};
             }
-            else if (rr.@operator != null && (rr.@operator.Contains("in") || rr.@operator.Contains("!in")))
-            {
-                List<string> uniqueValues = (await GetUniqueFieldValuesAsync(rr.field + ".keyword")).ToList();
-                List<string> caseSensitiveMatches = new List<string>();
-                if (rr.value is JArray jArray)
-                {
-                    caseSensitiveMatches = jArray.Select(v =>
-                    {
-                        string value = v?.ToString() ?? string.Empty;
-                        return uniqueValues.Where(s => s.ToLower() == value.ToLower());
-                    }).Aggregate((agg, list) => {
-                        return agg.Concat(list).ToList();
-                    }).ToList();
-                }
-                query = new JObject{
-                    {
-                        "terms", new JObject{
-                            { rr.field + ".keyword", JArray.FromObject(caseSensitiveMatches) }
-                        }
-                    }
-                };
+            if (rr.@operator.Contains("!") || (rr.@operator == "exists" && !(rr.value != null && (Boolean)rr.value))){
+                ret = new JObject {{
+                    "bool", new JObject{{
+                        "must_not", JObject.FromObject(ret)
+                    }}
+                }};
             }
-            else
-            {
-                query = new JObject();
-            }
-
-            // Handle NOT operators and not flag
-            if ((rr.@operator != null && (rr.@operator.StartsWith("!") || rr.@operator.Contains("!="))) || rr.not)
-            {
-                return new JObject
-                {
-                    {
-                        "bool", new JObject
-                        {
-                            { "must_not", query }
-                        }
-                    }
-                };
-            }
-
-            return query;
+            return ret;
         }
         else
         {
-            // Handle ruleset with multiple rules
-            var rules = new List<JObject>();
-            foreach (var rule in rr.rules)
+            List<Object> rls = new List<Object>();
+            for (int i = 0; i < rr.rules.Count; i++)
             {
-                var ruleQuery = await ConvertRulesetToElasticSearch(rule);
-                if (ruleQuery.Count > 0)
-                {
-                    rules.Add(ruleQuery);
-                }
+                rls.Add(await ConvertRulesetToElasticSearch(rr.rules[i]));
             }
-
-            if (rules.Count == 0)
-            {
-                return new JObject();
-            }
-
-            var boolQuery = new JObject();
             if (rr.condition == "and")
             {
-                boolQuery["must"] = JArray.FromObject(rules);
+                return new JObject{{
+                    "bool", new JObject{{
+                        rr.not == true ? "must_not" : "must", JArray.FromObject(rls)
+                    }}
+                }};
             }
-            else
+            JObject ret = new JObject{{
+                "bool", new JObject{{
+                    "should", JArray.FromObject(rls)
+                }}
+            }};
+            if (rr.not == true)
             {
-                boolQuery["should"] = JArray.FromObject(rules);
+                ret = new JObject{{
+                    "bool", new JObject{{
+                        "must_not", JObject.FromObject(ret)
+                    }}
+                }};
             }
-
-            // Handle NOT for rulesets
-            if (rr.not)
-            {
-                return new JObject
-                {
-                    {
-                        "bool", new JObject
-                        {
-                            { "must_not", boolQuery }
-                        }
-                    }
-                };
-            }
-
-            return new JObject
-            {
-                { "bool", boolQuery }
-            };
+            return ret;
         }
+    }
+    private string ToElasticRegEx(string pattern, Boolean bCaseInsensitive)
+    {
+        string ret = "";
+        string[] regexTokens = Regex.Replace(pattern, @"([\[\]]|\\\\|\\\[|\\\]|\\s|\\S|\\w|\\W|\\d|\\D|.)", "`$1").Split('`');
+        Boolean bBracketed = false;
+        for (int i = 1; i < regexTokens.Length; i++){
+            if (bBracketed){
+                switch (regexTokens[i]){
+                    case "]":
+                        bBracketed = false;
+                        ret += regexTokens[i];
+                        break;
+                    case @"\s":
+                        ret += " \n\t\r";
+                        break;
+                    case @"\d":
+                        ret += "0-9";
+                        break;
+                    case @"\w":
+                        ret += "A-Za-z_";
+                        break;
+                    default:
+                        if (bCaseInsensitive && Regex.IsMatch(regexTokens[i], @"^[A-Za-z]+$")){
+                            if ((i + 2) < regexTokens.Length && regexTokens[i + 1] == "-" && Regex.IsMatch(regexTokens[i + 2], @"^[A-Za-z]+$")){
+                                // alpha rannge
+                                ret += (regexTokens[i].ToLower() + "-" + regexTokens[i + 2].ToLower() + regexTokens[i].ToUpper() + "-" + regexTokens[i + 2].ToUpper());
+                                i += 2;
+                            } else {
+                                ret += (regexTokens[i].ToLower() + regexTokens[i].ToUpper());
+                            }
+                        } else {
+                            ret += regexTokens[i];
+                        }
+                        break;
+                }
+            } else if (regexTokens[i] == "["){
+                bBracketed = true;
+                ret += regexTokens[i];
+            } else if (regexTokens[i] == @"\s"){
+                ret += (@"[ \n\t\r]");
+            } else if (regexTokens[i] == @"\d"){
+                ret += (@"[0-9]");
+            } else if (regexTokens[i] == @"\w"){
+                ret += (@"[A-Za-z_]");
+            } else if (bCaseInsensitive && Regex.IsMatch(regexTokens[i], @"[A-Za-z]")){
+                ret += ("[" + regexTokens[i].ToLower() + regexTokens[i].ToUpper() + "]");
+            } else {
+                ret += regexTokens[i];
+            }
+        }
+        return ret;
     }
 } 

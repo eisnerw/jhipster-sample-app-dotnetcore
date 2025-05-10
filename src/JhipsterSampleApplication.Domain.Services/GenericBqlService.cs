@@ -20,6 +20,11 @@ namespace JhipsterSampleApplication.Domain.Services
 
         public abstract Task<string> Ruleset2Bql(RulesetOrRuleDto ruleset);
 
+        public virtual Task<object> Ruleset2ElasticSearch(RulesetOrRuleDto ruleset)
+        {
+            throw new NotImplementedException();
+        }
+
         /// <summary>
         /// Validates that the BQL query is well-formed
         /// </summary>

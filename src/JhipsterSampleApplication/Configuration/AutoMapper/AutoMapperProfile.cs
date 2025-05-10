@@ -1,4 +1,3 @@
-
 using AutoMapper;
 using System.Linq;
 using JhipsterSampleApplication.Domain.Entities;
@@ -27,6 +26,9 @@ namespace JhipsterSampleApplication.Configuration.AutoMapper
             CreateMap<Region, RegionDto>().ReverseMap();
             CreateMap<TimeSheet, TimeSheetDto>().ReverseMap();
             CreateMap<TimeSheetEntry, TimeSheetEntryDto>().ReverseMap();
+            CreateMap<RulesetOrRuleDto, RulesetOrRule>()
+                .ForMember(dest => dest.rules, opt => opt.MapFrom(src => src.rules))
+                .ReverseMap();
         }
     }
 }

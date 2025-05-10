@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using Nest;
 using JhipsterSampleApplication.Domain.Entities;
+using Newtonsoft.Json.Linq;
 
 namespace JhipsterSampleApplication.Domain.Services.Interfaces
 {
@@ -12,8 +13,9 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
         Task<IndexResponse> IndexAsync(T document);
         Task<UpdateResponse<T>> UpdateAsync(string id, T document);
         Task<DeleteResponse> DeleteAsync(string id);
-        Task<IReadOnlyCollection<string>> GetUniqueFieldValuesAsync(string field);
+        Task<List<string>> GetUniqueFieldValuesAsync(string field);
         Task<ISearchResponse<T>> SearchWithRulesetAsync(RulesetOrRule ruleset, int size = 10000);
+        Task<JObject> ConvertRulesetToElasticSearch(RulesetOrRule rr);
     }
 
     public interface IGenericElasticSearchService : IGenericElasticSearchService<Birthday>

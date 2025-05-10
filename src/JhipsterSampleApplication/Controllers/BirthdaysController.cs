@@ -13,6 +13,7 @@ using System.Linq;
 using System.IO;
 using JhipsterSampleApplication.Dto;
 using Microsoft.Extensions.Logging;
+using AutoMapper;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -24,17 +25,20 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IElasticClient _elasticClient;
         private readonly IBirthdayBqlService _bqlService;
         private readonly ILogger<BirthdaysController> _log;
+        private readonly IMapper _mapper;
 
         public BirthdaysController(
             IBirthdayService birthdayService,
             IElasticClient elasticClient,
             IBirthdayBqlService bqlService,
-            ILogger<BirthdaysController> log)
+            ILogger<BirthdaysController> log,
+            IMapper mapper)
         {
             _birthdayService = birthdayService;
             _elasticClient = elasticClient;
             _bqlService = bqlService;
             _log = log;
+            _mapper = mapper;
         }
 
         public class SearchResult<T>
@@ -69,40 +73,11 @@ namespace JhipsterSampleApplication.Controllers
             public string Query { get; set; } = string.Empty;
         }
 
-        private RulesetOrRule ConvertDtoToModel(object dto)
-        {
-            var jObj = dto switch
-            {
-                JObject jobj => jobj,
-                JToken jtoken => jtoken as JObject,
-                string json => JObject.Parse(json),
-                _ => JObject.FromObject(dto)
-            };
-
-            if (jObj?.ContainsKey("rules") == true && jObj["rules"] is JArray rulesArray && rulesArray.Count > 0)
-            {
-                return new RulesetOrRule
-                {
-                    condition = jObj["condition"]?.ToString(),
-                    @not = jObj["not"]?.ToObject<bool>() ?? false,
-                    rules = jObj["rules"] is JArray array
-                        ? array.Select(rule => ConvertDtoToModel((JObject)rule)).ToList()
-                        : new List<RulesetOrRule>()
-                };
-            }
-            return new RulesetOrRule
-            {
-                field = jObj?["field"]?.ToString(),
-                @operator = jObj?["operator"]?.ToString(),
-                value = jObj?["value"]?.ToObject<object>()
-            };
-        }
-
         [HttpPost("search")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
         public async Task<IActionResult> Search([FromBody] RulesetOrRuleDto rulesetDto, [FromQuery] int size = 10000)
         {
-            var ruleset = ConvertDtoToModel(rulesetDto);
+            var ruleset = _mapper.Map<RulesetOrRule>(rulesetDto);
             var response = await _birthdayService.SearchWithRulesetAsync(ruleset, size);
 
             var birthdayDtos = response.Hits.Select(hit => new BirthdayDto
@@ -288,79 +263,7 @@ namespace JhipsterSampleApplication.Controllers
             };
             
             // Parse the JSON and apply it to the search request
-            try
-            {
-                string jsonString;
-                
-                // Handle different input types
-                if (elasticsearchQuery is string jsonStr)
-                {
-                    jsonString = jsonStr;
-                }
-                else
-                {
-                    jsonString = Newtonsoft.Json.JsonConvert.SerializeObject(elasticsearchQuery);
-                }
-                
-                // Parse the JSON to validate it
-                var jsonObject = JObject.Parse(jsonString);
-                
-                // Apply the query from the JSON
-                var queryToken = jsonObject["query"];
-                if (queryToken != null)
-                {
-                    var queryString = queryToken.ToString();
-                    if (!string.IsNullOrEmpty(queryString))
-                    {
-                        searchRequest.Query = new QueryContainerDescriptor<Birthday>()
-                            .Raw(queryString);
-                    }
-                }
-                
-                // Apply sorting if present
-                var sortToken = jsonObject["sort"];
-                if (sortToken != null)
-                {
-                    var sortString = sortToken.ToString();
-                    if (!string.IsNullOrEmpty(sortString))
-                    {
-                        searchRequest.Sort = new List<ISort>
-                        {
-                            new FieldSort { Field = sortString.Trim('"', '\'') }
-                        };
-                    }
-                }
-                
-                // Apply pagination if present (override defaults)
-                var fromToken = jsonObject["from"];
-                if (fromToken != null && fromToken.Type != JTokenType.Null)
-                {
-                    var fromValue = fromToken.Value<int?>();
-                    if (fromValue.HasValue)
-                    {
-                        searchRequest.From = fromValue.Value;
-                    }
-                }
-                
-                var sizeToken = jsonObject["size"];
-                if (sizeToken != null && sizeToken.Type != JTokenType.Null)
-                {
-                    var sizeValue = sizeToken.Value<int?>();
-                    if (sizeValue.HasValue)
-                    {
-                        searchRequest.Size = sizeValue.Value;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new SimpleApiResponse
-                {
-                    Success = false,
-                    Message = $"Invalid Elasticsearch query: {ex.Message}"
-                });
-            }
-
+            searchRequest.Query = new QueryContainerDescriptor<Birthday>().Raw(elasticsearchQuery.ToString());                
             var response = await _birthdayService.SearchAsync(searchRequest);
 
             var birthdayDtos = new List<BirthdayDto>();
@@ -437,6 +340,35 @@ namespace JhipsterSampleApplication.Controllers
             {
                 _log.LogError(ex, "Error converting Ruleset to BQL");
                 return StatusCode(500, "An error occurred while converting Ruleset to BQL");
+            }
+        }
+
+        /// <summary>
+        /// Converts a Ruleset to an Elasticsearch query
+        /// </summary>
+        /// <param name="ruleset">The Ruleset to convert</param>
+        /// <returns>The converted Elasticsearch query</returns>
+        [HttpPost("ruleset-to-elasticsearch")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(400)]
+        public async Task<ActionResult<object>> ConvertRulesetToElasticSearch([FromBody] RulesetOrRuleDto rulesetDto)
+        {
+            _log.LogDebug("REST request to convert Ruleset to Elasticsearch query");
+        
+            try
+            {
+                var ruleset = _mapper.Map<RulesetOrRule>(rulesetDto);
+                var elasticQuery = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
+                return Ok(elasticQuery);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Error converting Ruleset to Elasticsearch query");
+                return StatusCode(500, "An error occurred while converting Ruleset to Elasticsearch query");
             }
         }
     }
