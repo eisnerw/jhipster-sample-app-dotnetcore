@@ -82,7 +82,8 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string query,
             [FromQuery] int from = 0,
             [FromQuery] int pageSize = 20,
-            [FromQuery] string? sort = null)
+            [FromQuery] string? sort = null,
+            [FromQuery] bool includeWikipedia = false)
         {
             if (string.IsNullOrWhiteSpace(query))
             {
@@ -129,7 +130,7 @@ namespace JhipsterSampleApplication.Controllers
                     Sign = hit.Source.Sign,
                     Dob = hit.Source.Dob,
                     IsAlive = hit.Source.IsAlive,
-                    Wikipedia = hit.Source.Wikipedia,
+                    Wikipedia = includeWikipedia ? hit.Source.Wikipedia : null,
                     Categories = hit.Source.Categories
                 }).ToList();
 
@@ -157,7 +158,8 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<IActionResult> Search([FromBody] RulesetOrRuleDto rulesetDto, 
             [FromQuery] int pageSize = 20,
             [FromQuery] int from = 0,
-            [FromQuery] string? sort = null)
+            [FromQuery] string? sort = null,
+            [FromQuery] bool includeWikipedia = false)
         {
             var ruleset = _mapper.Map<RulesetOrRule>(rulesetDto);
             
@@ -187,7 +189,7 @@ namespace JhipsterSampleApplication.Controllers
                 Sign = hit.Source.Sign,
                 Dob = hit.Source.Dob,
                 IsAlive = hit.Source.IsAlive ?? false,
-                Wikipedia = hit.Source.Wikipedia,
+                Wikipedia = includeWikipedia ? hit.Source.Wikipedia : null,
                 Categories = hit.Source.Categories
             }).ToList();
 
@@ -203,7 +205,8 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<IActionResult> Search([FromBody] object elasticsearchQuery,
             [FromQuery] int pageSize = 20,
             [FromQuery] int from = 0,
-            [FromQuery] string? sort = null)
+            [FromQuery] string? sort = null,
+            [FromQuery] bool includeWikipedia = false)
         {
             var searchRequest = new SearchRequest<Birthday>
             {
@@ -243,7 +246,7 @@ namespace JhipsterSampleApplication.Controllers
                     Dob = b.Dob,
                     IsAlive = b.IsAlive,
                     Text = b.Text,
-                    Wikipedia = b.Wikipedia,
+                    Wikipedia = includeWikipedia ? b.Wikipedia : null,
                     Categories = b.Categories
                 });
             }
@@ -262,7 +265,8 @@ namespace JhipsterSampleApplication.Controllers
             [FromBody] string bqlQuery,
             [FromQuery] int pageSize = 20,
             [FromQuery] int from = 0,
-            [FromQuery] string? sort = null)
+            [FromQuery] string? sort = null,
+            [FromQuery] bool includeWikipedia = false)
         {
             if (string.IsNullOrWhiteSpace(bqlQuery))
                 return BadRequest("Query cannot be empty");
@@ -297,7 +301,7 @@ namespace JhipsterSampleApplication.Controllers
                         Sign = hit.Source.Sign,
                         Dob = hit.Source.Dob,
                         IsAlive = hit.Source.IsAlive ?? false,
-                        Wikipedia = hit.Source.Wikipedia,
+                        Wikipedia = includeWikipedia ? hit.Source.Wikipedia : null,
                         Categories = hit.Source.Categories
                     }).ToList();
                 return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
@@ -311,7 +315,7 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(BirthdayDto), 200)]
-        public async Task<IActionResult> GetById(string id)
+        public async Task<IActionResult> GetById(string id, [FromQuery] bool includeWikipedia = false)
         {
             var searchRequest = new SearchRequest<Birthday>
             {
@@ -334,7 +338,7 @@ namespace JhipsterSampleApplication.Controllers
                 Sign = birthday.Sign,
                 Dob = birthday.Dob,
                 IsAlive = birthday.IsAlive ?? false,
-                Wikipedia = birthday.Wikipedia,
+                Wikipedia = includeWikipedia ? birthday.Wikipedia : null,
                 Categories = birthday.Categories
             };
 
