@@ -323,11 +323,6 @@ namespace JhipsterSampleApplication.Domain.Services
             }
             index++;
 
-            if (index >= tokens.Length)
-            {
-                return (false, index, new RulesetOrRuleDto());
-            }
-
             // Handle EXISTS/!EXISTS operators
             if (op == "EXISTS" || op == "!EXISTS")
             {
@@ -338,6 +333,11 @@ namespace JhipsterSampleApplication.Domain.Services
                     value = !op.StartsWith("!")
                 });
             }
+
+            if (index >= tokens.Length)
+            {
+                return (false, index, new RulesetOrRuleDto());
+            }            
 
             // Handle IN/!IN operators
             if (op == "IN" || op == "!IN")
@@ -396,7 +396,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 "lname" => new[] { "=", "!=", "IN", "!IN", "EXISTS", "!EXISTS" }.Contains(op),
                 "fname" => new[] { "=", "!=", "CONTAINS", "!CONTAINS", "LIKE", "IN", "!IN", "EXISTS", "!EXISTS" }.Contains(op),
                 "document" => new[] { "CONTAINS", "!CONTAINS" }.Contains(op),
-                "categories" => new[] { "CONTAINS", "!CONTAINS" }.Contains(op),
+                "categories" => new[] { "CONTAINS", "!CONTAINS", "EXISTS", "!EXISTS" }.Contains(op),
                 _ => false
             };
         }
