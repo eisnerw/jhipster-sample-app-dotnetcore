@@ -73,6 +73,13 @@ namespace JhipsterSampleApplication.Controllers
             public string Query { get; set; } = string.Empty;
         }
 
+        public class CategorizeRequestDto
+        {
+            public List<string> Ids { get; set; } = new List<string>();
+            public string Category { get; set; } = string.Empty;
+            public bool RemoveCategory { get; set; }
+        }
+
         /// <summary>
         /// Search birthdays using a Lucene query
         /// </summary>
@@ -529,6 +536,110 @@ namespace JhipsterSampleApplication.Controllers
                 _log.LogError(ex, "Error converting Ruleset to Elasticsearch query");
                 return StatusCode(500, "An error occurred while converting Ruleset to Elasticsearch query");
             }
+        }
+
+        /// <summary>
+        /// Add or remove a category from multiple birthdays
+        /// </summary>
+        [HttpPost("categorize")]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> Categorize([FromBody] CategorizeRequestDto request)
+        {
+            if (request.Ids == null || !request.Ids.Any())
+            {
+                return BadRequest("At least one ID must be provided");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Category))
+            {
+                return BadRequest("Category cannot be empty");
+            }
+
+            var searchRequest = new SearchRequest<Birthday>
+            {
+                Query = new QueryContainerDescriptor<Birthday>().Terms(t => t.Field("_id").Terms(request.Ids))
+            };
+            
+            var response = await _birthdayService.SearchAsync(searchRequest);
+            if (!response.IsValid)
+            {
+                return BadRequest("Failed to search for birthdays");
+            }
+
+            var successCount = 0;
+            var errorCount = 0;
+            var errorMessages = new List<string>();
+
+            foreach (var birthday in response.Documents)
+            {
+                try
+                {
+                    if (request.RemoveCategory)
+                    {
+                        // Remove category if it exists (case-insensitive)
+                        if (birthday.Categories != null)
+                        {
+                            var categoryToRemove = birthday.Categories.FirstOrDefault(c => 
+                                string.Equals(c, request.Category, StringComparison.OrdinalIgnoreCase));
+                            if (categoryToRemove != null)
+                            {
+                                birthday.Categories.Remove(categoryToRemove);
+                                var updateResponse = await _birthdayService.UpdateAsync(birthday.Id!, birthday);
+                                if (updateResponse.IsValid)
+                                {
+                                    successCount++;
+                                }
+                                else
+                                {
+                                    errorCount++;
+                                    errorMessages.Add($"Failed to update birthday {birthday.Id}: {updateResponse.DebugInformation}");
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Add category if it doesn't exist (case-insensitive)
+                        if (birthday.Categories == null)
+                        {
+                            birthday.Categories = new List<string>();
+                        }
+                        if (!birthday.Categories.Any(c => 
+                            string.Equals(c, request.Category, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            birthday.Categories.Add(request.Category);
+                            var updateResponse = await _birthdayService.UpdateAsync(birthday.Id!, birthday);
+                            if (updateResponse.IsValid)
+                            {
+                                successCount++;
+                            }
+                            else
+                            {
+                                errorCount++;
+                                errorMessages.Add($"Failed to update birthday {birthday.Id}: {updateResponse.DebugInformation}");
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errorCount++;
+                    errorMessages.Add($"Error processing birthday {birthday.Id}: {ex.Message}");
+                }
+            }
+
+            var message = $"Processed {request.Ids.Count} birthdays. Success: {successCount}, Errors: {errorCount}";
+            if (errorMessages.Any())
+            {
+                message += $". Error details: {string.Join("; ", errorMessages)}";
+            }
+
+            return Ok(new SimpleApiResponse
+            {
+                Success = errorCount == 0,
+                Message = message
+            });
         }
     }
 }
