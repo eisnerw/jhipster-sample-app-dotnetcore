@@ -399,7 +399,8 @@ namespace JhipsterSampleApplication.Controllers
                 Dob = dto.Dob,
                 IsAlive = dto.IsAlive,
                 Text = dto.Text,
-                Wikipedia = dto.Wikipedia
+                Wikipedia = dto.Wikipedia,
+                Categories = dto.Categories ?? new List<string>()
             };
 
             var updateResponse = await _birthdayService.UpdateAsync(id, birthday);

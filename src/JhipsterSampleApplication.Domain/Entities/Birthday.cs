@@ -16,7 +16,7 @@ namespace JhipsterSampleApplication.Domain.Entities
         public bool? IsAlive { get; set; }
         public string? Text { get; set; }
         public string? Wikipedia { get; set; }
-        public List<Category> Categories { get; set; } = new List<Category>();
+        public List<string> Categories { get; set; } = new List<string>();
 
         // jhipster-needle-entity-add-field - JHipster will add fields here, do not remove
 
