@@ -7,6 +7,7 @@ using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Dto;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 
 namespace JhipsterSampleApplication.Domain.Services
 {
@@ -416,15 +417,118 @@ namespace JhipsterSampleApplication.Domain.Services
             };
         }
 
-        public override Task<string> Ruleset2Bql(RulesetOrRuleDto ruleset)
+        public override async Task<string> Ruleset2Bql(RulesetOrRuleDto ruleset)
         {
-            if (!ValidateRuleset(ruleset))
+            if (ruleset == null)
             {
-                throw new ArgumentException("Invalid Ruleset", nameof(ruleset));
+                throw new ArgumentException("Ruleset cannot be null");
+            }
+            if (ruleset.rules == null || ruleset.rules.Count == 0)
+            {
+                ruleset = new RulesetOrRuleDto{
+                    condition = "or",
+                    rules  = [ ruleset ]
+                };
+            }
+            return QueryAsString(ruleset);
+        }
+
+        private string QueryAsString(RulesetOrRuleDto query, bool recurse = false)
+        {
+            var result = "";
+            var multipleConditions = false;
+
+            for (int i = 0; i < query.rules.Count; i++)
+            {
+                var rule = query.rules[i];
+                if (result.Length > 0)
+                {
+                    result += $" {(query.condition == "and" ? "&" : "|")} ";
+                    multipleConditions = true;
+                }
+
+                if (rule.rules != null && rule.rules.Count > 0)
+                {
+                    result += QueryAsString(rule, query.rules.Count > 1);
+                }
+                else if (!string.IsNullOrEmpty(rule.field))
+                {
+                    if (rule.field == "document" && rule.value != null)
+                    {
+                        var value = rule.value.ToString();
+                        if (value.StartsWith("/") && (value.EndsWith("/") || value.EndsWith("/i")))
+                        {
+                            // regex
+                            result += value;
+                        }
+                        else if (!Regex.IsMatch(value, "^[a-zA-Z0-9]+$"))
+                        {
+                            result += $"\"{value.Replace("\"", "\\\"")}\"";
+                        }
+                        else
+                        {
+                            result += value.ToLower();
+                        }
+                    }
+                    else
+                    {
+                        result += rule.field;
+                        if (rule.@operator == "exists")
+                        {
+                            result += $" {(rule.value?.ToString() == "true" ? "" : "!")}EXISTS ";
+                        }
+                        else if (rule.@operator == "in" || rule.@operator == "not in")
+                        {
+                            var values = rule.value as IEnumerable<object>;
+                            if (values != null)
+                            {
+                                var quoted = values.Select(v =>
+                                    Regex.IsMatch(v.ToString(), "^[a-zA-Z0-9]+$") ? v.ToString() : $"\"{v.ToString().Replace("\"", "\\\"")}\""
+                                );
+                                result += $" {(rule.@operator == "in" ? "" : "!")}IN ({string.Join(", ", quoted)}) ";
+                            }
+                        }
+                        else
+                        {
+                            result += $" {rule.@operator?.ToUpper()} ";
+                            if (rule.value != null)
+                            {
+                                var value = rule.value.ToString();
+                                if (value.StartsWith("/") && (value.EndsWith("/") || value.EndsWith("/i")))
+                                {
+                                    result += value; // regex
+                                }
+                                else if (Regex.IsMatch(value, @"[\s\\""]"))
+                                {
+                                    result += $"\"{value.Replace("\"", "\\\"")}\"";
+                                }
+                                else
+                                {
+                                    result += value.ToLower();
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
-            // TODO: Implement Ruleset to BQL conversion
-            throw new NotImplementedException();
+            if (query.@not)
+            {
+                if (query.rules.Count == 1 && query.rules[0].rules != null && query.rules[0].rules.Count > 0)
+                {
+                    result = "!" + result;
+                }
+                else
+                {
+                    result = $"!({result})";
+                }
+            }
+            else if (recurse && multipleConditions)
+            {
+                result = $"({result})";
+            }
+
+            return result;
         }
 
         protected override bool ValidateBqlQuery(string bqlQuery)
