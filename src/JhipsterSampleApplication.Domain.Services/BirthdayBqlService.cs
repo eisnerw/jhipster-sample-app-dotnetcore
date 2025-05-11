@@ -13,8 +13,8 @@ namespace JhipsterSampleApplication.Domain.Services
     public class BirthdayBqlService : GenericBqlService<Birthday>, IBirthdayBqlService
     {
         private static readonly string[] ValidSigns = new[] { "aries", "taurus", "gemini", "cancer", "leo", "virgo", "libra", "scorpio", "sagittarius", "capricorn", "aquarius", "pisces" };
-        private static readonly string[] ValidFields = new[] { "sign", "dob", "lname", "fname", "isAlive", "document" };
-        private static readonly string[] ValidOperators = new[] { "=", "!=", "CONTAINS", "LIKE", "EXISTS", "!EXISTS", "IN", "!IN", ">=", "<=", ">", "<" };
+        private static readonly string[] ValidFields = new[] { "sign", "dob", "lname", "fname", "isAlive", "document", "categories" };
+        private static readonly string[] ValidOperators = new[] { "=", "!=", "CONTAINS", "!CONTAINS", "LIKE", "EXISTS", "!EXISTS", "IN", "!IN", ">=", "<=", ">", "<" };
         private readonly Dictionary<string, RulesetOrRuleDto> _rulesetMap = new();
 
         public BirthdayBqlService(ILogger<BirthdayBqlService> logger) : base(logger)
@@ -396,6 +396,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 "lname" => new[] { "=", "!=", "IN", "!IN", "EXISTS", "!EXISTS" }.Contains(op),
                 "fname" => new[] { "=", "!=", "CONTAINS", "!CONTAINS", "LIKE", "IN", "!IN", "EXISTS", "!EXISTS" }.Contains(op),
                 "document" => new[] { "CONTAINS", "!CONTAINS" }.Contains(op),
+                "categories" => new[] { "CONTAINS", "!CONTAINS" }.Contains(op),
                 _ => false
             };
         }
@@ -410,6 +411,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 "lname" => !string.IsNullOrWhiteSpace(value),
                 "fname" => !string.IsNullOrWhiteSpace(value),
                 "document" => !string.IsNullOrWhiteSpace(value),
+                "categories" => !string.IsNullOrWhiteSpace(value),
                 _ => false
             };
         }

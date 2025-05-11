@@ -14,5 +14,6 @@ namespace JhipsterSampleApplication.Dto
         public bool? IsAlive { get; set; }
         public string? Text { get; set; }
         public string? Wikipedia { get; set; }
+        public List<string> Categories { get; set; } = new List<string>();
     }
 } 

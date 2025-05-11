@@ -129,7 +129,8 @@ namespace JhipsterSampleApplication.Controllers
                     Sign = hit.Source.Sign,
                     Dob = hit.Source.Dob,
                     IsAlive = hit.Source.IsAlive,
-                    Wikipedia = hit.Source.Wikipedia
+                    Wikipedia = hit.Source.Wikipedia,
+                    Categories = hit.Source.Categories
                 }).ToList();
 
                 var result = new SearchResult<BirthdayDto>
@@ -186,7 +187,8 @@ namespace JhipsterSampleApplication.Controllers
                 Sign = hit.Source.Sign,
                 Dob = hit.Source.Dob,
                 IsAlive = hit.Source.IsAlive ?? false,
-                Wikipedia = hit.Source.Wikipedia
+                Wikipedia = hit.Source.Wikipedia,
+                Categories = hit.Source.Categories
             }).ToList();
 
             return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
@@ -241,7 +243,8 @@ namespace JhipsterSampleApplication.Controllers
                     Dob = b.Dob,
                     IsAlive = b.IsAlive,
                     Text = b.Text,
-                    Wikipedia = b.Wikipedia
+                    Wikipedia = b.Wikipedia,
+                    Categories = b.Categories
                 });
             }
 
@@ -294,7 +297,8 @@ namespace JhipsterSampleApplication.Controllers
                         Sign = hit.Source.Sign,
                         Dob = hit.Source.Dob,
                         IsAlive = hit.Source.IsAlive ?? false,
-                        Wikipedia = hit.Source.Wikipedia
+                        Wikipedia = hit.Source.Wikipedia,
+                        Categories = hit.Source.Categories
                     }).ToList();
                 return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
             }
@@ -330,7 +334,8 @@ namespace JhipsterSampleApplication.Controllers
                 Sign = birthday.Sign,
                 Dob = birthday.Dob,
                 IsAlive = birthday.IsAlive ?? false,
-                Wikipedia = birthday.Wikipedia
+                Wikipedia = birthday.Wikipedia,
+                Categories = birthday.Categories
             };
 
             return Ok(birthdayDto);
