@@ -97,23 +97,22 @@ namespace JhipsterSampleApplication.Test.Controllers
             Console.WriteLine($"<><><><><>Starting RAW test");
             var rawQuery = new
             {
-                query = new
+
+                term = new Dictionary<string, object>
                 {
-                    term = new Dictionary<string, object>
-                    {
-                        { "lname.keyword",  _birthdayDto.Lname }
-                    }
+                    { "lname.keyword",  _birthdayDto.Lname }
                 }
+
             };
             var rawResponse = await _client.PostAsync(
-                "/api/Birthdays/search/elasticsearch",
+                "/api/Birthdays/search/elasticsearch?pageSize=20&from=0&includeWikipedia=false",
                 TestUtil.ToJsonContent(rawQuery));
             rawResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var rawContent = await rawResponse.Content.ReadAsStringAsync();
             var rawResult = JsonConvert.DeserializeObject<SearchResult<BirthdayDto>>(rawContent);
             rawResult.Hits.Should().NotBeEmpty("Raw search should find the test birthday");
             rawResult.Hits.First().Lname.Should().Be(_birthdayDto.Lname);
-            Console.WriteLine($"<><><><><>Lucene response: {rawContent}");
+            Console.WriteLine($"<><><><><>Raw response: {rawContent}");
 
             // 5. Search with ruleset (POST /api/Birthdays/search/ruleset)
             Console.WriteLine($"<><><><><>Starting RULE test");
