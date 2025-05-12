@@ -162,13 +162,13 @@ namespace JhipsterSampleApplication.Controllers
         [HttpPost("search/ruleset")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> Search([FromBody] RulesetOrRuleDto rulesetDto, 
+        public async Task<IActionResult> Search([FromBody] RulesetDto rulesetDto, 
             [FromQuery] int pageSize = 20,
             [FromQuery] int from = 0,
             [FromQuery] string? sort = null,
             [FromQuery] bool includeWikipedia = false)
         {
-            var ruleset = _mapper.Map<RulesetOrRule>(rulesetDto);
+            var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             
             // Build sort descriptor
             var sortDescriptor = new List<ISort>();
@@ -280,7 +280,7 @@ namespace JhipsterSampleApplication.Controllers
             try
             {
                 var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
-                var ruleset = _mapper.Map<RulesetOrRule>(rulesetDto);
+                var ruleset = _mapper.Map<Ruleset>(rulesetDto);
 
                 // Build sort descriptor
                 var sortDescriptor = new List<ISort>();
@@ -460,10 +460,10 @@ namespace JhipsterSampleApplication.Controllers
         /// <response code="400">If the query is invalid or empty</response>
         [HttpPost("bql-to-ruleset")]
         [Consumes("text/plain")]
-        [ProducesResponseType(typeof(RulesetOrRuleDto), 200)]
+        [ProducesResponseType(typeof(RulesetDto), 200)]
         [ProducesResponseType(400)]
         [Produces("application/json")]
-        public async Task<ActionResult<RulesetOrRuleDto>> ConvertBqlToRuleset([FromBody] string query)
+        public async Task<ActionResult<RulesetDto>> ConvertBqlToRuleset([FromBody] string query)
         {
             try
             {
@@ -490,7 +490,7 @@ namespace JhipsterSampleApplication.Controllers
         [HttpPost("ruleset-to-bql")]
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(400)]
-        public async Task<ActionResult<string>> ConvertRulesetToBql([FromBody] RulesetOrRuleDto ruleset)
+        public async Task<ActionResult<string>> ConvertRulesetToBql([FromBody] RulesetDto ruleset)
         {
             _log.LogDebug("REST request to convert Ruleset to BQL");
             try
@@ -517,13 +517,13 @@ namespace JhipsterSampleApplication.Controllers
         [HttpPost("ruleset-to-elasticsearch")]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(400)]
-        public async Task<ActionResult<object>> ConvertRulesetToElasticSearch([FromBody] RulesetOrRuleDto rulesetDto)
+        public async Task<ActionResult<object>> ConvertRulesetToElasticSearch([FromBody] RulesetDto rulesetDto)
         {
             _log.LogDebug("REST request to convert Ruleset to Elasticsearch query");
         
             try
             {
-                var ruleset = _mapper.Map<RulesetOrRule>(rulesetDto);
+                var ruleset = _mapper.Map<Ruleset>(rulesetDto);
                 var elasticQuery = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
                 return Ok(elasticQuery);
             }

@@ -11,7 +11,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data
 {
     public class BirthdayQueryBuilder : IQueryBuilder
     {
-        private RulesetOrRule? _ruleset;
+        private Ruleset? _ruleset;
         private int _page;
         private int _size;
         private string _sortField = string.Empty;
@@ -19,7 +19,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data
         private string _filterField = string.Empty;
         private object? _filterValue;
 
-        public IQueryBuilder WithRuleset(RulesetOrRule ruleset)
+        public IQueryBuilder WithRuleset(Ruleset ruleset)
         {
             _ruleset = ruleset;
             return this;

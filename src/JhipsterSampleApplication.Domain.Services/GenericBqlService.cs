@@ -16,11 +16,11 @@ namespace JhipsterSampleApplication.Domain.Services
             _logger = logger;
         }
 
-        public abstract Task<RulesetOrRuleDto> Bql2Ruleset(string bqlQuery);
+        public abstract Task<RulesetDto> Bql2Ruleset(string bqlQuery);
 
-        public abstract Task<string> Ruleset2Bql(RulesetOrRuleDto ruleset);
+        public abstract Task<string> Ruleset2Bql(RulesetDto ruleset);
 
-        public virtual Task<object> Ruleset2ElasticSearch(RulesetOrRuleDto ruleset)
+        public virtual Task<object> Ruleset2ElasticSearch(RulesetDto ruleset)
         {
             throw new NotImplementedException();
         }
@@ -44,7 +44,7 @@ namespace JhipsterSampleApplication.Domain.Services
         /// <summary>
         /// Validates that the Ruleset is well-formed
         /// </summary>
-        protected virtual bool ValidateRuleset(RulesetOrRuleDto ruleset)
+        protected virtual bool ValidateRuleset(RulesetDto ruleset)
         {
             if (ruleset == null)
             {

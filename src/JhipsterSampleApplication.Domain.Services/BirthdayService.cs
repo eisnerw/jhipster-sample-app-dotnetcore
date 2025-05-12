@@ -167,7 +167,7 @@ public class BirthdayService : IBirthdayService
     /// <param name="from">The starting index for pagination</param>
     /// <param name="sort">The sort descriptor for the search</param>
     /// <returns>The search response containing Birthday documents</returns>
-    public async Task<ISearchResponse<Birthday>> SearchWithRulesetAsync(RulesetOrRule ruleset, int size = 20, int from = 0, IList<ISort>? sort = null)
+    public async Task<ISearchResponse<Birthday>> SearchWithRulesetAsync(Ruleset ruleset, int size = 20, int from = 0, IList<ISort>? sort = null)
     {
         var queryObject = await ConvertRulesetToElasticSearch(ruleset);
         string query = queryObject.ToString();
@@ -199,7 +199,7 @@ public class BirthdayService : IBirthdayService
     /// </summary>
     /// <param name="rr">The ruleset to convert</param>
     /// <returns>A JObject containing the Elasticsearch query</returns>
-    public async Task<JObject> ConvertRulesetToElasticSearch(RulesetOrRule rr)
+    public async Task<JObject> ConvertRulesetToElasticSearch(Ruleset rr)
     {
         // this routine converts rulesets into elasticsearch DSL as json.  For inexact matching (contains), it uses the field.  For exact matching (=),
         // it uses the keyworkd fields.  Since those are case sensitive, it forces a search for all cased values that would match insenitively

@@ -16,13 +16,13 @@ namespace JhipsterSampleApplication.Domain.Services
         private static readonly string[] ValidSigns = new[] { "aries", "taurus", "gemini", "cancer", "leo", "virgo", "libra", "scorpio", "sagittarius", "capricorn", "aquarius", "pisces" };
         private static readonly string[] ValidFields = new[] { "sign", "dob", "lname", "fname", "isAlive", "document", "categories" };
         private static readonly string[] ValidOperators = new[] { "=", "!=", "CONTAINS", "!CONTAINS", "LIKE", "EXISTS", "!EXISTS", "IN", "!IN", ">=", "<=", ">", "<" };
-        private readonly Dictionary<string, RulesetOrRuleDto> _rulesetMap = new();
+        private readonly Dictionary<string, RulesetDto> _rulesetMap = new();
 
         public BirthdayBqlService(ILogger<BirthdayBqlService> logger) : base(logger)
         {
         }
 
-        public override Task<RulesetOrRuleDto> Bql2Ruleset(string bqlQuery)
+        public override Task<RulesetDto> Bql2Ruleset(string bqlQuery)
         {
             if (!ValidateBqlQuery(bqlQuery))
             {
@@ -31,11 +31,11 @@ namespace JhipsterSampleApplication.Domain.Services
 
             if (string.IsNullOrWhiteSpace(bqlQuery))
             {
-                return Task.FromResult(new RulesetOrRuleDto
+                return Task.FromResult(new RulesetDto
                 {
                     condition = "or",
                     not = false,
-                    rules = new List<RulesetOrRuleDto>()
+                    rules = new List<RulesetDto>()
                 });
             }
 
@@ -68,11 +68,11 @@ namespace JhipsterSampleApplication.Domain.Services
             return Task.FromResult(result.ruleset);
         }
 
-        private (bool matches, int index, RulesetOrRuleDto ruleset) ParseRuleset(string[] tokens, int index, bool not)
+        private (bool matches, int index, RulesetDto ruleset) ParseRuleset(string[] tokens, int index, bool not)
         {
             if (index >= tokens.Length)
             {
-                return (false, index, new RulesetOrRuleDto());
+                return (false, index, new RulesetDto());
             }
 
             // Try parseAndOrRuleset first
@@ -91,21 +91,21 @@ namespace JhipsterSampleApplication.Domain.Services
             return result;
         }
 
-        private (bool matches, int index, RulesetOrRuleDto ruleset) ParseAndOrRuleset(string[] tokens, int index, bool not)
+        private (bool matches, int index, RulesetDto ruleset) ParseAndOrRuleset(string[] tokens, int index, bool not)
         {
             if (index >= tokens.Length)
             {
-                return (false, index, new RulesetOrRuleDto());
+                return (false, index, new RulesetDto());
             }
 
-            var rules = new List<RulesetOrRuleDto>();
+            var rules = new List<RulesetDto>();
             var result = ParseParened(tokens, index, not);
             if (!result.matches)
             {
                 result = ParseRule(tokens, index);
                 if (!result.matches)
                 {
-                    return (false, index, new RulesetOrRuleDto());
+                    return (false, index, new RulesetDto());
                 }
             }
 
@@ -113,10 +113,10 @@ namespace JhipsterSampleApplication.Domain.Services
             {
                 if (not && result.index < tokens.Length && tokens[result.index] == ")")
                 {
-                    return (true, result.index, new RulesetOrRuleDto
+                    return (true, result.index, new RulesetDto
                     {
                         condition = "or",
-                        rules = new List<RulesetOrRuleDto> { result.ruleset },
+                        rules = new List<RulesetDto> { result.ruleset },
                         not = true
                     });
                 }
@@ -157,10 +157,10 @@ namespace JhipsterSampleApplication.Domain.Services
 
             if (rules.Count < 2)
             {
-                return (false, index, new RulesetOrRuleDto());
+                return (false, index, new RulesetDto());
             }
 
-            return (true, index, new RulesetOrRuleDto
+            return (true, index, new RulesetDto
             {
                 condition = condition == "&" ? "and" : "or",
                 rules = rules,
@@ -168,29 +168,29 @@ namespace JhipsterSampleApplication.Domain.Services
             });
         }
 
-        private (bool matches, int index, RulesetOrRuleDto ruleset) ParseNotRuleset(string[] tokens, int index)
+        private (bool matches, int index, RulesetDto ruleset) ParseNotRuleset(string[] tokens, int index)
         {
             if (index >= tokens.Length || tokens[index] != "!")
             {
-                return (false, index, new RulesetOrRuleDto());
+                return (false, index, new RulesetDto());
             }
 
             index++;
             var result = ParseParened(tokens, index, true);
             if (!result.matches)
             {
-                return (false, index, new RulesetOrRuleDto());
+                return (false, index, new RulesetDto());
             }
 
             result.ruleset.not = true;
             return result;
         }
 
-        private (bool matches, int index, RulesetOrRuleDto ruleset) ParseParened(string[] tokens, int index, bool not)
+        private (bool matches, int index, RulesetDto ruleset) ParseParened(string[] tokens, int index, bool not)
         {
             if (index >= tokens.Length)
             {
-                return (false, index, new RulesetOrRuleDto());
+                return (false, index, new RulesetDto());
             }
 
             // Handle NOT at the start
@@ -209,22 +209,22 @@ namespace JhipsterSampleApplication.Domain.Services
                     if (not)
                     {
                         // The named query must be nested in parentheses to add NOT
-                        return (true, index + 1, new RulesetOrRuleDto
+                        return (true, index + 1, new RulesetDto
                         {
                             condition = "or",
-                            rules = new List<RulesetOrRuleDto> { ruleset },
+                            rules = new List<RulesetDto> { ruleset },
                             not = true
                         });
                     }
                     return (true, index + 1, ruleset);
                 }
-                return (false, index, new RulesetOrRuleDto());
+                return (false, index, new RulesetDto());
             }
 
             // Check for parenthesized expression
             if (tokens[index] != "(")
             {
-                return (false, index, new RulesetOrRuleDto());
+                return (false, index, new RulesetDto());
             }
 
             index++;
@@ -234,10 +234,10 @@ namespace JhipsterSampleApplication.Domain.Services
                 result = ParseRule(tokens, index);
                 if (result.matches)
                 {
-                    result.ruleset = new RulesetOrRuleDto
+                    result.ruleset = new RulesetDto
                     {
                         condition = "or",
-                        rules = new List<RulesetOrRuleDto> { result.ruleset },
+                        rules = new List<RulesetDto> { result.ruleset },
                         not = not
                     };
                 }
@@ -249,18 +249,18 @@ namespace JhipsterSampleApplication.Domain.Services
 
             if (result.index >= tokens.Length || tokens[result.index] != ")")
             {
-                return (false, result.index, new RulesetOrRuleDto());
+                return (false, result.index, new RulesetDto());
             }
 
             result.index++;
             return result;
         }
 
-        private (bool matches, int index, RulesetOrRuleDto ruleset) ParseRule(string[] tokens, int index)
+        private (bool matches, int index, RulesetDto ruleset) ParseRule(string[] tokens, int index)
         {
             if (index >= tokens.Length)
             {
-                return (false, index, new RulesetOrRuleDto());
+                return (false, index, new RulesetDto());
             }
 
             // Handle document field with direct value
@@ -275,7 +275,7 @@ namespace JhipsterSampleApplication.Domain.Services
                     {
                         if (docValue.EndsWith("\\\""))
                         {
-                            return (false, index, new RulesetOrRuleDto());
+                            return (false, index, new RulesetDto());
                         }
                     }
                     else if (docValue.StartsWith("/"))
@@ -295,18 +295,18 @@ namespace JhipsterSampleApplication.Domain.Services
                         }
                         catch
                         {
-                            return (false, index, new RulesetOrRuleDto());
+                            return (false, index, new RulesetDto());
                         }
                     }
 
-                    return (true, index + 1, new RulesetOrRuleDto
+                    return (true, index + 1, new RulesetDto
                     {
                         field = "document",
                         @operator = "contains",
                         value = docValue ?? string.Empty
                     });
                 }
-                return (false, index, new RulesetOrRuleDto());
+                return (false, index, new RulesetDto());
             }
 
             var field = tokens[index];
@@ -314,20 +314,20 @@ namespace JhipsterSampleApplication.Domain.Services
 
             if (index >= tokens.Length)
             {
-                return (false, index, new RulesetOrRuleDto());
+                return (false, index, new RulesetDto());
             }
 
             var op = tokens[index];
             if (!IsValidOperator(field, op))
             {
-                return (false, index, new RulesetOrRuleDto());
+                return (false, index, new RulesetDto());
             }
             index++;
 
             // Handle EXISTS/!EXISTS operators
             if (op == "EXISTS" || op == "!EXISTS")
             {
-                return (true, index, new RulesetOrRuleDto
+                return (true, index, new RulesetDto
                 {
                     field = field,
                     @operator = "exists",
@@ -337,7 +337,7 @@ namespace JhipsterSampleApplication.Domain.Services
 
             if (index >= tokens.Length)
             {
-                return (false, index, new RulesetOrRuleDto());
+                return (false, index, new RulesetDto());
             }            
 
             // Handle IN/!IN operators
@@ -354,17 +354,17 @@ namespace JhipsterSampleApplication.Domain.Services
 
                     if (values.Count == 0)
                     {
-                        return (false, index, new RulesetOrRuleDto());
+                        return (false, index, new RulesetDto());
                     }
 
-                    return (true, index + 1, new RulesetOrRuleDto
+                    return (true, index + 1, new RulesetDto
                     {
                         field = field,
                         @operator = op.ToLower(),
                         value = values ?? new List<string>()
                     });
                 }
-                return (false, index, new RulesetOrRuleDto());
+                return (false, index, new RulesetDto());
             }
 
             // Handle single value
@@ -376,10 +376,10 @@ namespace JhipsterSampleApplication.Domain.Services
 
             if (!IsValidValue(field, value))
             {
-                return (false, index, new RulesetOrRuleDto());
+                return (false, index, new RulesetDto());
             }
 
-            return (true, index + 1, new RulesetOrRuleDto
+            return (true, index + 1, new RulesetDto
             {
                 field = field,
                 @operator = op.ToLower(),
@@ -417,133 +417,87 @@ namespace JhipsterSampleApplication.Domain.Services
             };
         }
 
-        public override async Task<string> Ruleset2Bql(RulesetOrRuleDto ruleset)
+        public override Task<string> Ruleset2Bql(RulesetDto ruleset)
         {
             if (ruleset == null)
             {
-                throw new ArgumentException("Ruleset cannot be null");
+                throw new ArgumentNullException(nameof(ruleset));
             }
-            if (ruleset.rules == null || ruleset.rules.Count == 0)
+
+            if (!ValidateRuleset(ruleset))
             {
-                ruleset = new RulesetOrRuleDto{
-                    condition = "or",
-                    rules  = [ ruleset ]
-                };
+                throw new ArgumentException("Invalid ruleset", nameof(ruleset));
             }
-            return QueryAsString(ruleset);
+
+            return Task.FromResult(QueryAsString(ruleset));
         }
 
-        private string QueryAsString(RulesetOrRuleDto query, bool recurse = false)
+        private string QueryAsString(RulesetDto query, bool recurse = false)
         {
-            var result = "";
+            if (query == null)
+            {
+                throw new ArgumentNullException(nameof(query));
+            }
+
+            var result = new List<string>();
+            if (query.rules != null && query.rules.Any())
+            {
+                foreach (var rule in query.rules)
+                {
+                    if (rule != null)
+                    {
+                        result.Add(QueryAsString(rule, true));
+                    }
+                }
+            }
+
             var multipleConditions = false;
 
-            for (int i = 0; i < query.rules.Count; i++)
+            for (int i = 0; i < result.Count; i++)
             {
-                var rule = query.rules[i];
-                if (result.Length > 0)
+                if (i > 0)
                 {
-                    result += $" {(query.condition == "and" ? "&" : "|")} ";
+                    result[i] = $" {(query.condition == "and" ? "&" : "|")} {result[i]}";
                     multipleConditions = true;
-                }
-
-                if (rule.rules != null && rule.rules.Count > 0)
-                {
-                    result += QueryAsString(rule, query.rules.Count > 1);
-                }
-                else if (!string.IsNullOrEmpty(rule.field))
-                {
-                    if (rule.field == "document" && rule.value != null)
-                    {
-                        var value = rule.value.ToString();
-                        if (value.StartsWith("/") && (value.EndsWith("/") || value.EndsWith("/i")))
-                        {
-                            // regex
-                            result += value;
-                        }
-                        else if (!Regex.IsMatch(value, "^[a-zA-Z0-9]+$"))
-                        {
-                            result += $"\"{value.Replace("\"", "\\\"")}\"";
-                        }
-                        else
-                        {
-                            result += value.ToLower();
-                        }
-                    }
-                    else
-                    {
-                        result += rule.field;
-                        if (rule.@operator == "exists")
-                        {
-                            result += $" {(rule.value?.ToString() == "true" ? "" : "!")}EXISTS ";
-                        }
-                        else if (rule.@operator == "in" || rule.@operator == "not in")
-                        {
-                            var values = rule.value as IEnumerable<object>;
-                            if (values != null)
-                            {
-                                var quoted = values.Select(v =>
-                                    Regex.IsMatch(v.ToString(), "^[a-zA-Z0-9]+$") ? v.ToString() : $"\"{v.ToString().Replace("\"", "\\\"")}\""
-                                );
-                                result += $" {(rule.@operator == "in" ? "" : "!")}IN ({string.Join(", ", quoted)}) ";
-                            }
-                        }
-                        else
-                        {
-                            result += $" {rule.@operator?.ToUpper()} ";
-                            if (rule.value != null)
-                            {
-                                var value = rule.value.ToString();
-                                if (value.StartsWith("/") && (value.EndsWith("/") || value.EndsWith("/i")))
-                                {
-                                    result += value; // regex
-                                }
-                                else if (Regex.IsMatch(value, @"[\s\\""]"))
-                                {
-                                    result += $"\"{value.Replace("\"", "\\\"")}\"";
-                                }
-                                else
-                                {
-                                    result += value.ToLower();
-                                }
-                            }
-                        }
-                    }
                 }
             }
 
             if (query.@not)
             {
-                if (query.rules.Count == 1 && query.rules[0].rules != null && query.rules[0].rules.Count > 0)
+                if (result.Count == 1 && result[0] != null)
                 {
-                    result = "!" + result;
+                    result[0] = "!" + result[0];
                 }
                 else
                 {
-                    result = $"!({result})";
+                    result[0] = $"!({string.Join(" ", result)})";
                 }
             }
             else if (recurse && multipleConditions)
             {
-                result = $"({result})";
+                result[0] = $"({string.Join(" ", result)})";
             }
 
-            return result;
+            return string.Join(" ", result);
         }
 
         protected override bool ValidateBqlQuery(string bqlQuery)
         {
-            if (!base.ValidateBqlQuery(bqlQuery))
+            if (string.IsNullOrWhiteSpace(bqlQuery))
             {
-                return false;
+                return true;
             }
 
-            // Add Birthday-specific BQL validation here
-            // For example, check that only valid Birthday attributes are referenced
-            return true;
+            var regex = new Regex(@"\s*(" + 
+                @"(?<=IN\s)(\(""(\\""|[^""])+""|\/(\\/|[^/]+\/)|[^""\s]+\s*)(,\s*(""(\\""|[^""])+""|[^""\s]+\s*))*\s*\)" +
+                @"|[()]" +
+                @"|(""(\\""|\\\\|[^""])+\""|\/(\\\/|[^\/])+\/i?" +
+                @"|sign|dob|lname|fname|isAlive|document)|(=|!=|CONTAINS|!CONTAINS|EXISTS|!EXISTS|IN|!IN|>=|<=|>|<)|(&|\||!)|[^""/=!<>() ]+)\s*");
+            
+            return regex.IsMatch(bqlQuery);
         }
 
-        protected override bool ValidateRuleset(RulesetOrRuleDto ruleset)
+        protected override bool ValidateRuleset(RulesetDto ruleset)
         {
             if (!base.ValidateRuleset(ruleset))
             {

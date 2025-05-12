@@ -117,7 +117,7 @@ namespace JhipsterSampleApplication.Test.Controllers
 
             // 5. Search with ruleset (POST /api/Birthdays/search/ruleset)
             Console.WriteLine($"<><><><><>Starting RULE test");
-            var rulesetQuery = new RulesetOrRule()
+            var rulesetQuery = new Ruleset()
             {
                 field = "lname",
                 @operator = "=",

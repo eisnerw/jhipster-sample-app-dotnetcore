@@ -3,19 +3,19 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Linq;
+using System.Linq   ;
 
 namespace JhipsterSampleApplication.Domain.Entities
 {
 
-    public class RulesetOrRule
+    public class Ruleset
     {
         public string? field { get; set; }
         public string? @operator { get; set; }
         public object? value { get; set; }
         public string? condition { get; set; }
         public bool @not { get; set; }
-        public List<RulesetOrRule>? rules { get; set; }
+        public List<Ruleset>? rules { get; set; }
         public override string ToString()
         {
             if (rules == null){

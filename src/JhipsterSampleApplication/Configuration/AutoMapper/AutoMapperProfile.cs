@@ -26,7 +26,7 @@ namespace JhipsterSampleApplication.Configuration.AutoMapper
             CreateMap<Region, RegionDto>().ReverseMap();
             CreateMap<TimeSheet, TimeSheetDto>().ReverseMap();
             CreateMap<TimeSheetEntry, TimeSheetEntryDto>().ReverseMap();
-            CreateMap<RulesetOrRuleDto, RulesetOrRule>()
+            CreateMap<RulesetDto, Ruleset>()
                 .ForMember(dest => dest.rules, opt => opt.MapFrom(src => src.rules))
                 .ReverseMap();
         }
