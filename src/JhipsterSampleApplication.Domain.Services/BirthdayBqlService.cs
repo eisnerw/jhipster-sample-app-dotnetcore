@@ -8,6 +8,8 @@ using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Dto;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
+using System.IO;
+using System.Text;
 
 namespace JhipsterSampleApplication.Domain.Services
 {
@@ -26,7 +28,7 @@ namespace JhipsterSampleApplication.Domain.Services
         {
             if (!ValidateBqlQuery(bqlQuery))
             {
-                throw new ArgumentException("Invalid BQL query", nameof(bqlQuery));
+                throw new ArgumentException($"Invalid BQL query: '{bqlQuery}'", nameof(bqlQuery));
             }
 
             if (string.IsNullOrWhiteSpace(bqlQuery))
@@ -62,7 +64,7 @@ namespace JhipsterSampleApplication.Domain.Services
             var result = ParseRuleset(tokens, 0, false);
             if (!result.matches || result.index < tokens.Length)
             {
-                throw new ArgumentException($"Invalid BQL query at position {result.index}", nameof(bqlQuery));
+                throw new ArgumentException($"Invalid BQL query '{bqlQuery}' at position {result.index}", nameof(bqlQuery));
             }
 
             return Task.FromResult(result.ruleset);
@@ -428,58 +430,114 @@ namespace JhipsterSampleApplication.Domain.Services
             {
                 throw new ArgumentException("Invalid ruleset", nameof(ruleset));
             }
+            if (ruleset.rules == null || ruleset.rules.Count == 0){
+                ruleset = new RulesetDto{
+                    condition = "or",
+                    rules = [ruleset]
+                };
+            }
 
             return Task.FromResult(QueryAsString(ruleset));
         }
 
+        
         private string QueryAsString(RulesetDto query, bool recurse = false)
         {
-            if (query == null)
-            {
-                throw new ArgumentNullException(nameof(query));
-            }
+            var result = new StringBuilder();
+            bool multipleConditions = false;
 
-            var result = new List<string>();
-            if (query.rules != null && query.rules.Any())
+            foreach (var r in query.rules)
             {
-                foreach (var rule in query.rules)
+                if (result.Length > 0)
                 {
-                    if (rule != null)
+                    result.Append(" " + (query.condition == "and" ? "&" : "|") + " ");
+                    multipleConditions = true;
+                }
+
+                if (r is RulesetDto ruleQuery && !string.IsNullOrEmpty(ruleQuery.condition))
+                {
+                    if (!string.IsNullOrEmpty(ruleQuery.name))
                     {
-                        result.Add(QueryAsString(rule, true));
+                        result.Append(ruleQuery.name);
+                    }
+                    else
+                    {
+                        result.Append(QueryAsString(ruleQuery, query.rules.Count > 1));
+                    }
+                }
+                else if (r.field == "document" && r.value != null)
+                {
+                    var valStr = r.value.ToString();
+                    if (Regex.IsMatch(valStr, "^/.*/"))
+                    {
+                        result.Append(valStr); // regex
+                    }
+                    else if (!Regex.IsMatch(valStr, "^[a-zA-Z\\d]+$"))
+                    {
+                        result.Append("\"" + Regex.Replace(valStr, "([\\\"])", "\\$1") + "\"");
+                    }
+                    else
+                    {
+                        result.Append(valStr.ToLower());
+                    }
+                }
+                else
+                {
+                    result.Append(r.field);
+
+                    if (r.@operator == "exists")
+                    {
+                        result.Append(" " + (r.value is bool b && !b ? "!" : "") + "EXISTS ");
+                    }
+                    else if (r.@operator == "in" || r.@operator == "not in")
+                    {
+                        var values = r.value as IEnumerable<string> ?? new List<string>();
+                        var quoted = values.Select(v => Regex.IsMatch(v, "^[a-zA-Z\\d]+$") ? v : "\"" + Regex.Replace(v ?? "", "([\\\"])", "\\$1") + "\"");
+                        result.Append(" " + (r.@operator == "in" ? "" : "!") + "IN (" + string.Join(", ", quoted) + ") ");
+                    }
+                    else
+                    {
+                        result.Append(" " + r.@operator.ToUpper() + " ");
+                        if (r.value != null)
+                        {
+                            var valStr = r.value.ToString();
+                            if (valStr.StartsWith("/") && (valStr.EndsWith("/") || valStr.EndsWith("/i")))
+                            {
+                                result.Append(valStr); // regex
+                            }
+                            else if (Regex.IsMatch(valStr, "[\\s\\\"]"))
+                            {
+                                result.Append("\"" + Regex.Replace(valStr, "([\\\"])", "\\$1") + "\"");
+                            }
+                            else
+                            {
+                                result.Append(valStr.ToLower());
+                            }
+                        }
                     }
                 }
             }
 
-            var multipleConditions = false;
-
-            for (int i = 0; i < result.Count; i++)
+            if (query.not)
             {
-                if (i > 0)
+                if (query.rules.Count == 1 && (query.rules[0] as RulesetDto)?.name != null)
                 {
-                    result[i] = $" {(query.condition == "and" ? "&" : "|")} {result[i]}";
-                    multipleConditions = true;
-                }
-            }
-
-            if (query.@not)
-            {
-                if (result.Count == 1 && result[0] != null)
-                {
-                    result[0] = "!" + result[0];
+                    result.Insert(0, "!");
                 }
                 else
                 {
-                    result[0] = $"!({string.Join(" ", result)})";
+                    result.Insert(0, "!(").Append(")");
                 }
             }
             else if (recurse && multipleConditions)
             {
-                result[0] = $"({string.Join(" ", result)})";
+                result.Insert(0, "(").Append(")");
             }
 
-            return string.Join(" ", result);
+            return result.ToString();
         }
+
+        
 
         protected override bool ValidateBqlQuery(string bqlQuery)
         {

@@ -21,6 +21,16 @@ public static class TestUtil
         return new StringContent(JsonConvert.SerializeObject(model), encoding, "application/json");
     }
 
+    public static HttpContent ToTextContent(object model)
+    {
+        return ToTextContent(model, Encoding.UTF8);
+    }
+
+    public static HttpContent ToTextContent(object text, Encoding encoding)
+    {
+        return new StringContent(text.ToString(), encoding, "text/plain");
+    }
+
     public static string RandomAlphabetic(int length)
     {
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

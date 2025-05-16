@@ -188,7 +188,161 @@ namespace JhipsterSampleApplication.Test.Controllers
             var verifyDeleteResponse = await _client.GetAsync($"/api/Birthdays/{_birthdayDto.Id}");
             verifyDeleteResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
-                private class SearchResult<T>
+
+        [Fact]
+        public async Task TestBqlOperations()
+        {
+            // Create test data
+            var testBirthday = new BirthdayDto
+            {
+                Id = Guid.NewGuid().ToString(),
+                Lname = "TestBqlLastName",
+                Fname = "TestBqlFirstName",
+                Sign = "aries",
+                Dob = new DateTime(1990, 1, 1),
+                IsAlive = true,
+                Text = "Test text for BQL search",
+                Wikipedia = "<p>test person</p>"
+            };
+
+            // Clean up any existing records
+            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>(d => d
+                .Index("birthdays")
+                .Query(q => q.Term(t => t.Field("lname.keyword").Value(testBirthday.Lname))));
+            
+            _elasticClient.Indices.Refresh("birthdays");
+
+            // Create test record
+            var createResponse = await _client.PostAsync(
+                "/api/Birthdays",
+                TestUtil.ToJsonContent(testBirthday));
+            createResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            _elasticClient.Indices.Refresh("birthdays");
+
+            // 1. Test BQL to Ruleset conversion
+            var bqlQuery = $"lname = {testBirthday.Lname.ToLower()}";
+            var bql2RulesetResponse = await _client.PostAsync(
+                "/api/Birthdays/bql-to-ruleset",
+                TestUtil.ToTextContent(bqlQuery));
+
+            string responseBody = await bql2RulesetResponse.Content.ReadAsStringAsync();
+
+            bql2RulesetResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var rulesetDto = await bql2RulesetResponse.Content.ReadFromJsonAsync<RulesetDto>();
+            rulesetDto.Should().NotBeNull();
+            rulesetDto.field.Should().Be("lname");
+            rulesetDto.@operator.Should().Be("=");
+            rulesetDto.value.Should().Be(testBirthday.Lname.ToLower());
+
+            // 2. Test Ruleset to BQL conversion
+            var ruleset2BqlResponse = await _client.PostAsync(
+                "/api/Birthdays/ruleset-to-bql",
+                TestUtil.ToJsonContent(rulesetDto));
+            ruleset2BqlResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var bqlResult = await ruleset2BqlResponse.Content.ReadAsStringAsync();
+            bqlResult.Should().NotBeNull();
+            bqlResult.Should().Be(bqlQuery);
+
+            // 3. Test Ruleset to Elasticsearch conversion
+            var ruleset2EsResponse = await _client.PostAsync(
+                "/api/Birthdays/ruleset-to-elasticsearch",
+                TestUtil.ToJsonContent(rulesetDto));
+            ruleset2EsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var esQuery = await ruleset2EsResponse.Content.ReadFromJsonAsync<object>();
+            esQuery.Should().NotBeNull();
+
+            // 4. Test BQL search
+            var bqlSearchResponse = await _client.PostAsync(
+                "/api/Birthdays/search/bql",
+                TestUtil.ToTextContent(bqlQuery));
+            bqlSearchResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var searchResult = await bqlSearchResponse.Content.ReadFromJsonAsync<SearchResult<BirthdayDto>>();
+            searchResult.Should().NotBeNull();
+            searchResult.Hits.Should().NotBeEmpty();
+            searchResult.Hits.First().Lname.Should().Be(testBirthday.Lname);
+
+            // Clean up
+            var deleteTestResponse = await _client.DeleteAsync($"/api/Birthdays/{testBirthday.Id}");
+            deleteTestResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            _elasticClient.Indices.Refresh("birthdays");
+        }
+
+        [Fact]
+        public async Task TestComplexBqlOperations()
+        {
+            // Create test data
+            var testBirthday1 = new BirthdayDto
+            {
+                Id = Guid.NewGuid().ToString(),
+                Lname = "ComplexTest1",
+                Fname = "Test1",
+                Sign = "aries",
+                Dob = new DateTime(1990, 1, 1),
+                IsAlive = true
+            };
+
+            var testBirthday2 = new BirthdayDto
+            {
+                Id = Guid.NewGuid().ToString(),
+                Lname = "ComplexTest2",
+                Fname = "Test2",
+                Sign = "taurus",
+                Dob = new DateTime(1991, 2, 2),
+                IsAlive = false
+            };
+
+            // Clean up any existing records
+            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>(d => d
+                .Index("birthdays")
+                .Query(q => q.Terms(t => t.Field("lname.keyword").Terms(new[] { testBirthday1.Lname, testBirthday2.Lname }))));
+            
+            _elasticClient.Indices.Refresh("birthdays");
+
+            // Create test records
+            await _client.PostAsync("/api/Birthdays", TestUtil.ToJsonContent(testBirthday1));
+            await _client.PostAsync("/api/Birthdays", TestUtil.ToJsonContent(testBirthday2));
+            _elasticClient.Indices.Refresh("birthdays");
+
+            // Test complex BQL query with AND/OR operators
+            var complexBqlQuery = $"(lname = {testBirthday1.Lname.ToLower()} & sign = aries) | (lname = {testBirthday2.Lname.ToLower()} & sign = taurus)";
+            
+            // Test BQL to Ruleset conversion
+            var bql2RulesetResponse = await _client.PostAsync(
+                "/api/Birthdays/bql-to-ruleset",
+                TestUtil.ToTextContent(complexBqlQuery));
+            bql2RulesetResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var rulesetDto = await bql2RulesetResponse.Content.ReadFromJsonAsync<RulesetDto>();
+            rulesetDto.Should().NotBeNull();
+            rulesetDto.condition.Should().Be("or");
+            rulesetDto.rules.Should().HaveCount(2);
+
+            // Test Ruleset to BQL conversion
+            var ruleset2BqlResponse = await _client.PostAsync(
+                "/api/Birthdays/ruleset-to-bql",
+                TestUtil.ToJsonContent(rulesetDto));
+            ruleset2BqlResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var bqlResult = await ruleset2BqlResponse.Content.ReadAsStringAsync();
+            bqlResult.Should().NotBeNull();
+            bqlResult.Should().Be(complexBqlQuery);
+  
+            // Test BQL search with complex query
+            var bqlSearchResponse = await _client.PostAsync(
+                "/api/Birthdays/search/bql",
+                TestUtil.ToTextContent(complexBqlQuery));
+            bqlSearchResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var searchResult = await bqlSearchResponse.Content.ReadFromJsonAsync<SearchResult<BirthdayDto>>();
+            searchResult.Should().NotBeNull();
+            searchResult.Hits.Should().HaveCount(2);
+            searchResult.Hits.Should().Contain(h => h.Lname == testBirthday1.Lname);
+            searchResult.Hits.Should().Contain(h => h.Lname == testBirthday2.Lname);
+
+            // Clean up
+            await _client.DeleteAsync($"/api/Birthdays/{testBirthday1.Id}");
+            await _client.DeleteAsync($"/api/Birthdays/{testBirthday2.Id}");
+            _elasticClient.Indices.Refresh("birthdays");
+        }
+
+        private class SearchResult<T>
         {
             public System.Collections.Generic.List<T> Hits { get; set; }
         }
@@ -212,6 +366,11 @@ namespace JhipsterSampleApplication.Test.Controllers
             public int NumberOfDataNodes { get; set; }
             public int ActiveShards { get; set; }
             public int ActivePrimaryShards { get; set; }
+        }
+
+        private class BqlQueryDto
+        {
+            public string Query { get; set; } = string.Empty;
         }
     }
 } 
