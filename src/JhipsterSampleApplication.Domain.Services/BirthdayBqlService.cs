@@ -443,11 +443,23 @@ namespace JhipsterSampleApplication.Domain.Services
         
         private string QueryAsString(RulesetDto query, bool recurse = false)
         {
+            if (query == null)
+            {
+                throw new ArgumentNullException(nameof(query));
+            }
+
             var result = new StringBuilder();
             bool multipleConditions = false;
 
+            if (query.rules == null)
+            {
+                return result.ToString();
+            }
+
             foreach (var r in query.rules)
             {
+                if (r == null) continue;
+
                 if (result.Length > 0)
                 {
                     result.Append(" " + (query.condition == "and" ? "&" : "|") + " ");
@@ -468,20 +480,20 @@ namespace JhipsterSampleApplication.Domain.Services
                 else if (r.field == "document" && r.value != null)
                 {
                     var valStr = r.value.ToString();
-                    if (Regex.IsMatch(valStr, "^/.*/"))
+                    if (valStr != null && Regex.IsMatch(valStr, "^/.*/"))
                     {
                         result.Append(valStr); // regex
                     }
-                    else if (!Regex.IsMatch(valStr, "^[a-zA-Z\\d]+$"))
+                    else if (valStr != null && !Regex.IsMatch(valStr, "^[a-zA-Z\\d]+$"))
                     {
                         result.Append("\"" + Regex.Replace(valStr, "([\\\"])", "\\$1") + "\"");
                     }
                     else
                     {
-                        result.Append(valStr.ToLower());
+                        result.Append(valStr?.ToLower() ?? "");
                     }
                 }
-                else
+                else if (r.field != null)
                 {
                     result.Append(r.field);
 
@@ -495,23 +507,23 @@ namespace JhipsterSampleApplication.Domain.Services
                         var quoted = values.Select(v => Regex.IsMatch(v, "^[a-zA-Z\\d]+$") ? v : "\"" + Regex.Replace(v ?? "", "([\\\"])", "\\$1") + "\"");
                         result.Append(" " + (r.@operator == "in" ? "" : "!") + "IN (" + string.Join(", ", quoted) + ") ");
                     }
-                    else
+                    else if (!string.IsNullOrWhiteSpace(r.@operator))
                     {
                         result.Append(" " + r.@operator.ToUpper() + " ");
                         if (r.value != null)
                         {
                             var valStr = r.value.ToString();
-                            if (valStr.StartsWith("/") && (valStr.EndsWith("/") || valStr.EndsWith("/i")))
+                            if (valStr != null && valStr.StartsWith("/") && (valStr.EndsWith("/") || valStr.EndsWith("/i")))
                             {
                                 result.Append(valStr); // regex
                             }
-                            else if (Regex.IsMatch(valStr, "[\\s\\\"]"))
+                            else if (valStr != null && Regex.IsMatch(valStr, "[\\s\\\"]"))
                             {
                                 result.Append("\"" + Regex.Replace(valStr, "([\\\"])", "\\$1") + "\"");
                             }
                             else
                             {
-                                result.Append(valStr.ToLower());
+                                result.Append(valStr?.ToLower() ?? "");
                             }
                         }
                     }

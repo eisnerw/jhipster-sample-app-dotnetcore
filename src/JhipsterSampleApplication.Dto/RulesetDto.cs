@@ -120,7 +120,7 @@ namespace JhipsterSampleApplication.Dto
     }
     public class AutoValueConverter : JsonConverter<object>
     {
-        public override object Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             switch (reader.TokenType)
             {
@@ -138,7 +138,7 @@ namespace JhipsterSampleApplication.Dto
                 case JsonTokenType.False:
                     return false;
                 case JsonTokenType.StartArray:
-                    var stringList = new List<string>();
+                    var stringList = new List<string?>();
                     while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
                     {
                         if (reader.TokenType == JsonTokenType.String)
@@ -147,7 +147,7 @@ namespace JhipsterSampleApplication.Dto
                         }
                         else if (reader.TokenType == JsonTokenType.Null)
                         {
-                            stringList.Add(null); // Or handle nulls differently in the list
+                            stringList.Add(null);
                         }
                         else
                         {
@@ -162,7 +162,7 @@ namespace JhipsterSampleApplication.Dto
             }
         }
 
-        public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
+        public override void Write(Utf8JsonWriter writer, object? value, JsonSerializerOptions options)
         {
             if (value is string stringValue)
             {
@@ -176,7 +176,7 @@ namespace JhipsterSampleApplication.Dto
             {
                 writer.WriteBooleanValue(boolValue);
             }
-            else if (value is List<string> stringList)
+            else if (value is List<string?> stringList)
             {
                 writer.WriteStartArray();
                 foreach (var item in stringList)
