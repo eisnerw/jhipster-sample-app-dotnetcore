@@ -36,10 +36,10 @@ namespace JhipsterSampleApplication.Domain.Entities
         [Column("script")]
         public string? Script { get; set; }
 
-        [Column("second_level_view_id")]
-        public string? SecondLevelViewId { get; set; }
+        [Column("primary_view_id")]
+        public string? PrimaryViewId { get; set; }
 
-        [ForeignKey("SecondLevelViewId")]
-        public View? SecondLevelView { get; set; }
+        [ForeignKey("PrimaryViewId")]
+        public View? PrimaryView { get; set; }
     }
 }

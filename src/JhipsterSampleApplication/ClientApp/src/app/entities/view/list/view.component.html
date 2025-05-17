@@ -29,7 +29,7 @@
             <th jhiSortBy="query"><span>Query</span> <fa-icon icon="sort"></fa-icon></th>
             <th jhiSortBy="categoryQuery"><span>Category Query</span> <fa-icon icon="sort"></fa-icon></th>
             <th jhiSortBy="script"><span>Script</span> <fa-icon icon="sort"></fa-icon></th>
-            <th jhiSortBy="secondLevelView.name"><span>Second Level View</span> <fa-icon icon="sort"></fa-icon></th>
+            <th jhiSortBy="primaryView.name"><span>Primary View</span> <fa-icon icon="sort"></fa-icon></th>
             <th></th>
           </tr>
         </thead>
@@ -43,8 +43,8 @@
             <td>{{ view.categoryQuery }}</td>
             <td>{{ view.script }}</td>
             <td>
-              <div *ngIf="view.secondLevelView">
-                <a [routerLink]="['/view', view.secondLevelView.id, 'view']">{{ view.secondLevelView.name }}</a>
+              <div *ngIf="view.primaryView">
+                <a [routerLink]="['/view', view.primaryView.id, 'view']">{{ view.primaryView.name }}</a>
               </div>
             </td>
             <td class="text-end">

@@ -21,8 +21,8 @@ namespace JhipsterSampleApplication.Dto
 
         public string? Script { get; set; }
 
-        public string? SecondLevelViewId { get; set; }
+        public string? PrimaryViewId { get; set; }
 
-        public ViewDto? SecondLevelView { get; set; }
+        public ViewDto? PrimaryView { get; set; }
     }
 } 

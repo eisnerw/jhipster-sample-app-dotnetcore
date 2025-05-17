@@ -6,8 +6,8 @@ export interface IView {
   query?: string;
   categoryQuery?: string;
   script?: string;
-  secondLevelViewId?: string;
-  secondLevelView?: IView;
+  primaryViewId?: string;
+  primaryView?: IView;
 }
 
 export class View implements IView {
@@ -19,7 +19,7 @@ export class View implements IView {
     public query?: string,
     public categoryQuery?: string,
     public script?: string,
-    public secondLevelViewId?: string,
-    public secondLevelView?: IView,
+    public primaryViewId?: string,
+    public primaryView?: IView,
   ) {}
 }

@@ -9,9 +9,9 @@ namespace JhipsterSampleApplication.Configuration.AutoMapper
         public ViewProfile()
         {
             CreateMap<View, ViewDto>()
-                .ForMember(dest => dest.SecondLevelView, opt => opt.MapFrom(src => src.SecondLevelView));
+                .ForMember(dest => dest.PrimaryView, opt => opt.MapFrom(src => src.PrimaryView));
             CreateMap<ViewDto, View>()
-                .ForMember(dest => dest.SecondLevelView, opt => opt.MapFrom(src => src.SecondLevelView));
+                .ForMember(dest => dest.PrimaryView, opt => opt.MapFrom(src => src.PrimaryView));
         }
     }
 } 
