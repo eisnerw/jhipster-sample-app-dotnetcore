@@ -46,10 +46,6 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<ActionResult<ViewDto>> Create([FromBody] ViewDto viewDto)
         {
             _log.LogDebug($"REST request to save View : {viewDto}");
-            if (string.IsNullOrEmpty(viewDto.Id))
-            {
-                return BadRequest("View ID is required");
-            }
             var view = await _viewService.CreateAsync(viewDto);
             return CreatedAtAction(nameof(Get), new { id = view.Id }, view);
         }

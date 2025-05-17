@@ -14,28 +14,32 @@ namespace JhipsterSampleApplication.Domain.Entities
 
         [Required]
         [Column("name")]
-        public string Name { get; set; }
+        public string Name 
+        { 
+            get => Id;
+            set => Id = value;
+        }
 
         [Required]
         [Column("field")]
         public string Field { get; set; }
 
         [Column("aggregation")]
-        public string Aggregation { get; set; }
+        public string? Aggregation { get; set; }
 
         [Column("query")]
-        public string Query { get; set; }
+        public string? Query { get; set; }
 
         [Column("category_query")]
-        public string CategoryQuery { get; set; }
+        public string? CategoryQuery { get; set; }
 
         [Column("script")]
-        public string Script { get; set; }
+        public string? Script { get; set; }
 
         [Column("second_level_view_id")]
-        public string SecondLevelViewId { get; set; }
+        public string? SecondLevelViewId { get; set; }
 
         [ForeignKey("SecondLevelViewId")]
-        public View SecondLevelView { get; set; }
+        public View? SecondLevelView { get; set; }
     }
 }
