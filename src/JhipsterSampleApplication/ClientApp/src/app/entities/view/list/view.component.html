@@ -30,6 +30,7 @@
             <th jhiSortBy="categoryQuery"><span>Category Query</span> <fa-icon icon="sort"></fa-icon></th>
             <th jhiSortBy="script"><span>Script</span> <fa-icon icon="sort"></fa-icon></th>
             <th jhiSortBy="primaryViewId"><span>Primary View</span> <fa-icon icon="sort"></fa-icon></th>
+            <th jhiSortBy="domain"><span>Domain</span> <fa-icon icon="sort"></fa-icon></th>
             <th></th>
           </tr>
         </thead>
@@ -47,6 +48,7 @@
                 <a [routerLink]="['/view', view.primaryViewId, 'view']">{{ view.primaryViewId }}</a>
               </div>
             </td>
+            <td>{{ view.domain }}</td>
             <td class="text-end">
               <div class="btn-group">
                 <button type="button" [routerLink]="['/view', view.id, 'view']" class="btn btn-info btn-sm">

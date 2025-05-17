@@ -15,9 +15,15 @@ export class ViewResolve implements Resolve<IView> {
     if (id) {
       return this.service.find(id).pipe(
         filter((response: HttpResponse<IView>) => response.ok),
-        map((view: HttpResponse<IView>) => view.body!),
+        map((view: HttpResponse<IView>) => {
+          const resolvedView = view.body!;
+          if (!resolvedView.domain) {
+            resolvedView.domain = 'birthdays';
+          }
+          return resolvedView;
+        }),
       );
     }
-    return of({ name: '', field: '', aggregation: '', query: '', categoryQuery: '', script: '' });
+    return of({ name: '', field: '', aggregation: '', query: '', categoryQuery: '', script: '', domain: 'birthdays' });
   }
 }

@@ -48,6 +48,9 @@
               <a [routerLink]="['/view', view.primaryViewId, 'view']">{{ view.primaryViewId }}</a>
             </div>
           </dd>
+
+          <dt><span>Domain</span></dt>
+          <dd>{{ view.domain }}</dd>
         </dl>
 
         <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">

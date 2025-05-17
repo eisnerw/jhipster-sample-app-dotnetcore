@@ -35,6 +35,10 @@ namespace JhipsterSampleApplication.Domain.Entities
         [Column("primary_view_id")]
         public string? PrimaryViewId { get; set; }
 
+        [Required]
+        [Column("domain")]
+        public string Domain { get; set; } = string.Empty;
+
         public void SetIdFromName()
         {
             if (!string.IsNullOrEmpty(PrimaryViewId))

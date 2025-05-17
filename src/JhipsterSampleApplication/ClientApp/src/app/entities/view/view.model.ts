@@ -8,6 +8,7 @@ export interface IView {
   script?: string;
   primaryViewId?: string;
   primaryView?: IView;
+  domain: string;
 }
 
 export class View implements IView {
@@ -21,5 +22,6 @@ export class View implements IView {
     public script?: string,
     public primaryViewId?: string,
     public primaryView?: IView,
+    public domain = 'birthdays'
   ) {}
 }

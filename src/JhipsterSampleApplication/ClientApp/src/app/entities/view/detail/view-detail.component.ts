@@ -11,7 +11,7 @@ import { IView } from '../view.model';
   imports: [SharedModule, RouterModule],
 })
 export class ViewDetailComponent implements OnInit {
-  view: IView = { name: '', field: '', aggregation: '', query: '', categoryQuery: '', script: '' };
+  view: IView = { name: '', field: '', aggregation: '', query: '', categoryQuery: '', script: '', domain: 'birthdays' };
 
   constructor(protected activatedRoute: ActivatedRoute) {}
 
@@ -19,6 +19,9 @@ export class ViewDetailComponent implements OnInit {
     this.activatedRoute.data.subscribe(({ view }) => {
       if (view) {
         this.view = view;
+      }
+      if (!this.view.domain) {
+        this.view.domain = 'birthdays';
       }
     });
   }

@@ -14,7 +14,7 @@ import { HttpResponse } from '@angular/common/http';
   imports: [SharedModule, RouterModule, FormsModule],
 })
 export class ViewUpdateComponent implements OnInit {
-  view: IView = { name: '', field: '', aggregation: '', query: '', categoryQuery: '', script: '' };
+  view: IView = { name: '', field: '', aggregation: '', query: '', categoryQuery: '', script: '', domain: 'birthdays' };
   isSaving = false;
   views: IView[] = [];
 
@@ -28,6 +28,9 @@ export class ViewUpdateComponent implements OnInit {
     this.activatedRoute.data.subscribe(({ view }) => {
       if (view) {
         this.view = view;
+      }
+      if (!this.view.domain) {
+        this.view.domain = 'birthdays';
       }
     });
     this.viewService.query().subscribe((res: HttpResponse<IView[]>) => {

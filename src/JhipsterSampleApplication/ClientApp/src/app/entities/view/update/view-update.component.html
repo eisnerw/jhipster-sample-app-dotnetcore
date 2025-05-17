@@ -98,6 +98,23 @@
             <option *ngFor="let viewOption of views" [ngValue]="viewOption.id">{{ viewOption.name }}</option>
           </select>
         </div>
+
+        <div class="form-group">
+          <label class="form-control-label" for="field_domain">Domain</label>
+          <select
+            class="form-control"
+            id="field_domain"
+            data-cy="domain"
+            name="domain"
+            [(ngModel)]="view.domain"
+            required
+          >
+            <option value="birthdays">Birthdays</option>
+          </select>
+          <div *ngIf="editForm.controls.domain?.invalid && (editForm.controls.domain?.dirty || editForm.controls.domain?.touched)">
+            <small class="form-text text-danger" *ngIf="editForm.controls.domain?.errors?.required">This field is required.</small>
+          </div>
+        </div>
       </div>
 
       <div>

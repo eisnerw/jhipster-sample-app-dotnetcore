@@ -1,0 +1,84 @@
+[
+    {
+      "id": "category",
+      "name": "Category",
+      "field": "categories",
+      "aggregation": "categories.keyword",
+      "query": "categories:*",
+      "categoryQuery": "",
+      "script": "",
+      "domain": "birthdays"
+    },
+    {
+      "id": "birth year",
+      "name": "Birth Year",
+      "field": "dob",
+      "aggregation": "dob",
+      "query": "*",
+      "categoryQuery": "dob:[{}-01-01 TO {}-12-31]",
+      "script": "            String st = doc['dob'].value.getYear().toString();\\n            if (st==null){\\n              return \\\"\\\";\\n            } else {\\n              return st.substring(0, 4);\\n            }",
+      "domain": "birthdays"
+    },
+    {
+      "id": "sign",
+      "name": "Sign",
+      "field": "sign",
+      "aggregation": "sign.keyword",
+      "query": "sign:*",
+      "categoryQuery": "",
+      "script": "",
+      "domain": "birthdays"
+    },
+    {
+      "id": "first name",
+      "name": "First Name",
+      "field": "fname",
+      "aggregation": "fname.keyword",
+      "query": "fname:*",
+      "categoryQuery": "",
+      "script": "",
+      "domain": "birthdays"
+    },
+    {
+      "id": "sign/birth year",
+      "name": "Sign/Birth Year",
+      "field": "sign",
+      "aggregation": "sign.keyword",
+      "query": "sign:*",
+      "categoryQuery": "",
+      "script": "",
+      "domain": "birthdays"
+    },
+    {
+      "id": "sign/birth year.year of birth         ",
+      "name": "Year of Birth         ",
+      "field": "dob",
+      "aggregation": "dob",
+      "query": "*",
+      "categoryQuery": "dob:[{}-01-01 TO {}-12-31]",
+      "script": "String st = doc['dob'].value.getYear().toString();\\n            if (st==null){\\n              return \\\"\\\";\\n            } else {\\n              return st.substring(0, 4);\\n            }",
+      "primaryViewId": "sign/birth year",
+      "domain": "birthdays"
+    },
+    {
+      "id": "query",
+      "name": "Query",
+      "field": "ruleset",
+      "aggregation": "",
+      "query": "",
+      "categoryQuery": "",
+      "script": "",
+      "domain": "birthdays"
+    },
+    {
+      "id": "query.secondlevel",
+      "name": "SecondLevel",
+      "field": "ruleset2",
+      "aggregation": "",
+      "query": "",
+      "categoryQuery": "",
+      "script": "",
+      "primaryViewId": "query",
+      "domain": "birthdays"
+    }
+  ]
