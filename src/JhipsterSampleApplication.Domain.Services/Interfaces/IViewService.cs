@@ -8,6 +8,7 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
     {
         Task<ViewDto> GetByIdAsync(string id);
         Task<IEnumerable<ViewDto>> GetAllAsync();
+        Task<IEnumerable<ViewDto>> GetByDomainAsync(string domain);
         Task<ViewDto> CreateAsync(ViewDto viewDto);
         Task<ViewDto> UpdateAsync(ViewDto viewDto);
         Task DeleteAsync(string id);

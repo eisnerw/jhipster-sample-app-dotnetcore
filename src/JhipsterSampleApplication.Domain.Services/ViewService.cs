@@ -6,6 +6,7 @@ using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Dto;
 using AutoMapper;
 using System;
+using System.Linq;
 
 namespace JhipsterSampleApplication.Domain.Services
 {
@@ -30,6 +31,18 @@ namespace JhipsterSampleApplication.Domain.Services
         {
             var views = await _viewRepository.GetAllAsync();
             return _mapper.Map<IEnumerable<ViewDto>>(views);
+        }
+
+        public async Task<IEnumerable<ViewDto>> GetByDomainAsync(string domain)
+        {
+            if (string.IsNullOrEmpty(domain))
+            {
+                throw new ArgumentException("Domain cannot be null or empty", nameof(domain));
+            }
+
+            var views = await _viewRepository.GetAllAsync();
+            var domainViews = views.Where(v => v.Domain.Equals(domain, StringComparison.OrdinalIgnoreCase));
+            return _mapper.Map<IEnumerable<ViewDto>>(domainViews);
         }
 
         public async Task<ViewDto> CreateAsync(ViewDto viewDto)

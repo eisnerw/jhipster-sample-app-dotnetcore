@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Web;
+using Microsoft.AspNetCore.Http;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -23,12 +24,25 @@ namespace JhipsterSampleApplication.Controllers
             _log = log;
         }
 
+        /// <summary>
+        /// Get all views, optionally filtered by domain
+        /// </summary>
+        /// <param name="domain">Optional domain name to filter views</param>
+        /// <returns>List of views</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ViewDto>>> GetAll()
+        [ProducesResponseType(typeof(IEnumerable<ViewDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<ViewDto>>> GetAll([FromQuery] string domain = null)
         {
-            _log.LogDebug("REST request to get all Views");
-            var views = await _viewService.GetAllAsync();
-            return Ok(views);
+            _log.LogDebug("REST request to get Views" + (domain != null ? $" for domain: {domain}" : ""));
+            
+            if (!string.IsNullOrEmpty(domain))
+            {
+                var views = await _viewService.GetByDomainAsync(domain);
+                return Ok(views);
+            }
+            
+            var allViews = await _viewService.GetAllAsync();
+            return Ok(allViews);
         }
 
         [HttpGet("{id}")]
