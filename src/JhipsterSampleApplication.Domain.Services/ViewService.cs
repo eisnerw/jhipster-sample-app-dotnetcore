@@ -34,6 +34,7 @@ namespace JhipsterSampleApplication.Domain.Services
         public async Task<ViewDto> CreateAsync(ViewDto viewDto)
         {
             var view = _mapper.Map<View>(viewDto);
+            view.SetIdFromName();
             var createdView = await _viewRepository.AddAsync(view);
             return _mapper.Map<ViewDto>(createdView);
         }
@@ -41,6 +42,7 @@ namespace JhipsterSampleApplication.Domain.Services
         public async Task<ViewDto> UpdateAsync(ViewDto viewDto)
         {
             var view = _mapper.Map<View>(viewDto);
+            view.SetIdFromName();
             var updatedView = await _viewRepository.UpdateAsync(view);
             return _mapper.Map<ViewDto>(updatedView);
         }

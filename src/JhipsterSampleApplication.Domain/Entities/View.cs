@@ -14,11 +14,7 @@ namespace JhipsterSampleApplication.Domain.Entities
 
         [Required]
         [Column("name")]
-        public string Name 
-        { 
-            get => Id;
-            set => Id = value;
-        }
+        public string Name { get; set; } = string.Empty;
 
         [Required]
         [Column("field")]
@@ -38,5 +34,17 @@ namespace JhipsterSampleApplication.Domain.Entities
 
         [Column("primary_view_id")]
         public string? PrimaryViewId { get; set; }
+
+        public void SetIdFromName()
+        {
+            if (!string.IsNullOrEmpty(PrimaryViewId))
+            {
+                Id = $"{PrimaryViewId.ToLowerInvariant()}.{Name.ToLowerInvariant()}";
+            }
+            else
+            {
+                Id = Name.ToLowerInvariant();
+            }
+        }
     }
 }
