@@ -38,8 +38,5 @@ namespace JhipsterSampleApplication.Domain.Entities
 
         [Column("primary_view_id")]
         public string? PrimaryViewId { get; set; }
-
-        [ForeignKey("PrimaryViewId")]
-        public View? PrimaryView { get; set; }
     }
 }

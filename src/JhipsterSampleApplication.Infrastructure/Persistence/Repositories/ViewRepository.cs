@@ -19,14 +19,12 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
         public async Task<View> GetByIdAsync(string id)
         {
             return await _context.Views
-                .Include(v => v.PrimaryView)
                 .FirstOrDefaultAsync(v => v.Id == id);
         }
 
         public async Task<IEnumerable<View>> GetAllAsync()
         {
             return await _context.Views
-                .Include(v => v.PrimaryView)
                 .ToListAsync();
         }
 

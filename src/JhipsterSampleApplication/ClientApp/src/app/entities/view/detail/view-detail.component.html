@@ -44,8 +44,8 @@
 
           <dt><span>Primary View</span></dt>
           <dd>
-            <div *ngIf="view.primaryView">
-              <a [routerLink]="['/view', view.primaryView.id, 'view']">{{ view.primaryView.name }}</a>
+            <div *ngIf="view.primaryViewId">
+              <a [routerLink]="['/view', view.primaryViewId, 'view']">{{ view.primaryViewId }}</a>
             </div>
           </dd>
         </dl>

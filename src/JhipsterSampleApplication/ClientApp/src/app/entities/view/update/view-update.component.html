@@ -87,15 +87,15 @@
         </div>
 
         <div class="form-group">
-          <label class="form-control-label" for="field_primaryView">Primary View</label>
+          <label class="form-control-label" for="field_primaryViewId">Primary View</label>
           <select
             class="form-control"
-            id="field_primaryView"
-            data-cy="primaryView"
-            name="primaryView"
-            [(ngModel)]="view.primaryView"
+            id="field_primaryViewId"
+            data-cy="primaryViewId"
+            name="primaryViewId"
+            [(ngModel)]="view.primaryViewId"
           >
-            <option *ngFor="let viewOption of views" [ngValue]="viewOption">{{ viewOption.name }}</option>
+            <option *ngFor="let viewOption of views" [ngValue]="viewOption.id">{{ viewOption.name }}</option>
           </select>
         </div>
       </div>
