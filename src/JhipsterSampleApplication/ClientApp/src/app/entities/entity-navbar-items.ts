@@ -56,4 +56,9 @@ export const ENTITY_NAV_ITEMS: NavbarItem[] = [
     route: '/time-sheet-entry',
     translationKey: 'global.menu.entities.timeSheetEntry',
   },
+  {
+    name: 'View',
+    route: '/view',
+    translationKey: 'global.menu.entities.view',
+  },
 ];

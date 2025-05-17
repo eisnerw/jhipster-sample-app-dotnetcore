@@ -1,0 +1,64 @@
+[
+  {
+    "id": "Category",
+    "name": "Category",
+    "field": "categories",
+    "aggregation": "categories.keyword",
+    "query": "categories:*"
+  },
+  {
+    "id": "Birth Year",
+    "name": "Birth Year",
+    "field": "dob",
+    "aggregation": "dob",
+    "query": "*",
+    "categoryQuery": "dob:[{}-01-01 TO {}-12-31]",
+    "script": "\n            String st = doc['dob'].value.getYear().toString();\n            if (st==null){\n              return \"\";\n            } else {\n              return st.substring(0, 4);\n            }\n          "
+  },
+  {
+    "id": "Sign",
+    "name": "Sign",
+    "field": "sign",
+    "aggregation": "sign.keyword",
+    "query": "sign:*"
+  },
+  {
+    "id": "First Name",
+    "name": "First Name",
+    "field": "fname",
+    "aggregation": "fname.keyword",
+    "query": "fname:*"
+  },
+  {
+    "id": "Sign/Birth Year",
+    "name": "Sign/Birth Year",
+    "field": "sign",
+    "aggregation": "sign.keyword",
+    "query": "sign:*",
+    "secondLevelViewId": "Sign/Birth Year.Year of Birth"
+  },
+  {
+    "id": "Sign/Birth Year.Year of Birth",
+    "name": "Year of Birth",
+    "field": "dob",
+    "aggregation": "dob",
+    "query": "*",
+    "categoryQuery": "dob:[{}-01-01 TO {}-12-31]",
+    "script": "\n            String st = doc['dob'].value.getYear().toString();\n            if (st==null){\n              return \"\";\n            } else {\n              return st.substring(0, 4);\n            }\n          "
+  },
+  {
+    "id": "Query",
+    "name": "Query",
+    "field": "ruleset",
+    "aggregation": "",
+    "query": "",
+    "secondLevelViewId": "Query.SecondLevel"
+  },
+  {
+    "id": "Query.SecondLevel",
+    "name": "SecondLevel",
+    "field": "ruleset2",
+    "aggregation": "",
+    "query": ""
+  }
+] 

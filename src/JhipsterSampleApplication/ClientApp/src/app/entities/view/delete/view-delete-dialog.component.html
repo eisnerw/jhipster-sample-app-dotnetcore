@@ -1,0 +1,17 @@
+<div class="modal-header">
+  <h4 class="modal-title">Confirm delete operation</h4>
+  <button type="button" class="btn-close" aria-label="Close" (click)="cancel()"></button>
+</div>
+<div class="modal-body">
+  <p id="jhi-delete-view-heading">Are you sure you want to delete View {{ view?.name }}?</p>
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" (click)="cancel()">
+    <fa-icon icon="ban"></fa-icon>
+    <span>Cancel</span>
+  </button>
+  <button type="button" class="btn btn-danger" (click)="confirmDelete(view!.id!)">
+    <fa-icon icon="times"></fa-icon>
+    <span>Delete</span>
+  </button>
+</div> 

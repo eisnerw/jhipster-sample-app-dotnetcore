@@ -13,6 +13,9 @@ using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Services;
 using Nest;
 using JhipsterSampleApplication.Domain.Entities;
+using JhipsterSampleApplication.Domain.Repositories;
+using JhipsterSampleApplication.Infrastructure.Data.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 [assembly: ApiController]
 
@@ -47,6 +50,9 @@ public class Startup : IStartup
             .DefaultIndex(elasticsearchSettings.DefaultIndex);
         var client = new ElasticClient(settings);
         services.AddSingleton<IElasticClient>(client);
+
+        services.AddScoped<IViewRepository, ViewRepository>();
+        services.AddScoped<IViewService, ViewService>();
     }
 
     public virtual void ConfigureMiddleware(IApplicationBuilder app, IHostEnvironment environment)

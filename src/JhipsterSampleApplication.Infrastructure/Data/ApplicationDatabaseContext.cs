@@ -34,7 +34,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data
         public required DbSet<TimeSheet> TimeSheets { get; set; }
         public required DbSet<TimeSheetEntry> TimeSheetEntries { get; set; }
         public required DbSet<Birthday> Birthdays { get; set; }
-        public required DbSet<View<string>> Views { get; set; }
+        public required DbSet<View> Views { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -98,7 +98,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data
                     );
             });
 
-            builder.Entity<View<string>>(entity =>
+            builder.Entity<View>(entity =>
             {
                 entity.ToTable("view");
                 entity.HasKey(e => e.Id);
@@ -106,7 +106,6 @@ namespace JhipsterSampleApplication.Infrastructure.Data
                 entity.Property(e => e.Name).IsRequired();
                 entity.Property(e => e.Query).IsRequired();
                 entity.Property(e => e.CategoryQuery).IsRequired(false);
-                entity.Property(e => e.TopLevelCategory).IsRequired(false);
             });
         }
 

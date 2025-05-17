@@ -12,7 +12,8 @@
         "pieceOfWork": "Piece Of Work",
         "region": "Region",
         "timeSheet": "Time Sheet",
-        "timeSheetEntry": "Time Sheet Entry"
+        "timeSheetEntry": "Time Sheet Entry",
+        "view": "View"
       }
     }
   }

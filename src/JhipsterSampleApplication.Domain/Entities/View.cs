@@ -1,19 +1,41 @@
-    using System.Collections.Generic;
-    using JhipsterSampleApplication.Domain;
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using JhipsterSampleApplication.Domain.Interfaces;
 
-    namespace JhipsterSampleApplication.Domain.Entities
+namespace JhipsterSampleApplication.Domain.Entities
+{
+    [Table("view")]
+    public class View : IEntity<string>
     {
-        public class View<T>
-        {
-            public long Id { get; set; }
-            public string? Name { get; set; }
-            public string? Query { get; set; }
-            public string? CategoryQuery { get; set; }
-            public string? TopLevelCategory { get; set; }
-            public string? aggregation { get; set; }
-            public string? script { get; set; }
-            public string? field { get; set; }
-            public List<T>? focus { get; set; }
-            public View<T>? topLevelView { get; set; }
-        }
+        [Key]
+        [Column("id")]
+        public string Id { get; set; }
+
+        [Required]
+        [Column("name")]
+        public string Name { get; set; }
+
+        [Required]
+        [Column("field")]
+        public string Field { get; set; }
+
+        [Column("aggregation")]
+        public string Aggregation { get; set; }
+
+        [Column("query")]
+        public string Query { get; set; }
+
+        [Column("category_query")]
+        public string CategoryQuery { get; set; }
+
+        [Column("script")]
+        public string Script { get; set; }
+
+        [Column("second_level_view_id")]
+        public string SecondLevelViewId { get; set; }
+
+        [ForeignKey("SecondLevelViewId")]
+        public View SecondLevelView { get; set; }
     }
+}

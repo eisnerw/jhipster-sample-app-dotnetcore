@@ -1,0 +1,117 @@
+<div>
+  <h2 id="view-heading" data-cy="ViewHeading">
+    <span>Create or Edit a View</span>
+  </h2>
+
+  <div class="row-md jh-entity-details">
+    <form name="editForm" role="form" novalidate (ngSubmit)="save()" #editForm="ngForm">
+      <div class="row-md jh-entity-details">
+        <div class="form-group">
+          <label class="form-control-label" for="field_name">Name</label>
+          <input
+            type="text"
+            class="form-control"
+            name="name"
+            id="field_name"
+            data-cy="name"
+            [(ngModel)]="view.name"
+            required
+          />
+          <div *ngIf="editForm.controls.name?.invalid && (editForm.controls.name?.dirty || editForm.controls.name?.touched)">
+            <small class="form-text text-danger" *ngIf="editForm.controls.name?.errors?.required"> This field is required. </small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-control-label" for="field_field">Field</label>
+          <input
+            type="text"
+            class="form-control"
+            name="field"
+            id="field_field"
+            data-cy="field"
+            [(ngModel)]="view.field"
+            required
+          />
+          <div *ngIf="editForm.controls.field?.invalid && (editForm.controls.field?.dirty || editForm.controls.field?.touched)">
+            <small class="form-text text-danger" *ngIf="editForm.controls.field?.errors?.required"> This field is required. </small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-control-label" for="field_aggregation">Aggregation</label>
+          <input
+            type="text"
+            class="form-control"
+            name="aggregation"
+            id="field_aggregation"
+            data-cy="aggregation"
+            [(ngModel)]="view.aggregation"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-control-label" for="field_query">Query</label>
+          <input
+            type="text"
+            class="form-control"
+            name="query"
+            id="field_query"
+            data-cy="query"
+            [(ngModel)]="view.query"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-control-label" for="field_categoryQuery">Category Query</label>
+          <input
+            type="text"
+            class="form-control"
+            name="categoryQuery"
+            id="field_categoryQuery"
+            data-cy="categoryQuery"
+            [(ngModel)]="view.categoryQuery"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-control-label" for="field_script">Script</label>
+          <input
+            type="text"
+            class="form-control"
+            name="script"
+            id="field_script"
+            data-cy="script"
+            [(ngModel)]="view.script"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-control-label" for="field_secondLevelView">Second Level View</label>
+          <select
+            class="form-control"
+            id="field_secondLevelView"
+            data-cy="secondLevelView"
+            name="secondLevelView"
+            [(ngModel)]="view.secondLevelView"
+          >
+            <option [ngValue]="null"></option>
+            <option *ngFor="let viewOption of views" [ngValue]="viewOption">{{ viewOption.name }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <button type="button" id="cancel-save" class="btn btn-secondary" (click)="previousState()">
+          <fa-icon icon="ban"></fa-icon>
+          <span>Cancel</span>
+        </button>
+
+        <button type="submit" id="save-entity" data-cy="entityCreateSaveButton" [disabled]="editForm.form.invalid || isSaving" class="btn btn-primary">
+          <fa-icon icon="save"></fa-icon>
+          <span>Save</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div> 
