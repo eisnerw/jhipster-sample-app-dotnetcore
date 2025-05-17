@@ -16,7 +16,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
             _context = context;
         }
 
-        public async Task<View> GetByIdAsync(string id)
+        public async Task<View?> GetByIdAsync(string id)
         {
             return await _context.Views
                 .FirstOrDefaultAsync(v => v.Id == id);

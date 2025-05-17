@@ -10,7 +10,7 @@ namespace JhipsterSampleApplication.Domain.Entities
     {
         [Key]
         [Column("id")]
-        public string Id { get; set; }
+        public string Id { get; set; } = string.Empty;
 
         [Required]
         [Column("name")]
@@ -22,7 +22,7 @@ namespace JhipsterSampleApplication.Domain.Entities
 
         [Required]
         [Column("field")]
-        public string Field { get; set; }
+        public string? Field { get; set; }
 
         [Column("aggregation")]
         public string? Aggregation { get; set; }
