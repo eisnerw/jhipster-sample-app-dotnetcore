@@ -53,6 +53,7 @@ public class Startup : IStartup
 
         services.AddScoped<IViewRepository, ViewRepository>();
         services.AddScoped<IViewService, ViewService>();
+        services.AddScoped<ViewInitializationService>();
     }
 
     public virtual void ConfigureMiddleware(IApplicationBuilder app, IHostEnvironment environment)
@@ -65,6 +66,13 @@ public class Startup : IStartup
             .UseApplicationProblemDetails(environment)
             .UseApplicationDatabase(environment)
             .UseApplicationIdentity();
+
+        // Initialize views from JSON files
+        using (var scope = app.ApplicationServices.CreateScope())
+        {
+            var viewInitializationService = scope.ServiceProvider.GetRequiredService<ViewInitializationService>();
+            viewInitializationService.InitializeViewsAsync().GetAwaiter().GetResult();
+        }
     }
 
     public virtual void ConfigureEndpoints(IApplicationBuilder app, IHostEnvironment environment)

@@ -41,6 +41,11 @@ namespace JhipsterSampleApplication.Domain.Entities
 
         public void SetIdFromName()
         {
+            if (string.IsNullOrEmpty(Name))
+            {
+                throw new InvalidOperationException("View name cannot be null or empty");
+            }
+
             if (!string.IsNullOrEmpty(PrimaryViewId))
             {
                 Id = $"{PrimaryViewId.ToLowerInvariant()}.{Name.ToLowerInvariant()}";

@@ -5,6 +5,7 @@ using JhipsterSampleApplication.Domain.Repositories;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Dto;
 using AutoMapper;
+using System;
 
 namespace JhipsterSampleApplication.Domain.Services
 {
@@ -33,6 +34,21 @@ namespace JhipsterSampleApplication.Domain.Services
 
         public async Task<ViewDto> CreateAsync(ViewDto viewDto)
         {
+            if (viewDto == null)
+            {
+                throw new ArgumentNullException(nameof(viewDto));
+            }
+
+            if (string.IsNullOrEmpty(viewDto.Name))
+            {
+                throw new InvalidOperationException("View name cannot be null or empty");
+            }
+
+            if (string.IsNullOrEmpty(viewDto.Domain))
+            {
+                throw new InvalidOperationException("View domain cannot be null or empty");
+            }
+
             var view = _mapper.Map<View>(viewDto);
             view.SetIdFromName();
             var createdView = await _viewRepository.AddAsync(view);
@@ -41,6 +57,21 @@ namespace JhipsterSampleApplication.Domain.Services
 
         public async Task<ViewDto> UpdateAsync(ViewDto viewDto)
         {
+            if (viewDto == null)
+            {
+                throw new ArgumentNullException(nameof(viewDto));
+            }
+
+            if (string.IsNullOrEmpty(viewDto.Name))
+            {
+                throw new InvalidOperationException("View name cannot be null or empty");
+            }
+
+            if (string.IsNullOrEmpty(viewDto.Domain))
+            {
+                throw new InvalidOperationException("View domain cannot be null or empty");
+            }
+
             var view = _mapper.Map<View>(viewDto);
             view.SetIdFromName();
             var updatedView = await _viewRepository.UpdateAsync(view);
