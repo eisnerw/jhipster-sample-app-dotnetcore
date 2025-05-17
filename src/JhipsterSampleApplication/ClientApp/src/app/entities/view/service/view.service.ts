@@ -1,42 +1,37 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
-
-import { ApplicationConfigService } from 'app/core/config/application-config.service';
-import { createRequestOption } from 'app/core/request/request-util';
 import { IView } from '../view.model';
+import { ApplicationConfigService } from 'app/core/config/application-config.service';
 
 export type EntityResponseType = HttpResponse<IView>;
 export type EntityArrayResponseType = HttpResponse<IView[]>;
 
 @Injectable({ providedIn: 'root' })
 export class ViewService {
+  protected readonly http = inject(HttpClient);
+  protected readonly applicationConfigService = inject(ApplicationConfigService);
+
   protected resourceUrl = this.applicationConfigService.getEndpointFor('api/views');
 
-  constructor(
-    protected http: HttpClient,
-    protected applicationConfigService: ApplicationConfigService,
-  ) {}
-
-  create(view: IView): Observable<EntityResponseType> {
+  create(view: IView): Observable<HttpResponse<IView>> {
     return this.http.post<IView>(this.resourceUrl, view, { observe: 'response' });
   }
 
-  update(view: IView): Observable<EntityResponseType> {
-    return this.http.put<IView>(`${this.resourceUrl}/${view.id}`, view, { observe: 'response' });
+  update(view: IView): Observable<HttpResponse<IView>> {
+    return this.http.put<IView>(`${this.resourceUrl}/${encodeURIComponent(view.id!)}`, view, { observe: 'response' });
   }
 
-  find(id: string): Observable<EntityResponseType> {
-    return this.http.get<IView>(`${this.resourceUrl}/${id}`, { observe: 'response' });
+  find(id: string): Observable<HttpResponse<IView>> {
+    return this.http.get<IView>(`${this.resourceUrl}/${encodeURIComponent(id)}`, { observe: 'response' });
   }
 
-  query(req?: any): Observable<EntityArrayResponseType> {
-    const options = createRequestOption(req);
-    return this.http.get<IView[]>(this.resourceUrl, { params: options, observe: 'response' });
+  query(): Observable<HttpResponse<IView[]>> {
+    return this.http.get<IView[]>(this.resourceUrl, { observe: 'response' });
   }
 
   delete(id: string): Observable<HttpResponse<{}>> {
-    return this.http.delete(`${this.resourceUrl}/${id}`, { observe: 'response' });
+    return this.http.delete(`${this.resourceUrl}/${encodeURIComponent(id)}`, { observe: 'response' });
   }
 
   getViewIdentifier(view: IView): string {

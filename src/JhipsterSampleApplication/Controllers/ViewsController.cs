@@ -5,6 +5,7 @@ using JhipsterSampleApplication.Dto;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using System.Web;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -34,7 +35,8 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<ActionResult<ViewDto>> Get(string id)
         {
             _log.LogDebug($"REST request to get View : {id}");
-            var view = await _viewService.GetByIdAsync(id);
+            var decodedId = HttpUtility.UrlDecode(id);
+            var view = await _viewService.GetByIdAsync(decodedId);
             if (view == null)
             {
                 return NotFound();
@@ -47,14 +49,15 @@ namespace JhipsterSampleApplication.Controllers
         {
             _log.LogDebug($"REST request to save View : {viewDto}");
             var view = await _viewService.CreateAsync(viewDto);
-            return CreatedAtAction(nameof(Get), new { id = view.Id }, view);
+            return CreatedAtAction(nameof(Get), new { id = HttpUtility.UrlEncode(view.Id) }, view);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] ViewDto viewDto)
         {
             _log.LogDebug($"REST request to update View : {viewDto}");
-            if (id != viewDto.Id)
+            var decodedId = HttpUtility.UrlDecode(id);
+            if (decodedId != viewDto.Id)
             {
                 return BadRequest("Invalid ID");
             }
@@ -66,7 +69,8 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<IActionResult> Delete(string id)
         {
             _log.LogDebug($"REST request to delete View : {id}");
-            await _viewService.DeleteAsync(id);
+            var decodedId = HttpUtility.UrlDecode(id);
+            await _viewService.DeleteAsync(decodedId);
             return NoContent();
         }
     }

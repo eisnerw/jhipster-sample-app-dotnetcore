@@ -50,8 +50,8 @@
       "domain": "birthdays"
     },
     {
-      "id": "sign/birth year.year of birth         ",
-      "name": "Year of Birth         ",
+      "id": "sign/birth year.year of birth",
+      "name": "Year of Birth",
       "field": "dob",
       "aggregation": "dob",
       "query": "*",
