@@ -62,13 +62,13 @@ public class BirthdayService : IBirthdayService
 
 
     /// <summary>
-    /// Searches for ViewResponses by performing an aggregation using the provided search request
+    /// Searches for ViewResults by performing an aggregation using the provided search request
     /// </summary>
     /// <param name="request">The aggregation request to execute</param>
-    /// <returns>The search response containing ViewResponses</returns>
-    public async Task<List<ViewResponseDto>> SearchForViewAsync(ISearchRequest request)
+    /// <returns>The search response containing ViewResults</returns>
+    public async Task<List<ViewResultDto>> SearchForViewAsync(ISearchRequest request, ISearchRequest uncategorizedRequest)
     {
-        List<ViewResponseDto> content = new();
+        List<ViewResultDto> content = new();
         var result = await _elasticClient.SearchAsync<Aggregation>(request);
         ((BucketAggregate)result.Aggregations.ToList()[0].Value).Items.ToList().ForEach(it =>
         {
@@ -78,20 +78,24 @@ public class BirthdayService : IBirthdayService
             {
                 categoryName = Regex.Replace(categoryName, @"(\d{4,4})-(\d{2,2})-(\d{2,2})T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z", "$1-$2-$3");
             }
-            content.Add(new ViewResponseDto
+            content.Add(new ViewResultDto
             {
                 CategoryName = categoryName,
+                Count = kb.DocCount
             });
 
         });
         content = content.OrderBy(cat => cat.CategoryName).ToList();
-        if (result.Total > 0)
+        var uncategorizedResponse = await _elasticClient.SearchAsync<Birthday>(uncategorizedRequest);
+        var uncatetgorizedCount = uncategorizedResponse.Aggregations.Filter("uncategorized").DocCount;
+        if (uncatetgorizedCount > 0)
         {
-            content.Add(new ViewResponseDto
+            content.Add(new ViewResultDto
             {
                 CategoryName = "(Uncategorized)",
                 Selected = false,
-                NotCategorized = true
+                NotCategorized = true,
+                Count = uncatetgorizedCount
             });
         }
         return content;
@@ -103,7 +107,7 @@ public class BirthdayService : IBirthdayService
     /// <param name="from">The starting index for pagination</param>
     /// <param name="size">The number of documents to return</param>
     /// <returns>The search response containing Birthday documents</returns>
-    public async Task<List<ViewResponseDto>> SearchWithLuceneQueryAndViewAsync(string luceneQuery, string view, int from = 0, int size = 20)
+    public async Task<List<ViewResultDto>> SearchWithLuceneQueryAndViewAsync(string luceneQuery, string view, int from = 0, int size = 20)
     {
         var viewDto = await _viewService.GetByIdAsync(view);
         if (viewDto == null)
@@ -130,7 +134,35 @@ public class BirthdayService : IBirthdayService
                 }
             }
         };
-        return await SearchForViewAsync(request);
+        var uncategorizedRequest = new SearchRequest<Birthday>
+        {
+            Size = 0,
+            From = from,
+            Query = new QueryStringQuery
+            {
+                Query = luceneQuery
+            },
+            Aggregations = new AggregationDictionary{
+                {
+
+                    "uncategorized", new FilterAggregation("uncategorized")
+                    {
+                        Filter = new BoolQuery
+                        {
+                            MustNot = new List<QueryContainer>
+                            {
+                                new ExistsQuery
+                                {
+                                    Field = viewDto.Aggregation
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
+        };        
+        return await SearchForViewAsync(request, uncategorizedRequest);
     }
 
 
@@ -504,16 +536,16 @@ public class BirthdayService : IBirthdayService
     }
 
     /// <summary>
-    /// Searches for ViewResponses using a ruleset and a view name
+    /// Searches for ViewResults using a ruleset and a view name
     /// </summary>
     /// <param name="ruleset">The ruleset to use for searching</param>
     /// <param name="view">The name of the view</param>
     /// <param name="size">The maximum number of results to return</param>
     /// <param name="from">The starting index for pagination</param>
     /// <param name="sort">The sort descriptor for the search</param>
-    /// <returns>The search response containing a list of ViewResponseDtos</returns>
+    /// <returns>The search response containing a list of ViewResultDtos</returns>
 
-    public async Task<List<ViewResponseDto>> SearchWithRulesetAndViewAsync(Ruleset ruleset, string view, int size = 20, int from = 0, IList<ISort>? sort = null)
+    public async Task<List<ViewResultDto>> SearchWithRulesetAndViewAsync(Ruleset ruleset, string view, int size = 20, int from = 0, IList<ISort>? sort = null)
     {
         var viewDto = await _viewService.GetByIdAsync(view);
         if (viewDto == null)
@@ -539,6 +571,31 @@ public class BirthdayService : IBirthdayService
                 }
             }
         };
-        return await SearchForViewAsync(request);
+        var uncategorizedRequest = new SearchRequest<Birthday>
+        {
+            Size = 0,
+            From = from,
+            Query = new QueryContainerDescriptor<Birthday>().Raw(query),
+            Aggregations = new AggregationDictionary{
+                {
+
+                    "uncategorized", new FilterAggregation("uncategorized")
+                    {
+                        Filter = new BoolQuery
+                        {
+                            MustNot = new List<QueryContainer>
+                            {
+                                new ExistsQuery
+                                {
+                                    Field = viewDto.Aggregation
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
+        };
+        return await SearchForViewAsync(request, uncategorizedRequest);
     }
 } 

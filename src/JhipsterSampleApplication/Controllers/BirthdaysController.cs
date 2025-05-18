@@ -85,7 +85,7 @@ namespace JhipsterSampleApplication.Controllers
         /// </summary>
         [HttpGet("search/lucene")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
-        [ProducesResponseType(typeof(ViewResponseDto), 200)]
+        [ProducesResponseType(typeof(ViewResultDto), 200)]
         public async Task<IActionResult> SearchWithLuceneQuery(
             [FromQuery] string query,
             [FromQuery] int from = 0,
@@ -103,8 +103,8 @@ namespace JhipsterSampleApplication.Controllers
             {
                 if (!string.IsNullOrEmpty(view))
                 {
-                    var viewResponse = await _birthdayService.SearchWithLuceneQueryAndViewAsync(query, view, from, pageSize);
-                    return Ok(viewResponse);
+                    var viewResult = await _birthdayService.SearchWithLuceneQueryAndViewAsync(query, view, from, pageSize);
+                    return Ok(viewResult);
                 }
 
                 var searchRequest = new SearchRequest<Birthday>
@@ -169,7 +169,7 @@ namespace JhipsterSampleApplication.Controllers
         /// </summary>
         [HttpPost("search/ruleset")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
-        [ProducesResponseType(typeof(ViewResponseDto), 200)]
+        [ProducesResponseType(typeof(ViewResultDto), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> Search([FromBody] RulesetDto rulesetDto, 
             [FromQuery] int pageSize = 20,
@@ -197,8 +197,8 @@ namespace JhipsterSampleApplication.Controllers
 
             if (!string.IsNullOrEmpty(view))
             {
-                var viewResponse = await _birthdayService.SearchWithRulesetAndViewAsync(ruleset, view, pageSize, from, sortDescriptor);
-                return Ok(viewResponse);
+                var viewResult = await _birthdayService.SearchWithRulesetAndViewAsync(ruleset, view, pageSize, from, sortDescriptor);
+                return Ok(viewResult);
             }
             else
             {
