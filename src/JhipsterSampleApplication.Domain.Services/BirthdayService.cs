@@ -21,16 +21,19 @@ public class BirthdayService : IBirthdayService
     private readonly IElasticClient _elasticClient;
     private const string IndexName = "birthdays";
     private readonly IBirthdayBqlService _bqlService;
+    private readonly IViewService _viewService;
 
     /// <summary>
     /// Initializes a new instance of the BirthdayService
     /// </summary>
     /// <param name="elasticClient">The Elasticsearch client</param>
     /// <param name="bqlService">The BQL service</param>
-    public BirthdayService(IElasticClient elasticClient, IBirthdayBqlService bqlService)
+    /// <param name="viewService">The View service</param>
+    public BirthdayService(IElasticClient elasticClient, IBirthdayBqlService bqlService, IViewService viewService)
     {
         _elasticClient = elasticClient ?? throw new ArgumentNullException(nameof(elasticClient));
         _bqlService = bqlService ?? throw new ArgumentNullException(nameof(bqlService));
+        _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
     }
 
     /// <summary>
@@ -56,6 +59,80 @@ public class BirthdayService : IBirthdayService
         }
         return response;
     }
+
+
+    /// <summary>
+    /// Searches for ViewResponses by performing an aggregation using the provided search request
+    /// </summary>
+    /// <param name="request">The aggregation request to execute</param>
+    /// <returns>The search response containing ViewResponses</returns>
+    public async Task<List<ViewResponseDto>> SearchForViewAsync(ISearchRequest request)
+    {
+        List<ViewResponseDto> content = new();
+        var result = await _elasticClient.SearchAsync<Aggregation>(request);
+        ((BucketAggregate)result.Aggregations.ToList()[0].Value).Items.ToList().ForEach(it =>
+        {
+            KeyedBucket<Object> kb = (KeyedBucket<Object>)it;
+            string categoryName = kb.KeyAsString != null ? kb.KeyAsString : (string)kb.Key;
+            if (Regex.IsMatch(categoryName, @"\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z"))
+            {
+                categoryName = Regex.Replace(categoryName, @"(\d{4,4})-(\d{2,2})-(\d{2,2})T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z", "$1-$2-$3");
+            }
+            content.Add(new ViewResponseDto
+            {
+                CategoryName = categoryName,
+            });
+
+        });
+        content = content.OrderBy(cat => cat.CategoryName).ToList();
+        if (result.Total > 0)
+        {
+            content.Add(new ViewResponseDto
+            {
+                CategoryName = "(Uncategorized)",
+                Selected = false,
+                NotCategorized = true
+            });
+        }
+        return content;
+    }
+
+    /// </summary>
+    /// <param name="luceneQuery">The search request to execute</param>
+    
+    /// <param name="from">The starting index for pagination</param>
+    /// <param name="size">The number of documents to return</param>
+    /// <returns>The search response containing Birthday documents</returns>
+    public async Task<List<ViewResponseDto>> SearchWithLuceneQueryAndViewAsync(string luceneQuery, string view, int from = 0, int size = 20)
+    {
+        var viewDto = await _viewService.GetByIdAsync(view);
+        if (viewDto == null)
+        {
+            throw new ArgumentException($"View '{view}' not found");
+        }       
+        var request = new SearchRequest<Birthday>
+        {
+            Size = 0,
+            From = from,
+            Query = new QueryStringQuery
+            {
+                Query = luceneQuery
+            },
+            Aggregations = new AggregationDictionary{
+                {
+                    "distinct",
+                    new TermsAggregation("distinct")
+                    {
+                        Size = 10000,
+                        Field = string.IsNullOrEmpty(viewDto.Script) ? viewDto.Aggregation : null,
+                        Script = !string.IsNullOrEmpty(viewDto.Script) ? new InlineScript(viewDto.Script) : null
+                    }
+                }
+            }
+        };
+        return await SearchForViewAsync(request);
+    }
+
 
     /// <summary>
     /// Searches for Birthday documents using the provided search request in lucene format
@@ -424,5 +501,44 @@ public class BirthdayService : IBirthdayService
             }
         }
         return ret;
+    }
+
+    /// <summary>
+    /// Searches for ViewResponses using a ruleset and a view name
+    /// </summary>
+    /// <param name="ruleset">The ruleset to use for searching</param>
+    /// <param name="view">The name of the view</param>
+    /// <param name="size">The maximum number of results to return</param>
+    /// <param name="from">The starting index for pagination</param>
+    /// <param name="sort">The sort descriptor for the search</param>
+    /// <returns>The search response containing a list of ViewResponseDtos</returns>
+
+    public async Task<List<ViewResponseDto>> SearchWithRulesetAndViewAsync(Ruleset ruleset, string view, int size = 20, int from = 0, IList<ISort>? sort = null)
+    {
+        var viewDto = await _viewService.GetByIdAsync(view);
+        if (viewDto == null)
+        {
+            throw new ArgumentException($"View '{view}' not found");
+        }
+        var queryObject = await ConvertRulesetToElasticSearch(ruleset);
+        string query = queryObject.ToString();        
+        var request = new SearchRequest<Birthday>
+        {
+            Size = 0,
+            From = from,
+            Query = new QueryContainerDescriptor<Birthday>().Raw(query),
+            Aggregations = new AggregationDictionary{
+                {
+                    "distinct",
+                    new TermsAggregation("distinct")
+                    {
+                        Size = 10000,
+                        Field = string.IsNullOrEmpty(viewDto.Script) ? viewDto.Aggregation : null,
+                        Script = !string.IsNullOrEmpty(viewDto.Script) ? new InlineScript(viewDto.Script) : null
+                    }
+                }
+            }
+        };
+        return await SearchForViewAsync(request);
     }
 } 

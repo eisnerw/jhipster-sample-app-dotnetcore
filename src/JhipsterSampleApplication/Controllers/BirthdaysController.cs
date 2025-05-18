@@ -26,7 +26,7 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IBirthdayBqlService _bqlService;
         private readonly ILogger<BirthdaysController> _log;
         private readonly IMapper _mapper;
-
+    
         public BirthdaysController(
             IBirthdayService birthdayService,
             IElasticClient elasticClient,
@@ -85,12 +85,14 @@ namespace JhipsterSampleApplication.Controllers
         /// </summary>
         [HttpGet("search/lucene")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
+        [ProducesResponseType(typeof(ViewResponseDto), 200)]
         public async Task<IActionResult> SearchWithLuceneQuery(
             [FromQuery] string query,
             [FromQuery] int from = 0,
             [FromQuery] int pageSize = 20,
             [FromQuery] string? sort = null,
-            [FromQuery] bool includeWikipedia = false)
+            [FromQuery] bool includeWikipedia = false,
+            [FromQuery] string? view = null)
         {
             if (string.IsNullOrWhiteSpace(query))
             {
@@ -99,6 +101,12 @@ namespace JhipsterSampleApplication.Controllers
 
             try
             {
+                if (!string.IsNullOrEmpty(view))
+                {
+                    var viewResponse = await _birthdayService.SearchWithLuceneQueryAndViewAsync(query, view, from, pageSize);
+                    return Ok(viewResponse);
+                }
+
                 var searchRequest = new SearchRequest<Birthday>
                 {
                     From = from,
@@ -161,12 +169,14 @@ namespace JhipsterSampleApplication.Controllers
         /// </summary>
         [HttpPost("search/ruleset")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
+        [ProducesResponseType(typeof(ViewResponseDto), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> Search([FromBody] RulesetDto rulesetDto, 
             [FromQuery] int pageSize = 20,
             [FromQuery] int from = 0,
             [FromQuery] string? sort = null,
-            [FromQuery] bool includeWikipedia = false)
+            [FromQuery] bool includeWikipedia = false,
+            [FromQuery] string? view = null)
         {
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             
@@ -185,22 +195,30 @@ namespace JhipsterSampleApplication.Controllers
             // Always add _id as the last sort field for consistent pagination
             sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
 
-            var response = await _birthdayService.SearchWithRulesetAsync(ruleset, pageSize, from, sortDescriptor);
-
-            var birthdayDtos = response.Hits.Select(hit => new BirthdayDto
+            if (!string.IsNullOrEmpty(view))
             {
-                Id = hit.Id,
-                Text = hit.Source.Text,
-                Lname = hit.Source.Lname,
-                Fname = hit.Source.Fname,
-                Sign = hit.Source.Sign,
-                Dob = hit.Source.Dob,
-                IsAlive = hit.Source.IsAlive ?? false,
-                Wikipedia = includeWikipedia ? hit.Source.Wikipedia : null,
-                Categories = hit.Source.Categories
-            }).ToList();
+                var viewResponse = await _birthdayService.SearchWithRulesetAndViewAsync(ruleset, view, pageSize, from, sortDescriptor);
+                return Ok(viewResponse);
+            }
+            else
+            {
+                var response = await _birthdayService.SearchWithRulesetAsync(ruleset, pageSize, from, sortDescriptor);
 
-            return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
+                var birthdayDtos = response.Hits.Select(hit => new BirthdayDto
+                {
+                    Id = hit.Id,
+                    Text = hit.Source.Text,
+                    Lname = hit.Source.Lname,
+                    Fname = hit.Source.Fname,
+                    Sign = hit.Source.Sign,
+                    Dob = hit.Source.Dob,
+                    IsAlive = hit.Source.IsAlive ?? false,
+                    Wikipedia = includeWikipedia ? hit.Source.Wikipedia : null,
+                    Categories = hit.Source.Categories
+                }).ToList();
+
+                return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
+            }
         }
 
         /// <summary>
