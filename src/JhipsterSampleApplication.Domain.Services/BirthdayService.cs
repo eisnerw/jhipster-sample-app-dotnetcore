@@ -107,7 +107,7 @@ public class BirthdayService : IBirthdayService
     /// <param name="from">The starting index for pagination</param>
     /// <param name="size">The number of documents to return</param>
     /// <returns>The search response containing Birthday documents</returns>
-    public async Task<List<ViewResultDto>> SearchWithLuceneQueryAndViewAsync(string luceneQuery, string view, int from = 0, int size = 20)
+    public async Task<List<ViewResultDto>> SearchWithLuceneQueryAndViewAsync(string luceneQuery, string view, string? viewCategory, int from = 0, int size = 20)
     {
         var viewDto = await _viewService.GetByIdAsync(view);
         if (viewDto == null)
@@ -545,7 +545,7 @@ public class BirthdayService : IBirthdayService
     /// <param name="sort">The sort descriptor for the search</param>
     /// <returns>The search response containing a list of ViewResultDtos</returns>
 
-    public async Task<List<ViewResultDto>> SearchWithRulesetAndViewAsync(Ruleset ruleset, string view, int size = 20, int from = 0, IList<ISort>? sort = null)
+    public async Task<List<ViewResultDto>> SearchWithRulesetAndViewAsync(Ruleset ruleset, string view, string? viewCategory, int size = 20, int from = 0, IList<ISort>? sort = null)
     {
         var viewDto = await _viewService.GetByIdAsync(view);
         if (viewDto == null)

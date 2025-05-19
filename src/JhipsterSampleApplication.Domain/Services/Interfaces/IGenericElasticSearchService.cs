@@ -11,14 +11,14 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
     {
         Task<ISearchResponse<T>> SearchAsync(ISearchRequest request);
         Task<ISearchResponse<T>> SearchWithLuceneQueryAsync(string luceneQuery, int from = 0, int size = 20);
-        Task<List<ViewResultDto>> SearchWithLuceneQueryAndViewAsync(string luceneQuery, string view, int from = 0, int size = 20);
+        Task<List<ViewResultDto>> SearchWithLuceneQueryAndViewAsync(string luceneQuery, string view, string? viewCategory, int from = 0, int size = 20);
         Task<IndexResponse> IndexAsync(T document);
         Task<UpdateResponse<T>> UpdateAsync(string id, T document);
         Task<DeleteResponse> DeleteAsync(string id);
         Task<List<string>> GetUniqueFieldValuesAsync(string field);
         Task<ISearchResponse<T>> SearchWithRulesetAsync(Ruleset ruleset, int size = 20, int from = 0, IList<ISort>? sort = null);
         Task<JObject> ConvertRulesetToElasticSearch(Ruleset rr);
-        Task<List<ViewResultDto>> SearchWithRulesetAndViewAsync(Ruleset ruleset, string view, int size = 20, int from = 0, IList<ISort>? sort = null);
+        Task<List<ViewResultDto>> SearchWithRulesetAndViewAsync(Ruleset ruleset, string view, string? viewCategory, int size = 20, int from = 0, IList<ISort>? sort = null);
         Task<List<ViewResultDto>> SearchForViewAsync(ISearchRequest request, ISearchRequest uncategorizedRequest);
     }
 

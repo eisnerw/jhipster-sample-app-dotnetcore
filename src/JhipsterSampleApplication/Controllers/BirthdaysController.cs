@@ -92,7 +92,8 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] int pageSize = 20,
             [FromQuery] string? sort = null,
             [FromQuery] bool includeWikipedia = false,
-            [FromQuery] string? view = null)
+            [FromQuery] string? view = null,
+            [FromQuery] string? viewCategory = null)
         {
             if (string.IsNullOrWhiteSpace(query))
             {
@@ -103,7 +104,7 @@ namespace JhipsterSampleApplication.Controllers
             {
                 if (!string.IsNullOrEmpty(view))
                 {
-                    var viewResult = await _birthdayService.SearchWithLuceneQueryAndViewAsync(query, view, from, pageSize);
+                    var viewResult = await _birthdayService.SearchWithLuceneQueryAndViewAsync(query, view, viewCategory, from, pageSize);
                     return Ok(viewResult);
                 }
 
@@ -176,7 +177,8 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] int from = 0,
             [FromQuery] string? sort = null,
             [FromQuery] bool includeWikipedia = false,
-            [FromQuery] string? view = null)
+            [FromQuery] string? view = null,
+            [FromQuery] string? viewCategory = null)
         {
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             
@@ -197,7 +199,7 @@ namespace JhipsterSampleApplication.Controllers
 
             if (!string.IsNullOrEmpty(view))
             {
-                var viewResult = await _birthdayService.SearchWithRulesetAndViewAsync(ruleset, view, pageSize, from, sortDescriptor);
+                var viewResult = await _birthdayService.SearchWithRulesetAndViewAsync(ruleset, view, viewCategory, pageSize, from, sortDescriptor);
                 return Ok(viewResult);
             }
             else
