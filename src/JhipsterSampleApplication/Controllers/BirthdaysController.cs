@@ -96,13 +96,14 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? sort = null,
             [FromQuery] bool includeWikipedia = false,
             [FromQuery] string? view = null,
-            [FromQuery] string? viewCategory = null)
+            [FromQuery] string? category = null,
+            [FromQuery] string? secondaryCategory = null)
         {
             if (string.IsNullOrWhiteSpace(query))
             {
                 return BadRequest("Query cannot be empty");
             }
-
+            string searchQuery = query;
             try
             {
                 if (!string.IsNullOrEmpty(view))
@@ -112,16 +113,23 @@ namespace JhipsterSampleApplication.Controllers
                     {
                         throw new ArgumentException($"View '{view}' not found");
                     }                    
-                    if (viewCategory == null){
-                        var viewResult = await _birthdayService.SearchWithLuceneQueryAndViewAsync(query, viewDto, from, pageSize);
+                    if (category == null){
+                        if (secondaryCategory != null){
+                            throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
+                        }
+                        var viewResult = await _birthdayService.SearchWithLuceneQueryAndViewAsync(searchQuery, viewDto, from, pageSize);
                         return Ok(viewResult);
                     }
-                    string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{viewCategory}\"" : viewDto.CategoryQuery.Replace("{}", viewCategory);
-                    query = $"{categoryQuery} AND ({query})";
+                    string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);
+                    searchQuery = $"{categoryQuery} AND ({searchQuery})";
                     var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
                     if (secondaryViewDto != null){
-                        var viewSecondaryResult = await _birthdayService.SearchWithLuceneQueryAndViewAsync(query, secondaryViewDto, from, pageSize);
-                        return Ok(viewSecondaryResult);
+                        if (secondaryCategory == null){
+                            var viewSecondaryResult = await _birthdayService.SearchWithLuceneQueryAndViewAsync(searchQuery, secondaryViewDto, from, pageSize);
+                            return Ok(viewSecondaryResult);
+                        }
+                        string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
+                        searchQuery = $"{secondaryCategoryQuery} AND ({searchQuery})";
                     }
                 }
 
@@ -129,7 +137,7 @@ namespace JhipsterSampleApplication.Controllers
                 {
                     From = from,
                     Size = pageSize,
-                    Query = new QueryContainerDescriptor<Birthday>().QueryString(qs => qs.Query(query))
+                    Query = new QueryContainerDescriptor<Birthday>().QueryString(qs => qs.Query(searchQuery))
                 };
 
                 if (!string.IsNullOrEmpty(sort))
@@ -195,7 +203,8 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? sort = null,
             [FromQuery] bool includeWikipedia = false,
             [FromQuery] string? view = null,
-            [FromQuery] string? viewCategory = null)
+            [FromQuery] string? category = null,
+            [FromQuery] string? secondaryCategory = null)
         {
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             
@@ -216,7 +225,7 @@ namespace JhipsterSampleApplication.Controllers
 
             if (!string.IsNullOrEmpty(view))
             {
-                var viewResult = await _birthdayService.SearchWithRulesetAndViewAsync(ruleset, view, viewCategory, pageSize, from, sortDescriptor);
+                var viewResult = await _birthdayService.SearchWithRulesetAndViewAsync(ruleset, view, category, pageSize, from, sortDescriptor);
                 return Ok(viewResult);
             }
             else
