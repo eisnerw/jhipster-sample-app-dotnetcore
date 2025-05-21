@@ -117,8 +117,12 @@ namespace JhipsterSampleApplication.Controllers
                         return Ok(viewResult);
                     }
                     string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{viewCategory}\"" : viewDto.CategoryQuery.Replace("{}", viewCategory);
-                    var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
                     query = $"{categoryQuery} AND ({query})";
+                    var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
+                    if (secondaryViewDto != null){
+                        var viewSecondaryResult = await _birthdayService.SearchWithLuceneQueryAndViewAsync(query, secondaryViewDto, from, pageSize);
+                        return Ok(viewSecondaryResult);
+                    }
                 }
 
                 var searchRequest = new SearchRequest<Birthday>
