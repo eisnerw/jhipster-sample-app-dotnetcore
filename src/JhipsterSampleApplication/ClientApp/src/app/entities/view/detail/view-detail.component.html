@@ -42,10 +42,10 @@
           <dt><span>Script</span></dt>
           <dd>{{ view.script }}</dd>
 
-          <dt><span>Primary View</span></dt>
+          <dt><span>Parent  view</span></dt>
           <dd>
-            <div *ngIf="view.primaryViewId">
-              <a [routerLink]="['/view', view.primaryViewId, 'view']">{{ view.primaryViewId }}</a>
+            <div *ngIf="view.parentViewId">
+              <a [routerLink]="['/view', view.parentViewId, 'view']">{{ view.parentViewId }}</a>
             </div>
           </dd>
 

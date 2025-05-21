@@ -57,7 +57,7 @@
       "query": "*",
       "categoryQuery": "dob:[{}-01-01 TO {}-12-31]",
       "script": "String st = doc['dob'].value.getYear().toString();\n            if (st==null){\n              return \"\";\n            } else {\n              return st.substring(0, 4);\n            }",
-      "primaryViewId": "sign/birth year",
+      "parentViewId": "sign/birth year",
       "domain": "birthdays"
     },
     {
@@ -78,7 +78,7 @@
       "query": "",
       "categoryQuery": "",
       "script": "",
-      "primaryViewId": "query",
+      "parentViewId": "query",
       "domain": "birthdays"
     }
   ]

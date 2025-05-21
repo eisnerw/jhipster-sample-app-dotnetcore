@@ -21,9 +21,7 @@ namespace JhipsterSampleApplication.Dto
 
         public string? Script { get; set; }
 
-        public string? PrimaryViewId { get; set; }
-
-        public ViewDto? PrimaryView { get; set; }
+        public string? parentViewId { get; set; }
 
         [Required]
         public string? Domain { get; set; }

@@ -6,8 +6,8 @@ export interface IView {
   query?: string;
   categoryQuery?: string;
   script?: string;
-  primaryViewId?: string;
-  primaryView?: IView;
+  parentViewId?: string;
+  ParentView?: IView;
   domain: string;
 }
 
@@ -20,8 +20,8 @@ export class View implements IView {
     public query?: string,
     public categoryQuery?: string,
     public script?: string,
-    public primaryViewId?: string,
-    public primaryView?: IView,
+    public parentViewId?: string,
+    public ParentView?: IView,
     public domain = 'birthdays'
   ) {}
 }

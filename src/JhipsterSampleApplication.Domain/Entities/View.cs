@@ -33,7 +33,7 @@ namespace JhipsterSampleApplication.Domain.Entities
         public string? Script { get; set; }
 
         [Column("primary_view_id")]
-        public string? PrimaryViewId { get; set; }
+        public string? parentViewId { get; set; }
 
         [Required]
         [Column("domain")]
@@ -46,9 +46,9 @@ namespace JhipsterSampleApplication.Domain.Entities
                 throw new InvalidOperationException("View name cannot be null or empty");
             }
 
-            if (!string.IsNullOrEmpty(PrimaryViewId))
+            if (!string.IsNullOrEmpty(parentViewId))
             {
-                Id = $"{PrimaryViewId.ToLowerInvariant()}.{Name.ToLowerInvariant()}";
+                Id = $"{parentViewId.ToLowerInvariant()}.{Name.ToLowerInvariant()}";
             }
             else
             {

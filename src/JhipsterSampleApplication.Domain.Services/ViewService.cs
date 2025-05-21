@@ -27,6 +27,16 @@ namespace JhipsterSampleApplication.Domain.Services
             return _mapper.Map<ViewDto>(view);
         }
 
+        public async Task<ViewDto?> GetChildByParentIdAsync(string id)
+        {
+            var views = await _viewRepository.GetAllAsync();            
+            var viewList = views.Where(v=>v.parentViewId == id).ToList();
+            if (viewList.Count != 1){
+                return null;
+            }
+            return _mapper.Map<ViewDto>(viewList[0]);
+        }
+
         public async Task<IEnumerable<ViewDto>> GetAllAsync()
         {
             var views = await _viewRepository.GetAllAsync();

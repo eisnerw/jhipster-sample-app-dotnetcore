@@ -65,7 +65,12 @@ public class Startup : IStartup
             .UseApplicationSecurity(securitySettings)
             .UseApplicationProblemDetails(environment)
             .UseApplicationDatabase(environment)
-            .UseApplicationIdentity();
+            .UseApplicationIdentity()
+            /*.Use(async (context, next) => {
+                // This code will execute for every request.
+                // Console.WriteLine("Request received: " + context.Request.Path + " from " + context.Request.Headers["Origin"]);
+                await next(context); // Pass control to the next middleware.
+            })*/;
 
         // Initialize views from JSON files
         using (var scope = app.ApplicationServices.CreateScope())

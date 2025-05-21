@@ -12,5 +12,6 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
         Task<ViewDto> CreateAsync(ViewDto viewDto);
         Task<ViewDto> UpdateAsync(ViewDto viewDto);
         Task DeleteAsync(string id);
+        Task<ViewDto?> GetChildByParentIdAsync(string id);
     }
 } 

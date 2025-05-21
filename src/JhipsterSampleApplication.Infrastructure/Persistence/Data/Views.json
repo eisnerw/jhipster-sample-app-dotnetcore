@@ -35,7 +35,7 @@
     "field": "sign",
     "aggregation": "sign.keyword",
     "query": "sign:*",
-    "primaryViewId": "Sign/Birth Year.Year of Birth"
+    "parentViewId": "Sign/Birth Year.Year of Birth"
   },
   {
     "id": "Sign/Birth Year.Year of Birth",
@@ -52,7 +52,7 @@
     "field": "ruleset",
     "aggregation": "",
     "query": "",
-    "primaryViewId": "Query.SecondLevel"
+    "parentViewId": "Query.SecondLevel"
   },
   {
     "id": "Query.SecondLevel",

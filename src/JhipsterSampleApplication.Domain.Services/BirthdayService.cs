@@ -113,7 +113,8 @@ public class BirthdayService : IBirthdayService
         if (viewDto == null)
         {
             throw new ArgumentException($"View '{view}' not found");
-        }       
+        }
+        var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
         var request = new SearchRequest<Birthday>
         {
             Size = 0,
