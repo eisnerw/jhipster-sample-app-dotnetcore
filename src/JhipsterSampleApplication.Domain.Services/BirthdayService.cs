@@ -66,7 +66,7 @@ public class BirthdayService : IBirthdayService
     /// </summary>
     /// <param name="request">The aggregation request to execute</param>
     /// <returns>The search response containing ViewResults</returns>
-    public async Task<List<ViewResultDto>> SearchForViewAsync(ISearchRequest request, ISearchRequest uncategorizedRequest)
+    public async Task<List<ViewResultDto>> SearchUsingViewAsync(ISearchRequest request, ISearchRequest uncategorizedRequest)
     {
         List<ViewResultDto> content = new();
         var result = await _elasticClient.SearchAsync<Aggregation>(request);
@@ -157,7 +157,7 @@ public class BirthdayService : IBirthdayService
                 }
             }
         };        
-        return await SearchForViewAsync(request, uncategorizedRequest);
+        return await SearchUsingViewAsync(request, uncategorizedRequest);
     }
 
 
@@ -591,6 +591,6 @@ public class BirthdayService : IBirthdayService
                 }
             }
         };
-        return await SearchForViewAsync(request, uncategorizedRequest);
+        return await SearchUsingViewAsync(request, uncategorizedRequest);
     }
 } 

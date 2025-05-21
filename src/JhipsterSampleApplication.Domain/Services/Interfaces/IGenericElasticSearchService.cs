@@ -19,7 +19,7 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
         Task<ISearchResponse<T>> SearchWithRulesetAsync(Ruleset ruleset, int size = 20, int from = 0, IList<ISort>? sort = null);
         Task<JObject> ConvertRulesetToElasticSearch(Ruleset rr);
         Task<List<ViewResultDto>> SearchWithRulesetAndViewAsync(Ruleset ruleset, string view, string? category, int size = 20, int from = 0, IList<ISort>? sort = null);
-        Task<List<ViewResultDto>> SearchForViewAsync(ISearchRequest request, ISearchRequest uncategorizedRequest);
+        Task<List<ViewResultDto>> SearchUsingViewAsync(ISearchRequest request, ISearchRequest uncategorizedRequest);
     }
 
     public interface IGenericElasticSearchService : IGenericElasticSearchService<Birthday>
