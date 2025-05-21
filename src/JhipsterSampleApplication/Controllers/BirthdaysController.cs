@@ -26,19 +26,22 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IBirthdayBqlService _bqlService;
         private readonly ILogger<BirthdaysController> _log;
         private readonly IMapper _mapper;
-    
+        private readonly IViewService _viewService;
+
         public BirthdaysController(
             IBirthdayService birthdayService,
             IElasticClient elasticClient,
             IBirthdayBqlService bqlService,
             ILogger<BirthdaysController> log,
-            IMapper mapper)
+            IMapper mapper,
+            IViewService viewService)
         {
             _birthdayService = birthdayService;
             _elasticClient = elasticClient;
             _bqlService = bqlService;
             _log = log;
             _mapper = mapper;
+            _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
         }
 
         public class SearchResult<T>
@@ -104,8 +107,18 @@ namespace JhipsterSampleApplication.Controllers
             {
                 if (!string.IsNullOrEmpty(view))
                 {
-                    var viewResult = await _birthdayService.SearchWithLuceneQueryAndViewAsync(query, view, viewCategory, from, pageSize);
-                    return Ok(viewResult);
+                    var viewDto = await _viewService.GetByIdAsync(view);
+                    if (viewDto == null)
+                    {
+                        throw new ArgumentException($"View '{view}' not found");
+                    }                    
+                    if (viewCategory == null){
+                        var viewResult = await _birthdayService.SearchWithLuceneQueryAndViewAsync(query, viewDto, from, pageSize);
+                        return Ok(viewResult);
+                    }
+                    string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{viewCategory}\"" : viewDto.CategoryQuery.Replace("{}", viewCategory);
+                    var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
+                    query = $"{categoryQuery} AND ({query})";
                 }
 
                 var searchRequest = new SearchRequest<Birthday>

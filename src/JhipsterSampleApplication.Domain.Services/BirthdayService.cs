@@ -107,14 +107,8 @@ public class BirthdayService : IBirthdayService
     /// <param name="from">The starting index for pagination</param>
     /// <param name="size">The number of documents to return</param>
     /// <returns>The search response containing Birthday documents</returns>
-    public async Task<List<ViewResultDto>> SearchWithLuceneQueryAndViewAsync(string luceneQuery, string view, string? viewCategory, int from = 0, int size = 20)
+    public async Task<List<ViewResultDto>> SearchWithLuceneQueryAndViewAsync(string luceneQuery, ViewDto viewDto, int from = 0, int size = 20)
     {
-        var viewDto = await _viewService.GetByIdAsync(view);
-        if (viewDto == null)
-        {
-            throw new ArgumentException($"View '{view}' not found");
-        }
-        var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
         var request = new SearchRequest<Birthday>
         {
             Size = 0,
