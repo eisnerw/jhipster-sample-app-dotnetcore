@@ -103,91 +103,13 @@ namespace JhipsterSampleApplication.Controllers
             {
                 return BadRequest("Query cannot be empty");
             }
-            string searchQuery = query;
-            try
-            {
-                if (!string.IsNullOrEmpty(view))
-                {
-                    var viewDto = await _viewService.GetByIdAsync(view);
-                    if (viewDto == null)
-                    {
-                        throw new ArgumentException($"View '{view}' not found");
-                    }                    
-                    if (category == null){
-                        if (secondaryCategory != null){
-                            throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
-                        }
-                        var viewResult = await _birthdayService.SearchWithLuceneQueryAndViewAsync(searchQuery, viewDto, from, pageSize);
-                        return Ok(viewResult);
-                    }
-                    string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);
-                    searchQuery = $"{categoryQuery} AND ({searchQuery})";
-                    var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
-                    if (secondaryViewDto != null){
-                        if (secondaryCategory == null){
-                            var viewSecondaryResult = await _birthdayService.SearchWithLuceneQueryAndViewAsync(searchQuery, secondaryViewDto, from, pageSize);
-                            return Ok(viewSecondaryResult);
-                        }
-                        string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
-                        searchQuery = $"{secondaryCategoryQuery} AND ({searchQuery})";
-                    }
-                }
-
-                var searchRequest = new SearchRequest<Birthday>
-                {
-                    From = from,
-                    Size = pageSize,
-                    Query = new QueryContainerDescriptor<Birthday>().QueryString(qs => qs.Query(searchQuery))
-                };
-
-                if (!string.IsNullOrEmpty(sort))
-                {
-                    var sortParts = sort.Split(':');
-                    if (sortParts.Length == 2)
-                    {
-                        var field = sortParts[0];
-                        var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
-                        searchRequest.Sort = new List<ISort>
-                        {
-                            new FieldSort { Field = field, Order = order }
-                        };
-                    }
-                }
-
-                var response = await _birthdayService.SearchAsync(searchRequest);
-
-                if (!response.IsValid)
-                {
-                    _log.LogError($"Invalid search response: {response.DebugInformation}");
-                    return BadRequest("Invalid search response");
-                }
-
-                var birthdayDtos = response.Hits.Select(hit => new BirthdayDto
-                {
-                    Id = hit.Id,
-                    Text = hit.Source.Text,
-                    Lname = hit.Source.Lname,
-                    Fname = hit.Source.Fname,
-                    Sign = hit.Source.Sign,
-                    Dob = hit.Source.Dob,
-                    IsAlive = hit.Source.IsAlive,
-                    Wikipedia = includeWikipedia ? hit.Source.Wikipedia : null,
-                    Categories = hit.Source.Categories
-                }).ToList();
-
-                var result = new SearchResult<BirthdayDto>
-                {
-                    Hits = birthdayDtos
-                };
-
-                Response.Headers["X-Total-Count"] = response.Total.ToString();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, "Error searching birthdays with Lucene query");
-                return BadRequest(new { message = ex.Message });
-            }
+            JObject queryStringObject = new JObject(
+                new JProperty("query", query)
+            );
+            JObject queryObject = new JObject(
+                new JProperty("query_string", queryStringObject)
+            );
+            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory);
         }
 
         /// <summary>
@@ -207,42 +129,8 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? secondaryCategory = null)
         {
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
-            var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);             
-            if (!string.IsNullOrEmpty(view))
-            {   
-                var viewDto = await _viewService.GetByIdAsync(view);
-                if (viewDto == null)
-                {
-                    throw new ArgumentException($"View '{view}' not found");
-                }                    
-                
-                if (category == null){
-                    if (secondaryCategory != null){
-                        throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
-                    }
-                    var viewResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(queryObject, viewDto, from, pageSize);
-                    return Ok(viewResult);
-                }
-                string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);
-                var categoryObject = JObject.Parse("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"\"}}]}}");
-                categoryObject["bool"]["must"][0]["query_string"]["query"] = categoryQuery;
-                ((JArray)categoryObject["bool"]["must"]).Add(queryObject);
-                queryObject = categoryObject;
-                var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
-                
-                if (secondaryViewDto != null){
-                    if (secondaryCategory == null){
-                        var viewSecondaryResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(queryObject, secondaryViewDto, from, pageSize);
-                        return Ok(viewSecondaryResult);
-                    }
-                    string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
-                    var secondaryCategoryObject = JObject.Parse("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"\"}}]}}");
-                    secondaryCategoryObject["bool"]["must"][0]["query_string"]["query"] = secondaryCategoryQuery;
-                    ((JArray)secondaryCategoryObject["bool"]["must"]).Add(queryObject);
-                    queryObject = secondaryCategoryObject;
-                }
-            }
-            return await Search(queryObject, pageSize, from, sort, includeWikipedia);
+            var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
+            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory);
         }
 
         /// <summary>
@@ -250,13 +138,50 @@ namespace JhipsterSampleApplication.Controllers
         /// </summary>
         [HttpPost("search/elasticsearch")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
+        [ProducesResponseType(typeof(ViewResultDto), 200)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> Search([FromBody] object elasticsearchQuery,
+        public async Task<IActionResult> Search([FromBody] JObject elasticsearchQuery,
             [FromQuery] int pageSize = 20,
             [FromQuery] int from = 0,
             [FromQuery] string? sort = null,
-            [FromQuery] bool includeWikipedia = false)
+            [FromQuery] bool includeWikipedia = false,
+            [FromQuery] string? view = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? secondaryCategory = null)
         {
+           if (!string.IsNullOrEmpty(view))
+            {   
+                var viewDto = await _viewService.GetByIdAsync(view);
+                if (viewDto == null)
+                {
+                    throw new ArgumentException($"View '{view}' not found");
+                }                    
+                if (category == null){
+                    if (secondaryCategory != null){
+                        throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
+                    }
+                    var viewResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, from, pageSize);
+                    return Ok(viewResult);
+                }
+                string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);
+                var categoryObject = JObject.Parse("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"\"}}]}}");
+                categoryObject["bool"]["must"][0]["query_string"]["query"] = categoryQuery;
+                ((JArray)categoryObject["bool"]["must"]).Add(elasticsearchQuery);
+                elasticsearchQuery = categoryObject;
+                var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
+                
+                if (secondaryViewDto != null){
+                    if (secondaryCategory == null){
+                        var viewSecondaryResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, from, pageSize);
+                        return Ok(viewSecondaryResult);
+                    }
+                    string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
+                    var secondaryCategoryObject = JObject.Parse("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"\"}}]}}");
+                    secondaryCategoryObject["bool"]["must"][0]["query_string"]["query"] = secondaryCategoryQuery;
+                    ((JArray)secondaryCategoryObject["bool"]["must"]).Add(elasticsearchQuery);
+                    elasticsearchQuery = secondaryCategoryObject;
+                }
+            }
             var searchRequest = new SearchRequest<Birthday>
             {
                 Size = pageSize,
@@ -309,57 +234,25 @@ namespace JhipsterSampleApplication.Controllers
         [HttpPost("search/bql")]
         [Consumes("text/plain")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
+        [ProducesResponseType(typeof(ViewResultDto), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> SearchWithBqlPlainText(
             [FromBody] string bqlQuery,
             [FromQuery] int pageSize = 20,
             [FromQuery] int from = 0,
             [FromQuery] string? sort = null,
-            [FromQuery] bool includeWikipedia = false)
+            [FromQuery] bool includeWikipedia = false,
+            [FromQuery] string? view = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? secondaryCategory = null)
         {
-            if (string.IsNullOrWhiteSpace(bqlQuery))
+            if (string.IsNullOrWhiteSpace(bqlQuery)){
                 return BadRequest("Query cannot be empty");
-            try
-            {
-                var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
-                var ruleset = _mapper.Map<Ruleset>(rulesetDto);
-
-                // Build sort descriptor
-                var sortDescriptor = new List<ISort>();
-                if (!string.IsNullOrEmpty(sort))
-                {
-                    var sortParts = sort.Split(':');
-                    if (sortParts.Length == 2)
-                    {
-                        var field = sortParts[0];
-                        var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
-                        sortDescriptor.Add(new FieldSort { Field = field, Order = order });
-                    }
-                }
-                // Always add _id as the last sort field for consistent pagination
-                sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
-
-                var response = await _birthdayService.SearchWithRulesetAsync(ruleset, pageSize, from, sortDescriptor);
-                var birthdayDtos = response.Hits
-                    .Select(hit => new BirthdayDto
-                    {
-                        Id = hit.Id,
-                        Text = hit.Source.Text,
-                        Lname = hit.Source.Lname,
-                        Fname = hit.Source.Fname,
-                        Sign = hit.Source.Sign,
-                        Dob = hit.Source.Dob,
-                        IsAlive = hit.Source.IsAlive ?? false,
-                        Wikipedia = includeWikipedia ? hit.Source.Wikipedia : null,
-                        Categories = hit.Source.Categories
-                    }).ToList();
-                return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
             }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, "Error searching birthdays with BQL query");
-                return BadRequest(new { message = ex.Message });
-            }
+            var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
+            var ruleset = _mapper.Map<Ruleset>(rulesetDto);
+            var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
+            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory);
         }
 
         [HttpGet("{id}")]
