@@ -540,14 +540,8 @@ public class BirthdayService : IBirthdayService
     /// <param name="sort">The sort descriptor for the search</param>
     /// <returns>The search response containing a list of ViewResultDtos</returns>
 
-    public async Task<List<ViewResultDto>> SearchWithRulesetAndViewAsync(Ruleset ruleset, string view, string? category, int size = 20, int from = 0, IList<ISort>? sort = null)
+    public async Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(JObject queryObject, ViewDto viewDto, int size = 20, int from = 0, IList<ISort>? sort = null)
     {
-        var viewDto = await _viewService.GetByIdAsync(view);
-        if (viewDto == null)
-        {
-            throw new ArgumentException($"View '{view}' not found");
-        }
-        var queryObject = await ConvertRulesetToElasticSearch(ruleset);
         string query = queryObject.ToString();        
         var request = new SearchRequest<Birthday>
         {

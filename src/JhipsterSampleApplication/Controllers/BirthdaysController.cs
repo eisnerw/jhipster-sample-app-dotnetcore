@@ -207,46 +207,42 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? secondaryCategory = null)
         {
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
-            
-            // Build sort descriptor
-            var sortDescriptor = new List<ISort>();
-            if (!string.IsNullOrEmpty(sort))
-            {
-                var sortParts = sort.Split(':');
-                if (sortParts.Length == 2)
+            var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);             
+            if (!string.IsNullOrEmpty(view))
+            {   
+                var viewDto = await _viewService.GetByIdAsync(view);
+                if (viewDto == null)
                 {
-                    var field = sortParts[0];
-                    var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
-                    sortDescriptor.Add(new FieldSort { Field = field, Order = order });
+                    throw new ArgumentException($"View '{view}' not found");
+                }                    
+                
+                if (category == null){
+                    if (secondaryCategory != null){
+                        throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
+                    }
+                    var viewResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(queryObject, viewDto, from, pageSize);
+                    return Ok(viewResult);
+                }
+                string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);
+                var categoryObject = JObject.Parse("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"\"}}]}}");
+                categoryObject["bool"]["must"][0]["query_string"]["query"] = categoryQuery;
+                ((JArray)categoryObject["bool"]["must"]).Add(queryObject);
+                queryObject = categoryObject;
+                var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
+                
+                if (secondaryViewDto != null){
+                    if (secondaryCategory == null){
+                        var viewSecondaryResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(queryObject, secondaryViewDto, from, pageSize);
+                        return Ok(viewSecondaryResult);
+                    }
+                    string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
+                    var secondaryCategoryObject = JObject.Parse("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"\"}}]}}");
+                    secondaryCategoryObject["bool"]["must"][0]["query_string"]["query"] = secondaryCategoryQuery;
+                    ((JArray)secondaryCategoryObject["bool"]["must"]).Add(queryObject);
+                    queryObject = secondaryCategoryObject;
                 }
             }
-            // Always add _id as the last sort field for consistent pagination
-            sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
-
-            if (!string.IsNullOrEmpty(view))
-            {
-                var viewResult = await _birthdayService.SearchWithRulesetAndViewAsync(ruleset, view, category, pageSize, from, sortDescriptor);
-                return Ok(viewResult);
-            }
-            else
-            {
-                var response = await _birthdayService.SearchWithRulesetAsync(ruleset, pageSize, from, sortDescriptor);
-
-                var birthdayDtos = response.Hits.Select(hit => new BirthdayDto
-                {
-                    Id = hit.Id,
-                    Text = hit.Source.Text,
-                    Lname = hit.Source.Lname,
-                    Fname = hit.Source.Fname,
-                    Sign = hit.Source.Sign,
-                    Dob = hit.Source.Dob,
-                    IsAlive = hit.Source.IsAlive ?? false,
-                    Wikipedia = includeWikipedia ? hit.Source.Wikipedia : null,
-                    Categories = hit.Source.Categories
-                }).ToList();
-
-                return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
-            }
+            return await Search(queryObject, pageSize, from, sort, includeWikipedia);
         }
 
         /// <summary>
