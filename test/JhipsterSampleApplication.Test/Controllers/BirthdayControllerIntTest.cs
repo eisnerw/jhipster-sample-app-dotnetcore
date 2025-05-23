@@ -48,8 +48,6 @@ namespace JhipsterSampleApplication.Test.Controllers
             var deleteResponse = _elasticClient.DeleteByQuery<Birthday>(d => d
                 .Index("birthdays")
                 .Query(q => q.Term(t => t.Field("lname.keyword").Value(_birthdayDto.Lname))));
-            
-            Console.WriteLine($"<><><><><>Delete by query response: {deleteResponse.DebugInformation}");
             Console.WriteLine($"<><><><><>Deleted {deleteResponse.Deleted} documents");
 
             // Wait for delete operation to complete
@@ -340,6 +338,101 @@ namespace JhipsterSampleApplication.Test.Controllers
             await _client.DeleteAsync($"/api/Birthdays/{testBirthday1.Id}");
             await _client.DeleteAsync($"/api/Birthdays/{testBirthday2.Id}");
             _elasticClient.Indices.Refresh("birthdays");
+        }
+
+        [Fact]
+        public async Task TestViewOperations()
+        {
+            // Clean up any existing test objects
+            Console.WriteLine($"<><><><><>Starting TestViewOperations (cleanup & create new docs)");
+            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>(d => d
+                .Index("birthdays")
+                .Query(q => q.Term(t => t.Field("fname.keyword").Value("viewTestObject"))));
+            
+            _elasticClient.Indices.Refresh("birthdays");
+            Console.WriteLine($"<><><><><>Deleted {deleteResponse.Deleted} documents");
+
+            // Create test objects
+            var testObjects = new[]
+            {
+                new BirthdayDto
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Fname = "viewTestObject",
+                    Lname = "test1",
+                    Dob = new DateTime(1900, 1, 1),
+                    Sign = "sign1"
+                },
+                new BirthdayDto
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Fname = "viewTestObject",
+                    Lname = "test2",
+                    Dob = new DateTime(1800, 1, 1),
+                    Sign = "sign1"
+                },
+                new BirthdayDto
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Fname = "viewTestObject",
+                    Lname = "test1",
+                    Dob = new DateTime(1800, 1, 1),
+                    Sign = "sign2"
+                }
+            };
+
+            // Create all test objects
+            foreach (var obj in testObjects)
+            {
+                var createResponse = await _client.PostAsync(
+                    "/api/Birthdays",
+                    TestUtil.ToJsonContent(obj));
+                createResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            }
+            _elasticClient.Indices.Refresh("birthdays");
+            Console.WriteLine($"<><><><><>Documents created. Starting BQL query just view");
+
+            // Test 1: Search with view "sign/birth year" and query "lname = test1"
+            var bqlQuery = "lname = test1";
+            var viewResponse = await _client.PostAsync(
+                $"/api/Birthdays/search/bql?view=sign/birth%20year",
+                TestUtil.ToTextContent(bqlQuery));
+            viewResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var viewResult = await viewResponse.Content.ReadFromJsonAsync<List<ViewResultDto>>();
+            viewResult.Should().NotBeNull();
+            viewResult.Should().HaveCount(2);
+            viewResult.Should().Contain(r => r.CategoryName == "sign1" && r.Count == 1);
+            viewResult.Should().Contain(r => r.CategoryName == "sign2" && r.Count == 1);
+            Console.WriteLine($"<><><><><>BQL with sign/birth year resulted in {JsonConvert.SerializeObject(viewResult)}.  Starting test with added category parameter.");
+
+            // Test 2: Add category "sign1"
+            var categoryResponse = await _client.PostAsync(
+                $"/api/Birthdays/search/bql?view=sign/birth%20year&category=sign1",
+                TestUtil.ToTextContent(bqlQuery));
+            categoryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var categoryResult = await categoryResponse.Content.ReadFromJsonAsync<List<ViewResultDto>>();
+            categoryResult.Should().NotBeNull();
+            categoryResult.Should().HaveCount(1);
+            categoryResult.Should().Contain(r => r.CategoryName == "1900" && r.Count == 1);
+            Console.WriteLine($"<><><><><>Category resulted in {JsonConvert.SerializeObject(categoryResult)}.  Adding secondaryCategory ");
+            // Test 3: Add secondary category "1900"
+            var secondaryCategoryResponse = await _client.PostAsync(
+                $"/api/Birthdays/search/bql?view=sign/birth%20year&category=sign1&secondaryCategory=1900",
+                TestUtil.ToTextContent(bqlQuery));
+            secondaryCategoryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var secondaryCategoryContent = await secondaryCategoryResponse.Content.ReadAsStringAsync();
+            var secondaryCategoryResult = JsonConvert.DeserializeObject<SearchResult<BirthdayDto>>(secondaryCategoryContent);
+            secondaryCategoryResult.Hits.Should().NotBeEmpty("Search should find the test1");
+            secondaryCategoryResult.Hits.First().Lname.Should().Be("test1");
+            secondaryCategoryResult.Hits.First().Sign.Should().Be("sign1");
+            secondaryCategoryResult.Hits.First().Dob.Should().Be(new DateTime(1900, 1, 1));
+            Console.WriteLine($"<><><><><>secondaryCategory resulted in {secondaryCategoryContent}.  Cleaning up.");
+            // Clean up test objects
+            deleteResponse = _elasticClient.DeleteByQuery<Birthday>(d => d
+                .Index("birthdays")
+                .Query(q => q.Term(t => t.Field("fname.keyword").Value("viewTestObject"))));  
+            _elasticClient.Indices.Refresh("birthdays");
+            Console.WriteLine($"<><><><><>Deleted {deleteResponse.Deleted} documents.  Done with test.");
         }
 
         private class SearchResult<T>
