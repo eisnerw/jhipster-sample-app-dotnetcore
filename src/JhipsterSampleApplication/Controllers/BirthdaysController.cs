@@ -152,34 +152,36 @@ namespace JhipsterSampleApplication.Controllers
            if (!string.IsNullOrEmpty(view))
             {   
                 var viewDto = await _viewService.GetByIdAsync(view);
-                if (viewDto == null)
+                if (viewDto != null)
                 {
-                    throw new ArgumentException($"View '{view}' not found");
-                }                    
-                if (category == null){
-                    if (secondaryCategory != null){
-                        throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
+                    if (category == null)
+                    {
+                        if (secondaryCategory != null){
+                            throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
+                        }
+                        var viewResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, from, pageSize);
+                        return Ok(viewResult);
                     }
-                    var viewResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, from, pageSize);
-                    return Ok(viewResult);
-                }
-                string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);
-                var categoryObject = JObject.Parse("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"\"}}]}}");
-                categoryObject["bool"]["must"][0]["query_string"]["query"] = categoryQuery;
-                ((JArray)categoryObject["bool"]["must"]).Add(elasticsearchQuery);
-                elasticsearchQuery = categoryObject;
-                var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
-                
-                if (secondaryViewDto != null){
-                    if (secondaryCategory == null){
-                        var viewSecondaryResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, from, pageSize);
-                        return Ok(viewSecondaryResult);
+                    string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);
+                    var categoryObject = JObject.Parse("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"\"}}]}}");
+                    categoryObject["bool"]["must"][0]["query_string"]["query"] = categoryQuery;
+                    ((JArray)categoryObject["bool"]["must"]).Add(elasticsearchQuery);
+                    elasticsearchQuery = categoryObject;
+                    var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
+                    
+                    if (secondaryViewDto != null)
+                    {
+                        if (secondaryCategory == null)
+                        {
+                            var viewSecondaryResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, from, pageSize);
+                            return Ok(viewSecondaryResult);
+                        }
+                        string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
+                        var secondaryCategoryObject = JObject.Parse("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"\"}}]}}");
+                        secondaryCategoryObject["bool"]["must"][0]["query_string"]["query"] = secondaryCategoryQuery;
+                        ((JArray)secondaryCategoryObject["bool"]["must"]).Add(elasticsearchQuery);
+                        elasticsearchQuery = secondaryCategoryObject;
                     }
-                    string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
-                    var secondaryCategoryObject = JObject.Parse("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"\"}}]}}");
-                    secondaryCategoryObject["bool"]["must"][0]["query_string"]["query"] = secondaryCategoryQuery;
-                    ((JArray)secondaryCategoryObject["bool"]["must"]).Add(elasticsearchQuery);
-                    elasticsearchQuery = secondaryCategoryObject;
                 }
             }
             var searchRequest = new SearchRequest<Birthday>
