@@ -47,6 +47,9 @@ namespace JhipsterSampleApplication.Controllers
         public class SearchResult<T>
         {
             public List<T> Hits { get; set; } = new();
+            public string hitType { get; set; } = "hit";
+            public string? viewName { get; set; }
+            public string? viewCategory { get; set; }
         }
 
         public class ClusterHealthDto
@@ -88,7 +91,7 @@ namespace JhipsterSampleApplication.Controllers
         /// </summary>
         [HttpGet("search/lucene")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
-        [ProducesResponseType(typeof(ViewResultDto), 200)]
+        [ProducesResponseType(typeof(SearchResult<ViewResultDto>), 200)]
         public async Task<IActionResult> SearchWithLuceneQuery(
             [FromQuery] string query,
             [FromQuery] int from = 0,
@@ -117,9 +120,9 @@ namespace JhipsterSampleApplication.Controllers
         /// </summary>
         [HttpPost("search/ruleset")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
-        [ProducesResponseType(typeof(ViewResultDto), 200)]
+        [ProducesResponseType(typeof(SearchResult<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> Search([FromBody] RulesetDto rulesetDto, 
+        public async Task<IActionResult> SearchRuleset([FromBody] RulesetDto rulesetDto, 
             [FromQuery] int pageSize = 20,
             [FromQuery] int from = 0,
             [FromQuery] string? sort = null,
@@ -138,7 +141,7 @@ namespace JhipsterSampleApplication.Controllers
         /// </summary>
         [HttpPost("search/elasticsearch")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
-        [ProducesResponseType(typeof(ViewResultDto), 200)]
+        [ProducesResponseType(typeof(SearchResult<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> Search([FromBody] JObject elasticsearchQuery,
             [FromQuery] int pageSize = 20,
@@ -152,51 +155,51 @@ namespace JhipsterSampleApplication.Controllers
            if (!string.IsNullOrEmpty(view))
             {   
                 var viewDto = await _viewService.GetByIdAsync(view);
-                if (viewDto != null)
+                if (viewDto == null){
+                    throw new ArgumentException($"view '{view}' not found");
+                }
+                if (category == null)
                 {
-                    if (category == null)
-                    {
-                        if (secondaryCategory != null){
-                            throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
-                        }
-                        var viewResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, from, pageSize);
-                        return Ok(viewResult);
+                    if (secondaryCategory != null){
+                        throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
                     }
-                    string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);                   
+                    var viewResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, from, pageSize);
+                    return Ok(new SearchResult<ViewResultDto> { Hits = viewResult, hitType = "view", viewName = view });
+                }
+                string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);                   
+                elasticsearchQuery = new JObject(
+                    new JProperty("bool", new JObject(
+                        new JProperty("must", new JArray(
+                            new JObject(
+                                new JProperty("query_string", new JObject(
+                                    new JProperty("query", categoryQuery)
+                                ))
+                            ),
+                            elasticsearchQuery
+                        ))
+                    ))
+                );
+                var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);                   
+                if (secondaryViewDto != null)
+                {
+                    if (secondaryCategory == null)
+                    {
+                        var viewSecondaryResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, from, pageSize);
+                        return Ok(new SearchResult<ViewResultDto> { Hits = viewSecondaryResult, hitType = "view", viewName = view, viewCategory = category });
+                    }
+                    string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
                     elasticsearchQuery = new JObject(
                         new JProperty("bool", new JObject(
                             new JProperty("must", new JArray(
                                 new JObject(
                                     new JProperty("query_string", new JObject(
-                                        new JProperty("query", categoryQuery)
+                                        new JProperty("query", secondaryCategoryQuery)
                                     ))
                                 ),
                                 elasticsearchQuery
                             ))
                         ))
                     );
-                    var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);                   
-                    if (secondaryViewDto != null)
-                    {
-                        if (secondaryCategory == null)
-                        {
-                            var viewSecondaryResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, from, pageSize);
-                            return Ok(viewSecondaryResult);
-                        }
-                        string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
-                        elasticsearchQuery = new JObject(
-                            new JProperty("bool", new JObject(
-                                new JProperty("must", new JArray(
-                                    new JObject(
-                                        new JProperty("query_string", new JObject(
-                                            new JProperty("query", secondaryCategoryQuery)
-                                        ))
-                                    ),
-                                    elasticsearchQuery
-                                ))
-                            ))
-                        );
-                    }
                 }
             }
             var searchRequest = new SearchRequest<Birthday>
@@ -251,7 +254,7 @@ namespace JhipsterSampleApplication.Controllers
         [HttpPost("search/bql")]
         [Consumes("text/plain")]
         [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
-        [ProducesResponseType(typeof(ViewResultDto), 200)]
+        [ProducesResponseType(typeof(SearchResult<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> SearchWithBqlPlainText(
             [FromBody] string bqlQuery,
