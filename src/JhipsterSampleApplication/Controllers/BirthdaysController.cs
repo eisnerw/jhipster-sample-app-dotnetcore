@@ -44,14 +44,6 @@ namespace JhipsterSampleApplication.Controllers
             _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
         }
 
-        public class SearchResult<T>
-        {
-            public List<T> Hits { get; set; } = new();
-            public string hitType { get; set; } = "hit";
-            public string? viewName { get; set; }
-            public string? viewCategory { get; set; }
-        }
-
         public class ClusterHealthDto
         {
             public string Status { get; set; } = string.Empty;
@@ -90,8 +82,8 @@ namespace JhipsterSampleApplication.Controllers
         /// Search birthdays using a Lucene query
         /// </summary>
         [HttpGet("search/lucene")]
-        [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
-        [ProducesResponseType(typeof(SearchResult<ViewResultDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         public async Task<IActionResult> SearchWithLuceneQuery(
             [FromQuery] string query,
             [FromQuery] int from = 0,
@@ -119,8 +111,8 @@ namespace JhipsterSampleApplication.Controllers
         /// Search birthdays using a ruleset
         /// </summary>
         [HttpPost("search/ruleset")]
-        [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
-        [ProducesResponseType(typeof(SearchResult<ViewResultDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> SearchRuleset([FromBody] RulesetDto rulesetDto, 
             [FromQuery] int pageSize = 20,
@@ -140,8 +132,8 @@ namespace JhipsterSampleApplication.Controllers
         /// Search birthdays using a raw Elasticsearch query
         /// </summary>
         [HttpPost("search/elasticsearch")]
-        [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
-        [ProducesResponseType(typeof(SearchResult<ViewResultDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> Search([FromBody] JObject elasticsearchQuery,
             [FromQuery] int pageSize = 20,
@@ -164,7 +156,7 @@ namespace JhipsterSampleApplication.Controllers
                         throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
                     }
                     var viewResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, from, pageSize);
-                    return Ok(new SearchResult<ViewResultDto> { Hits = viewResult, hitType = "view", viewName = view });
+                    return Ok(new SearchResultDto<ViewResultDto> { Hits = viewResult, hitType = "view", viewName = view });
                 }
                 string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);                   
                 elasticsearchQuery = new JObject(
@@ -185,7 +177,7 @@ namespace JhipsterSampleApplication.Controllers
                     if (secondaryCategory == null)
                     {
                         var viewSecondaryResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, from, pageSize);
-                        return Ok(new SearchResult<ViewResultDto> { Hits = viewSecondaryResult, hitType = "view", viewName = view, viewCategory = category });
+                        return Ok(new SearchResultDto<ViewResultDto> { Hits = viewSecondaryResult, hitType = "view", viewName = view, viewCategory = category });
                     }
                     string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
                     elasticsearchQuery = new JObject(
@@ -245,7 +237,7 @@ namespace JhipsterSampleApplication.Controllers
                 });
             }
 
-            return Ok(new SearchResult<BirthdayDto> { Hits = birthdayDtos });
+            return Ok(new SearchResultDto<BirthdayDto> { Hits = birthdayDtos });
         }
 
         /// <summary>
@@ -253,8 +245,8 @@ namespace JhipsterSampleApplication.Controllers
         /// </summary>
         [HttpPost("search/bql")]
         [Consumes("text/plain")]
-        [ProducesResponseType(typeof(SearchResult<BirthdayDto>), 200)]
-        [ProducesResponseType(typeof(SearchResult<ViewResultDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> SearchWithBqlPlainText(
             [FromBody] string bqlQuery,

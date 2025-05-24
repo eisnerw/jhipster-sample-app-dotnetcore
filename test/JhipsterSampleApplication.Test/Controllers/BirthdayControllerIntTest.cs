@@ -86,7 +86,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             var luceneResponse = await _client.GetAsync($"/api/Birthdays/search/lucene?query={Uri.EscapeDataString(luceneQuery)}");
             luceneResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var luceneContent = await luceneResponse.Content.ReadAsStringAsync();
-            var luceneResult = JsonConvert.DeserializeObject<SearchResult<BirthdayDto>>(luceneContent);
+            var luceneResult = JsonConvert.DeserializeObject<SearchResultDto<BirthdayDto>>(luceneContent);
             luceneResult.Hits.Should().NotBeEmpty("Lucene search should find the test birthday");
             luceneResult.Hits.First().Lname.Should().Be(_birthdayDto.Lname);
             Console.WriteLine($"<><><><><>Lucene response: {luceneContent}");
@@ -107,7 +107,7 @@ namespace JhipsterSampleApplication.Test.Controllers
                 TestUtil.ToJsonContent(rawQuery));
             rawResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var rawContent = await rawResponse.Content.ReadAsStringAsync();
-            var rawResult = JsonConvert.DeserializeObject<SearchResult<BirthdayDto>>(rawContent);
+            var rawResult = JsonConvert.DeserializeObject<SearchResultDto<BirthdayDto>>(rawContent);
             rawResult.Hits.Should().NotBeEmpty("Raw search should find the test birthday");
             rawResult.Hits.First().Lname.Should().Be(_birthdayDto.Lname);
             Console.WriteLine($"<><><><><>Raw response: {rawContent}");
@@ -125,7 +125,7 @@ namespace JhipsterSampleApplication.Test.Controllers
                 TestUtil.ToJsonContent(rulesetQuery));
             rulesetResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var rulesetContent = await rulesetResponse.Content.ReadAsStringAsync();
-            var rulesetResult = JsonConvert.DeserializeObject<SearchResult<BirthdayDto>>(rulesetContent);
+            var rulesetResult = JsonConvert.DeserializeObject<SearchResultDto<BirthdayDto>>(rulesetContent);
             rulesetResult.Hits.Should().NotBeEmpty("Ruleset search should find the test birthday");
             rulesetResult.Hits.First().Lname.Should().Be(_birthdayDto.Lname);
             Console.WriteLine($"<><><><><>Rule response: {rulesetContent}");
@@ -254,7 +254,7 @@ namespace JhipsterSampleApplication.Test.Controllers
                 "/api/Birthdays/search/bql",
                 TestUtil.ToTextContent(bqlQuery));
             bqlSearchResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-            var searchResult = await bqlSearchResponse.Content.ReadFromJsonAsync<SearchResult<BirthdayDto>>();
+            var searchResult = await bqlSearchResponse.Content.ReadFromJsonAsync<SearchResultDto<BirthdayDto>>();
             searchResult.Should().NotBeNull();
             searchResult.Hits.Should().NotBeEmpty();
             searchResult.Hits.First().Lname.Should().Be(testBirthday.Lname);
@@ -328,7 +328,7 @@ namespace JhipsterSampleApplication.Test.Controllers
                 "/api/Birthdays/search/bql",
                 TestUtil.ToTextContent(complexBqlQuery));
             bqlSearchResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-            var searchResult = await bqlSearchResponse.Content.ReadFromJsonAsync<SearchResult<BirthdayDto>>();
+            var searchResult = await bqlSearchResponse.Content.ReadFromJsonAsync<SearchResultDto<BirthdayDto>>();
             searchResult.Should().NotBeNull();
             searchResult.Hits.Should().HaveCount(2);
             searchResult.Hits.Should().Contain(h => h.Lname == testBirthday1.Lname);
@@ -398,30 +398,38 @@ namespace JhipsterSampleApplication.Test.Controllers
                 $"/api/Birthdays/search/bql?view=sign/birth%20year",
                 TestUtil.ToTextContent(bqlQuery));
             viewResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-            var viewResult = await viewResponse.Content.ReadFromJsonAsync<List<ViewResultDto>>();
+            var viewContent = await viewResponse.Content.ReadAsStringAsync();
+            var viewResult = JsonConvert.DeserializeObject<SearchResultDto<ViewResultDto>>(viewContent);
             viewResult.Should().NotBeNull();
-            viewResult.Should().HaveCount(2);
-            viewResult.Should().Contain(r => r.CategoryName == "sign1" && r.Count == 1);
-            viewResult.Should().Contain(r => r.CategoryName == "sign2" && r.Count == 1);
-            Console.WriteLine($"<><><><><>BQL with sign/birth year resulted in {JsonConvert.SerializeObject(viewResult)}.  Starting test with added category parameter.");
+            viewResult.hitType.Should().Be("view");
+            viewResult.viewName.Should().Be("sign/birth year");
+            viewResult.Hits.Should().HaveCount(2);
+            viewResult.Hits.Should().Contain(r => r.CategoryName == "sign1" && r.Count == 1);
+            viewResult.Hits.Should().Contain(r => r.CategoryName == "sign2" && r.Count == 1);
+            Console.WriteLine($"<><><><><>BQL with sign/birth year resulted in {viewContent}.  Starting test with added category parameter.");
 
             // Test 2: Add category "sign1"
             var categoryResponse = await _client.PostAsync(
                 $"/api/Birthdays/search/bql?view=sign/birth%20year&category=sign1",
                 TestUtil.ToTextContent(bqlQuery));
             categoryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-            var categoryResult = await categoryResponse.Content.ReadFromJsonAsync<List<ViewResultDto>>();
+            var categoryContent = await categoryResponse.Content.ReadAsStringAsync();
+            var categoryResult = JsonConvert.DeserializeObject<SearchResultDto<ViewResultDto>>(categoryContent);
             categoryResult.Should().NotBeNull();
-            categoryResult.Should().HaveCount(1);
-            categoryResult.Should().Contain(r => r.CategoryName == "1900" && r.Count == 1);
-            Console.WriteLine($"<><><><><>Category resulted in {JsonConvert.SerializeObject(categoryResult)}.  Adding secondaryCategory ");
+            categoryResult.hitType.Should().Be("view");
+            categoryResult.viewName.Should().Be("sign/birth year");
+            categoryResult.viewCategory.Should().Be("sign1");
+            categoryResult.Hits.Should().HaveCount(1);
+            categoryResult.Hits.Should().Contain(r => r.CategoryName == "1900" && r.Count == 1);
+            Console.WriteLine($"<><><><><>Category resulted in {categoryContent}.  Adding secondaryCategory ");
             // Test 3: Add secondary category "1900"
             var secondaryCategoryResponse = await _client.PostAsync(
                 $"/api/Birthdays/search/bql?view=sign/birth%20year&category=sign1&secondaryCategory=1900",
                 TestUtil.ToTextContent(bqlQuery));
             secondaryCategoryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var secondaryCategoryContent = await secondaryCategoryResponse.Content.ReadAsStringAsync();
-            var secondaryCategoryResult = JsonConvert.DeserializeObject<SearchResult<BirthdayDto>>(secondaryCategoryContent);
+            var secondaryCategoryResult = JsonConvert.DeserializeObject<SearchResultDto<BirthdayDto>>(secondaryCategoryContent);
+            secondaryCategoryResult.hitType.Should().Be("hit");
             secondaryCategoryResult.Hits.Should().NotBeEmpty("Search should find the test1");
             secondaryCategoryResult.Hits.First().Lname.Should().Be("test1");
             secondaryCategoryResult.Hits.First().Sign.Should().Be("sign1");
@@ -433,11 +441,6 @@ namespace JhipsterSampleApplication.Test.Controllers
                 .Query(q => q.Term(t => t.Field("fname.keyword").Value("viewTestObject"))));  
             _elasticClient.Indices.Refresh("birthdays");
             Console.WriteLine($"<><><><><>Deleted {deleteResponse.Deleted} documents.  Done with test.");
-        }
-
-        private class SearchResult<T>
-        {
-            public System.Collections.Generic.List<T> Hits { get; set; }
         }
 
         private class BirthdayDto
