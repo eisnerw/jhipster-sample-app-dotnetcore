@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using System.Web;
 using Microsoft.AspNetCore.Http;
 using JHipsterNet.Core.Pagination;
+using JhipsterSampleApplication.Domain.Entities;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -26,17 +27,42 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         /// <summary>
-        /// Get all named queries
+        /// Get named queries with optional filtering by name and owner
         /// </summary>
+        /// <param name="name">Optional name to filter queries</param>
+        /// <param name="owner">Optional owner to filter queries</param>
         /// <returns>List of named queries</returns>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<NamedQueryDto>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<NamedQueryDto>>> GetAll()
+        public async Task<ActionResult<IEnumerable<NamedQueryDto>>> GetAll([FromQuery] string? name = null, [FromQuery] string? owner = null)
         {
-            _log.LogDebug("REST request to get all NamedQueries");
-            var result = await _namedQueryService.FindAll(null);
+            _log.LogDebug($"REST request to get NamedQueries with name: {name}, owner: {owner}");
+            
+            IEnumerable<NamedQuery> result;
+            if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(owner))
+            {
+                // Both name and owner specified - get specific query
+                result = await _namedQueryService.FindByNameAndOwner(name, owner);
+            }
+            else if (!string.IsNullOrEmpty(owner))
+            {
+                // Only owner specified - get all queries for owner
+                result = await _namedQueryService.FindByOwner(owner);
+            }
+            else if (!string.IsNullOrEmpty(name))
+            {
+                // Only name specified - get all queries with name
+                result = await _namedQueryService.FindByName(name);
+            }
+            else
+            {
+                // No filters - get all queries
+                var page = await _namedQueryService.FindAll(null);
+                result = page.Content;
+            }
+
             var dtos = new List<NamedQueryDto>();
-            foreach (var entity in result.Content)
+            foreach (var entity in result)
             {
                 dtos.Add(new NamedQueryDto {
                     Id = entity.Id,

@@ -100,6 +100,55 @@ namespace JhipsterSampleApplication.Test.Controllers
         }
 
         [Fact]
+        public async Task GetNamedQueriesByOwner()
+        {
+            // Initialize the database
+            await _namedQueryRepository.CreateOrUpdateAsync(_namedQuery);
+            await _namedQueryRepository.SaveChangesAsync();
+
+            // Get queries by owner
+            var response = await _client.GetAsync($"/api/NamedQueries?owner={DefaultOwner}");
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+            var json = JToken.Parse(await response.Content.ReadAsStringAsync());
+            json.SelectTokens("$.[*].id").Should().Contain(_namedQuery.Id);
+            json.SelectTokens("$.[*].owner").Should().Contain(DefaultOwner);
+        }
+
+        [Fact]
+        public async Task GetNamedQueriesByName()
+        {
+            // Initialize the database
+            await _namedQueryRepository.CreateOrUpdateAsync(_namedQuery);
+            await _namedQueryRepository.SaveChangesAsync();
+
+            // Get queries by name
+            var response = await _client.GetAsync($"/api/NamedQueries?name={DefaultName}");
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+            var json = JToken.Parse(await response.Content.ReadAsStringAsync());
+            json.SelectTokens("$.[*].id").Should().Contain(_namedQuery.Id);
+            json.SelectTokens("$.[*].name").Should().Contain(DefaultName);
+        }
+
+        [Fact]
+        public async Task GetNamedQueryByNameAndOwner()
+        {
+            // Initialize the database
+            await _namedQueryRepository.CreateOrUpdateAsync(_namedQuery);
+            await _namedQueryRepository.SaveChangesAsync();
+
+            // Get query by name and owner
+            var response = await _client.GetAsync($"/api/NamedQueries?name={DefaultName}&owner={DefaultOwner}");
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+            var json = JToken.Parse(await response.Content.ReadAsStringAsync());
+            json.SelectTokens("$.[*].id").Should().Contain(_namedQuery.Id);
+            json.SelectTokens("$.[*].name").Should().Contain(DefaultName);
+            json.SelectTokens("$.[*].owner").Should().Contain(DefaultOwner);
+        }
+
+        [Fact]
         public async Task GetNamedQuery()
         {
             // Initialize the database

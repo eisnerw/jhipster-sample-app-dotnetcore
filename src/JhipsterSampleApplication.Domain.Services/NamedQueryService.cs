@@ -4,6 +4,7 @@ using JHipsterNet.Core.Pagination;
 using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Domain.Repositories.Interfaces;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
+using System.Linq;
 
 namespace JhipsterSampleApplication.Domain.Services
 {
@@ -42,6 +43,27 @@ namespace JhipsterSampleApplication.Domain.Services
         public async Task<IEnumerable<NamedQuery>> FindByOwner(string owner)
         {
             return await _namedQueryRepository.FindByOwnerAsync(owner);
+        }
+
+        public async Task<IEnumerable<NamedQuery>> FindByName(string name)
+        {
+            var result = await _namedQueryRepository.QueryHelper()
+                .Filter(nq => nq.Name == name)
+                .GetAllAsync();
+            return result;
+        }
+
+        public async Task<IEnumerable<NamedQuery>> FindByNameAndOwner(string name, string owner)
+        {
+            var result = await _namedQueryRepository.QueryHelper()
+                .Filter(nq => nq.Name == name && nq.Owner == owner)
+                .GetAllAsync();
+            if (!result.Any()){
+            result = await _namedQueryRepository.QueryHelper()
+                .Filter(nq => nq.Name == name && nq.Owner == "GLOBAL")
+                .GetAllAsync();                
+            }
+            return result;
         }
     }
 } 

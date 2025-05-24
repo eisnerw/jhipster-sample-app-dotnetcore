@@ -16,5 +16,9 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
         Task Delete(long id);
 
         Task<IEnumerable<NamedQuery>> FindByOwner(string owner);
+
+        Task<IEnumerable<NamedQuery>> FindByName(string name);
+
+        Task<IEnumerable<NamedQuery>> FindByNameAndOwner(string name, string owner);
     }
 } 
