@@ -401,8 +401,8 @@ namespace JhipsterSampleApplication.Test.Controllers
             var viewContent = await viewResponse.Content.ReadAsStringAsync();
             var viewResult = JsonConvert.DeserializeObject<SearchResultDto<ViewResultDto>>(viewContent);
             viewResult.Should().NotBeNull();
-            viewResult.hitType.Should().Be("view");
-            viewResult.viewName.Should().Be("sign/birth year");
+            viewResult.HitType.Should().Be("view");
+            viewResult.ViewName.Should().Be("sign/birth year");
             viewResult.Hits.Should().HaveCount(2);
             viewResult.Hits.Should().Contain(r => r.CategoryName == "sign1" && r.Count == 1);
             viewResult.Hits.Should().Contain(r => r.CategoryName == "sign2" && r.Count == 1);
@@ -416,8 +416,8 @@ namespace JhipsterSampleApplication.Test.Controllers
             var categoryContent = await categoryResponse.Content.ReadAsStringAsync();
             var categoryResult = JsonConvert.DeserializeObject<SearchResultDto<ViewResultDto>>(categoryContent);
             categoryResult.Should().NotBeNull();
-            categoryResult.hitType.Should().Be("view");
-            categoryResult.viewName.Should().Be("sign/birth year");
+            categoryResult.HitType.Should().Be("view");
+            categoryResult.ViewName.Should().Be("sign/birth year");
             categoryResult.viewCategory.Should().Be("sign1");
             categoryResult.Hits.Should().HaveCount(1);
             categoryResult.Hits.Should().Contain(r => r.CategoryName == "1900" && r.Count == 1);
@@ -429,7 +429,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             secondaryCategoryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var secondaryCategoryContent = await secondaryCategoryResponse.Content.ReadAsStringAsync();
             var secondaryCategoryResult = JsonConvert.DeserializeObject<SearchResultDto<BirthdayDto>>(secondaryCategoryContent);
-            secondaryCategoryResult.hitType.Should().Be("hit");
+            secondaryCategoryResult.HitType.Should().Be("hit");
             secondaryCategoryResult.Hits.Should().NotBeEmpty("Search should find the test1");
             secondaryCategoryResult.Hits.First().Lname.Should().Be("test1");
             secondaryCategoryResult.Hits.First().Sign.Should().Be("sign1");

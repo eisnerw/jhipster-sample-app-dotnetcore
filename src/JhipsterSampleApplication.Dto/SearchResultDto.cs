@@ -7,8 +7,8 @@ namespace JhipsterSampleApplication.Dto
     public class SearchResultDto<T>
     {
         public List<T> Hits { get; set; } = new();
-        public string hitType { get; set; } = "hit";
-        public string? viewName { get; set; }
+        public string HitType { get; set; } = "hit";
+        public string? ViewName { get; set; }
         public string? viewCategory { get; set; }
     }
 }

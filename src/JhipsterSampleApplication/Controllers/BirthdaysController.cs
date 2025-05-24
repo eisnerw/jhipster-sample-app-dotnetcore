@@ -156,7 +156,7 @@ namespace JhipsterSampleApplication.Controllers
                         throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
                     }
                     var viewResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, from, pageSize);
-                    return Ok(new SearchResultDto<ViewResultDto> { Hits = viewResult, hitType = "view", viewName = view });
+                    return Ok(new SearchResultDto<ViewResultDto> { Hits = viewResult, HitType = "view", ViewName = view });
                 }
                 string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);                   
                 elasticsearchQuery = new JObject(
@@ -177,7 +177,7 @@ namespace JhipsterSampleApplication.Controllers
                     if (secondaryCategory == null)
                     {
                         var viewSecondaryResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, from, pageSize);
-                        return Ok(new SearchResultDto<ViewResultDto> { Hits = viewSecondaryResult, hitType = "view", viewName = view, viewCategory = category });
+                        return Ok(new SearchResultDto<ViewResultDto> { Hits = viewSecondaryResult, HitType = "view", ViewName = view, viewCategory = category });
                     }
                     string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
                     elasticsearchQuery = new JObject(
