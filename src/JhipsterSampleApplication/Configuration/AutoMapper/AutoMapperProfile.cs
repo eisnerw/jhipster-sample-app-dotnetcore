@@ -29,6 +29,7 @@ namespace JhipsterSampleApplication.Configuration.AutoMapper
             CreateMap<RulesetDto, Ruleset>()
                 .ForMember(dest => dest.rules, opt => opt.MapFrom(src => src.rules))
                 .ReverseMap();
+            CreateMap<NamedQuery, NamedQueryDto>().ReverseMap();
         }
     }
 }

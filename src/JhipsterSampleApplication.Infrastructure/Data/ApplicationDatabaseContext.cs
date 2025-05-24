@@ -35,6 +35,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data
         public required DbSet<TimeSheetEntry> TimeSheetEntries { get; set; }
         public required DbSet<Birthday> Birthdays { get; set; }
         public required DbSet<View> Views { get; set; }
+        public required DbSet<NamedQuery> NamedQueries { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -106,6 +107,15 @@ namespace JhipsterSampleApplication.Infrastructure.Data
                 entity.Property(e => e.Name).IsRequired();
                 entity.Property(e => e.Query).IsRequired();
                 entity.Property(e => e.CategoryQuery).IsRequired(false);
+            });
+
+            builder.Entity<NamedQuery>(entity =>
+            {
+                entity.ToTable("named_query");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Text).IsRequired();
+                entity.Property(e => e.Owner).IsRequired().HasMaxLength(50);
             });
         }
 
