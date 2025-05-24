@@ -89,12 +89,14 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<IActionResult> Update(long id, [FromBody] NamedQueryDto namedQueryDto)
         {
             _log.LogDebug($"REST request to update NamedQuery : {namedQueryDto}");
-            if (id != namedQueryDto.Id)
+            var existingEntity = await _namedQueryService.FindOne(id);
+            if (existingEntity == null)
             {
-                return BadRequest("Invalid ID");
+                return NotFound();
             }
+
             var entity = new JhipsterSampleApplication.Domain.Entities.NamedQuery {
-                Id = namedQueryDto.Id,
+                Id = id,
                 Name = namedQueryDto.Name,
                 Text = namedQueryDto.Text,
                 Owner = namedQueryDto.Owner

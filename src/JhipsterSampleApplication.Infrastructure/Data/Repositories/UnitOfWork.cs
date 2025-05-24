@@ -86,4 +86,6 @@ public class UnitOfWork : IUnitOfWork
     {
         _context?.Dispose();
     }
+
+    public DbContext DbContext => _context;
 }

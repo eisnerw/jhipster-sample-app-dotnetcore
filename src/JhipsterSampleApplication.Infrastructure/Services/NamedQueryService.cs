@@ -37,7 +37,7 @@ namespace JhipsterSampleApplication.Infrastructure.Services
             return result;
         }
 
-        public async Task<NamedQuery> FindOne(long id)
+        public async Task<NamedQuery?> FindOne(long id)
         {
             _log.LogDebug($"Request to get NamedQuery : {id}");
             var result = await _namedQueryRepository.QueryHelper()

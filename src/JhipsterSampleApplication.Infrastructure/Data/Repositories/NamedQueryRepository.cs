@@ -28,10 +28,9 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
             return await QueryHelper().GetPageAsync(pageable);
         }
 
-        public async Task<NamedQuery?> FindOneByName(string name)
+        public async Task<NamedQuery> FindOneByName(string name)
         {
-            return await _dbSet.AsNoTracking()
-                .FirstOrDefaultAsync(nq => nq.Name == name);
+            return await _dbSet.FirstOrDefaultAsync(x => x.Name == name) ?? throw new InvalidOperationException($"NamedQuery with name {name} not found");
         }
 
         public async Task<List<NamedQuery>> FindByOwnerAsync(string owner)
@@ -41,15 +40,20 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
                 .ToListAsync();
         }
 
-        public async Task<NamedQuery?> FindOne(long id)
+        public async Task<NamedQuery> FindOne(long id)
         {
-            return await _dbSet.AsNoTracking()
-                .FirstOrDefaultAsync(nq => nq.Id == id);
+            return await _dbSet.FirstOrDefaultAsync(x => x.Id == id) ?? throw new InvalidOperationException($"NamedQuery with id {id} not found");
         }
 
         public override async Task<NamedQuery> CreateOrUpdateAsync(NamedQuery namedQuery)
         {
             List<Type> entitiesToBeUpdated = new List<Type>();
+            var existingEntity = await _dbSet.FindAsync(namedQuery.Id);
+            if (existingEntity != null)
+            {
+                (_context as UnitOfWork)?.DbContext.Entry(existingEntity).CurrentValues.SetValues(namedQuery);
+                return existingEntity;
+            }
             return await base.CreateOrUpdateAsync(namedQuery, entitiesToBeUpdated);
         }
     }

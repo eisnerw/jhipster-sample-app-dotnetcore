@@ -7,14 +7,12 @@ namespace JhipsterSampleApplication.Dto
         public long Id { get; set; }
 
         [Required]
-        [StringLength(100)]
-        public string Name { get; set; }
+        public required string Name { get; set; }
 
         [Required]
-        public string Text { get; set; }
+        public required string Text { get; set; }
 
         [Required]
-        [StringLength(50)]
-        public string Owner { get; set; }
+        public required string Owner { get; set; }
     }
 } 

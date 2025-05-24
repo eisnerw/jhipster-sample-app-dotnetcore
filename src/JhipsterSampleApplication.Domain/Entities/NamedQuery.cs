@@ -25,8 +25,8 @@ namespace JhipsterSampleApplication.Domain.Entities
             if (this == obj) return true;
             if (obj == null || GetType() != obj.GetType()) return false;
             var namedQuery = obj as NamedQuery;
-            if (namedQuery?.Id == null || namedQuery?.Id == 0 || Id == 0) return false;
-            return EqualityComparer<long>.Default.Equals(Id, namedQuery.Id);
+            if (namedQuery?.Id == 0 || Id == 0) return false;
+            return EqualityComparer<long>.Default.Equals(Id, namedQuery!.Id);
         }
 
         public override int GetHashCode()
