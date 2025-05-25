@@ -9,6 +9,7 @@
         "job": "Job",
         "jobHistory": "Job History",
         "location": "Location",
+        "namedQuery": "Named Query",
         "pieceOfWork": "Piece Of Work",
         "region": "Region",
         "timeSheet": "Time Sheet",

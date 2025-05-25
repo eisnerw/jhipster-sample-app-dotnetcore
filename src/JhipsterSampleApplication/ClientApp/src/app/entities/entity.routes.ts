@@ -37,6 +37,11 @@ const routes: Routes = [
     loadChildren: () => import('./location/location.routes'),
   },
   {
+    path: 'named-query',
+    data: { pageTitle: 'JobHistories' },
+    loadChildren: () => import('./named-query/named-query-routing.module').then(m => m.NamedQueryRoutingModule),
+  },
+  {
     path: 'piece-of-work',
     data: { pageTitle: 'PieceOfWorks' },
     loadChildren: () => import('./piece-of-work/piece-of-work.routes'),

@@ -1,0 +1,46 @@
+<div>
+  <h2 id="jhi-named-query-heading" data-cy="NamedQueryDetailsHeading">
+    <span jhiTranslate="jhipsterSampleApplicationApp.namedQuery.detail.title">Named Query</span>
+
+    <div class="d-flex justify-content-end">
+      <button class="btn btn-info me-2" (click)="previousState()">
+        <fa-icon icon="arrow-left"></fa-icon>&nbsp;<span jhiTranslate="entity.action.back">Back</span>
+      </button>
+
+      <button type="button" [routerLink]="['/named-query', namedQuery?.id, 'edit']" class="btn btn-primary">
+        <fa-icon icon="pencil-alt"></fa-icon>&nbsp;<span jhiTranslate="entity.action.edit">Edit</span>
+      </button>
+    </div>
+  </h2>
+
+  <jhi-alert-error></jhi-alert-error>
+
+  <jhi-alert></jhi-alert>
+
+  <div class="row" *ngIf="namedQuery">
+    <div class="col-md-12">
+      <dl class="row-md jh-entity-details">
+        <dt><span jhiTranslate="global.field.id">ID</span></dt>
+        <dd>
+          <span>{{ namedQuery.id }}</span>
+        </dd>
+        <dt><span jhiTranslate="jhipsterSampleApplicationApp.namedQuery.name">Name</span></dt>
+        <dd>
+          <span>{{ namedQuery.name }}</span>
+        </dd>
+        <dt><span jhiTranslate="jhipsterSampleApplicationApp.namedQuery.text">Text</span></dt>
+        <dd>
+          <span>{{ namedQuery.text }}</span>
+        </dd>
+        <dt><span jhiTranslate="jhipsterSampleApplicationApp.namedQuery.owner">Owner</span></dt>
+        <dd>
+          <span>{{ namedQuery.owner }}</span>
+        </dd>
+      </dl>
+
+      <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">
+        <fa-icon icon="arrow-left"></fa-icon>&nbsp;<span jhiTranslate="entity.action.back">Back</span>
+      </button>
+    </div>
+  </div>
+</div> 

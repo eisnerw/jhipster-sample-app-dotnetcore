@@ -37,6 +37,11 @@ export const ENTITY_NAV_ITEMS: NavbarItem[] = [
     translationKey: 'global.menu.entities.location',
   },
   {
+    name: 'NamedQuery',
+    route: '/named-query',
+    translationKey: 'global.menu.entities.namedQuery',
+  },
+  {
     name: 'PieceOfWork',
     route: '/piece-of-work',
     translationKey: 'global.menu.entities.pieceOfWork',
