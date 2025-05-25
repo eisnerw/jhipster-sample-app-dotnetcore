@@ -45,7 +45,7 @@
                 <span class="d-none d-md-inline" jhiTranslate="entity.action.edit">Edit</span>
               </a>
 
-              <button type="submit" [routerLink]="['/named-query', namedQuery.id, 'delete']" class="btn btn-danger btn-sm" data-cy="entityDeleteButton" (click)="delete(namedQuery)">
+              <button type="submit" class="btn btn-danger btn-sm" data-cy="entityDeleteButton" (click)="delete(namedQuery)">
                 <fa-icon icon="times"></fa-icon>
                 <span class="d-none d-md-inline" jhiTranslate="entity.action.delete">Delete</span>
               </button>
