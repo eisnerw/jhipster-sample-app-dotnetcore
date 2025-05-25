@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
@@ -9,6 +11,9 @@ using System.Web;
 using Microsoft.AspNetCore.Http;
 using JHipsterNet.Core.Pagination;
 using JhipsterSampleApplication.Domain.Entities;
+using JHipsterNet.Core.Pagination.Extensions;
+using AutoMapper;
+using System.Linq;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -19,11 +24,13 @@ namespace JhipsterSampleApplication.Controllers
     {
         private readonly INamedQueryService _namedQueryService;
         private readonly ILogger<NamedQueriesController> _log;
+        private readonly IMapper _mapper;
 
-        public NamedQueriesController(INamedQueryService namedQueryService, ILogger<NamedQueriesController> log)
+        public NamedQueriesController(INamedQueryService namedQueryService, ILogger<NamedQueriesController> log, IMapper mapper)
         {
             _namedQueryService = namedQueryService;
             _log = log;
+            _mapper = mapper;
         }
 
         /// <summary>
@@ -36,48 +43,35 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(IEnumerable<NamedQueryDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<NamedQueryDto>>> GetAll([FromQuery] string? name = null, [FromQuery] string? owner = null)
         {
-            _log.LogDebug($"REST request to get NamedQueries with name: {name}, owner: {owner}");
-            
-            IEnumerable<NamedQuery> result;
+            _log.LogDebug("REST request to get NamedQueries with filters: name={Name}, owner={Owner}", name, owner);
+
             if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(owner))
             {
-                // Both name and owner specified - get specific query
-                result = await _namedQueryService.FindByNameAndOwner(name, owner);
+                var queries = await _namedQueryService.FindByNameAndOwner(name, owner);
+                return Ok(queries.Select(_mapper.Map<NamedQueryDto>));
             }
             else if (!string.IsNullOrEmpty(owner))
             {
-                // Only owner specified - get all queries for owner
-                result = await _namedQueryService.FindByOwner(owner);
+                var queries = await _namedQueryService.FindByOwner(owner);
+                return Ok(queries.Select(_mapper.Map<NamedQueryDto>));
             }
             else if (!string.IsNullOrEmpty(name))
             {
-                // Only name specified - get all queries with name
-                result = await _namedQueryService.FindByName(name);
+                var queries = await _namedQueryService.FindByName(name);
+                return Ok(queries.Select(_mapper.Map<NamedQueryDto>));
             }
             else
             {
-                // No filters - get all queries
-                var page = await _namedQueryService.FindAll(null);
-                result = page.Content;
+                var pageable = Pageable.Of(0, int.MaxValue);
+                var page = await _namedQueryService.FindAll(pageable);
+                return Ok(page.Content.Select(_mapper.Map<NamedQueryDto>));
             }
-
-            var dtos = new List<NamedQueryDto>();
-            foreach (var entity in result)
-            {
-                dtos.Add(new NamedQueryDto {
-                    Id = entity.Id,
-                    Name = entity.Name,
-                    Text = entity.Text,
-                    Owner = entity.Owner
-                });
-            }
-            return Ok(dtos);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<NamedQueryDto>> Get(long id)
         {
-            _log.LogDebug($"REST request to get NamedQuery : {id}");
+            _log.LogDebug("REST request to get NamedQuery : {Id}", id);
             var entity = await _namedQueryService.FindOne(id);
             if (entity == null)
             {
@@ -95,8 +89,8 @@ namespace JhipsterSampleApplication.Controllers
         [HttpPost]
         public async Task<ActionResult<NamedQueryDto>> Create([FromBody] NamedQueryDto namedQueryDto)
         {
-            _log.LogDebug($"REST request to save NamedQuery : {namedQueryDto}");
-            var entity = new JhipsterSampleApplication.Domain.Entities.NamedQuery {
+            _log.LogDebug("REST request to save NamedQuery : {NamedQuery}", namedQueryDto);
+            var entity = new NamedQuery {
                 Name = namedQueryDto.Name,
                 Text = namedQueryDto.Text,
                 Owner = namedQueryDto.Owner
@@ -114,14 +108,14 @@ namespace JhipsterSampleApplication.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(long id, [FromBody] NamedQueryDto namedQueryDto)
         {
-            _log.LogDebug($"REST request to update NamedQuery : {namedQueryDto}");
+            _log.LogDebug("REST request to update NamedQuery : {NamedQuery}", namedQueryDto);
             var existingEntity = await _namedQueryService.FindOne(id);
             if (existingEntity == null)
             {
                 return NotFound();
             }
 
-            var entity = new JhipsterSampleApplication.Domain.Entities.NamedQuery {
+            var entity = new NamedQuery {
                 Id = id,
                 Name = namedQueryDto.Name,
                 Text = namedQueryDto.Text,
@@ -134,7 +128,7 @@ namespace JhipsterSampleApplication.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(long id)
         {
-            _log.LogDebug($"REST request to delete NamedQuery : {id}");
+            _log.LogDebug("REST request to delete NamedQuery : {Id}", id);
             await _namedQueryService.Delete(id);
             return NoContent();
         }

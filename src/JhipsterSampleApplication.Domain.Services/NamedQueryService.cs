@@ -42,7 +42,10 @@ namespace JhipsterSampleApplication.Domain.Services
 
         public async Task<IEnumerable<NamedQuery>> FindByOwner(string owner)
         {
-            return await _namedQueryRepository.FindByOwnerAsync(owner);
+            List<NamedQuery> owners = (await _namedQueryRepository.FindByOwnerAsync(owner)).ToList();
+            List<NamedQuery> global = (await _namedQueryRepository.FindByOwnerAsync("GLOBAL")).ToList();
+            owners.AddRange(global.Where(g => !owners.Any(o => o.Name == g.Name)));
+            return owners;
         }
 
         public async Task<IEnumerable<NamedQuery>> FindByName(string name)
