@@ -285,7 +285,23 @@ public class BirthdayService : IBirthdayService
             }
             else if (rr.@operator?.Contains("=") == true)
             {
-                List<string> uniqueValues = await GetUniqueFieldValuesAsync(rr.field + ".keyword");
+                if ((string)rr.value == "true" || (string)rr.value == "false")
+                {
+                    var mappingResponse = await _elasticClient.Indices.GetMappingAsync(new GetMappingRequest("birthdays"));
+
+                    bool isBoolean = mappingResponse.IsValid && mappingResponse.Indices
+                        .SelectMany(i => i.Value.Mappings.Properties)
+                        .Any(p => p.Key == "isAlive" && p.Value.Type == "boolean");
+                    if (isBoolean)
+                    {
+                        return new JObject{{
+                            "term", new JObject{{
+                                rr.field, (string)rr.value == "true" ? true : false
+                            }}
+                        }};
+                    }
+                }
+                List<string> uniqueValues = await GetUniqueFieldValuesAsync(rr.field + ".keyword");                
                 string valueStr = rr.value?.ToString() ?? string.Empty;
                 List<JObject> oredTerms = uniqueValues.Where(v => v.ToLower() == valueStr.ToLower()).Select(s =>
                 {
