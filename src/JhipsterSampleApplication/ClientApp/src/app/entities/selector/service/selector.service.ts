@@ -23,7 +23,7 @@ export class SelectorService {
   }
 
   update(selector: ISelector): Observable<EntityResponseType> {
-    return this.http.put<ISelector>(this.resourceUrl, selector, { observe: 'response' });
+    return this.http.put<ISelector>(`${this.resourceUrl}/${selector.id}`, selector, { observe: 'response' });
   }
 
   find(id: number): Observable<EntityResponseType> {
