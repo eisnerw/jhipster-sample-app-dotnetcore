@@ -2,6 +2,7 @@ using AutoMapper;
 using System.Linq;
 using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Dto;
+using System.Diagnostics.Tracing;
 
 
 namespace JhipsterSampleApplication.Configuration.AutoMapper
@@ -30,6 +31,7 @@ namespace JhipsterSampleApplication.Configuration.AutoMapper
                 .ForMember(dest => dest.rules, opt => opt.MapFrom(src => src.rules))
                 .ReverseMap();
             CreateMap<NamedQuery, NamedQueryDto>().ReverseMap();
+            CreateMap<Selector, SelectorDto>().ReverseMap();
         }
     }
 }

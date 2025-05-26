@@ -36,6 +36,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data
         public required DbSet<Birthday> Birthdays { get; set; }
         public required DbSet<View> Views { get; set; }
         public required DbSet<NamedQuery> NamedQueries { get; set; }
+        public required DbSet<Selector> Selectors { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -116,6 +117,18 @@ namespace JhipsterSampleApplication.Infrastructure.Data
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Text).IsRequired();
                 entity.Property(e => e.Owner).IsRequired().HasMaxLength(50);
+            });
+
+            builder.Entity<Selector>(entity =>
+            {
+                entity.ToTable("selector");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.Name).IsRequired();
+                entity.Property(e => e.RulesetName).IsRequired();
+                entity.Property(e => e.Action).IsRequired();
+                entity.Property(e => e.ActionParameter).IsRequired();
+                entity.Property(e => e.Description).IsRequired();
             });
         }
 
