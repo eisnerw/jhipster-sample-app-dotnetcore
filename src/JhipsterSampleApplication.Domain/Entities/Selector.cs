@@ -10,23 +10,32 @@ namespace JhipsterSampleApplication.Domain.Entities
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public long Id { get; set; }
+        public new long Id { get; set; }
 
-        public string Name { get; set; }
-        public string RulesetName { get; set; }
-        public string Action { get; set; }
-        public string ActionParameter { get; set; }
-        public string Description { get; set; }
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
+        [Required]
+        public string RulesetName { get; set; } = string.Empty;
+
+        [Required]
+        public string Action { get; set; } = string.Empty;
+
+        [Required]
+        public string ActionParameter { get; set; } = string.Empty;
+
+        [Required]
+        public string Description { get; set; } = string.Empty;
 
         // jhipster-needle-entity-add-field - JHipster will add fields here, do not remove
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (this == obj) return true;
             if (obj == null || GetType() != obj.GetType()) return false;
             var selector = obj as Selector;
-            if (selector?.Id == null || selector?.Id == 0 || Id == 0) return false;
-            return EqualityComparer<long>.Default.Equals(Id, selector.Id);
+            if (selector?.Id == 0 || Id == 0) return false;
+            return EqualityComparer<long>.Default.Equals(Id, selector!.Id);
         }
 
         public override int GetHashCode()

@@ -285,7 +285,8 @@ public class BirthdayService : IBirthdayService
             }
             else if (rr.@operator?.Contains("=") == true)
             {
-                if ((string)rr.value == "true" || (string)rr.value == "false")
+                var valueStr = rr.value as string ?? string.Empty;
+                if (valueStr == "true" || valueStr == "false")
                 {
                     var mappingResponse = await _elasticClient.Indices.GetMappingAsync(new GetMappingRequest("birthdays"));
 
@@ -294,22 +295,22 @@ public class BirthdayService : IBirthdayService
                         .Any(p => p.Key == "isAlive" && p.Value.Type == "boolean");
                     if (isBoolean)
                     {
-                        return new JObject{{
-                            "term", new JObject{{
-                                rr.field, (string)rr.value == "true" ? true : false
-                            }}
-                        }};
+                        return new JObject{ {
+                            "term", new JObject{ {
+                                rr!.field!, valueStr == "true" ? true : false
+                            } }
+                        } };
                     }
                 }
                 List<string> uniqueValues = await GetUniqueFieldValuesAsync(rr.field + ".keyword");                
-                string valueStr = rr.value?.ToString() ?? string.Empty;
+                string fieldName = rr.field ?? string.Empty;
                 List<JObject> oredTerms = uniqueValues.Where(v => v.ToLower() == valueStr.ToLower()).Select(s =>
                 {
-                    return new JObject{{
-                        "term", new JObject{{
-                            rr.field + ".keyword", s
-                        }}
-                    }};
+                    var termObject = new JObject();
+                    termObject.Add(rr.field + ".keyword", JToken.FromObject(s));
+                    var result = new JObject();
+                    result.Add("term", termObject);
+                    return result;
                 }).ToList();
                 if (oredTerms.Count > 1)
                 {
