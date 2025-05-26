@@ -1,0 +1,95 @@
+<div class="row justify-content-center">
+  <div class="col-8">
+    <form
+      name="editForm"
+      role="form"
+      novalidate
+      (ngSubmit)="save()"
+      [formGroup]="editForm"
+    >
+      <h2 id="jhi-selector-heading" data-cy="SelectorCreateUpdateHeading">
+        Create or edit a Selector
+      </h2>
+
+      <div>
+        <jhi-alert-error></jhi-alert-error>
+
+        <div class="form-group" [hidden]="editForm.get('id')!.value == null">
+          <label class="form-control-label" for="field_id">Id</label>
+          <input
+            type="number"
+            class="form-control"
+            name="id"
+            id="field_id"
+            data-cy="id"
+            formControlName="id"
+            [readonly]="true"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-control-label" for="field_name">Name</label>
+          <input
+            type="text"
+            class="form-control"
+            name="name"
+            id="field_name"
+            data-cy="name"
+            formControlName="name"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-control-label" for="field_rulesetName">Ruleset Name</label>
+          <select class="form-control" id="field_rulesetName" name="rulesetName" formControlName="rulesetName">
+            <option [ngValue]="rulesetOption.name" *ngFor="let rulesetOption of rulesets">{{ rulesetOption.name }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-control-label" for="field_action">Action</label>
+          <input
+            type="text"
+            class="form-control"
+            name="action"
+            id="field_action"
+            data-cy="action"
+            formControlName="action"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-control-label" for="field_rulesetName">Description</label>
+          <input
+            type="text"
+            class="form-control"
+            name="description"
+            id="field_description"
+            data-cy="description"
+            formControlName="description"
+          />
+        </div>
+      </div>
+
+      <div>
+        <button
+          type="button"
+          id="cancel-save"
+          data-cy="entityCreateCancelButton"
+          class="btn btn-secondary"
+          (click)="previousState()"
+        >
+          <fa-icon icon="ban"></fa-icon>&nbsp;<span>Cancel</span>
+        </button>
+
+        <button
+          type="submit"
+          id="save-entity"
+          data-cy="entityCreateSaveButton"
+          [disabled]="editForm.invalid || isSaving"
+          class="btn btn-primary"
+        >
+          <fa-icon icon="save"></fa-icon>&nbsp;<span>Save</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

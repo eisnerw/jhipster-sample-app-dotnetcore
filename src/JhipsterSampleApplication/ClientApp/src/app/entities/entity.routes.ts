@@ -52,6 +52,11 @@ const routes: Routes = [
     loadChildren: () => import('./region/region.routes'),
   },
   {
+    path: 'selector',
+    data: { pageTitle: 'Selectors' },
+    loadChildren: () => import('./selector/selector.routes'),
+  },
+  {
     path: 'time-sheet',
     data: { pageTitle: 'TimeSheets' },
     loadChildren: () => import('./time-sheet/time-sheet.routes'),
