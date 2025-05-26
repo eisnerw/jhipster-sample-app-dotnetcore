@@ -52,6 +52,11 @@ export const ENTITY_NAV_ITEMS: NavbarItem[] = [
     translationKey: 'global.menu.entities.region',
   },
   {
+    name: 'Selector',
+    route: '/selector',
+    translationKey: 'global.menu.entities.selector',
+  },
+  {
     name: 'TimeSheet',
     route: '/time-sheet',
     translationKey: 'global.menu.entities.timeSheet',

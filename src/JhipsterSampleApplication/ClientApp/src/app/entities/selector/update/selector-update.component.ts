@@ -4,6 +4,11 @@ import { UntypedFormBuilder } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
 import { finalize, map } from 'rxjs/operators';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { ReactiveFormsModule } from '@angular/forms';
+import SharedModule from 'app/shared/shared.module';
 
 import { ISelector, Selector } from '../selector.model';
 import { SelectorService } from '../service/selector.service';
@@ -11,8 +16,10 @@ import { NamedQueryService } from '../../named-query/service/named-query.service
 import { INamedQuery } from '../../named-query/named-query.model';
 
 @Component({
+  standalone: true,
   selector: 'jhi-selector-update',
   templateUrl: './selector-update.component.html',
+  imports: [CommonModule, RouterModule, FontAwesomeModule, ReactiveFormsModule, SharedModule],
 })
 export class SelectorUpdateComponent implements OnInit {
   isSaving = false;
@@ -35,14 +42,20 @@ export class SelectorUpdateComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.activatedRoute.data.subscribe(({ selector }) => {
-      this.updateForm(selector);
-      this.namedQueryService
-        .query({ filter: 'selector-is-null' })
-        .pipe(map((res: HttpResponse<INamedQuery[]>) => res.body ?? []))
-        .subscribe((resBody: INamedQuery[]) => {
-          this.namedQueries = resBody;
-        });
+    this.activatedRoute.data.subscribe({
+      next: ({ selector }) => {
+        if (selector) {
+          this.updateForm(selector);
+        }
+        this.namedQueryService
+          .query({ name: '', owner: 'SYSTEM' })
+          .pipe(map((res: HttpResponse<INamedQuery[]>) => res.body ?? []))
+          .subscribe({
+            next: (resBody: INamedQuery[]) => {
+              this.namedQueries = resBody;
+            },
+          });
+      },
     });
   }
 
@@ -53,7 +66,7 @@ export class SelectorUpdateComponent implements OnInit {
   save(): void {
     this.isSaving = true;
     const selector = this.createFromForm();
-    if (selector.id !== undefined) {
+    if (selector.id) {
       this.subscribeToSaveResponse(this.selectorService.update(selector));
     } else {
       this.subscribeToSaveResponse(this.selectorService.create(selector));
@@ -72,10 +85,10 @@ export class SelectorUpdateComponent implements OnInit {
   }
 
   protected subscribeToSaveResponse(result: Observable<HttpResponse<ISelector>>): void {
-    result.pipe(finalize(() => this.onSaveFinalize())).subscribe(
-      () => this.onSaveSuccess(),
-      () => this.onSaveError(),
-    );
+    result.pipe(finalize(() => this.onSaveFinalize())).subscribe({
+      next: () => this.onSaveSuccess(),
+      error: () => this.onSaveError(),
+    });
   }
 
   protected onSaveSuccess(): void {
@@ -90,14 +103,13 @@ export class SelectorUpdateComponent implements OnInit {
     this.isSaving = false;
   }
   protected createFromForm(): ISelector {
-    return {
-      ...new Selector(),
-      id: this.editForm.get(['id'])!.value,
-      name: this.editForm.get(['name'])!.value,
-      rulesetName: this.editForm.get(['rulesetName'])!.value,
-      action: this.editForm.get(['action'])!.value,
-      actionParameter: this.editForm.get(['actionParameter'])!.value,
-      description: this.editForm.get(['description'])!.value,
-    };
+    const selector = new Selector();
+    selector.id = this.editForm.get(['id'])!.value;
+    selector.name = this.editForm.get(['name'])!.value;
+    selector.rulesetName = this.editForm.get(['rulesetName'])!.value;
+    selector.action = this.editForm.get(['action'])!.value;
+    selector.actionParameter = this.editForm.get(['actionParameter'])!.value;
+    selector.description = this.editForm.get(['description'])!.value;
+    return selector;
   }
 }
