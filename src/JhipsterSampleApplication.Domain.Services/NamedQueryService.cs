@@ -22,12 +22,10 @@ namespace JhipsterSampleApplication.Domain.Services
 
         public async Task<NamedQuery> Save(NamedQuery namedQuery)
         {
-            var currentUser = await _userService.GetUserWithUserRoles();
-            if (currentUser == null)
-                throw new InvalidOperationException("Current user not found.");
-            var isAdmin = currentUser.UserRoles?.Any(ur => ur.Role != null && ur.Role.Name == "ROLE_ADMIN") == true;
-
-            var existing = await _namedQueryRepository.FindOne(namedQuery.Id);
+            namedQuery.Name = namedQuery.Name.ToUpper();
+            namedQuery.Owner = string.IsNullOrEmpty(namedQuery.Owner) ? namedQuery.Owner : namedQuery.Owner.ToLower().Replace("global","GLOBAL").Replace("system","SYSTEM");
+            User currentUser = await _userService.GetUserWithUserRoles() ?? throw new InvalidOperationException("Current user not found.");
+            bool isAdmin = currentUser.UserRoles?.Any(ur => ur.Role != null && ur.Role.Name == "ROLE_ADMIN") == true;
 
             // Admin logic
             if (isAdmin)
@@ -45,23 +43,38 @@ namespace JhipsterSampleApplication.Domain.Services
                 else
                 {
                     namedQuery.IsSystem = null;
+                    namedQuery.Owner = string.IsNullOrEmpty(namedQuery.Owner) ? currentUser!.Login! : namedQuery.Owner;
+                }
+                NamedQuery? existing = await FindByNameAndOwner(namedQuery.Name, namedQuery.Owner.Replace("SYSTEM", "GLOBAL"));
+                if (existing != null && existing.Id != namedQuery.Id && existing.Owner.Replace("SYSTEM", "GLOBAL") == namedQuery.Owner.Replace("SYSTEM", "GLOBAL"))
+                {
+                    throw new InvalidOperationException("A query by that name already exists");
+                }
+                if (existing != null && existing.Owner.Replace("SYSTEM","GLOBAL") != namedQuery.Owner.Replace("SYSTEM", "GLOBAL"))
+                {
+                    namedQuery.Id = 0; // force insert
                 }
             }
             else
             {
+                NamedQuery? existing = await  FindByNameAndOwner(namedQuery.Name, currentUser!.Login!);
+                if (existing != null && existing.Id != namedQuery.Id && existing.Owner != "GLOBAL")
+                {
+                    throw new InvalidOperationException("A query by that name already exists");
+                }
                 // Non-admin logic
                 if (string.IsNullOrEmpty(namedQuery.Owner) || namedQuery.Owner == currentUser.Login)
                 {
                     // User is creating or updating their own query
-                    namedQuery.Owner = currentUser.Login ?? throw new InvalidOperationException("User login is null.");
                     namedQuery.IsSystem = null;
+                    namedQuery.Owner = currentUser.Login!;
                 }
-                if (namedQuery.Owner == "GLOBAL" || namedQuery.IsSystem == true)
+                else if (namedQuery.Owner == "GLOBAL" || namedQuery.IsSystem == true)
                 {
                     // User is trying to update a GLOBAL or SYSTEM query: create a new query for the user
                     namedQuery.Id = 0; // Force insert
-                    namedQuery.Owner = currentUser.Login ?? throw new InvalidOperationException("User login is null.");
                     namedQuery.IsSystem = null;
+                    namedQuery.Owner = currentUser.Login!;
                 }
                 else
                 {
@@ -123,9 +136,10 @@ namespace JhipsterSampleApplication.Domain.Services
 
         public async Task<IEnumerable<NamedQuery>> FindByOwner(string owner)
         {
-            List<NamedQuery> owners = (await _namedQueryRepository.FindByOwnerAsync(owner)).ToList();
-            List<NamedQuery> global = (await _namedQueryRepository.FindByOwnerAsync("GLOBAL")).ToList();
-            owners.AddRange(global.Where(g => !owners.Any(o => o.Name == g.Name)));
+            List<NamedQuery> owners = [.. (await _namedQueryRepository.FindByOwnerAsync(owner))];
+            List<string> ownerNames = owners.Select(o=>o.Name).ToList();
+            List<NamedQuery> global = [.. (await _namedQueryRepository.FindByOwnerAsync("GLOBAL"))];
+            owners.AddRange(global.Where(g => !ownerNames.Contains(g.Name)));
             foreach (var query in owners)
             {
                 if (query.IsSystem == true)
@@ -151,22 +165,36 @@ namespace JhipsterSampleApplication.Domain.Services
             return result;
         }
 
-        public async Task<IEnumerable<NamedQuery>> FindByNameAndOwner(string name, string owner)
+        public async Task<NamedQuery?> FindByNameAndOwner(string name, string owner)
         {
-            var result = await _namedQueryRepository.QueryHelper()
+            var currentUser = await _userService.GetUserWithUserRoles();
+            if (currentUser == null)
+                throw new InvalidOperationException("Current user not found.");
+            var isAdmin = currentUser.UserRoles?.Any(ur => ur.Role != null && ur.Role.Name == "ROLE_ADMIN") == true;
+            if (!isAdmin && !string.IsNullOrEmpty(owner) && owner != currentUser.Login)
+            {
+                throw new UnauthorizedAccessException("You are not allowed to request queries by another owner");
+            }
+            var found = await _namedQueryRepository.QueryHelper()
                 .Filter(nq => nq.Name == name && nq.Owner == owner)
                 .GetAllAsync();
-            if (!result.Any()){
-                result = await _namedQueryRepository.QueryHelper()
+            if (!found.Any()){
+                found = await _namedQueryRepository.QueryHelper()
                     .Filter(nq => nq.Name == name && nq.Owner == "GLOBAL")
                     .GetAllAsync();                
             }
-            foreach (var query in result)
+            if (!found.Any())
             {
-                if (query.IsSystem == true)
-                {
-                    query.Owner = "SYSTEM";
-                }
+                return null;
+            }
+            if (found.ToList().Count > 1)
+            {
+                throw new InvalidOperationException("Duplicate found in database.");
+            }
+            var result = found.ToList()[0];
+            if (result.IsSystem == true)
+            {
+                result.Owner = "SYSTEM";
             }
             return result;
         }

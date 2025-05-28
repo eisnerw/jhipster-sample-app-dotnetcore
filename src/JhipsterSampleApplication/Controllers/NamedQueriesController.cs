@@ -59,13 +59,13 @@ namespace JhipsterSampleApplication.Controllers
                 {
                     throw new UnauthorizedAccessException("Only administrators can requet Named Queries by name or userid");
                 }
-                var queries = await _namedQueryService.FindByOwner(currentUser.Login!);
+                var queries = (await _namedQueryService.FindByOwner(currentUser.Login!)).ToList().OrderBy(nq=>nq.Name).ThenBy(nq=> nq.Owner == "GLOBAL" || nq.Owner == "SYSTEM" ? 1 : 0);
                 return Ok(queries.Select(_mapper.Map<NamedQueryDto>));
             }
             if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(owner))
             {
-                var queries = await _namedQueryService.FindByNameAndOwner(name!, owner!);
-                return Ok(queries.Select(_mapper.Map<NamedQueryDto>));
+                NamedQuery? found = await _namedQueryService.FindByNameAndOwner(name!, owner!);
+                return Ok(new List<NamedQuery?>{ found }.Where(n => n != null).Select(_mapper.Map<NamedQueryDto>));
             }
             else if (!string.IsNullOrEmpty(owner))
             {
@@ -81,7 +81,7 @@ namespace JhipsterSampleApplication.Controllers
             {
                 var pageable = Pageable.Of(0, int.MaxValue);
                 var page = await _namedQueryService.FindAll(pageable);
-                return Ok(page.Content.Select(_mapper.Map<NamedQueryDto>));
+                return Ok(page.Content.Select(_mapper.Map<NamedQueryDto>).OrderBy(nq=>nq.Name).ThenBy(nq=> nq.Owner == "GLOBAL" || nq.Owner == "SYSTEM" ? 1 : 0));
             }
         }
 
@@ -160,6 +160,7 @@ namespace JhipsterSampleApplication.Controllers
             return NoContent();
         }
 
+        [HttpGet("by-owner/{owner}")]
         public async Task<ActionResult<IEnumerable<NamedQuery>>> GetNamedQueriesByOwner(string owner)
         {
             if (string.IsNullOrEmpty(owner))

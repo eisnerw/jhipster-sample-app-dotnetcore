@@ -97,8 +97,9 @@ export class NamedQueryComponent implements OnInit {
   }
 
   protected refineData(data: INamedQuery[]): INamedQuery[] {
-    const { predicate, order } = this.sortState();
-    return predicate && order ? data.sort(this.sortService.startSort({ predicate, order })) : data;
+    // const { predicate, order } = this.sortState();
+    // return predicate && order ? data.sort(this.sortService.startSort({ predicate, order })) : data;
+    return data;
   }
 
   protected fillComponentAttributesFromResponseBody(data: INamedQuery[] | null): INamedQuery[] {

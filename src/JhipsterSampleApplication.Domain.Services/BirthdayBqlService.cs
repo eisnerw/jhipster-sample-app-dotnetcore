@@ -421,10 +421,7 @@ namespace JhipsterSampleApplication.Domain.Services
 
         public override Task<string> Ruleset2Bql(RulesetDto ruleset)
         {
-            if (ruleset == null)
-            {
-                throw new ArgumentNullException(nameof(ruleset));
-            }
+            ArgumentNullException.ThrowIfNull(ruleset);
 
             if (!ValidateRuleset(ruleset))
             {
@@ -441,13 +438,9 @@ namespace JhipsterSampleApplication.Domain.Services
         }
 
         
-        private string QueryAsString(RulesetDto query, bool recurse = false)
+        private static string QueryAsString(RulesetDto query, bool recurse = false)
         {
-            if (query == null)
-            {
-                throw new ArgumentNullException(nameof(query));
-            }
-
+            ArgumentNullException.ThrowIfNull(query);
             var result = new StringBuilder();
             bool multipleConditions = false;
 
