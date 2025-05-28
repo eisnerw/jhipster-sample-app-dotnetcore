@@ -12,6 +12,7 @@ import { DEFAULT_SORT_DATA, ITEM_DELETED_EVENT, SORT } from 'app/config/navigati
 import { INamedQuery } from '../named-query.model';
 import { EntityArrayResponseType, NamedQueryService } from '../service/named-query.service';
 import { NamedQueryDeleteDialogComponent } from '../delete/named-query-delete-dialog.component';
+import { AccountService } from 'app/core/auth/account.service';
 
 @Component({
   standalone: true,
@@ -23,6 +24,7 @@ export class NamedQueryComponent implements OnInit {
   subscription: Subscription | null = null;
   namedQueries = signal<INamedQuery[]>([]);
   isLoading = false;
+  isAdmin = false;
 
   sortState = sortStateSignal({});
 
@@ -32,10 +34,17 @@ export class NamedQueryComponent implements OnInit {
   protected readonly sortService = inject(SortService);
   protected modalService = inject(NgbModal);
   protected ngZone = inject(NgZone);
+  protected readonly accountService = inject(AccountService);
 
   trackId = (_index: number, item: INamedQuery): number => this.namedQueryService.getNamedQueryIdentifier(item);
 
   ngOnInit(): void {
+    this.accountService.identity().subscribe(account => {
+      if (account) {
+        this.isAdmin = this.accountService.hasAnyAuthority('ROLE_ADMIN');
+      }
+    });
+
     this.subscription = combineLatest([this.activatedRoute.queryParamMap, this.activatedRoute.data])
       .pipe(
         tap(([params, data]) => this.fillComponentAttributeFromRoute(params, data)),
@@ -48,6 +57,10 @@ export class NamedQueryComponent implements OnInit {
         }),
       )
       .subscribe();
+  }
+
+  canDelete(namedQuery: INamedQuery): boolean {
+    return this.isAdmin || namedQuery.owner !== 'GLOBAL';
   }
 
   delete(namedQuery: INamedQuery): void {

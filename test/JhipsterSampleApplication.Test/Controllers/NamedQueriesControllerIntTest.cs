@@ -205,6 +205,106 @@ namespace JhipsterSampleApplication.Test.Controllers
         }
 
         [Fact]
+        public async Task CannotDeleteGlobalNamedQuery()
+        {
+            // Create a client with a non-admin user
+            var nonAdminClient = _factory.WithMockUser("user", new[] { RolesConstants.USER }).CreateClient();
+
+            // Initialize the database with a GLOBAL query
+            var globalQuery = new NamedQuery
+            {
+                Name = "GlobalQuery",
+                Text = "SELECT * FROM Global",
+                Owner = "GLOBAL"
+            };
+            await _namedQueryRepository.CreateOrUpdateAsync(globalQuery);
+            await _namedQueryRepository.SaveChangesAsync();
+            var databaseSizeBeforeDelete = await _namedQueryRepository.CountAsync();
+
+            // Try to delete the GLOBAL query as non-admin
+            var response = await nonAdminClient.DeleteAsync($"/api/NamedQueries/{globalQuery.Id}");
+            response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+            // Validate the query still exists in the database
+            var namedQueryList = await _namedQueryRepository.GetAllAsync();
+            namedQueryList.Count().Should().Be(databaseSizeBeforeDelete);
+        }
+
+        [Fact]
+        public async Task CannotDeleteSystemNamedQuery()
+        {
+            // Create a client with a non-admin user
+            var nonAdminClient = _factory.WithMockUser("user", new[] { RolesConstants.USER }).CreateClient();
+
+            // Initialize the database with a SYSTEM query
+            var systemQuery = new NamedQuery
+            {
+                Name = "SystemQuery",
+                Text = "SELECT * FROM System",
+                Owner = "GLOBAL",
+                IsSystem = true
+            };
+            await _namedQueryRepository.CreateOrUpdateAsync(systemQuery);
+            await _namedQueryRepository.SaveChangesAsync();
+            var databaseSizeBeforeDelete = await _namedQueryRepository.CountAsync();
+
+            // Try to delete the SYSTEM query as non-admin
+            var response = await nonAdminClient.DeleteAsync($"/api/NamedQueries/{systemQuery.Id}");
+            response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+            // Validate the query still exists in the database
+            var namedQueryList = await _namedQueryRepository.GetAllAsync();
+            namedQueryList.Count().Should().Be(databaseSizeBeforeDelete);
+        }
+
+        [Fact]
+        public async Task AdminCanDeleteGlobalNamedQuery()
+        {
+            // Initialize the database with a GLOBAL query
+            var globalQuery = new NamedQuery
+            {
+                Name = "GlobalQuery",
+                Text = "SELECT * FROM Global",
+                Owner = "GLOBAL"
+            };
+            await _namedQueryRepository.CreateOrUpdateAsync(globalQuery);
+            await _namedQueryRepository.SaveChangesAsync();
+            var databaseSizeBeforeDelete = await _namedQueryRepository.CountAsync();
+
+            // Delete the GLOBAL query as admin
+            var response = await _client.DeleteAsync($"/api/NamedQueries/{globalQuery.Id}");
+            response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+            // Validate the query was deleted from the database
+            var namedQueryList = await _namedQueryRepository.GetAllAsync();
+            namedQueryList.Count().Should().Be(databaseSizeBeforeDelete - 1);
+        }
+
+        [Fact]
+        public async Task AdminCanDeleteSystemNamedQuery()
+        {
+            // Initialize the database with a SYSTEM query
+            var systemQuery = new NamedQuery
+            {
+                Name = "SystemQuery",
+                Text = "SELECT * FROM System",
+                Owner = "GLOBAL",
+                IsSystem = true
+            };
+            await _namedQueryRepository.CreateOrUpdateAsync(systemQuery);
+            await _namedQueryRepository.SaveChangesAsync();
+            var databaseSizeBeforeDelete = await _namedQueryRepository.CountAsync();
+
+            // Delete the SYSTEM query as admin
+            var response = await _client.DeleteAsync($"/api/NamedQueries/{systemQuery.Id}");
+            response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+            // Validate the query was deleted from the database
+            var namedQueryList = await _namedQueryRepository.GetAllAsync();
+            namedQueryList.Count().Should().Be(databaseSizeBeforeDelete - 1);
+        }
+
+        [Fact]
         public void EqualsVerifier()
         {
             TestUtil.EqualsVerifier(typeof(NamedQuery));

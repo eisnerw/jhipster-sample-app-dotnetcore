@@ -37,7 +37,6 @@ export class NamedQueryFormService {
       }),
       owner: new FormControl(namedQueryRawValue.owner ?? '', {
         nonNullable: true,
-        validators: [Validators.required],
       }),
     });
   }

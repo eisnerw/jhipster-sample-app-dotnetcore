@@ -11,6 +11,7 @@ import SharedModule from 'app/shared/shared.module';
 import { INamedQuery } from '../named-query.model';
 import { NamedQueryService } from '../service/named-query.service';
 import { NamedQueryFormService, NamedQueryFormGroup } from './named-query-form.service';
+import { AccountService } from 'app/core/auth/account.service';
 
 @Component({
   standalone: true,
@@ -22,17 +23,25 @@ export class NamedQueryUpdateComponent implements OnInit {
   isSaving = false;
   namedQuery: INamedQuery | null = null;
   editForm: NamedQueryFormGroup;
+  isAdmin = false;
 
   protected readonly namedQueryService = inject(NamedQueryService);
   protected readonly namedQueryFormService = inject(NamedQueryFormService);
   protected readonly activatedRoute = inject(ActivatedRoute);
   protected readonly router = inject(Router);
+  protected readonly accountService = inject(AccountService);
 
   constructor() {
     this.editForm = this.namedQueryFormService.createNamedQueryFormGroup();
   }
 
   ngOnInit(): void {
+    this.accountService.identity().subscribe(account => {
+      if (account) {
+        this.isAdmin = this.accountService.hasAnyAuthority('ROLE_ADMIN');
+      }
+    });
+
     this.activatedRoute.data
       .pipe(
         map(({ namedQuery }) => namedQuery as INamedQuery),

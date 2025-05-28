@@ -20,6 +20,8 @@ namespace JhipsterSampleApplication.Domain.Entities
         [StringLength(50)]
         public required string Owner { get; set; }
 
+        public bool? IsSystem { get; set; }
+
         public override bool Equals(object? obj)
         {
             if (this == obj) return true;

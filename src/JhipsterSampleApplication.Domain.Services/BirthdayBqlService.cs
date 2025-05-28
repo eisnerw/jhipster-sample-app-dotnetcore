@@ -203,9 +203,9 @@ namespace JhipsterSampleApplication.Domain.Services
             }
 
             // Check for named ruleset reference
-            if (tokens[index].StartsWith("@"))
+            if (Regex.IsMatch(tokens[index], @"^(?=.*[A-Z])[A-Z0-9_]+$")) // contains at least one A-Z, with the reset A-Z0-9_
             {
-                var rulesetName = tokens[index].Substring(1);
+                var rulesetName = tokens[index];
                 if (_rulesetMap.TryGetValue(rulesetName, out var ruleset))
                 {
                     if (not)
