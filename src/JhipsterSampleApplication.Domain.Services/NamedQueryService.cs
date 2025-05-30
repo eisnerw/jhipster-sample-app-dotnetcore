@@ -24,8 +24,10 @@ namespace JhipsterSampleApplication.Domain.Services
         {
             namedQuery.Name = namedQuery.Name.ToUpper();
             namedQuery.Owner = string.IsNullOrEmpty(namedQuery.Owner) ? namedQuery.Owner : namedQuery.Owner.ToLower().Replace("global","GLOBAL").Replace("system","SYSTEM");
-            User currentUser = await _userService.GetUserWithUserRoles() ?? throw new InvalidOperationException("Current user not found.");
-            bool isAdmin = currentUser.UserRoles?.Any(ur => ur.Role != null && ur.Role.Name == "ROLE_ADMIN") == true;
+            
+            var currentUser = await _userService.GetUserWithUserRoles();
+            // If no current user (during startup), treat as admin for initialization
+            bool isAdmin = currentUser == null || (currentUser.UserRoles?.Any(ur => ur.Role != null && ur.Role.Name == "ROLE_ADMIN") == true);
 
             // Admin logic
             if (isAdmin)
@@ -43,7 +45,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 else
                 {
                     namedQuery.IsSystem = null;
-                    namedQuery.Owner = string.IsNullOrEmpty(namedQuery.Owner) ? currentUser!.Login! : namedQuery.Owner;
+                    namedQuery.Owner = string.IsNullOrEmpty(namedQuery.Owner) ? (currentUser?.Login ?? namedQuery.Owner) : namedQuery.Owner;
                 }
                 NamedQuery? existing = await FindByNameAndOwner(namedQuery.Name, namedQuery.Owner.Replace("SYSTEM", "GLOBAL"));
                 if (existing != null && existing.Id != namedQuery.Id && existing.Owner.Replace("SYSTEM", "GLOBAL") == namedQuery.Owner.Replace("SYSTEM", "GLOBAL"))
@@ -168,12 +170,14 @@ namespace JhipsterSampleApplication.Domain.Services
         public async Task<NamedQuery?> FindByNameAndOwner(string name, string owner)
         {
             var currentUser = await _userService.GetUserWithUserRoles();
-            if (currentUser == null)
-                throw new InvalidOperationException("Current user not found.");
-            var isAdmin = currentUser.UserRoles?.Any(ur => ur.Role != null && ur.Role.Name == "ROLE_ADMIN") == true;
-            if (!isAdmin && !string.IsNullOrEmpty(owner) && owner != currentUser.Login)
+            // Only check authorization if we have a current user (i.e. not during startup)
+            if (currentUser != null)
             {
-                throw new UnauthorizedAccessException("You are not allowed to request queries by another owner");
+                var isAdmin = currentUser.UserRoles?.Any(ur => ur.Role != null && ur.Role.Name == "ROLE_ADMIN") == true;
+                if (!isAdmin && !string.IsNullOrEmpty(owner) && owner != currentUser.Login)
+                {
+                    throw new UnauthorizedAccessException("You are not allowed to request queries by another owner");
+                }
             }
             var found = await _namedQueryRepository.QueryHelper()
                 .Filter(nq => nq.Name == name && nq.Owner == owner)

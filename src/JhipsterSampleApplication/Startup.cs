@@ -54,6 +54,7 @@ public class Startup : IStartup
         services.AddScoped<IViewRepository, ViewRepository>();
         services.AddScoped<IViewService, ViewService>();
         services.AddScoped<ViewInitializationService>();
+        services.AddScoped<NamedQueryInitializationService>();
     }
 
     public virtual void ConfigureMiddleware(IApplicationBuilder app, IHostEnvironment environment)
@@ -77,6 +78,9 @@ public class Startup : IStartup
         {
             var viewInitializationService = scope.ServiceProvider.GetRequiredService<ViewInitializationService>();
             viewInitializationService.InitializeViewsAsync().GetAwaiter().GetResult();
+
+            var namedQueryInitializationService = scope.ServiceProvider.GetRequiredService<NamedQueryInitializationService>();
+            namedQueryInitializationService.InitializeNamedQueriesAsync().GetAwaiter().GetResult();
         }
     }
 

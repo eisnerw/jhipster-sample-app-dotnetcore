@@ -1,0 +1,14 @@
+[
+  {
+    "id": 2,
+    "name": "ALIVE",
+    "text": "isAlive = true",
+    "owner": "GLOBAL"
+  },
+  {
+    "id": 1,
+    "name": "JOHNSONS",
+    "text": "lname=johnson",
+    "owner": "GLOBAL"
+  }
+]

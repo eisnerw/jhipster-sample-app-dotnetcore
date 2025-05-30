@@ -25,4 +25,11 @@
         <ProjectReference Include="..\JhipsterSampleApplication.Crosscutting\JhipsterSampleApplication.Crosscutting.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <None Update="Persistence\Data\NamedQueries.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>Resources\Data\NamedQueries.json</Link>
+        </None>
+    </ItemGroup>
+
 </Project>

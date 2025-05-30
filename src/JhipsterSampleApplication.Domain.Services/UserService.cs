@@ -215,6 +215,10 @@ public class UserService : IUserService
 
     public virtual async Task<User?> GetUserWithUserRoles()
     {
+        if (_httpContextAccessor.HttpContext == null)
+        {
+            return null;
+        }
         var userName = _userManager.GetUserName(_httpContextAccessor.HttpContext.User);
         if (userName == null) return null;
         return await GetUserWithUserRolesByName(userName);
