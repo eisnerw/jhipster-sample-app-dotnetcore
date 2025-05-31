@@ -23,16 +23,6 @@ namespace JhipsterSampleApplication.Infrastructure.Data
     {
         private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
-        public required DbSet<Country> Countries { get; set; }
-        public required DbSet<Department> Departments { get; set; }
-        public required DbSet<Employee> Employees { get; set; }
-        public required DbSet<Job> Jobs { get; set; }
-        public required DbSet<JobHistory> JobHistories { get; set; }
-        public required DbSet<Location> Locations { get; set; }
-        public required DbSet<PieceOfWork> PieceOfWorks { get; set; }
-        public required DbSet<Region> Regions { get; set; }
-        public required DbSet<TimeSheet> TimeSheets { get; set; }
-        public required DbSet<TimeSheetEntry> TimeSheetEntries { get; set; }
         public required DbSet<Birthday> Birthdays { get; set; }
         public required DbSet<View> Views { get; set; }
         public required DbSet<NamedQuery> NamedQueries { get; set; }
@@ -72,14 +62,6 @@ namespace JhipsterSampleApplication.Infrastructure.Data
                 .HasForeignKey(e => e.UserId)
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade);
-
-            builder.Entity<Job>()
-                .HasMany(x => x.Chores)
-                .WithMany(x => x.Jobs)
-                .UsingEntity<Dictionary<string, object>>(
-                    "JobChores",
-                    x => x.HasOne<PieceOfWork>().WithMany(),
-                    x => x.HasOne<Job>().WithMany());
 
             builder.Entity<Birthday>(entity =>
             {
