@@ -18,13 +18,14 @@ namespace JhipsterSampleApplication.Domain.Services
         private static readonly string[] ValidSigns = new[] { "aries", "taurus", "gemini", "cancer", "leo", "virgo", "libra", "scorpio", "sagittarius", "capricorn", "aquarius", "pisces" };
         private static readonly string[] ValidFields = new[] { "sign", "dob", "lname", "fname", "isAlive", "document", "categories" };
         private static readonly string[] ValidOperators = new[] { "=", "!=", "CONTAINS", "!CONTAINS", "LIKE", "EXISTS", "!EXISTS", "IN", "!IN", ">=", "<=", ">", "<" };
-        private readonly Dictionary<string, RulesetDto> _rulesetMap = new();
+        private readonly INamedQueryService _namedQueryService;
 
-        public BirthdayBqlService(ILogger<BirthdayBqlService> logger) : base(logger)
+        public BirthdayBqlService(ILogger<BirthdayBqlService> logger, INamedQueryService namedQueryService) : base(logger)
         {
+            _namedQueryService = namedQueryService;
         }
 
-        public override Task<RulesetDto> Bql2Ruleset(string bqlQuery)
+        public override async Task<RulesetDto> Bql2Ruleset(string bqlQuery)
         {
             if (!ValidateBqlQuery(bqlQuery))
             {
@@ -33,12 +34,12 @@ namespace JhipsterSampleApplication.Domain.Services
 
             if (string.IsNullOrWhiteSpace(bqlQuery))
             {
-                return Task.FromResult(new RulesetDto
+                return new RulesetDto
                 {
                     condition = "or",
                     not = false,
                     rules = new List<RulesetDto>()
-                });
+                };
             }
 
             // Tokenize the query
@@ -61,16 +62,16 @@ namespace JhipsterSampleApplication.Domain.Services
                 throw new ArgumentException("Invalid BQL query format", nameof(bqlQuery));
             }
 
-            var result = ParseRuleset(tokens, 0, false);
+            var result = await ParseRuleset(tokens, 0, false);
             if (!result.matches || result.index < tokens.Length)
             {
                 throw new ArgumentException($"Invalid BQL query '{bqlQuery}' at position {result.index}", nameof(bqlQuery));
             }
 
-            return Task.FromResult(result.ruleset);
+            return result.ruleset;
         }
 
-        private (bool matches, int index, RulesetDto ruleset) ParseRuleset(string[] tokens, int index, bool not)
+        private async Task<(bool matches, int index, RulesetDto ruleset)> ParseRuleset(string[] tokens, int index, bool not)
         {
             if (index >= tokens.Length)
             {
@@ -78,22 +79,22 @@ namespace JhipsterSampleApplication.Domain.Services
             }
 
             // Try parseAndOrRuleset first
-            var result = ParseAndOrRuleset(tokens, index, not);
+            var result = await ParseAndOrRuleset(tokens, index, not);
             if (!result.matches)
             {
                 // Try parseNotRuleset next
-                result = ParseNotRuleset(tokens, index);
+                result = await ParseNotRuleset(tokens, index);
                 if (!result.matches)
                 {
                     // Finally try parseParened
-                    result = ParseParened(tokens, index, not);
+                    result = await ParseParened(tokens, index, not);
                 }
             }
 
             return result;
         }
 
-        private (bool matches, int index, RulesetDto ruleset) ParseAndOrRuleset(string[] tokens, int index, bool not)
+        private async Task<(bool matches, int index, RulesetDto ruleset)> ParseAndOrRuleset(string[] tokens, int index, bool not)
         {
             if (index >= tokens.Length)
             {
@@ -101,7 +102,7 @@ namespace JhipsterSampleApplication.Domain.Services
             }
 
             var rules = new List<RulesetDto>();
-            var result = ParseParened(tokens, index, not);
+            var result = await ParseParened(tokens, index, not);
             if (!result.matches)
             {
                 result = ParseRule(tokens, index);
@@ -131,7 +132,7 @@ namespace JhipsterSampleApplication.Domain.Services
 
             while (index < tokens.Length)
             {
-                result = ParseParened(tokens, index, not);
+                result = await ParseParened(tokens, index, not);
                 if (!result.matches)
                 {
                     result = ParseRule(tokens, index);
@@ -170,7 +171,7 @@ namespace JhipsterSampleApplication.Domain.Services
             });
         }
 
-        private (bool matches, int index, RulesetDto ruleset) ParseNotRuleset(string[] tokens, int index)
+        private async Task<(bool matches, int index, RulesetDto ruleset)> ParseNotRuleset(string[] tokens, int index)
         {
             if (index >= tokens.Length || tokens[index] != "!")
             {
@@ -178,7 +179,7 @@ namespace JhipsterSampleApplication.Domain.Services
             }
 
             index++;
-            var result = ParseParened(tokens, index, true);
+            var result = await ParseParened(tokens, index, true);
             if (!result.matches)
             {
                 return (false, index, new RulesetDto());
@@ -188,7 +189,7 @@ namespace JhipsterSampleApplication.Domain.Services
             return result;
         }
 
-        private (bool matches, int index, RulesetDto ruleset) ParseParened(string[] tokens, int index, bool not)
+        private async Task<(bool matches, int index, RulesetDto ruleset)> ParseParened(string[] tokens, int index, bool not)
         {
             if (index >= tokens.Length)
             {
@@ -203,11 +204,13 @@ namespace JhipsterSampleApplication.Domain.Services
             }
 
             // Check for named ruleset reference
-            if (Regex.IsMatch(tokens[index], @"^(?=.*[A-Z])[A-Z0-9_]+$")) // contains at least one A-Z, with the reset A-Z0-9_
+            if (Regex.IsMatch(tokens[index], @"^(?=.*[A-Z])[A-Z0-9_]+$")) // contains at least one A-Z, with the rest A-Z0-9_
             {
                 var rulesetName = tokens[index];
-                if (_rulesetMap.TryGetValue(rulesetName, out var ruleset))
+                var namedQuery = await _namedQueryService.FindByNameAndOwner(rulesetName, null);
+                if (namedQuery != null)
                 {
+                    var ruleset = await Bql2Ruleset(namedQuery.Text);
                     if (not)
                     {
                         // The named query must be nested in parentheses to add NOT
@@ -230,7 +233,7 @@ namespace JhipsterSampleApplication.Domain.Services
             }
 
             index++;
-            var result = ParseRuleset(tokens, index, not);
+            var result = await ParseRuleset(tokens, index, not);
             if (!result.matches)
             {
                 result = ParseRule(tokens, index);

@@ -21,6 +21,6 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
 
         Task<IEnumerable<NamedQuery>> FindBySelectedOwner(string filter);
 
-        Task<NamedQuery?> FindByNameAndOwner(string name, string owner);
+        Task<NamedQuery?> FindByNameAndOwner(string name, string? owner);
     }
 } 

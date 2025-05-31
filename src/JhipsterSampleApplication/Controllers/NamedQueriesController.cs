@@ -66,7 +66,7 @@ namespace JhipsterSampleApplication.Controllers
             }
             if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(owner))
             {
-                NamedQuery? namedQuery = await _namedQueryService.FindByNameAndOwner(name!.ToUpper(), owner!);
+                NamedQuery? namedQuery = await _namedQueryService.FindByNameAndOwner(name!.ToUpper(), owner);
                 if (namedQuery == null)
                 {
                     return NotFound();

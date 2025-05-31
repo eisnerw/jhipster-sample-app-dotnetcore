@@ -59,7 +59,7 @@ namespace JhipsterSampleApplication.Domain.Services
             }
             else
             {
-                NamedQuery? existing = await  FindByNameAndOwner(namedQuery.Name, currentUser!.Login!);
+                NamedQuery? existing = await  FindByNameAndOwner(namedQuery.Name, currentUser!.Login);
                 if (existing != null && existing.Id != namedQuery.Id && existing.Owner != "GLOBAL")
                 {
                     throw new InvalidOperationException("A query by that name already exists");
@@ -186,20 +186,20 @@ namespace JhipsterSampleApplication.Domain.Services
             return result;
         }        
 
-        public async Task<NamedQuery?> FindByNameAndOwner(string name, string owner)
+        public async Task<NamedQuery?> FindByNameAndOwner(string name, string? owner)
         {
             var currentUser = await _userService.GetUserWithUserRoles();
             // Only check authorization if we have a current user (i.e. not during startup)
-            if (currentUser != null)
+            if (currentUser != null && !string.IsNullOrEmpty(owner) && owner != currentUser.Login)
             {
                 var isAdmin = currentUser.UserRoles?.Any(ur => ur.Role != null && ur.Role.Name == "ROLE_ADMIN") == true;
-                if (!isAdmin && !string.IsNullOrEmpty(owner) && owner != currentUser.Login)
+                if (!isAdmin)
                 {
                     throw new UnauthorizedAccessException("You are not allowed to request queries by another owner");
                 }
             }
             var found = await _namedQueryRepository.QueryHelper()
-                .Filter(nq => nq.Name == name && nq.Owner == owner)
+                .Filter(nq => nq.Name == name && nq.Owner == (string.IsNullOrEmpty(owner) ? currentUser!.Login : owner))
                 .GetAllAsync();
             if (!found.Any()){
                 found = await _namedQueryRepository.QueryHelper()
