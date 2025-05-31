@@ -36,7 +36,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
         public async Task<List<NamedQuery>> FindByOwnerAsync(string owner)
         {
             return await _dbSet.AsNoTracking()
-                .Where(nq => nq.Owner == owner)
+                .Where(nq => (nq.IsSystem == true ? "SYSTEM" : nq.Owner) == owner)
                 .ToListAsync();
         }
 

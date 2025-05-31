@@ -15,6 +15,7 @@ using JHipsterNet.Core.Pagination.Extensions;
 using AutoMapper;
 using System.Linq;
 using System;
+using JhipsterSampleApplication.Infrastructure.Data.Repositories;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -52,38 +53,36 @@ namespace JhipsterSampleApplication.Controllers
             var currentUser = await _userService.GetUserWithUserRoles();
             if (currentUser == null)
                 return Unauthorized();
-            var isAdmin = currentUser.UserRoles?.Any(ur => ur.Role != null && ur.Role.Name == "ROLE_ADMIN") == true;
+            var isAdmin = currentUser.UserRoles?.Any(ur => ur.Role != null && ur.Role.Name == "ROLE_ADMIN") == true; 
+            IEnumerable<NamedQuery>? found = null;
+            if ((string.IsNullOrEmpty(name) && string.IsNullOrEmpty(owner)) || (isAdmin && !string.IsNullOrEmpty(owner) && owner.StartsWith("*") && string.IsNullOrEmpty(name)))
+            {
+                found = (await _namedQueryService.FindByOwner(string.IsNullOrEmpty(owner) ? currentUser.Login! : owner.Substring(1))).ToList().OrderBy(nq=>nq.Name).ThenBy(nq=> nq.Owner == "GLOBAL" || nq.Owner == "SYSTEM" ? 1 : 0);
+                return Ok(found!.Select(_mapper.Map<NamedQueryDto>));
+            }
             if (!isAdmin)
             {
-                if (!string.IsNullOrEmpty(name) || !string.IsNullOrEmpty(owner))
-                {
-                    throw new UnauthorizedAccessException("Only administrators can requet Named Queries by name or userid");
-                }
-                var queries = (await _namedQueryService.FindByOwner(currentUser.Login!)).ToList().OrderBy(nq=>nq.Name).ThenBy(nq=> nq.Owner == "GLOBAL" || nq.Owner == "SYSTEM" ? 1 : 0);
-                return Ok(queries.Select(_mapper.Map<NamedQueryDto>));
+                throw new UnauthorizedAccessException("Only administrators can requet Named Queries by name or userid");
             }
             if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(owner))
             {
-                NamedQuery? found = await _namedQueryService.FindByNameAndOwner(name!, owner!);
-                return Ok(new List<NamedQuery?>{ found }.Where(n => n != null).Select(_mapper.Map<NamedQueryDto>));
+                NamedQuery? namedQuery = await _namedQueryService.FindByNameAndOwner(name!.ToUpper(), owner!);
+                if (namedQuery == null)
+                {
+                    return NotFound();
+                }
+                return Ok(new List<NamedQuery?>{ namedQuery }.Where(n => n != null).Select(_mapper.Map<NamedQueryDto>).ToList()[0]);
             }
-            else if (!string.IsNullOrEmpty(owner))
+            if (!string.IsNullOrEmpty(owner))
             {
-                var queries = await _namedQueryService.FindByOwner(owner!);
-                return Ok(queries.Select(_mapper.Map<NamedQueryDto>));
+                found = (await _namedQueryService.FindBySelectedOwner(owner)).OrderBy(nq=>nq.Name).ThenBy(nq=> nq.Owner == "GLOBAL" || nq.Owner == "SYSTEM" ? 1 : 0);
             }
-            else if (!string.IsNullOrEmpty(name))
+            else // by name
             {
-                var queries = await _namedQueryService.FindByName(name!);
-                return Ok(queries.Select(_mapper.Map<NamedQueryDto>));
+                found = (await _namedQueryService.FindByName(name!.ToUpper())).OrderBy(nq=>nq.Name).ThenBy(nq=> nq.Owner == "GLOBAL" || nq.Owner == "SYSTEM" ? 1 : 0);
             }
-            else
-            {
-                var pageable = Pageable.Of(0, int.MaxValue);
-                var page = await _namedQueryService.FindAll(pageable);
-                return Ok(page.Content.Select(_mapper.Map<NamedQueryDto>).OrderBy(nq=>nq.Name).ThenBy(nq=> nq.Owner == "GLOBAL" || nq.Owner == "SYSTEM" ? 1 : 0));
-            }
-        }
+            return Ok(found!.Select(_mapper.Map<NamedQueryDto>));
+        }   
 
         [HttpGet("{id}")]
         public async Task<ActionResult<NamedQueryDto>> Get(long id)

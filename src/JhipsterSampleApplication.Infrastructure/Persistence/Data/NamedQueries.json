@@ -1,14 +1,38 @@
 [
   {
-    "id": 2,
+    "id": 1,
     "name": "ALIVE",
     "text": "isAlive = true",
     "owner": "GLOBAL"
   },
   {
-    "id": 1,
+    "id": 4,
+    "name": "JOHNSONS",
+    "text": "adminJohnsons",
+    "owner": "admin"
+  },
+  {
+    "id": 6,
+    "name": "JOHNSONS",
+    "text": "usersjohnsons",
+    "owner": "user"
+  },
+  {
+    "id": 2,
     "name": "JOHNSONS",
     "text": "lname=johnson",
     "owner": "GLOBAL"
+  },
+  {
+    "id": 3,
+    "name": "NEW",
+    "text": "adminnew",
+    "owner": "admin"
+  },
+  {
+    "id": 5,
+    "name": "NEW",
+    "text": "userneew",
+    "owner": "user"
   }
 ]

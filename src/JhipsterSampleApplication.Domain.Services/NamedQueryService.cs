@@ -167,6 +167,25 @@ namespace JhipsterSampleApplication.Domain.Services
             return result;
         }
 
+        public async Task<IEnumerable<NamedQuery>> FindBySelectedOwner(string filter)
+        {
+            var result = await _namedQueryRepository.QueryHelper()
+                .Filter(nq=>filter == "ALL" || 
+                    (filter == "USER" && nq.Owner != "GLOBAL") || 
+                    (filter == "SYSTEM" && nq.IsSystem == true) || 
+                    (nq.Owner == filter)  
+                )
+                .GetAllAsync();
+            foreach (var query in result)
+            {
+                if (query.IsSystem == true)
+                {
+                    query.Owner = "SYSTEM";
+                }
+            }
+            return result;
+        }        
+
         public async Task<NamedQuery?> FindByNameAndOwner(string name, string owner)
         {
             var currentUser = await _userService.GetUserWithUserRoles();
