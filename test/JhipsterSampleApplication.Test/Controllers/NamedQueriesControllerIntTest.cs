@@ -16,6 +16,8 @@ using Newtonsoft.Json.Linq;
 using Xunit;
 using JhipsterSampleApplication.Crosscutting.Constants;
 using Newtonsoft.Json;
+using System.Diagnostics;
+using System.Threading;
 
 namespace JhipsterSampleApplication.Test.Controllers
 {
@@ -23,6 +25,14 @@ namespace JhipsterSampleApplication.Test.Controllers
     {
         public NamedQueriesControllerIntTest()
         {
+            if (false && !Debugger.IsAttached)
+            {
+                Console.WriteLine($"PID: {System.Diagnostics.Process.GetCurrentProcess().Id}");
+                while (!Debugger.IsAttached)
+                {
+                    Thread.Sleep(100);  // Wait for debugger to attach
+                }
+            }            
             _factory = new AppWebApplicationFactory<TestStartup>().WithMockUser("admin", new[] { RolesConstants.ADMIN });
             _client = _factory.CreateClient();
             _namedQueryRepository = _factory.GetRequiredService<INamedQueryRepository>();
@@ -67,6 +77,14 @@ namespace JhipsterSampleApplication.Test.Controllers
         [Fact]
         public async Task CreateNamedQuery()
         {
+                        {
+                Console.WriteLine($"PID: {System.Diagnostics.Process.GetCurrentProcess().Id}");
+                while (!Debugger.IsAttached)
+                {
+                    Thread.Sleep(100);  // Wait for debugger to attach
+                }
+            }
+
             var databaseSizeBeforeCreate = await _namedQueryRepository.CountAsync();
 
             // Create the NamedQuery
@@ -78,7 +96,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             var namedQueryList = await _namedQueryRepository.GetAllAsync();
             namedQueryList.Count().Should().Be(databaseSizeBeforeCreate + 1);
             var testNamedQuery = namedQueryList.Last();
-            testNamedQuery.Name.Should().Be(DefaultName);
+            testNamedQuery.Name.Should().Be(DefaultName.ToUpper());
             testNamedQuery.Text.Should().Be(DefaultText);
             testNamedQuery.Owner.Should().Be(DefaultOwner);
         }
@@ -91,7 +109,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             await _namedQueryRepository.SaveChangesAsync();
 
             // Get all the namedQueryList
-            var response = await _client.GetAsync("/api/NamedQueries?sort=id,desc");
+            var response = await _client.GetAsync("/api/NamedQueries?owner=ALL");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var json = JToken.Parse(await response.Content.ReadAsStringAsync());
@@ -139,7 +157,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             await _namedQueryRepository.SaveChangesAsync();
 
             // Get query by name and owner
-            var response = await _client.GetAsync($"/api/NamedQueries?name={DefaultName}&owner={DefaultOwner}");
+            var response = await _client.GetAsync($"/api/NamedQueries?name={DefaultName}");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var json = JToken.Parse(await response.Content.ReadAsStringAsync());

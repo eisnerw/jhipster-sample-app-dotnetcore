@@ -4,6 +4,9 @@
         <TargetFramework>net9.0</TargetFramework>
         <IsPackable>false</IsPackable>
         <RootNamespace>JhipsterSampleApplication.Test</RootNamespace>
+        <DebugSymbols>true</DebugSymbols>
+        <DebugType>portable</DebugType> 
+        <Optimize>false</Optimize>
     </PropertyGroup>
 
     <ItemGroup>
