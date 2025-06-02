@@ -23,6 +23,7 @@ export default tseslint.config(
     files: ['**/*.{js,cjs,mjs}'],
     rules: {
       'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      'prettier/prettier': ['error', { endOfLine: 'auto' }],
     },
   },
   {
