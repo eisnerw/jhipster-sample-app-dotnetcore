@@ -5,4 +5,4 @@ export interface INamedQuery {
   owner: string;
 }
 
-export type NewNamedQuery = Omit<INamedQuery, 'id'> & { id: null }; 
+export type NewNamedQuery = Omit<INamedQuery, 'id'> & { id: null };

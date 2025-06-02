@@ -1,31 +1,31 @@
-jest.mock("@angular/router");
+jest.mock('@angular/router');
 
-import { ComponentFixture, TestBed } from "@angular/core/testing";
-import { HttpResponse } from "@angular/common/http";
-import { HttpClientTestingModule } from "@angular/common/http/testing";
-import { FormBuilder } from "@angular/forms";
-import { ActivatedRoute } from "@angular/router";
-import { of, Subject } from "rxjs";
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpResponse } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { FormBuilder } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { of, Subject } from 'rxjs';
 
-import { SelectorService } from "../service/selector.service";
-import { ISelector, Selector } from "../selector.model";
+import { SelectorService } from '../service/selector.service';
+import { ISelector, Selector } from '../selector.model';
 
-import { SelectorUpdateComponent } from "./selector-update.component";
+import { SelectorUpdateComponent } from './selector-update.component';
 
-describe("Component Tests", () => {
-  describe("Selector Management Update Component", () => {
+describe('Component Tests', () => {
+  describe('Selector Management Update Component', () => {
     let comp: SelectorUpdateComponent;
     let fixture: ComponentFixture<SelectorUpdateComponent>;
     let activatedRoute: ActivatedRoute;
     let selectorService: SelectorService;
 
-    beforeEach(() => {
-      TestBed.configureTestingModule({
-        imports: [HttpClientTestingModule],
+    beforeEach(async () => {
+      await TestBed.configureTestingModule({
         declarations: [SelectorUpdateComponent],
-        providers: [FormBuilder, ActivatedRoute],
+        providers: [provideHttpClient(), provideHttpClientTesting(), FormBuilder, ActivatedRoute],
       })
-        .overrideTemplate(SelectorUpdateComponent, "")
+        .overrideTemplate(SelectorUpdateComponent, '')
         .compileComponents();
 
       fixture = TestBed.createComponent(SelectorUpdateComponent);
@@ -35,8 +35,12 @@ describe("Component Tests", () => {
       comp = fixture.componentInstance;
     });
 
-    describe("ngOnInit", () => {
-      it("Should update editForm", () => {
+    beforeEach(() => {
+      fixture.detectChanges();
+    });
+
+    describe('ngOnInit', () => {
+      it('Should update editForm', () => {
         const selector: ISelector = { id: 456 };
 
         activatedRoute.data = of({ selector });
@@ -46,13 +50,13 @@ describe("Component Tests", () => {
       });
     });
 
-    describe("save", () => {
-      it("Should call update service on save for existing entity", () => {
+    describe('save', () => {
+      it('Should call update service on save for existing entity', () => {
         // GIVEN
         const saveSubject = new Subject<HttpResponse<Selector>>();
         const selector = { id: 123 };
-        jest.spyOn(selectorService, "update").mockReturnValue(saveSubject);
-        jest.spyOn(comp, "previousState");
+        jest.spyOn(selectorService, 'update').mockReturnValue(saveSubject);
+        jest.spyOn(comp, 'previousState');
         activatedRoute.data = of({ selector });
         comp.ngOnInit();
 
@@ -68,12 +72,12 @@ describe("Component Tests", () => {
         expect(comp.isSaving).toEqual(false);
       });
 
-      it("Should call create service on save for new entity", () => {
+      it('Should call create service on save for new entity', () => {
         // GIVEN
         const saveSubject = new Subject<HttpResponse<Selector>>();
         const selector = new Selector();
-        jest.spyOn(selectorService, "create").mockReturnValue(saveSubject);
-        jest.spyOn(comp, "previousState");
+        jest.spyOn(selectorService, 'create').mockReturnValue(saveSubject);
+        jest.spyOn(comp, 'previousState');
         activatedRoute.data = of({ selector });
         comp.ngOnInit();
 
@@ -89,19 +93,19 @@ describe("Component Tests", () => {
         expect(comp.previousState).toHaveBeenCalled();
       });
 
-      it("Should set isSaving to false on error", () => {
+      it('Should set isSaving to false on error', () => {
         // GIVEN
         const saveSubject = new Subject<HttpResponse<Selector>>();
         const selector = { id: 123 };
-        jest.spyOn(selectorService, "update").mockReturnValue(saveSubject);
-        jest.spyOn(comp, "previousState");
+        jest.spyOn(selectorService, 'update').mockReturnValue(saveSubject);
+        jest.spyOn(comp, 'previousState');
         activatedRoute.data = of({ selector });
         comp.ngOnInit();
 
         // WHEN
         comp.save();
         expect(comp.isSaving).toEqual(true);
-        saveSubject.error("This is an error!");
+        saveSubject.error('This is an error!');
 
         // THEN
         expect(selectorService.update).toHaveBeenCalledWith(selector);

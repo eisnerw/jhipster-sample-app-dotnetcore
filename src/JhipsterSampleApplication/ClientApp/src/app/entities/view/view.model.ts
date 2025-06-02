@@ -22,6 +22,6 @@ export class View implements IView {
     public script?: string,
     public parentViewId?: string,
     public ParentView?: IView,
-    public domain = 'birthdays'
+    public domain = 'birthdays',
   ) {}
 }

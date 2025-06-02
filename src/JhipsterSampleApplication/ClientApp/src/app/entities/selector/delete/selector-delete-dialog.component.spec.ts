@@ -1,35 +1,29 @@
-jest.mock("@ng-bootstrap/ng-bootstrap");
+jest.mock('@ng-bootstrap/ng-bootstrap');
 
-import {
-  ComponentFixture,
-  TestBed,
-  inject,
-  fakeAsync,
-  tick,
-} from "@angular/core/testing";
-import { HttpResponse } from "@angular/common/http";
-import { HttpClientTestingModule } from "@angular/common/http/testing";
-import { of } from "rxjs";
-import { NgbActiveModal } from "@ng-bootstrap/ng-bootstrap";
+import { ComponentFixture, TestBed, inject, fakeAsync, tick } from '@angular/core/testing';
+import { HttpResponse } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { of } from 'rxjs';
+import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 
-import { SelectorService } from "../service/selector.service";
+import { SelectorService } from '../service/selector.service';
 
-import { SelectorDeleteDialogComponent } from "./selector-delete-dialog.component";
+import { SelectorDeleteDialogComponent } from './selector-delete-dialog.component';
 
-describe("Component Tests", () => {
-  describe("Selector Management Delete Component", () => {
+describe('Component Tests', () => {
+  describe('Selector Management Delete Component', () => {
     let comp: SelectorDeleteDialogComponent;
     let fixture: ComponentFixture<SelectorDeleteDialogComponent>;
     let service: SelectorService;
     let mockActiveModal: NgbActiveModal;
 
-    beforeEach(() => {
-      TestBed.configureTestingModule({
-        imports: [HttpClientTestingModule],
+    beforeEach(async () => {
+      await TestBed.configureTestingModule({
         declarations: [SelectorDeleteDialogComponent],
-        providers: [NgbActiveModal],
+        providers: [provideHttpClient(), provideHttpClientTesting()],
       })
-        .overrideTemplate(SelectorDeleteDialogComponent, "")
+        .overrideTemplate(SelectorDeleteDialogComponent, '')
         .compileComponents();
       fixture = TestBed.createComponent(SelectorDeleteDialogComponent);
       comp = fixture.componentInstance;
@@ -37,14 +31,16 @@ describe("Component Tests", () => {
       mockActiveModal = TestBed.inject(NgbActiveModal);
     });
 
-    describe("confirmDelete", () => {
-      it("Should call delete service on confirmDelete", inject(
+    beforeEach(() => {
+      fixture.detectChanges();
+    });
+
+    describe('confirmDelete', () => {
+      it('Should call delete service on confirmDelete', inject(
         [],
         fakeAsync(() => {
           // GIVEN
-          jest
-            .spyOn(service, "delete")
-            .mockReturnValue(of(new HttpResponse({})));
+          jest.spyOn(service, 'delete').mockReturnValue(of(new HttpResponse({})));
 
           // WHEN
           comp.confirmDelete(123);
@@ -52,13 +48,13 @@ describe("Component Tests", () => {
 
           // THEN
           expect(service.delete).toHaveBeenCalledWith(123);
-          expect(mockActiveModal.close).toHaveBeenCalledWith("deleted");
-        })
+          expect(mockActiveModal.close).toHaveBeenCalledWith('deleted');
+        }),
       ));
 
-      it("Should not call delete service on clear", () => {
+      it('Should not call delete service on clear', () => {
         // GIVEN
-        jest.spyOn(service, "delete");
+        jest.spyOn(service, 'delete');
 
         // WHEN
         comp.cancel();

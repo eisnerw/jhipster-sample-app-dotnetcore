@@ -1,11 +1,11 @@
-import { ComponentFixture, TestBed } from "@angular/core/testing";
-import { ActivatedRoute } from "@angular/router";
-import { of } from "rxjs";
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute } from '@angular/router';
+import { of } from 'rxjs';
 
-import { SelectorDetailComponent } from "./selector-detail.component";
+import { SelectorDetailComponent } from './selector-detail.component';
 
-describe("Component Tests", () => {
-  describe("Selector Management Detail Component", () => {
+describe('Component Tests', () => {
+  describe('Selector Management Detail Component', () => {
     let comp: SelectorDetailComponent;
     let fixture: ComponentFixture<SelectorDetailComponent>;
 
@@ -19,14 +19,14 @@ describe("Component Tests", () => {
           },
         ],
       })
-        .overrideTemplate(SelectorDetailComponent, "")
+        .overrideTemplate(SelectorDetailComponent, '')
         .compileComponents();
       fixture = TestBed.createComponent(SelectorDetailComponent);
       comp = fixture.componentInstance;
     });
 
-    describe("OnInit", () => {
-      it("Should load selector on init", () => {
+    describe('OnInit', () => {
+      it('Should load selector on init', () => {
         // WHEN
         comp.ngOnInit();
 
