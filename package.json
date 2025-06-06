@@ -32,5 +32,9 @@
   "overrides": {
     "browser-sync": "3.0.3",
     "webpack": "5.97.1"
+  },
+  "prettier": {
+    "endOfLine": "auto",
+    "singleQuote": true
   }
 }
