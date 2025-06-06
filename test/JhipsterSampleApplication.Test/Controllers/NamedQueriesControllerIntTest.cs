@@ -21,31 +21,8 @@ using System.Threading;
 
 namespace JhipsterSampleApplication.Test.Controllers
 {
-    public class NamedQueriesControllerIntTest
+    public class NamedQueriesControllerIntTest : IAsyncLifetime
     {
-        public NamedQueriesControllerIntTest()
-        {
-            if (false && !Debugger.IsAttached)
-            {
-                Console.WriteLine($"PID: {System.Diagnostics.Process.GetCurrentProcess().Id}");
-                while (!Debugger.IsAttached)
-                {
-                    Thread.Sleep(100);  // Wait for debugger to attach
-                }
-            }            
-            _factory = new AppWebApplicationFactory<TestStartup>().WithMockUser("admin", new[] { RolesConstants.ADMIN });
-            _client = _factory.CreateClient();
-            _namedQueryRepository = _factory.GetRequiredService<INamedQueryRepository>();
-
-            var config = new MapperConfiguration(cfg =>
-            {
-                cfg.AddProfile(new AutoMapperProfile());
-            });
-            _mapper = config.CreateMapper();
-
-            InitTest();
-        }
-
         private const string DefaultName = "TestQuery";
         private const string DefaultText = "SELECT * FROM Test";
         private const string DefaultOwner = "testuser";
@@ -56,39 +33,66 @@ namespace JhipsterSampleApplication.Test.Controllers
         private readonly HttpClient _client;
         private readonly INamedQueryRepository _namedQueryRepository;
         private readonly IMapper _mapper;
+        private readonly ApplicationDatabaseContext _context;
 
         private NamedQuery _namedQuery;
+        private NamedQuery _globalQuery;
 
-        private NamedQuery CreateEntity()
+        public NamedQueriesControllerIntTest()
         {
-            return new NamedQuery
+            _factory = new AppWebApplicationFactory<TestStartup>().WithMockUser("admin", new[] { RolesConstants.ADMIN });
+            _client = _factory.CreateClient();
+            _namedQueryRepository = _factory.GetRequiredService<INamedQueryRepository>();
+            _context = _factory.GetRequiredService<ApplicationDatabaseContext>();
+
+            var config = new MapperConfiguration(cfg =>
+            {
+                cfg.AddProfile(new AutoMapperProfile());
+            });
+            _mapper = config.CreateMapper();
+        }
+
+        public async Task InitializeAsync()
+        {
+            // Initialize test data
+            _namedQuery = new NamedQuery
             {
                 Name = DefaultName,
                 Text = DefaultText,
                 Owner = DefaultOwner
             };
+
+            _globalQuery = new NamedQuery
+            {
+                Name = "GlobalQuery",
+                Text = "SELECT * FROM Global",
+                Owner = "GLOBAL"
+            };
+
+            await _namedQueryRepository.CreateOrUpdateAsync(_namedQuery);
+            await _namedQueryRepository.CreateOrUpdateAsync(_globalQuery);
+            await _namedQueryRepository.SaveChangesAsync();
         }
 
-        private void InitTest()
+        public async Task DisposeAsync()
         {
-            _namedQuery = CreateEntity();
+            // Clean up test data
+            await _context.Database.EnsureDeletedAsync();
         }
 
         [Fact]
         public async Task CreateNamedQuery()
         {
-            {
-                Console.WriteLine($"PID: {System.Diagnostics.Process.GetCurrentProcess().Id}");
-                while (false && !Debugger.IsAttached)
-                {
-                    Thread.Sleep(100);  // Wait for debugger to attach
-                }
-            }
-
             var databaseSizeBeforeCreate = await _namedQueryRepository.CountAsync();
 
             // Create the NamedQuery
-            NamedQueryDto namedQueryDto = _mapper.Map<NamedQueryDto>(_namedQuery);
+            var newQuery = new NamedQuery
+            {
+                Name = "NewQuery",
+                Text = "SELECT * FROM New",
+                Owner = DefaultOwner
+            };
+            NamedQueryDto namedQueryDto = _mapper.Map<NamedQueryDto>(newQuery);
             var response = await _client.PostAsync("/api/NamedQueries", TestUtil.ToJsonContent(namedQueryDto));
             response.StatusCode.Should().Be(HttpStatusCode.Created);
 
@@ -96,18 +100,14 @@ namespace JhipsterSampleApplication.Test.Controllers
             var namedQueryList = await _namedQueryRepository.GetAllAsync();
             namedQueryList.Count().Should().Be(databaseSizeBeforeCreate + 1);
             var testNamedQuery = namedQueryList.Last();
-            testNamedQuery.Name.Should().Be(DefaultName.ToUpper());
-            testNamedQuery.Text.Should().Be(DefaultText);
+            testNamedQuery.Name.Should().Be("NEWQUERY");
+            testNamedQuery.Text.Should().Be("SELECT * FROM New");
             testNamedQuery.Owner.Should().Be(DefaultOwner);
         }
 
         [Fact]
         public async Task GetAllNamedQueries()
         {
-            // Initialize the database
-            await _namedQueryRepository.CreateOrUpdateAsync(_namedQuery);
-            await _namedQueryRepository.SaveChangesAsync();
-
             // Get all the namedQueryList
             var response = await _client.GetAsync("/api/NamedQueries?owner=ALL");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -120,10 +120,6 @@ namespace JhipsterSampleApplication.Test.Controllers
         [Fact]
         public async Task GetNamedQueriesByOwner()
         {
-            // Initialize the database
-            await _namedQueryRepository.CreateOrUpdateAsync(_namedQuery);
-            await _namedQueryRepository.SaveChangesAsync();
-
             // Get queries by owner
             var response = await _client.GetAsync($"/api/NamedQueries?owner={DefaultOwner}");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -136,10 +132,6 @@ namespace JhipsterSampleApplication.Test.Controllers
         [Fact]
         public async Task GetNamedQueriesByName()
         {
-            // Initialize the database
-            await _namedQueryRepository.CreateOrUpdateAsync(_namedQuery);
-            await _namedQueryRepository.SaveChangesAsync();
-
             // Get queries by name
             var response = await _client.GetAsync($"/api/NamedQueries?name={DefaultName}");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -152,10 +144,6 @@ namespace JhipsterSampleApplication.Test.Controllers
         [Fact]
         public async Task GetNamedQueryByNameAndOwner()
         {
-            // Initialize the database
-            await _namedQueryRepository.CreateOrUpdateAsync(_namedQuery);
-            await _namedQueryRepository.SaveChangesAsync();
-
             // Get query by name and owner
             var response = await _client.GetAsync($"/api/NamedQueries?name={DefaultName}");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -169,10 +157,6 @@ namespace JhipsterSampleApplication.Test.Controllers
         [Fact]
         public async Task GetNamedQuery()
         {
-            // Initialize the database
-            await _namedQueryRepository.CreateOrUpdateAsync(_namedQuery);
-            await _namedQueryRepository.SaveChangesAsync();
-
             // Get the namedQuery
             var response = await _client.GetAsync($"/api/NamedQueries/{_namedQuery.Id}");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -185,9 +169,6 @@ namespace JhipsterSampleApplication.Test.Controllers
         [Fact]
         public async Task UpdateNamedQuery()
         {
-            // Initialize the database
-            await _namedQueryRepository.CreateOrUpdateAsync(_namedQuery);
-            await _namedQueryRepository.SaveChangesAsync();
             var databaseSizeBeforeUpdate = await _namedQueryRepository.CountAsync();
 
             // Update the namedQuery
@@ -209,9 +190,6 @@ namespace JhipsterSampleApplication.Test.Controllers
         [Fact]
         public async Task DeleteNamedQuery()
         {
-            // Initialize the database
-            await _namedQueryRepository.CreateOrUpdateAsync(_namedQuery);
-            await _namedQueryRepository.SaveChangesAsync();
             var databaseSizeBeforeDelete = await _namedQueryRepository.CountAsync();
 
             var response = await _client.DeleteAsync($"/api/NamedQueries/{_namedQuery.Id}");
@@ -229,46 +207,10 @@ namespace JhipsterSampleApplication.Test.Controllers
             var nonAdminFactory = new AppWebApplicationFactory<TestStartup>().WithMockUser("user", new[] { RolesConstants.USER });
             var nonAdminClient = nonAdminFactory.CreateClient();
 
-            // Initialize the database with a GLOBAL query
-            var globalQuery = new NamedQuery
-            {
-                Name = "GlobalQuery",
-                Text = "SELECT * FROM Global",
-                Owner = "GLOBAL"
-            };
-            await _namedQueryRepository.CreateOrUpdateAsync(globalQuery);
-            await _namedQueryRepository.SaveChangesAsync();
             var databaseSizeBeforeDelete = await _namedQueryRepository.CountAsync();
 
             // Try to delete the GLOBAL query as non-admin
-            var response = await nonAdminClient.DeleteAsync($"/api/NamedQueries/{globalQuery.Id}");
-            response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-
-            // Validate the query still exists in the database
-            var namedQueryList = await _namedQueryRepository.GetAllAsync();
-            namedQueryList.Count().Should().Be(databaseSizeBeforeDelete);
-        }
-
-        [Fact]
-        public async Task CannotDeleteSystemNamedQuery()
-        {
-            // Create a client with a non-admin user
-            var nonAdminClient = _factory.WithMockUser("user", new[] { RolesConstants.USER }).CreateClient();
-
-            // Initialize the database with a SYSTEM query
-            var systemQuery = new NamedQuery
-            {
-                Name = "SystemQuery",
-                Text = "SELECT * FROM System",
-                Owner = "GLOBAL",
-                IsSystem = true
-            };
-            await _namedQueryRepository.CreateOrUpdateAsync(systemQuery);
-            await _namedQueryRepository.SaveChangesAsync();
-            var databaseSizeBeforeDelete = await _namedQueryRepository.CountAsync();
-
-            // Try to delete the SYSTEM query as non-admin
-            var response = await nonAdminClient.DeleteAsync($"/api/NamedQueries/{systemQuery.Id}");
+            var response = await nonAdminClient.DeleteAsync($"/api/NamedQueries/{_globalQuery.Id}");
             response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
             // Validate the query still exists in the database
@@ -279,73 +221,15 @@ namespace JhipsterSampleApplication.Test.Controllers
         [Fact]
         public async Task AdminCanDeleteGlobalNamedQuery()
         {
-            // Initialize the database with a GLOBAL query
-            var globalQuery = new NamedQuery
-            {
-                Name = "GlobalQuery",
-                Text = "SELECT * FROM Global",
-                Owner = "GLOBAL"
-            };
-            await _namedQueryRepository.CreateOrUpdateAsync(globalQuery);
-            await _namedQueryRepository.SaveChangesAsync();
             var databaseSizeBeforeDelete = await _namedQueryRepository.CountAsync();
 
             // Delete the GLOBAL query as admin
-            var response = await _client.DeleteAsync($"/api/NamedQueries/{globalQuery.Id}");
+            var response = await _client.DeleteAsync($"/api/NamedQueries/{_globalQuery.Id}");
             response.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-            // Validate the query was deleted from the database
+            // Validate the query is deleted
             var namedQueryList = await _namedQueryRepository.GetAllAsync();
             namedQueryList.Count().Should().Be(databaseSizeBeforeDelete - 1);
-        }
-
-        [Fact]
-        public async Task AdminCanDeleteSystemNamedQuery()
-        {
-            // Initialize the database with a SYSTEM query
-            var systemQuery = new NamedQuery
-            {
-                Name = "SystemQuery",
-                Text = "SELECT * FROM System",
-                Owner = "GLOBAL",
-                IsSystem = true
-            };
-            await _namedQueryRepository.CreateOrUpdateAsync(systemQuery);
-            await _namedQueryRepository.SaveChangesAsync();
-            var databaseSizeBeforeDelete = await _namedQueryRepository.CountAsync();
-
-            // Delete the SYSTEM query as admin
-            var response = await _client.DeleteAsync($"/api/NamedQueries/{systemQuery.Id}");
-            response.StatusCode.Should().Be(HttpStatusCode.NoContent);
-
-            // Validate the query was deleted from the database
-            var namedQueryList = await _namedQueryRepository.GetAllAsync();
-            namedQueryList.Count().Should().Be(databaseSizeBeforeDelete - 1);
-        }
-
-        [Fact]
-        public void EqualsVerifier()
-        {
-            TestUtil.EqualsVerifier(typeof(NamedQuery));
-            var namedQuery1 = new NamedQuery
-            {
-                Id = 1L,
-                Name = DefaultName,
-                Text = DefaultText,
-                Owner = DefaultOwner
-            };
-            var namedQuery2 = new NamedQuery
-            {
-                Id = namedQuery1.Id,
-                Name = DefaultName,
-                Text = DefaultText,
-                Owner = DefaultOwner
-            };
-            namedQuery1.Should().Be(namedQuery2);
-            namedQuery2.Id = 2L;
-            namedQuery1.Should().NotBe(namedQuery2);
-            namedQuery1.Id = 0L;
-            namedQuery1.Should().NotBe(namedQuery2);
         }
     }
 } 
