@@ -225,8 +225,9 @@ namespace JhipsterSampleApplication.Test.Controllers
         [Fact]
         public async Task CannotDeleteGlobalNamedQuery()
         {
-            // Create a client with a non-admin user
-            var nonAdminClient = _factory.WithMockUser("user", new[] { RolesConstants.USER }).CreateClient();
+            // Create a new factory instance with a non-admin user
+            var nonAdminFactory = new AppWebApplicationFactory<TestStartup>().WithMockUser("user", new[] { RolesConstants.USER });
+            var nonAdminClient = nonAdminFactory.CreateClient();
 
             // Initialize the database with a GLOBAL query
             var globalQuery = new NamedQuery
