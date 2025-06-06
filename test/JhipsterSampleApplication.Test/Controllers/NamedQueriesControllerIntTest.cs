@@ -77,9 +77,9 @@ namespace JhipsterSampleApplication.Test.Controllers
         [Fact]
         public async Task CreateNamedQuery()
         {
-                        {
+            {
                 Console.WriteLine($"PID: {System.Diagnostics.Process.GetCurrentProcess().Id}");
-                while (!Debugger.IsAttached)
+                while (false && !Debugger.IsAttached)
                 {
                     Thread.Sleep(100);  // Wait for debugger to attach
                 }

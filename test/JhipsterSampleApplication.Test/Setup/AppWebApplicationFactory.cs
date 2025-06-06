@@ -76,8 +76,16 @@ public class AppWebApplicationFactory<TEntryPoint> : WebApplicationFactory<TEntr
     {
         if (roles == null || !roles.Any()) roles = new HashSet<string> { RolesConstants.USER };
 
-        var claims = new List<Claim> { new Claim(SecurityStartup.UserNameClaimType, name) };
+        var claims = new List<Claim>
+        {
+            new Claim(SecurityStartup.UserNameClaimType, name),
+            new Claim(ClaimTypes.Name, name),
+            new Claim(ClaimTypes.NameIdentifier, name),
+            new Claim("sub", name),
+            new Claim("preferred_username", name),
+            new Claim("auth", string.Join(",", roles))
+        };
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
-        return new ClaimsPrincipal(new ClaimsIdentity(claims.ToArray(), authenticationType));
+        return new ClaimsPrincipal(new ClaimsIdentity(claims.ToArray(), "Bearer"));
     }
 }
