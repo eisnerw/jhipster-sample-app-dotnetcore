@@ -18,6 +18,7 @@ using JhipsterSampleApplication.Crosscutting.Constants;
 using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Threading;
+using Microsoft.AspNetCore.Identity;
 
 namespace JhipsterSampleApplication.Test.Controllers
 {
@@ -34,9 +35,7 @@ namespace JhipsterSampleApplication.Test.Controllers
         private readonly INamedQueryRepository _namedQueryRepository;
         private readonly IMapper _mapper;
         private readonly ApplicationDatabaseContext _context;
-
-        private NamedQuery _namedQuery;
-        private NamedQuery _globalQuery;
+        private readonly UserManager<User> _userManager;
 
         public NamedQueriesControllerIntTest()
         {
@@ -44,6 +43,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             _client = _factory.CreateClient();
             _namedQueryRepository = _factory.GetRequiredService<INamedQueryRepository>();
             _context = _factory.GetRequiredService<ApplicationDatabaseContext>();
+            _userManager = _factory.GetRequiredService<UserManager<User>>();
 
             var config = new MapperConfiguration(cfg =>
             {
@@ -54,24 +54,28 @@ namespace JhipsterSampleApplication.Test.Controllers
 
         public async Task InitializeAsync()
         {
-            // Initialize test data
-            _namedQuery = new NamedQuery
-            {
-                Name = DefaultName,
-                Text = DefaultText,
-                Owner = DefaultOwner
-            };
+            // Clean up any existing data
+            await _context.Database.EnsureDeletedAsync();
+            await _context.Database.EnsureCreatedAsync();
 
-            _globalQuery = new NamedQuery
-            {
-                Name = "GlobalQuery",
-                Text = "SELECT * FROM Global",
-                Owner = "GLOBAL"
-            };
+            // Ensure the database is properly initialized
+            await _context.Database.MigrateAsync();
 
-            await _namedQueryRepository.CreateOrUpdateAsync(_namedQuery);
-            await _namedQueryRepository.CreateOrUpdateAsync(_globalQuery);
-            await _namedQueryRepository.SaveChangesAsync();
+            // Create the admin role
+            var roleManager = _factory.GetRequiredService<RoleManager<Role>>();
+            var adminRole = new Role { Id = "role_admin", Name = RolesConstants.ADMIN };
+            await roleManager.CreateAsync(adminRole);
+
+            // Create the admin user
+            var adminUser = new User
+            {
+                Login = "admin",
+                Email = "admin@localhost",
+                PasswordHash = _userManager.PasswordHasher.HashPassword(null, "admin"),
+                Activated = true
+            };
+            await _userManager.CreateAsync(adminUser);
+            await _userManager.AddToRolesAsync(adminUser, new[] { RolesConstants.ADMIN });
         }
 
         public async Task DisposeAsync()
@@ -80,6 +84,23 @@ namespace JhipsterSampleApplication.Test.Controllers
             await _context.Database.EnsureDeletedAsync();
         }
 
+       private async Task<NamedQuery> CreateTestQuery(string name = DefaultName, string text = DefaultText, string owner = DefaultOwner)
+        {
+            var query = new NamedQuery
+            {
+                Name = name,
+                Text = text,
+                Owner = owner
+            };
+            NamedQueryDto namedQueryDto = _mapper.Map<NamedQueryDto>(query);
+            var response = await _client.PostAsync("/api/NamedQueries", TestUtil.ToJsonContent(namedQueryDto));
+            response.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var json = JToken.Parse(await response.Content.ReadAsStringAsync());
+            var createdId = json.SelectToken("$.id").Value<long>();
+            return await _namedQueryRepository.QueryHelper().GetOneAsync(q => q.Id == createdId);
+        }
+        
         [Fact]
         public async Task CreateNamedQuery()
         {
@@ -108,75 +129,97 @@ namespace JhipsterSampleApplication.Test.Controllers
         [Fact]
         public async Task GetAllNamedQueries()
         {
+            // Create test queries
+            var query1 = await CreateTestQuery("Query1", "SELECT * FROM Test1");
+            var query2 = await CreateTestQuery("Query2", "SELECT * FROM Test2");
+
             // Get all the namedQueryList
             var response = await _client.GetAsync("/api/NamedQueries?owner=ALL");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var json = JToken.Parse(await response.Content.ReadAsStringAsync());
-            json.SelectTokens("$.[*].id").Should().Contain(_namedQuery.Id);
-            json.SelectTokens("$.[*].name").Should().Contain(DefaultName);
+            json.SelectTokens("$.[*].id").Should().Contain(query1.Id);
+            json.SelectTokens("$.[*].id").Should().Contain(query2.Id);
         }
 
         [Fact]
         public async Task GetNamedQueriesByOwner()
         {
+            // Create test queries
+            var query1 = await CreateTestQuery("Query1", "SELECT * FROM Test1", "owner1");
+            var query2 = await CreateTestQuery("Query2", "SELECT * FROM Test2", "owner2");
+
             // Get queries by owner
-            var response = await _client.GetAsync($"/api/NamedQueries?owner={DefaultOwner}");
+            var response = await _client.GetAsync($"/api/NamedQueries?owner=owner1");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var json = JToken.Parse(await response.Content.ReadAsStringAsync());
-            json.SelectTokens("$.[*].id").Should().Contain(_namedQuery.Id);
-            json.SelectTokens("$.[*].owner").Should().Contain(DefaultOwner);
+            json.SelectTokens("$.[*].id").Should().Contain(query1.Id);
+            json.SelectTokens("$.[*].owner").Should().Contain("owner1");
         }
 
-        [Fact]
+        [Fact] 
         public async Task GetNamedQueriesByName()
         {
+            // Create test queries
+            var query1 = await CreateTestQuery("Query1", "SELECT * FROM Test1");
+            var query2 = await CreateTestQuery("Query2", "SELECT * FROM Test2");
+
             // Get queries by name
-            var response = await _client.GetAsync($"/api/NamedQueries?name={DefaultName}");
+            var response = await _client.GetAsync($"/api/NamedQueries?name=Query1");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var json = JToken.Parse(await response.Content.ReadAsStringAsync());
-            json.SelectTokens("$.[*].id").Should().Contain(_namedQuery.Id);
-            json.SelectTokens("$.[*].name").Should().Contain(DefaultName);
+            json.SelectTokens("$.[*].id").Should().Contain(query1.Id);
+            json.SelectTokens("$.[*].name").Should().Contain("Query1".ToUpperInvariant());
         }
 
         [Fact]
         public async Task GetNamedQueryByNameAndOwner()
         {
+            // Create test queries
+            var query1 = await CreateTestQuery("Query1", "SELECT * FROM Test1", "owner1");
+            var query2 = await CreateTestQuery("Query2", "SELECT * FROM Test2", "owner2");
+
             // Get query by name and owner
-            var response = await _client.GetAsync($"/api/NamedQueries?name={DefaultName}");
+            var response = await _client.GetAsync($"/api/NamedQueries?name=Query1&owner=owner1");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var json = JToken.Parse(await response.Content.ReadAsStringAsync());
-            json.SelectTokens("$.[*].id").Should().Contain(_namedQuery.Id);
-            json.SelectTokens("$.[*].name").Should().Contain(DefaultName);
-            json.SelectTokens("$.[*].owner").Should().Contain(DefaultOwner);
+            ((string)json["name"]).Should().Be("Query1".ToUpperInvariant());
+            ((string)json["text"]).Should().Be("SELECT * FROM Test1");
+            ((string)json["owner"]).Should().Be("owner1");
+            ((long)json["id"]).Should().Be(query1.Id);
         }
 
         [Fact]
         public async Task GetNamedQuery()
         {
+            // Create test query
+            var query = await CreateTestQuery();
+
             // Get the namedQuery
-            var response = await _client.GetAsync($"/api/NamedQueries/{_namedQuery.Id}");
+            var response = await _client.GetAsync($"/api/NamedQueries/{query.Id}");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var json = JToken.Parse(await response.Content.ReadAsStringAsync());
-            json.SelectTokens("$.id").Should().Contain(_namedQuery.Id);
-            json.SelectTokens("$.name").Should().Contain(DefaultName);
+            ((string)json["name"]).Should().Be(DefaultName.ToUpperInvariant());
+            ((long)json["id"]).Should().Be(query.Id);            
         }
 
         [Fact]
         public async Task UpdateNamedQuery()
         {
+            // Create test query
+            var query = await CreateTestQuery();
             var databaseSizeBeforeUpdate = await _namedQueryRepository.CountAsync();
 
             // Update the namedQuery
-            var updatedNamedQuery = await _namedQueryRepository.QueryHelper().GetOneAsync(it => it.Id == _namedQuery.Id);      
+            var updatedNamedQuery = await _namedQueryRepository.QueryHelper().GetOneAsync(it => it.Id == query.Id);      
             updatedNamedQuery.Name = UpdatedName;
             updatedNamedQuery.Text = UpdatedText;
             NamedQueryDto updatedNamedQueryDto = _mapper.Map<NamedQueryDto>(updatedNamedQuery);
-            var response = await _client.PutAsync($"/api/NamedQueries/{_namedQuery.Id}", TestUtil.ToJsonContent(updatedNamedQueryDto));
+            var response = await _client.PutAsync($"/api/NamedQueries/{query.Id}", TestUtil.ToJsonContent(updatedNamedQueryDto));
             response.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
             // Validate the NamedQuery in the database
@@ -190,9 +233,11 @@ namespace JhipsterSampleApplication.Test.Controllers
         [Fact]
         public async Task DeleteNamedQuery()
         {
+            // Create test query
+            var query = await CreateTestQuery();
             var databaseSizeBeforeDelete = await _namedQueryRepository.CountAsync();
 
-            var response = await _client.DeleteAsync($"/api/NamedQueries/{_namedQuery.Id}");
+            var response = await _client.DeleteAsync($"/api/NamedQueries/{query.Id}");
             response.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
             // Validate the database is empty
@@ -203,6 +248,9 @@ namespace JhipsterSampleApplication.Test.Controllers
         [Fact]
         public async Task CannotDeleteGlobalNamedQuery()
         {
+            // Create a global query
+            var globalQuery = await CreateTestQuery("GlobalQuery", "SELECT * FROM Global", "GLOBAL");
+
             // Create a new factory instance with a non-admin user
             var nonAdminFactory = new AppWebApplicationFactory<TestStartup>().WithMockUser("user", new[] { RolesConstants.USER });
             var nonAdminClient = nonAdminFactory.CreateClient();
@@ -210,7 +258,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             var databaseSizeBeforeDelete = await _namedQueryRepository.CountAsync();
 
             // Try to delete the GLOBAL query as non-admin
-            var response = await nonAdminClient.DeleteAsync($"/api/NamedQueries/{_globalQuery.Id}");
+            var response = await nonAdminClient.DeleteAsync($"/api/NamedQueries/{globalQuery.Id}");
             response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
             // Validate the query still exists in the database
@@ -221,10 +269,12 @@ namespace JhipsterSampleApplication.Test.Controllers
         [Fact]
         public async Task AdminCanDeleteGlobalNamedQuery()
         {
+            // Create a global query
+            var globalQuery = await CreateTestQuery("GlobalQuery", "SELECT * FROM Global", "GLOBAL");
             var databaseSizeBeforeDelete = await _namedQueryRepository.CountAsync();
 
             // Delete the GLOBAL query as admin
-            var response = await _client.DeleteAsync($"/api/NamedQueries/{_globalQuery.Id}");
+            var response = await _client.DeleteAsync($"/api/NamedQueries/{globalQuery.Id}");
             response.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
             // Validate the query is deleted

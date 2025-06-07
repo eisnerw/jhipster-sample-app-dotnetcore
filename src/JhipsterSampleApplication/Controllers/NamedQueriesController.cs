@@ -155,7 +155,14 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<IActionResult> Delete(long id)
         {
             _log.LogDebug("REST request to delete NamedQuery : {Id}", id);
-            await _namedQueryService.Delete(id);
+            try
+            {
+                await _namedQueryService.Delete(id);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized();
+            }
             return NoContent();
         }
 
