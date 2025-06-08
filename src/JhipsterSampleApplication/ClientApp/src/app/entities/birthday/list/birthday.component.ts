@@ -20,7 +20,15 @@ import SharedModule from 'app/shared/shared.module';
   selector: 'jhi-birthday',
   templateUrl: './birthday.component.html',
   standalone: true,
-  imports: [RouterModule, FormsModule, SharedModule, ItemCountComponent, NgbPaginationModule, FontAwesomeModule, CommonModule],
+  imports: [
+    RouterModule,
+    FormsModule,
+    SharedModule,
+    ItemCountComponent,
+    NgbPaginationModule,
+    FontAwesomeModule,
+    CommonModule,
+  ],
   schemas: [NO_ERRORS_SCHEMA],
 })
 export class BirthdayComponent implements OnInit {
@@ -71,7 +79,10 @@ export class BirthdayComponent implements OnInit {
   }
 
   delete(birthday: IBirthday): void {
-    const modalRef = this.modalService.open(BirthdayDeleteDialogComponent, { size: 'lg', backdrop: 'static' });
+    const modalRef = this.modalService.open(BirthdayDeleteDialogComponent, {
+      size: 'lg',
+      backdrop: 'static',
+    });
     modalRef.componentInstance.birthday = birthday;
     // unsubscribe not needed because closed completes on modal close
     modalRef.closed.subscribe((reason: string) => {
@@ -90,13 +101,20 @@ export class BirthdayComponent implements OnInit {
   }
 
   protected handleNavigation(): void {
-    combineLatest([this.activatedRoute.data, this.activatedRoute.queryParamMap]).subscribe(([data, params]) => {
+    combineLatest([
+      this.activatedRoute.data,
+      this.activatedRoute.queryParamMap,
+    ]).subscribe(([data, params]) => {
       const page = params.get('page');
       const pageNumber = page !== null ? +page : 1;
       const sort = (params.get('sort') ?? data['defaultSort']).split(',');
       const predicate = sort[0];
       const ascending = sort[1] === 'asc';
-      if (pageNumber !== this.page || predicate !== this.predicate || ascending !== this.ascending) {
+      if (
+        pageNumber !== this.page ||
+        predicate !== this.predicate ||
+        ascending !== this.ascending
+      ) {
         this.predicate = predicate;
         this.ascending = ascending;
         this.loadPage(pageNumber, true);
@@ -104,7 +122,12 @@ export class BirthdayComponent implements OnInit {
     });
   }
 
-  protected onSuccess(data: { hits: IBirthday[] } | null, headers: HttpHeaders, page: number, navigate: boolean): void {
+  protected onSuccess(
+    data: { hits: IBirthday[] } | null,
+    headers: HttpHeaders,
+    page: number,
+    navigate: boolean,
+  ): void {
     this.totalItems = Number(headers.get('X-Total-Count'));
     this.page = page;
     this.birthdays = data?.hits ?? [];

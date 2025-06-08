@@ -1197,7 +1197,6 @@ export class SuperColumnFilter extends ColumnFilter implements AfterContentInit 
         super.ngAfterContentInit();
     }
 }
-
 @NgModule({
     imports: [CommonModule,PaginatorModule,InputTextModule,DropdownModule,ScrollingModule,FormsModule,ButtonModule,SelectButtonModule,CalendarModule,InputNumberModule,TriStateCheckboxModule],
     exports: [SuperTable,SharedModule,SuperSortableColumn,SuperSelectableRow,SuperRowToggler,SuperContextMenuRow,SuperResizableColumn,SuperReorderableColumn,SuperEditableColumn,SuperCellEditor,SuperSortIcon,
