@@ -1,4 +1,11 @@
-import { ComponentFixture, TestBed, fakeAsync, inject, tick, waitForAsync } from '@angular/core/testing';
+import {
+  ComponentFixture,
+  TestBed,
+  fakeAsync,
+  inject,
+  tick,
+  waitForAsync,
+} from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { FormBuilder } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -24,7 +31,19 @@ describe('User Management Update Component', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            data: of({ user: new User(123, 'user', 'first', 'last', 'first@last.com', true, 'en', [Authority.USER], 'admin') }),
+            data: of({
+              user: new User(
+                123,
+                'user',
+                'first',
+                'last',
+                'first@last.com',
+                true,
+                'en',
+                [Authority.USER],
+                'admin',
+              ),
+            }),
           },
         },
       ],
@@ -69,7 +88,9 @@ describe('User Management Update Component', () => {
         tick(); // simulate async
 
         // THEN
-        expect(service.update).toHaveBeenCalledWith(expect.objectContaining(entity));
+        expect(service.update).toHaveBeenCalledWith(
+          expect.objectContaining(entity),
+        );
         expect(comp.isSaving()).toEqual(false);
       }),
     ));
@@ -87,7 +108,9 @@ describe('User Management Update Component', () => {
 
         // THEN
         expect(comp.editForm.getRawValue().id).toBeNull();
-        expect(service.create).toHaveBeenCalledWith(expect.objectContaining(entity));
+        expect(service.create).toHaveBeenCalledWith(
+          expect.objectContaining(entity),
+        );
         expect(comp.isSaving()).toEqual(false);
       }),
     ));

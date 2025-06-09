@@ -45,7 +45,10 @@ describe('User Management Detail Component', () => {
     it('Should call load all on construct', async () => {
       // WHEN
       const harness = await RouterTestingHarness.create();
-      const instance = await harness.navigateByUrl('/', UserManagementDetailComponent);
+      const instance = await harness.navigateByUrl(
+        '/',
+        UserManagementDetailComponent,
+      );
 
       // THEN
       expect(instance.user()).toEqual(

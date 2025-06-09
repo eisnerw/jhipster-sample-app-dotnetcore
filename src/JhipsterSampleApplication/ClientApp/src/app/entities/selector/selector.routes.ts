@@ -7,7 +7,8 @@ import SelectorResolve from './route/selector-routing-resolve.service';
 const selectorRoute: Routes = [
   {
     path: '',
-    loadComponent: () => import('./list/selector.component').then(m => m.SelectorComponent),
+    loadComponent: () =>
+      import('./list/selector.component').then((m) => m.SelectorComponent),
     data: {
       defaultSort: `id,${ASC}`,
     },
@@ -15,7 +16,10 @@ const selectorRoute: Routes = [
   },
   {
     path: ':id/view',
-    loadComponent: () => import('./detail/selector-detail.component').then(m => m.SelectorDetailComponent),
+    loadComponent: () =>
+      import('./detail/selector-detail.component').then(
+        (m) => m.SelectorDetailComponent,
+      ),
     resolve: {
       selector: SelectorResolve,
     },
@@ -23,7 +27,10 @@ const selectorRoute: Routes = [
   },
   {
     path: 'new',
-    loadComponent: () => import('./update/selector-update.component').then(m => m.SelectorUpdateComponent),
+    loadComponent: () =>
+      import('./update/selector-update.component').then(
+        (m) => m.SelectorUpdateComponent,
+      ),
     resolve: {
       selector: SelectorResolve,
     },
@@ -31,7 +38,10 @@ const selectorRoute: Routes = [
   },
   {
     path: ':id/edit',
-    loadComponent: () => import('./update/selector-update.component').then(m => m.SelectorUpdateComponent),
+    loadComponent: () =>
+      import('./update/selector-update.component').then(
+        (m) => m.SelectorUpdateComponent,
+      ),
     resolve: {
       selector: SelectorResolve,
     },

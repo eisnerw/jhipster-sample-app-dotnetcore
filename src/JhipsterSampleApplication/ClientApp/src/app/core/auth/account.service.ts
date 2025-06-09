@@ -20,7 +20,10 @@ export class AccountService {
   private readonly applicationConfigService = inject(ApplicationConfigService);
 
   save(account: Account): Observable<{}> {
-    return this.http.post(this.applicationConfigService.getEndpointFor('api/account'), account);
+    return this.http.post(
+      this.applicationConfigService.getEndpointFor('api/account'),
+      account,
+    );
   }
 
   authenticate(identity: Account | null): void {
@@ -43,7 +46,9 @@ export class AccountService {
     if (!Array.isArray(authorities)) {
       authorities = [authorities];
     }
-    return userIdentity.authorities.some((authority: string) => authorities.includes(authority));
+    return userIdentity.authorities.some((authority: string) =>
+      authorities.includes(authority),
+    );
   }
 
   identity(force?: boolean): Observable<Account | null> {
@@ -69,7 +74,9 @@ export class AccountService {
   }
 
   private fetch(): Observable<Account> {
-    return this.http.get<Account>(this.applicationConfigService.getEndpointFor('api/account'));
+    return this.http.get<Account>(
+      this.applicationConfigService.getEndpointFor('api/account'),
+    );
   }
 
   private navigateToStoredUrl(): void {

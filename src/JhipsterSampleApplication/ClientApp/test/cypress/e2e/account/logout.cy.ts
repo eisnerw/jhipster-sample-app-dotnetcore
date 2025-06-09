@@ -1,4 +1,8 @@
-import { accountMenuSelector, loginItemSelector, navbarSelector } from '../../support/commands';
+import {
+  accountMenuSelector,
+  loginItemSelector,
+  navbarSelector,
+} from '../../support/commands';
 
 describe('logout', () => {
   const username = Cypress.env('E2E_USERNAME') ?? 'user';
@@ -12,6 +16,9 @@ describe('logout', () => {
     cy.wait(500); // eslint-disable-line cypress/no-unnecessary-waiting
     cy.visit('');
     cy.get(navbarSelector).get(accountMenuSelector).click();
-    cy.get(navbarSelector).get(accountMenuSelector).get(loginItemSelector).should('be.visible');
+    cy.get(navbarSelector)
+      .get(accountMenuSelector)
+      .get(loginItemSelector)
+      .should('be.visible');
   });
 });

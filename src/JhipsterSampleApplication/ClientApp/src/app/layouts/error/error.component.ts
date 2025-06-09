@@ -13,7 +13,7 @@ export default class ErrorComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
 
   ngOnInit(): void {
-    this.route.data.subscribe(routeData => {
+    this.route.data.subscribe((routeData) => {
       if (routeData.errorMessage) {
         this.errorMessage.set(routeData.errorMessage);
       }

@@ -1,7 +1,10 @@
 jest.mock('app/core/auth/state-storage.service');
 
 import { Router } from '@angular/router';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 
@@ -25,7 +28,8 @@ function accountWithAuthorities(authorities: string[]): Account {
   };
 }
 
-const mockFn = (value: string | null): jest.Mock<string | null> => jest.fn(() => value);
+const mockFn = (value: string | null): jest.Mock<string | null> =>
+  jest.fn(() => value);
 
 describe('Account Service', () => {
   let service: AccountService;
@@ -36,7 +40,11 @@ describe('Account Service', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting(), StateStorageService],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        StateStorageService,
+      ],
     });
 
     service = TestBed.inject(AccountService);
@@ -44,7 +52,9 @@ describe('Account Service', () => {
     httpMock = TestBed.inject(HttpTestingController);
     mockStorageService = TestBed.inject(StateStorageService);
     mockRouter = TestBed.inject(Router);
-    jest.spyOn(mockRouter, 'navigateByUrl').mockImplementation(() => Promise.resolve(true));
+    jest
+      .spyOn(mockRouter, 'navigateByUrl')
+      .mockImplementation(() => Promise.resolve(true));
   });
 
   afterEach(() => {
@@ -58,7 +68,10 @@ describe('Account Service', () => {
 
       // WHEN
       service.save(account).subscribe();
-      const testRequest = httpMock.expectOne({ method: 'POST', url: applicationConfigService.getEndpointFor('api/account') });
+      const testRequest = httpMock.expectOne({
+        method: 'POST',
+        url: applicationConfigService.getEndpointFor('api/account'),
+      });
       testRequest.flush({});
 
       // THEN
@@ -70,7 +83,9 @@ describe('Account Service', () => {
     it('authenticationState should emit null if input is null', () => {
       // GIVEN
       let userIdentity: Account | null = accountWithAuthorities([]);
-      service.getAuthenticationState().subscribe(account => (userIdentity = account));
+      service
+        .getAuthenticationState()
+        .subscribe((account) => (userIdentity = account));
 
       // WHEN
       service.authenticate(null);
@@ -84,7 +99,9 @@ describe('Account Service', () => {
       // GIVEN
       const expectedResult = accountWithAuthorities([]);
       let userIdentity: Account | null = null;
-      service.getAuthenticationState().subscribe(account => (userIdentity = account));
+      service
+        .getAuthenticationState()
+        .subscribe((account) => (userIdentity = account));
 
       // WHEN
       service.authenticate(expectedResult);
@@ -137,7 +154,9 @@ describe('Account Service', () => {
         // THEN
         expect(mockStorageService.getUrl).toHaveBeenCalledTimes(1);
         expect(mockStorageService.clearUrl).toHaveBeenCalledTimes(1);
-        expect(mockRouter.navigateByUrl).toHaveBeenCalledWith('admin/users?page=0');
+        expect(mockRouter.navigateByUrl).toHaveBeenCalledWith(
+          'admin/users?page=0',
+        );
       });
 
       it('should not navigate to the previous stored url when authentication fails', () => {
@@ -208,7 +227,10 @@ describe('Account Service', () => {
       it('should return true if user is logged and has authority', () => {
         service.authenticate(accountWithAuthorities([Authority.USER]));
 
-        const hasAuthority = service.hasAnyAuthority([Authority.USER, Authority.ADMIN]);
+        const hasAuthority = service.hasAnyAuthority([
+          Authority.USER,
+          Authority.ADMIN,
+        ]);
 
         expect(hasAuthority).toBe(true);
       });

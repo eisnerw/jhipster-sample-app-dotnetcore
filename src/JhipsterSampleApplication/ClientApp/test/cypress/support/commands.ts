@@ -30,7 +30,8 @@ export const titleLoginSelector = '[data-cy="loginTitle"]';
 export const errorLoginSelector = '[data-cy="loginError"]';
 export const usernameLoginSelector = '[data-cy="username"]';
 export const passwordLoginSelector = '[data-cy="password"]';
-export const forgetYourPasswordSelector = '[data-cy="forgetYourPasswordSelector"]';
+export const forgetYourPasswordSelector =
+  '[data-cy="forgetYourPasswordSelector"]';
 export const submitLoginSelector = '[data-cy="submit"]';
 
 // Register
@@ -59,7 +60,8 @@ export const emailResetPasswordSelector = '[data-cy="emailResetPassword"]';
 export const submitInitResetPasswordSelector = '[data-cy="submit"]';
 
 // Administration
-export const userManagementPageHeadingSelector = '[data-cy="userManagementPageHeading"]';
+export const userManagementPageHeadingSelector =
+  '[data-cy="userManagementPageHeading"]';
 export const swaggerFrameSelector = 'iframe[data-cy="swagger-frame"]';
 export const swaggerPageSelector = '[id="swagger-ui"]';
 
@@ -71,7 +73,7 @@ export const classInvalid = 'ng-invalid';
 
 export const classValid = 'ng-valid';
 
-Cypress.Commands.add('authenticatedRequest', data => {
+Cypress.Commands.add('authenticatedRequest', (data) => {
   const jwtToken = sessionStorage.getItem(Cypress.env('jwtStorageName'));
   const bearerToken = jwtToken && JSON.parse(jwtToken);
   if (bearerToken) {
@@ -99,12 +101,17 @@ Cypress.Commands.add('login', (username: string, password: string) => {
         body: { username, password },
         url: Cypress.env('authenticationUrl'),
       }).then(({ body: { id_token } }) => {
-        sessionStorage.setItem(Cypress.env('jwtStorageName'), JSON.stringify(id_token));
+        sessionStorage.setItem(
+          Cypress.env('jwtStorageName'),
+          JSON.stringify(id_token),
+        );
       });
     },
     {
       validate() {
-        cy.authenticatedRequest({ url: '/api/account' }).its('status').should('eq', 200);
+        cy.authenticatedRequest({ url: '/api/account' })
+          .its('status')
+          .should('eq', 200);
       },
     },
   );

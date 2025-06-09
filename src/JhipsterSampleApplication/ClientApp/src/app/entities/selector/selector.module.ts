@@ -8,6 +8,11 @@ import { SelectorRoutingModule } from './route/selector-routing.module';
 
 @NgModule({
   imports: [SharedModule, SelectorRoutingModule],
-  declarations: [SelectorComponent, SelectorDetailComponent, SelectorUpdateComponent, SelectorDeleteDialogComponent],
+  declarations: [
+    SelectorComponent,
+    SelectorDetailComponent,
+    SelectorUpdateComponent,
+    SelectorDeleteDialogComponent,
+  ],
 })
 export class SelectorModule {}

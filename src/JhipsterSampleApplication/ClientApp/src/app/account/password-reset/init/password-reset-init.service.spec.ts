@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 
 import { ApplicationConfigService } from 'app/core/config/application-config.service';
@@ -34,7 +37,9 @@ describe('PasswordResetInit Service', () => {
 
       const testRequest = httpMock.expectOne({
         method: 'POST',
-        url: applicationConfigService.getEndpointFor('api/account/reset-password/init'),
+        url: applicationConfigService.getEndpointFor(
+          'api/account/reset-password/init',
+        ),
       });
 
       // THEN

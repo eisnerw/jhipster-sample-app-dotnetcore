@@ -160,8 +160,13 @@ describe('Job e2e test', () => {
     });
 
     it('should create an instance of Job', () => {
-      cy.get(`[data-cy="jobTitle"]`).type('International Security Administrator');
-      cy.get(`[data-cy="jobTitle"]`).should('have.value', 'International Security Administrator');
+      cy.get(`[data-cy="jobTitle"]`).type(
+        'International Security Administrator',
+      );
+      cy.get(`[data-cy="jobTitle"]`).should(
+        'have.value',
+        'International Security Administrator',
+      );
 
       cy.get(`[data-cy="minSalary"]`).type('798');
       cy.get(`[data-cy="minSalary"]`).should('have.value', '798');

@@ -8,13 +8,20 @@ describe('Selector routing resolve service', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [SelectorRoutingResolveService, provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        SelectorRoutingResolveService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
     });
   });
 
-  beforeEach(inject([SelectorRoutingResolveService], (injectedService: SelectorRoutingResolveService) => {
-    service = injectedService;
-  }));
+  beforeEach(inject(
+    [SelectorRoutingResolveService],
+    (injectedService: SelectorRoutingResolveService) => {
+      service = injectedService;
+    },
+  ));
 
   describe('resolve', () => {
     it('should return Observable<Selector>', () => {

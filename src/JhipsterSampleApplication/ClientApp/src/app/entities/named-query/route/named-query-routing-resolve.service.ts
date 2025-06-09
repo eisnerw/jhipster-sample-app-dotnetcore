@@ -7,7 +7,9 @@ import { mergeMap } from 'rxjs/operators';
 import { INamedQuery } from '../named-query.model';
 import { NamedQueryService } from '../service/named-query.service';
 
-const namedQueryResolve = (route: ActivatedRouteSnapshot): Observable<null | INamedQuery> => {
+const namedQueryResolve = (
+  route: ActivatedRouteSnapshot,
+): Observable<null | INamedQuery> => {
   const id = route.params.id;
   if (id) {
     return inject(NamedQueryService)

@@ -12,7 +12,8 @@ export class UserManagementService {
   private readonly http = inject(HttpClient);
   private readonly applicationConfigService = inject(ApplicationConfigService);
 
-  private readonly resourceUrl = this.applicationConfigService.getEndpointFor('api/admin/users');
+  private readonly resourceUrl =
+    this.applicationConfigService.getEndpointFor('api/admin/users');
 
   create(user: IUser): Observable<IUser> {
     return this.http.post<IUser>(this.resourceUrl, user);
@@ -28,7 +29,10 @@ export class UserManagementService {
 
   query(req?: Pagination): Observable<HttpResponse<IUser[]>> {
     const options = createRequestOption(req);
-    return this.http.get<IUser[]>(this.resourceUrl, { params: options, observe: 'response' });
+    return this.http.get<IUser[]>(this.resourceUrl, {
+      params: options,
+      observe: 'response',
+    });
   }
 
   delete(login: string): Observable<{}> {
@@ -37,7 +41,9 @@ export class UserManagementService {
 
   authorities(): Observable<string[]> {
     return this.http
-      .get<{ name: string }[]>(this.applicationConfigService.getEndpointFor('api/authorities'))
-      .pipe(map(authorities => authorities.map(a => a.name)));
+      .get<
+        { name: string }[]
+      >(this.applicationConfigService.getEndpointFor('api/authorities'))
+      .pipe(map((authorities) => authorities.map((a) => a.name)));
   }
 }

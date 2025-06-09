@@ -29,7 +29,9 @@ describe('Page Ribbon Component', () => {
 
   it('Should call profileService.getProfileInfo on init', () => {
     // GIVEN
-    jest.spyOn(profileService, 'getProfileInfo').mockReturnValue(of(new ProfileInfo()));
+    jest
+      .spyOn(profileService, 'getProfileInfo')
+      .mockReturnValue(of(new ProfileInfo()));
 
     // WHEN
     comp.ngOnInit();

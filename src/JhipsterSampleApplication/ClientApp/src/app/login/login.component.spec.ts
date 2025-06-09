@@ -41,7 +41,9 @@ describe('LoginComponent', () => {
     fixture = TestBed.createComponent(LoginComponent);
     comp = fixture.componentInstance;
     mockRouter = TestBed.inject(Router);
-    jest.spyOn(mockRouter, 'navigate').mockImplementation(() => Promise.resolve(true));
+    jest
+      .spyOn(mockRouter, 'navigate')
+      .mockImplementation(() => Promise.resolve(true));
     mockLoginService = TestBed.inject(LoginService);
     mockAccountService = TestBed.inject(AccountService);
   });
@@ -126,7 +128,9 @@ describe('LoginComponent', () => {
 
     it('should authenticate the user but not navigate to home page if authentication process is already routing to cached url from localstorage', () => {
       // GIVEN
-      jest.spyOn(mockRouter, 'getCurrentNavigation').mockReturnValue({} as Navigation);
+      jest
+        .spyOn(mockRouter, 'getCurrentNavigation')
+        .mockReturnValue({} as Navigation);
 
       // WHEN
       comp.login();

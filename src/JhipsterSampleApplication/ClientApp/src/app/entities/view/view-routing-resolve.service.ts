@@ -1,5 +1,10 @@
 import { Injectable } from '@angular/core';
-import { Resolve, ActivatedRouteSnapshot, RouterStateSnapshot, Routes } from '@angular/router';
+import {
+  Resolve,
+  ActivatedRouteSnapshot,
+  RouterStateSnapshot,
+  Routes,
+} from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 import { HttpResponse } from '@angular/common/http';
@@ -10,7 +15,10 @@ import { ViewService } from './service/view.service';
 export class ViewResolve implements Resolve<IView> {
   constructor(private service: ViewService) {}
 
-  resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<IView> {
+  resolve(
+    route: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot,
+  ): Observable<IView> {
     const id = route.params['id'];
     if (id) {
       return this.service.find(id).pipe(
@@ -24,6 +32,14 @@ export class ViewResolve implements Resolve<IView> {
         }),
       );
     }
-    return of({ name: '', field: '', aggregation: '', query: '', categoryQuery: '', script: '', domain: 'birthdays' });
+    return of({
+      name: '',
+      field: '',
+      aggregation: '',
+      query: '',
+      categoryQuery: '',
+      script: '',
+      domain: 'birthdays',
+    });
   }
 }

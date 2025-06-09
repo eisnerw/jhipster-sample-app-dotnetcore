@@ -11,7 +11,15 @@ import { IView } from '../view.model';
   imports: [SharedModule, RouterModule],
 })
 export class ViewDetailComponent implements OnInit {
-  view: IView = { name: '', field: '', aggregation: '', query: '', categoryQuery: '', script: '', domain: 'birthdays' };
+  view: IView = {
+    name: '',
+    field: '',
+    aggregation: '',
+    query: '',
+    categoryQuery: '',
+    script: '',
+    domain: 'birthdays',
+  };
 
   constructor(protected activatedRoute: ActivatedRoute) {}
 

@@ -10,7 +10,11 @@ import { SortState, sortStateSignal } from './sort-state';
   template: `
     <table>
       <thead>
-        <tr jhiSort [(sortState)]="sortState" (sortChange)="transition($event)"></tr>
+        <tr
+          jhiSort
+          [(sortState)]="sortState"
+          (sortChange)="transition($event)"
+        ></tr>
       </thead>
     </table>
   `,
@@ -38,7 +42,9 @@ describe('Directive: SortDirective', () => {
 
   it('should invoke sortChange function', () => {
     // GIVEN
-    const sortDirective = tableRow.injector.get(SortDirective as Type<SortDirective>);
+    const sortDirective = tableRow.injector.get(
+      SortDirective as Type<SortDirective>,
+    );
 
     // WHEN
     fixture.detectChanges();
@@ -46,12 +52,17 @@ describe('Directive: SortDirective', () => {
 
     // THEN
     expect(component.transition).toHaveBeenCalledTimes(1);
-    expect(component.transition).toHaveBeenCalledWith({ predicate: 'ID', order: 'asc' });
+    expect(component.transition).toHaveBeenCalledWith({
+      predicate: 'ID',
+      order: 'asc',
+    });
   });
 
   it('should change sort order to descending, neutral when same field is sorted again', () => {
     // GIVEN
-    const sortDirective = tableRow.injector.get(SortDirective as Type<SortDirective>);
+    const sortDirective = tableRow.injector.get(
+      SortDirective as Type<SortDirective>,
+    );
 
     // WHEN
     fixture.detectChanges();
@@ -63,14 +74,25 @@ describe('Directive: SortDirective', () => {
 
     // THEN
     expect(component.transition).toHaveBeenCalledTimes(3);
-    expect(component.transition).toHaveBeenNthCalledWith(1, { predicate: 'ID', order: 'asc' });
-    expect(component.transition).toHaveBeenNthCalledWith(2, { predicate: 'ID', order: 'desc' });
-    expect(component.transition).toHaveBeenNthCalledWith(3, { predicate: 'ID', order: 'asc' });
+    expect(component.transition).toHaveBeenNthCalledWith(1, {
+      predicate: 'ID',
+      order: 'asc',
+    });
+    expect(component.transition).toHaveBeenNthCalledWith(2, {
+      predicate: 'ID',
+      order: 'desc',
+    });
+    expect(component.transition).toHaveBeenNthCalledWith(3, {
+      predicate: 'ID',
+      order: 'asc',
+    });
   });
 
   it('should change sort order to ascending when different field is sorted', () => {
     // GIVEN
-    const sortDirective = tableRow.injector.get(SortDirective as Type<SortDirective>);
+    const sortDirective = tableRow.injector.get(
+      SortDirective as Type<SortDirective>,
+    );
 
     // WHEN
     fixture.detectChanges();
@@ -80,7 +102,13 @@ describe('Directive: SortDirective', () => {
 
     // THEN
     expect(component.transition).toHaveBeenCalledTimes(2);
-    expect(component.transition).toHaveBeenNthCalledWith(1, { predicate: 'ID', order: 'asc' });
-    expect(component.transition).toHaveBeenNthCalledWith(2, { predicate: 'NAME', order: 'asc' });
+    expect(component.transition).toHaveBeenNthCalledWith(1, {
+      predicate: 'ID',
+      order: 'asc',
+    });
+    expect(component.transition).toHaveBeenNthCalledWith(2, {
+      predicate: 'NAME',
+      order: 'asc',
+    });
   });
 });

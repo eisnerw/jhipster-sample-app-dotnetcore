@@ -11,7 +11,8 @@ export class ProfileService {
   private readonly http = inject(HttpClient);
   private readonly applicationConfigService = inject(ApplicationConfigService);
 
-  private readonly infoUrl = this.applicationConfigService.getEndpointFor('management/info');
+  private readonly infoUrl =
+    this.applicationConfigService.getEndpointFor('management/info');
   private profileInfo$?: Observable<ProfileInfo>;
 
   getProfileInfo(): Observable<ProfileInfo> {
@@ -27,8 +28,11 @@ export class ProfileService {
           openAPIEnabled: response.activeProfiles?.includes('api-docs'),
         };
         if (response.activeProfiles && response['display-ribbon-on-profiles']) {
-          const displayRibbonOnProfiles = response['display-ribbon-on-profiles'].split(',');
-          const ribbonProfiles = displayRibbonOnProfiles.filter(profile => response.activeProfiles?.includes(profile));
+          const displayRibbonOnProfiles =
+            response['display-ribbon-on-profiles'].split(',');
+          const ribbonProfiles = displayRibbonOnProfiles.filter((profile) =>
+            response.activeProfiles?.includes(profile),
+          );
           if (ribbonProfiles.length > 0) {
             profileInfo.ribbonEnv = ribbonProfiles[0];
           }

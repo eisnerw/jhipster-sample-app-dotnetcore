@@ -27,6 +27,10 @@ export default class AppComponent {
     this.applicationConfigService.setEndpointPrefix(SERVER_API_URL);
     registerLocaleData(locale);
     this.iconLibrary.addIcons(...fontAwesomeIcons);
-    this.dpConfig.minDate = { year: dayjs().subtract(100, 'year').year(), month: 1, day: 1 };
+    this.dpConfig.minDate = {
+      year: dayjs().subtract(100, 'year').year(),
+      month: 1,
+      day: 1,
+    };
   }
 }

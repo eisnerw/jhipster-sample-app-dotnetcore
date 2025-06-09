@@ -12,9 +12,14 @@ export type EntityArrayResponseType = HttpResponse<{ hits: IBirthday[] }>;
 
 @Injectable({ providedIn: 'root' })
 export class BirthdayService {
-  protected resourceUrl = this.applicationConfigService.getEndpointFor('api/birthdays');
-  protected searchUrl = this.applicationConfigService.getEndpointFor('api/birthdays/search/lucene');
-  protected rulesetSearchUrl = this.applicationConfigService.getEndpointFor('api/birthdays/search/ruleset');
+  protected resourceUrl =
+    this.applicationConfigService.getEndpointFor('api/birthdays');
+  protected searchUrl = this.applicationConfigService.getEndpointFor(
+    'api/birthdays/search/lucene',
+  );
+  protected rulesetSearchUrl = this.applicationConfigService.getEndpointFor(
+    'api/birthdays/search/ruleset',
+  );
 
   constructor(
     protected http: HttpClient,
@@ -22,32 +27,49 @@ export class BirthdayService {
   ) {}
 
   create(birthday: IBirthday): Observable<EntityResponseType> {
-    return this.http.post<IBirthday>(this.resourceUrl, birthday, { observe: 'response' });
+    return this.http.post<IBirthday>(this.resourceUrl, birthday, {
+      observe: 'response',
+    });
   }
 
   update(birthday: IBirthday): Observable<EntityResponseType> {
-    return this.http.put<IBirthday>(`${this.resourceUrl}/${birthday.id}`, birthday, { observe: 'response' });
+    return this.http.put<IBirthday>(
+      `${this.resourceUrl}/${birthday.id}`,
+      birthday,
+      { observe: 'response' },
+    );
   }
 
   find(id: string): Observable<EntityResponseType> {
-    return this.http.get<IBirthday>(`${this.resourceUrl}/${id}`, { observe: 'response' });
+    return this.http.get<IBirthday>(`${this.resourceUrl}/${id}`, {
+      observe: 'response',
+    });
   }
 
   query(req?: any): Observable<EntityArrayResponseType> {
     const options = createRequestOption(req);
     const page = req?.page ?? 0;
     const size = req?.size ?? 20;
-    return this.http.get<{ hits: IBirthday[] }>(`${this.searchUrl}?query=*&from=${page}&size=${size}`, {
-      params: options,
-      observe: 'response',
-    });
+    return this.http.get<{ hits: IBirthday[] }>(
+      `${this.searchUrl}?query=*&from=${page}&size=${size}`,
+      {
+        params: options,
+        observe: 'response',
+      },
+    );
   }
 
   searchWithRuleset(ruleset: any): Observable<EntityArrayResponseType> {
-    return this.http.post<{ hits: IBirthday[] }>(this.rulesetSearchUrl, ruleset, { observe: 'response' });
+    return this.http.post<{ hits: IBirthday[] }>(
+      this.rulesetSearchUrl,
+      ruleset,
+      { observe: 'response' },
+    );
   }
 
   delete(id: string): Observable<HttpResponse<{}>> {
-    return this.http.delete(`${this.resourceUrl}/${id}`, { observe: 'response' });
+    return this.http.delete(`${this.resourceUrl}/${id}`, {
+      observe: 'response',
+    });
   }
 }

@@ -9,7 +9,10 @@ const routes: Routes = [
   {
     path: 'named-query',
     data: { pageTitle: 'JobHistories' },
-    loadChildren: () => import('./named-query/named-query-routing.module').then(m => m.NamedQueryRoutingModule),
+    loadChildren: () =>
+      import('./named-query/named-query-routing.module').then(
+        (m) => m.NamedQueryRoutingModule,
+      ),
   },
   {
     path: 'selector',
@@ -19,7 +22,7 @@ const routes: Routes = [
   {
     path: 'view',
     data: { pageTitle: 'Views' },
-    loadChildren: () => import('./view/view.routes').then(m => m.VIEW_ROUTE),
+    loadChildren: () => import('./view/view.routes').then((m) => m.VIEW_ROUTE),
   },
   /* jhipster-needle-add-entity-route - JHipster will add entity modules routes here */
 ];

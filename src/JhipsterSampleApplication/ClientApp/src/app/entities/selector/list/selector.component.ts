@@ -54,7 +54,7 @@ export class SelectorComponent implements OnInit {
     });
     modalRef.componentInstance.selector = selector;
     // unsubscribe not needed because closed completes on modal close
-    modalRef.closed.subscribe(reason => {
+    modalRef.closed.subscribe((reason) => {
       if (reason === 'deleted') {
         this.loadAll();
       }

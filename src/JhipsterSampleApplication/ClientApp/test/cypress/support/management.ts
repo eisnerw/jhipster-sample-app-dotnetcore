@@ -7,7 +7,7 @@ Cypress.Commands.add('getManagementInfo', () => {
       method: 'GET',
       url: '/management/info',
     })
-    .then(response => response.body);
+    .then((response) => response.body);
 });
 
 declare global {

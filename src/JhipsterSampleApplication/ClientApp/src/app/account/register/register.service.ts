@@ -11,6 +11,9 @@ export class RegisterService {
   private readonly applicationConfigService = inject(ApplicationConfigService);
 
   save(registration: Registration): Observable<{}> {
-    return this.http.post(this.applicationConfigService.getEndpointFor('api/register'), registration);
+    return this.http.post(
+      this.applicationConfigService.getEndpointFor('api/register'),
+      registration,
+    );
   }
 }

@@ -1,5 +1,11 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormControl,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 
 import SharedModule from 'app/shared/shared.module';
@@ -29,17 +35,29 @@ export default class UserManagementUpdateComponent implements OnInit {
         Validators.required,
         Validators.minLength(1),
         Validators.maxLength(50),
-        Validators.pattern('^[a-zA-Z0-9!$&*+=?^_`{|}~.-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*$|^[_.@A-Za-z0-9-]+$'),
+        Validators.pattern(
+          '^[a-zA-Z0-9!$&*+=?^_`{|}~.-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*$|^[_.@A-Za-z0-9-]+$',
+        ),
       ],
     }),
-    firstName: new FormControl(userTemplate.firstName, { validators: [Validators.maxLength(50)] }),
-    lastName: new FormControl(userTemplate.lastName, { validators: [Validators.maxLength(50)] }),
+    firstName: new FormControl(userTemplate.firstName, {
+      validators: [Validators.maxLength(50)],
+    }),
+    lastName: new FormControl(userTemplate.lastName, {
+      validators: [Validators.maxLength(50)],
+    }),
     email: new FormControl(userTemplate.email, {
       nonNullable: true,
-      validators: [Validators.minLength(5), Validators.maxLength(254), Validators.email],
+      validators: [
+        Validators.minLength(5),
+        Validators.maxLength(254),
+        Validators.email,
+      ],
     }),
     activated: new FormControl(userTemplate.activated, { nonNullable: true }),
-    authorities: new FormControl(userTemplate.authorities, { nonNullable: true }),
+    authorities: new FormControl(userTemplate.authorities, {
+      nonNullable: true,
+    }),
   });
 
   private readonly userService = inject(UserManagementService);
@@ -53,7 +71,9 @@ export default class UserManagementUpdateComponent implements OnInit {
         this.editForm.reset(newUser);
       }
     });
-    this.userService.authorities().subscribe(authorities => this.authorities.set(authorities));
+    this.userService
+      .authorities()
+      .subscribe((authorities) => this.authorities.set(authorities));
   }
 
   previousState(): void {

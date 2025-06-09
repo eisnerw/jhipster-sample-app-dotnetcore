@@ -32,7 +32,11 @@ describe('Navbar Component', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [NavbarComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), LoginService],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        LoginService,
+      ],
     })
       .overrideTemplate(NavbarComponent, '')
       .compileComponents();
@@ -47,7 +51,9 @@ describe('Navbar Component', () => {
 
   it('Should call profileService.getProfileInfo on init', () => {
     // GIVEN
-    jest.spyOn(profileService, 'getProfileInfo').mockReturnValue(of(new ProfileInfo()));
+    jest
+      .spyOn(profileService, 'getProfileInfo')
+      .mockReturnValue(of(new ProfileInfo()));
 
     // WHEN
     comp.ngOnInit();

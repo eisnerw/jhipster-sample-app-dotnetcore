@@ -10,6 +10,11 @@ export class PasswordResetFinishService {
   private readonly applicationConfigService = inject(ApplicationConfigService);
 
   save(key: string, newPassword: string): Observable<{}> {
-    return this.http.post(this.applicationConfigService.getEndpointFor('api/account/reset-password/finish'), { key, newPassword });
+    return this.http.post(
+      this.applicationConfigService.getEndpointFor(
+        'api/account/reset-password/finish',
+      ),
+      { key, newPassword },
+    );
   }
 }

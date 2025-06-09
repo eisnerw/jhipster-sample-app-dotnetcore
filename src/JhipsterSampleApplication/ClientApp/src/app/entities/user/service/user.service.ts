@@ -13,25 +13,38 @@ export type EntityArrayResponseType = HttpResponse<IUser[]>;
 @Injectable({ providedIn: 'root' })
 export class UserService {
   protected readonly http = inject(HttpClient);
-  protected readonly applicationConfigService = inject(ApplicationConfigService);
+  protected readonly applicationConfigService = inject(
+    ApplicationConfigService,
+  );
 
-  protected resourceUrl = this.applicationConfigService.getEndpointFor('api/users');
+  protected resourceUrl =
+    this.applicationConfigService.getEndpointFor('api/users');
 
   find(id: number): Observable<EntityResponseType> {
-    return this.http.get<IUser>(`${this.resourceUrl}/${id}`, { observe: 'response' });
+    return this.http.get<IUser>(`${this.resourceUrl}/${id}`, {
+      observe: 'response',
+    });
   }
 
   query(req?: any): Observable<EntityArrayResponseType> {
     const options = createRequestOption(req);
-    return this.http.get<IUser[]>(this.resourceUrl, { params: options, observe: 'response' });
+    return this.http.get<IUser[]>(this.resourceUrl, {
+      params: options,
+      observe: 'response',
+    });
   }
 
   getUserIdentifier(user: Pick<IUser, 'id'>): number {
     return user.id;
   }
 
-  compareUser(o1: Pick<IUser, 'id'> | null, o2: Pick<IUser, 'id'> | null): boolean {
-    return o1 && o2 ? this.getUserIdentifier(o1) === this.getUserIdentifier(o2) : o1 === o2;
+  compareUser(
+    o1: Pick<IUser, 'id'> | null,
+    o2: Pick<IUser, 'id'> | null,
+  ): boolean {
+    return o1 && o2
+      ? this.getUserIdentifier(o1) === this.getUserIdentifier(o2)
+      : o1 === o2;
   }
 
   addUserToCollectionIfMissing<Type extends Pick<IUser, 'id'>>(
@@ -40,8 +53,10 @@ export class UserService {
   ): Type[] {
     const users: Type[] = usersToCheck.filter(isPresent);
     if (users.length > 0) {
-      const userCollectionIdentifiers = userCollection.map(userItem => this.getUserIdentifier(userItem));
-      const usersToAdd = users.filter(userItem => {
+      const userCollectionIdentifiers = userCollection.map((userItem) =>
+        this.getUserIdentifier(userItem),
+      );
+      const usersToAdd = users.filter((userItem) => {
         const userIdentifier = this.getUserIdentifier(userItem);
         if (userCollectionIdentifiers.includes(userIdentifier)) {
           return false;

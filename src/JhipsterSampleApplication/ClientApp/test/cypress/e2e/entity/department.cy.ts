@@ -158,7 +158,10 @@ describe('Department e2e test', () => {
 
     it('should create an instance of Department', () => {
       cy.get(`[data-cy="departmentName"]`).type('now sideboard');
-      cy.get(`[data-cy="departmentName"]`).should('have.value', 'now sideboard');
+      cy.get(`[data-cy="departmentName"]`).should(
+        'have.value',
+        'now sideboard',
+      );
 
       cy.get(entityCreateSaveButtonSelector).click();
 

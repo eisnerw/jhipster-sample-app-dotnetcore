@@ -23,7 +23,12 @@ describe('Component Tests', () => {
     beforeEach(async () => {
       await TestBed.configureTestingModule({
         declarations: [SelectorUpdateComponent],
-        providers: [provideHttpClient(), provideHttpClientTesting(), FormBuilder, ActivatedRoute],
+        providers: [
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          FormBuilder,
+          ActivatedRoute,
+        ],
       })
         .overrideTemplate(SelectorUpdateComponent, '')
         .compileComponents();

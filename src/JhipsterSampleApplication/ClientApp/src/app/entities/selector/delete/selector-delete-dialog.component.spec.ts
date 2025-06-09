@@ -1,6 +1,12 @@
 jest.mock('@ng-bootstrap/ng-bootstrap');
 
-import { ComponentFixture, TestBed, inject, fakeAsync, tick } from '@angular/core/testing';
+import {
+  ComponentFixture,
+  TestBed,
+  inject,
+  fakeAsync,
+  tick,
+} from '@angular/core/testing';
 import { HttpResponse } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
@@ -40,7 +46,9 @@ describe('Component Tests', () => {
         [],
         fakeAsync(() => {
           // GIVEN
-          jest.spyOn(service, 'delete').mockReturnValue(of(new HttpResponse({})));
+          jest
+            .spyOn(service, 'delete')
+            .mockReturnValue(of(new HttpResponse({})));
 
           // WHEN
           comp.confirmDelete(123);

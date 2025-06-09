@@ -19,7 +19,13 @@ import { INamedQuery } from '../../named-query/named-query.model';
   standalone: true,
   selector: 'jhi-selector-update',
   templateUrl: './selector-update.component.html',
-  imports: [CommonModule, RouterModule, FontAwesomeModule, ReactiveFormsModule, SharedModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    FontAwesomeModule,
+    ReactiveFormsModule,
+    SharedModule,
+  ],
 })
 export class SelectorUpdateComponent implements OnInit {
   isSaving = false;
@@ -84,7 +90,9 @@ export class SelectorUpdateComponent implements OnInit {
     });
   }
 
-  protected subscribeToSaveResponse(result: Observable<HttpResponse<ISelector>>): void {
+  protected subscribeToSaveResponse(
+    result: Observable<HttpResponse<ISelector>>,
+  ): void {
     result.pipe(finalize(() => this.onSaveFinalize())).subscribe({
       next: () => this.onSaveSuccess(),
       error: () => this.onSaveError(),

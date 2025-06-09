@@ -10,7 +10,9 @@ export class ParseLinks {
   /**
    * Method to parse the links
    */
-  parseAll(header: string): Record<string, Record<string, string | undefined> | undefined> {
+  parseAll(
+    header: string,
+  ): Record<string, Record<string, string | undefined> | undefined> {
     if (header.length === 0) {
       throw new Error('input must not be of zero length');
     }
@@ -20,7 +22,7 @@ export class ParseLinks {
 
     // Parse each part into a named link
     return Object.fromEntries(
-      parts.map(p => {
+      parts.map((p) => {
         const section: string[] = p.split(';');
 
         if (section.length !== 2) {
@@ -30,12 +32,20 @@ export class ParseLinks {
         const url: string = section[0].replace(/<(.*)>/, '$1').trim(); // NOSONAR
         const queryString: Record<string, string> = {};
 
-        url.replace(/([^?=&]+)(=([^&]*))?/g, (_$0: string, $1: string | undefined, _$2: string | undefined, $3: string | undefined) => {
-          if ($1 !== undefined && $3 !== undefined) {
-            queryString[$1] = decodeURIComponent($3);
-          }
-          return $3 ?? '';
-        });
+        url.replace(
+          /([^?=&]+)(=([^&]*))?/g,
+          (
+            _$0: string,
+            $1: string | undefined,
+            _$2: string | undefined,
+            $3: string | undefined,
+          ) => {
+            if ($1 !== undefined && $3 !== undefined) {
+              queryString[$1] = decodeURIComponent($3);
+            }
+            return $3 ?? '';
+          },
+        );
 
         const name: string = section[1].replace(/rel="(.*)"/, '$1').trim();
         return [name, queryString];

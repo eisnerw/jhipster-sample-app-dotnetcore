@@ -13,10 +13,14 @@ export class LoginService {
   private readonly authServerProvider = inject(AuthServerProvider);
 
   login(credentials: Login): Observable<Account | null> {
-    return this.authServerProvider.login(credentials).pipe(mergeMap(() => this.accountService.identity(true)));
+    return this.authServerProvider
+      .login(credentials)
+      .pipe(mergeMap(() => this.accountService.identity(true)));
   }
 
   logout(): void {
-    this.authServerProvider.logout().subscribe({ complete: () => this.accountService.authenticate(null) });
+    this.authServerProvider
+      .logout()
+      .subscribe({ complete: () => this.accountService.authenticate(null) });
   }
 }

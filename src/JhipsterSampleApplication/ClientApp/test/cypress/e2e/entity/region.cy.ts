@@ -158,7 +158,10 @@ describe('Region e2e test', () => {
 
     it('should create an instance of Region', () => {
       cy.get(`[data-cy="regionName"]`).type('excepting clear geez');
-      cy.get(`[data-cy="regionName"]`).should('have.value', 'excepting clear geez');
+      cy.get(`[data-cy="regionName"]`).should(
+        'have.value',
+        'excepting clear geez',
+      );
 
       cy.get(entityCreateSaveButtonSelector).click();
 

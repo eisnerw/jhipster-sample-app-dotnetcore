@@ -5,7 +5,10 @@ import { CommonModule } from '@angular/common';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 
 import { Alert, AlertService } from 'app/core/util/alert.service';
-import { EventManager, EventWithContent } from 'app/core/util/event-manager.service';
+import {
+  EventManager,
+  EventWithContent,
+} from 'app/core/util/event-manager.service';
 import { AlertError } from './alert-error.model';
 
 @Component({
@@ -25,7 +28,8 @@ export class AlertErrorComponent implements OnDestroy {
     this.errorListener = this.eventManager.subscribe(
       'jhipsterSampleApplicationApp.error',
       (response: EventWithContent<unknown> | string) => {
-        const errorResponse = (response as EventWithContent<AlertError>).content;
+        const errorResponse = (response as EventWithContent<AlertError>)
+          .content;
         this.addErrorAlert(errorResponse.message);
       },
     );
@@ -60,7 +64,8 @@ export class AlertErrorComponent implements OnDestroy {
   }
 
   private handleHttpError(response: EventWithContent<unknown> | string): void {
-    const httpErrorResponse = (response as EventWithContent<HttpErrorResponse>).content;
+    const httpErrorResponse = (response as EventWithContent<HttpErrorResponse>)
+      .content;
     switch (httpErrorResponse.status) {
       // connection refused, server not reachable
       case 0:
@@ -91,10 +96,18 @@ export class AlertErrorComponent implements OnDestroy {
     }
     if (errorHeader) {
       this.addErrorAlert(errorHeader);
-    } else if (httpErrorResponse.error !== '' && httpErrorResponse.error.fieldErrors) {
+    } else if (
+      httpErrorResponse.error !== '' &&
+      httpErrorResponse.error.fieldErrors
+    ) {
       this.handleFieldsError(httpErrorResponse);
-    } else if (httpErrorResponse.error !== '' && httpErrorResponse.error.message) {
-      this.addErrorAlert(httpErrorResponse.error.detail ?? httpErrorResponse.error.message);
+    } else if (
+      httpErrorResponse.error !== '' &&
+      httpErrorResponse.error.message
+    ) {
+      this.addErrorAlert(
+        httpErrorResponse.error.detail ?? httpErrorResponse.error.message,
+      );
     } else {
       this.addErrorAlert(httpErrorResponse.error);
     }
@@ -102,7 +115,9 @@ export class AlertErrorComponent implements OnDestroy {
 
   private handleDefaultError(httpErrorResponse: HttpErrorResponse): void {
     if (httpErrorResponse.error !== '' && httpErrorResponse.error.message) {
-      this.addErrorAlert(httpErrorResponse.error.detail ?? httpErrorResponse.error.message);
+      this.addErrorAlert(
+        httpErrorResponse.error.detail ?? httpErrorResponse.error.message,
+      );
     } else {
       this.addErrorAlert(httpErrorResponse.error);
     }
@@ -111,12 +126,15 @@ export class AlertErrorComponent implements OnDestroy {
   private handleFieldsError(httpErrorResponse: HttpErrorResponse): void {
     const { fieldErrors } = httpErrorResponse.error;
     for (const fieldError of fieldErrors) {
-      if (['Min', 'Max', 'DecimalMin', 'DecimalMax'].includes(fieldError.message)) {
+      if (
+        ['Min', 'Max', 'DecimalMin', 'DecimalMax'].includes(fieldError.message)
+      ) {
         fieldError.message = 'Size';
       }
       // convert 'something[14].other[4].id' to 'something[].other[].id' so translations can be written to it
       const convertedField: string = fieldError.field.replace(/\[\d*\]/g, '[]');
-      const fieldName: string = convertedField.charAt(0).toUpperCase() + convertedField.slice(1);
+      const fieldName: string =
+        convertedField.charAt(0).toUpperCase() + convertedField.slice(1);
       this.addErrorAlert(`Error on field "${fieldName}"`);
     }
   }

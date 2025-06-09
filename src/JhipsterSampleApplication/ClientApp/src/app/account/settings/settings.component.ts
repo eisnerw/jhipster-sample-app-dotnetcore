@@ -1,5 +1,11 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormControl,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 
 import SharedModule from 'app/shared/shared.module';
 import { AccountService } from 'app/core/auth/account.service';
@@ -18,20 +24,35 @@ export default class SettingsComponent implements OnInit {
   settingsForm = new FormGroup({
     firstName: new FormControl(initialAccount.firstName, {
       nonNullable: true,
-      validators: [Validators.required, Validators.minLength(1), Validators.maxLength(50)],
+      validators: [
+        Validators.required,
+        Validators.minLength(1),
+        Validators.maxLength(50),
+      ],
     }),
     lastName: new FormControl(initialAccount.lastName, {
       nonNullable: true,
-      validators: [Validators.required, Validators.minLength(1), Validators.maxLength(50)],
+      validators: [
+        Validators.required,
+        Validators.minLength(1),
+        Validators.maxLength(50),
+      ],
     }),
     email: new FormControl(initialAccount.email, {
       nonNullable: true,
-      validators: [Validators.required, Validators.minLength(5), Validators.maxLength(254), Validators.email],
+      validators: [
+        Validators.required,
+        Validators.minLength(5),
+        Validators.maxLength(254),
+        Validators.email,
+      ],
     }),
     langKey: new FormControl(initialAccount.langKey, { nonNullable: true }),
 
     activated: new FormControl(initialAccount.activated, { nonNullable: true }),
-    authorities: new FormControl(initialAccount.authorities, { nonNullable: true }),
+    authorities: new FormControl(initialAccount.authorities, {
+      nonNullable: true,
+    }),
     imageUrl: new FormControl(initialAccount.imageUrl, { nonNullable: true }),
     login: new FormControl(initialAccount.login, { nonNullable: true }),
   });
@@ -39,7 +60,7 @@ export default class SettingsComponent implements OnInit {
   private readonly accountService = inject(AccountService);
 
   ngOnInit(): void {
-    this.accountService.identity().subscribe(account => {
+    this.accountService.identity().subscribe((account) => {
       if (account) {
         this.settingsForm.patchValue(account);
       }

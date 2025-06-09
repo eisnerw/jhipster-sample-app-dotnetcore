@@ -93,7 +93,10 @@ module.exports = async (config, options, targetOptions) => {
       globOptions: { ignore: ['**/index.html'] },
     },
     {
-      from: path.join(path.dirname(require.resolve('axios/package.json')), 'dist/axios.min.js'),
+      from: path.join(
+        path.dirname(require.resolve('axios/package.json')),
+        'dist/axios.min.js',
+      ),
       to: 'swagger-ui/',
     },
     { from: './src/swagger-ui/', to: 'swagger-ui/' },

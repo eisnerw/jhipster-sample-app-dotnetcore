@@ -10,14 +10,23 @@ import SharedModule from 'app/shared/shared.module';
 
 import { INamedQuery } from '../named-query.model';
 import { NamedQueryService } from '../service/named-query.service';
-import { NamedQueryFormService, NamedQueryFormGroup } from './named-query-form.service';
+import {
+  NamedQueryFormService,
+  NamedQueryFormGroup,
+} from './named-query-form.service';
 import { AccountService } from 'app/core/auth/account.service';
 
 @Component({
   standalone: true,
   selector: 'jhi-named-query-update',
   templateUrl: './named-query-update.component.html',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, FontAwesomeModule, SharedModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    FontAwesomeModule,
+    SharedModule,
+  ],
 })
 export class NamedQueryUpdateComponent implements OnInit {
   isSaving = false;
@@ -36,7 +45,7 @@ export class NamedQueryUpdateComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.accountService.identity().subscribe(account => {
+    this.accountService.identity().subscribe((account) => {
       if (account) {
         this.isAdmin = this.accountService.hasAnyAuthority('ROLE_ADMIN');
       }
@@ -45,14 +54,17 @@ export class NamedQueryUpdateComponent implements OnInit {
     this.activatedRoute.data
       .pipe(
         map(({ namedQuery }) => namedQuery as INamedQuery),
-        switchMap(namedQuery => {
+        switchMap((namedQuery) => {
           this.namedQuery = namedQuery;
-          this.editForm = this.namedQueryFormService.createNamedQueryFormGroup(namedQuery);
-          const formNamedQuery = this.namedQueryFormService.getNamedQuery(this.editForm);
+          this.editForm =
+            this.namedQueryFormService.createNamedQueryFormGroup(namedQuery);
+          const formNamedQuery = this.namedQueryFormService.getNamedQuery(
+            this.editForm,
+          );
           return of(formNamedQuery as INamedQuery);
         }),
       )
-      .subscribe(namedQuery => {
+      .subscribe((namedQuery) => {
         this.updateForm(namedQuery);
       });
   }
@@ -71,7 +83,9 @@ export class NamedQueryUpdateComponent implements OnInit {
     }
   }
 
-  protected subscribeToSaveResponse(result: Observable<HttpResponse<INamedQuery>>): void {
+  protected subscribeToSaveResponse(
+    result: Observable<HttpResponse<INamedQuery>>,
+  ): void {
     result.pipe(finalize(() => this.onSaveFinalize())).subscribe({
       next: () => this.onSaveSuccess(),
       error: () => this.onSaveError(),

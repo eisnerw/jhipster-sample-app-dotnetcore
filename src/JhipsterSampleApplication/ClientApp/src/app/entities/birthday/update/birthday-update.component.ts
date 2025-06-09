@@ -54,7 +54,9 @@ export class BirthdayUpdateComponent implements OnInit {
     }
   }
 
-  protected subscribeToSaveResponse(result: Observable<HttpResponse<IBirthday>>): void {
+  protected subscribeToSaveResponse(
+    result: Observable<HttpResponse<IBirthday>>,
+  ): void {
     result.pipe(finalize(() => this.onSaveFinalize())).subscribe({
       next: () => this.onSaveSuccess(),
       error: () => this.onSaveError(),

@@ -8,7 +8,10 @@ export class SortService {
     sensitivity: 'base',
   });
 
-  public startSort({ predicate, order }: Required<SortState>, fallback?: Required<SortState>): (a: any, b: any) => number {
+  public startSort(
+    { predicate, order }: Required<SortState>,
+    fallback?: Required<SortState>,
+  ): (a: any, b: any) => number {
     const multiply = order === 'desc' ? -1 : 1;
     return (a: any, b: any) => {
       const compare = this.collator.compare(a[predicate], b[predicate]);
@@ -29,7 +32,10 @@ export class SortService {
     return { predicate: sortParam?.length ? sortParam : undefined };
   }
 
-  public buildSortParam({ predicate, order }: SortState, fallback?: string): string[] {
+  public buildSortParam(
+    { predicate, order }: SortState,
+    fallback?: string,
+  ): string[] {
     const sortParam = predicate && order ? [`${predicate},${order}`] : [];
     if (fallback && predicate !== fallback) {
       sortParam.push(`${fallback},asc`);

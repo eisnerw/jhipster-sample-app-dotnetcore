@@ -7,7 +7,9 @@ import { mergeMap } from 'rxjs/operators';
 import { ISelector } from '../selector.model';
 import { SelectorService } from '../service/selector.service';
 
-const selectorResolve = (route: ActivatedRouteSnapshot): Observable<null | ISelector> => {
+const selectorResolve = (
+  route: ActivatedRouteSnapshot,
+): Observable<null | ISelector> => {
   const id = route.params.id;
   if (id) {
     return inject(SelectorService)

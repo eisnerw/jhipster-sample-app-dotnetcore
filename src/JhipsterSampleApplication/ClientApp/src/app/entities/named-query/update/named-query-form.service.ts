@@ -14,7 +14,9 @@ export type NamedQueryFormGroup = FormGroup<NamedQueryFormGroupContent>;
 
 @Injectable({ providedIn: 'root' })
 export class NamedQueryFormService {
-  createNamedQueryFormGroup(namedQuery: NamedQueryFormGroupInput = { id: null }): NamedQueryFormGroup {
+  createNamedQueryFormGroup(
+    namedQuery: NamedQueryFormGroupInput = { id: null },
+  ): NamedQueryFormGroup {
     const namedQueryRawValue = {
       ...this.getFormDefaults(),
       ...namedQuery,
@@ -45,7 +47,10 @@ export class NamedQueryFormService {
     return form.getRawValue() as INamedQuery | NewNamedQuery;
   }
 
-  resetForm(form: NamedQueryFormGroup, namedQuery: NamedQueryFormGroupInput): void {
+  resetForm(
+    form: NamedQueryFormGroup,
+    namedQuery: NamedQueryFormGroupInput,
+  ): void {
     const namedQueryRawValue = { ...this.getFormDefaults(), ...namedQuery };
     form.reset(
       {

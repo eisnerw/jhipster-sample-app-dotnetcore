@@ -1,6 +1,12 @@
 jest.mock('app/core/auth/account.service');
 
-import { Component, ElementRef, WritableSignal, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  WritableSignal,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { TestBed, waitForAsync } from '@angular/core/testing';
 
@@ -30,7 +36,10 @@ describe('HasAnyAuthorityDirective tests', () => {
 
   beforeEach(() => {
     mockAccountService = TestBed.inject(AccountService);
-    currentAccount = signal<Account | null>({ activated: true, authorities: [] } as any);
+    currentAccount = signal<Account | null>({
+      activated: true,
+      authorities: [],
+    } as any);
     mockAccountService.trackCurrentAccount = jest.fn(() => currentAccount);
   });
 
@@ -38,7 +47,9 @@ describe('HasAnyAuthorityDirective tests', () => {
     it('should show restricted content to user if user has required role', () => {
       // GIVEN
       mockAccountService.hasAnyAuthority = jest.fn(() => true);
-      const fixture = TestBed.createComponent(TestHasAnyAuthorityDirectiveComponent);
+      const fixture = TestBed.createComponent(
+        TestHasAnyAuthorityDirectiveComponent,
+      );
       const comp = fixture.componentInstance;
       fixture.detectChanges();
 
@@ -52,7 +63,9 @@ describe('HasAnyAuthorityDirective tests', () => {
     it('should not show restricted content to user if user has not required role', () => {
       // GIVEN
       mockAccountService.hasAnyAuthority = jest.fn(() => false);
-      const fixture = TestBed.createComponent(TestHasAnyAuthorityDirectiveComponent);
+      const fixture = TestBed.createComponent(
+        TestHasAnyAuthorityDirectiveComponent,
+      );
       const comp = fixture.componentInstance;
       fixture.detectChanges();
 
@@ -67,8 +80,12 @@ describe('HasAnyAuthorityDirective tests', () => {
   describe('change authorities', () => {
     it('should show or not show restricted content correctly if user authorities are changing', () => {
       // GIVEN
-      mockAccountService.hasAnyAuthority = jest.fn((): boolean => Boolean(currentAccount()));
-      const fixture = TestBed.createComponent(TestHasAnyAuthorityDirectiveComponent);
+      mockAccountService.hasAnyAuthority = jest.fn((): boolean =>
+        Boolean(currentAccount()),
+      );
+      const fixture = TestBed.createComponent(
+        TestHasAnyAuthorityDirectiveComponent,
+      );
       const comp = fixture.componentInstance;
       fixture.detectChanges();
 

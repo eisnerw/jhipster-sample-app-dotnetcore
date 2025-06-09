@@ -17,7 +17,15 @@ import { NgIf } from '@angular/common';
   standalone: true,
   selector: 'jhi-view',
   templateUrl: './view.component.html',
-  imports: [SharedModule, RouterModule, FormsModule, SortDirective, SortByDirective, FontAwesomeModule, NgIf],
+  imports: [
+    SharedModule,
+    RouterModule,
+    FormsModule,
+    SortDirective,
+    SortByDirective,
+    FontAwesomeModule,
+    NgIf,
+  ],
 })
 export class ViewComponent implements OnInit {
   views: IView[] | null = null;
@@ -54,7 +62,10 @@ export class ViewComponent implements OnInit {
   }
 
   delete(view: IView): void {
-    const modalRef = this.modalService.open(ViewDeleteDialogComponent, { size: 'lg', backdrop: 'static' });
+    const modalRef = this.modalService.open(ViewDeleteDialogComponent, {
+      size: 'lg',
+      backdrop: 'static',
+    });
     modalRef.componentInstance.view = view;
     modalRef.closed.subscribe((reason: string) => {
       if (reason === 'deleted') {
@@ -64,7 +75,9 @@ export class ViewComponent implements OnInit {
   }
 
   protected sort(): string[] {
-    const result = [(this.sortState.predicate ?? '') + ',' + (this.sortState.order ?? 'asc')];
+    const result = [
+      (this.sortState.predicate ?? '') + ',' + (this.sortState.order ?? 'asc'),
+    ];
     if (this.sortState.predicate !== 'id') {
       result.push('id');
     }
@@ -72,11 +85,15 @@ export class ViewComponent implements OnInit {
   }
 
   protected onResponseSuccess(response: EntityArrayResponseType): void {
-    const dataFromBody = this.fillComponentAttributesFromResponseBody(response.body);
+    const dataFromBody = this.fillComponentAttributesFromResponseBody(
+      response.body,
+    );
     this.views = this.refill(dataFromBody);
   }
 
-  protected fillComponentAttributesFromResponseBody(data: IView[] | null): IView[] {
+  protected fillComponentAttributesFromResponseBody(
+    data: IView[] | null,
+  ): IView[] {
     return data ?? [];
   }
 

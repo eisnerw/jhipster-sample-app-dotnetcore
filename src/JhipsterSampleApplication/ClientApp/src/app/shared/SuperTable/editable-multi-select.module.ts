@@ -1,5 +1,8 @@
 import { NgModule } from '@angular/core';
-import { EditableMultiSelectComponent, MultiSelectItemComponent } from './editable-multi-select.component';
+import {
+  EditableMultiSelectComponent,
+  MultiSelectItemComponent,
+} from './editable-multi-select.component';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';

@@ -35,11 +35,17 @@ describe('sort state', () => {
       expect(sortParam).toEqual([]);
     });
     it('should accept object with predicate and asc value', () => {
-      const sortParam = service.buildSortParam({ predicate: 'column', order: 'asc' });
+      const sortParam = service.buildSortParam({
+        predicate: 'column',
+        order: 'asc',
+      });
       expect(sortParam).toEqual(['column,asc']);
     });
     it('should accept object with predicate and desc value', () => {
-      const sortParam = service.buildSortParam({ predicate: 'column', order: 'desc' });
+      const sortParam = service.buildSortParam({
+        predicate: 'column',
+        order: 'desc',
+      });
       expect(sortParam).toEqual(['column,desc']);
     });
   });

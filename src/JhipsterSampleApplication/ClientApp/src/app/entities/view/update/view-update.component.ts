@@ -14,7 +14,15 @@ import { HttpResponse } from '@angular/common/http';
   imports: [SharedModule, RouterModule, FormsModule],
 })
 export class ViewUpdateComponent implements OnInit {
-  view: IView = { name: '', field: '', aggregation: '', query: '', categoryQuery: '', script: '', domain: 'birthdays' };
+  view: IView = {
+    name: '',
+    field: '',
+    aggregation: '',
+    query: '',
+    categoryQuery: '',
+    script: '',
+    domain: 'birthdays',
+  };
   isSaving = false;
   views: IView[] = [];
 
