@@ -130,7 +130,7 @@ export class BirthdayComponent implements OnInit {
     this.loadPage();
   }
 
-  clearFilters(table: Table, searchInput: HTMLInputElement): void {
+  clearFilters(table: any, searchInput: HTMLInputElement): void {
     searchInput.value = '';
     table.reset();
     Object.keys(this.expandedRows).forEach((key) => {
