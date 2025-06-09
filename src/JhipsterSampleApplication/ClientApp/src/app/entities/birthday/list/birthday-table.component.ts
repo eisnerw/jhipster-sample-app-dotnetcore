@@ -99,7 +99,7 @@ export class BirthdayTableComponent implements OnInit, OnDestroy {
   ) {}
 
   getTableStyle(stdiv: HTMLDivElement):object{
-    if (this.parent && this.parent.displayingAsCategories){
+    if (this.superTableParent && this.superTableParent.displayingAsCategories){
       return {};
     }
     const screenHeight = window.innerHeight;

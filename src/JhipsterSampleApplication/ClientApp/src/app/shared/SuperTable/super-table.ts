@@ -4,12 +4,11 @@ import { NgModule, Component, HostListener, OnInit, OnDestroy, AfterViewInit, Di
     Input, Output, EventEmitter, ElementRef, NgZone, ChangeDetectorRef, OnChanges, ChangeDetectionStrategy, ViewEncapsulation, Renderer2, Inject, PLATFORM_ID} from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { SharedModule, PrimeNGConfig, FilterService, OverlayService } from 'primeng/api';
+import { SharedModule, FilterService, OverlayService } from 'primeng/api';
 import { PaginatorModule } from 'primeng/paginator';
 import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
 import { SelectButtonModule } from 'primeng/selectbutton';
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox';
 import { CalendarModule } from 'primeng/calendar';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { DropdownModule } from 'primeng/dropdown';
@@ -18,7 +17,7 @@ import { Injectable } from '@angular/core';
 import { BlockableUI } from 'primeng/api';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import {trigger,style,transition,animate} from '@angular/animations';
-import { Table } from 'primeng/table'
+import { Table, EditableRow } from 'primeng/table'
 import { TableService } from 'primeng/table';
 import { TableBody } from 'primeng/table';
 import { ColumnFilter } from 'primeng/table';
@@ -425,9 +424,8 @@ import { TableState } from 'primeng/api';
         outline: 0 none;
     }    `]
 })
-export class SuperTable extends Table implements OnInit, AfterViewInit, AfterContentInit, BlockableUI, OnChanges {
-
-    @Input() parent: SuperTable | null = null;
+export class SuperTable extends Table implements OnInit, AfterViewInit, AfterContentInit, BlockableUI, OnChanges {    
+    @Input() superTableParent: SuperTable | null = null;
 
     @Input() frozenColumns = [];
 
@@ -467,7 +465,7 @@ export class SuperTable extends Table implements OnInit, AfterViewInit, AfterCon
     filteringGlobal = false;
     
     constructor (@Inject(DOCUMENT) document: Document, @Inject(PLATFORM_ID) platformId: any, renderer: Renderer2, el: ElementRef, zone: NgZone, tableService: TableService, cd: ChangeDetectorRef, filterService: FilterService, overlayService: OverlayService){
-        super(document, platformId, renderer, el, zone, tableService, cd, filterService, overlayService,);
+        super();
     }
 
     @Input() get value(): any[] {
@@ -479,13 +477,13 @@ export class SuperTable extends Table implements OnInit, AfterViewInit, AfterCon
 
     ngOnInit(): any {
         super.ngOnInit();
-        if (this.parent !== null){
-            this.parent.children.push(this);
+        if (this.superTableParent !== null){
+            this.superTableParent.children.push(this);
             const child = this;
-            const parent = this.parent;
+            const superTableParent = this.superTableParent;
             setTimeout(function() : void{
                 let state: TableState = {};
-                parent.saveColumnWidths(state);
+                superTableParent.saveColumnWidths(state);
                 (child.columnWidthsState as any) = state.columnWidths;
                 child.restoreColumnWidths();
             }, 0);
@@ -495,9 +493,9 @@ export class SuperTable extends Table implements OnInit, AfterViewInit, AfterCon
 
     ngOnChanges(simpleChange: any): any{
         super.ngOnChanges(simpleChange);
-        if (this.parent !== null){
-            this._selection = this.parent?._selection;
-            this.selectionKeys = this.parent?.selectionKeys;
+        if (this.superTableParent !== null){
+            this._selection = this.superTableParent?._selection;
+            this.selectionKeys = this.superTableParent?.selectionKeys;
         }
     }
 
@@ -543,7 +541,7 @@ export class SuperTable extends Table implements OnInit, AfterViewInit, AfterCon
     }
 
     filter(value: any, field: string, matchMode: string) {
-        if (this.parent === null && !(field === "global" || this.displayingAsCategories)){
+        if (this.superTableParent === null && !(field === "global" || this.displayingAsCategories)){
             if (!this.isFilterBlank(value)) {
                 this.filters[field] = { value: value, matchMode: matchMode };
             } else if (this.filters[field]) {
@@ -692,7 +690,7 @@ export class SuperTableBody extends TableBody implements OnDestroy {
 
     @Input("pTableBodyTemplate") template: any;
     @Input() get value(): any[] {
-        return this._value;
+        return this._value || [];
     }
     set value(val: any[]) {
         this._value = val;
@@ -773,11 +771,10 @@ export class SuperSortIcon extends SortIcon implements OnInit, OnDestroy {
     }
 })
 export class SuperSelectableRow extends SelectableRow implements OnInit, OnDestroy {
-
     @Input("super-selectable-row") data: any;
 
-    constructor(public dt: SuperTable, public tableService: TableService) {
-        super(dt, tableService);
+    constructor(public dt: SuperTable, public tableService: TableService, public el: ElementRef) {
+        super(dt, tableService, el);
     }
 
     ngOnInit() {
@@ -864,23 +861,6 @@ export class SuperEditableColumn extends EditableColumn implements AfterViewInit
     ngAfterViewInit() {
         super.ngAfterViewInit();
     }
-}
-
-@Directive({
-    selector: '[pEditableRow]'
-})
-export class EditableRow {
-
-    @Input("pEditableRow") data: any;
-
-    @Input() pEditableRowDisabled= false;
-
-    constructor(public el: ElementRef) {}
-
-    isEnabled() {
-        return this.pEditableRowDisabled !== true;
-    }
-
 }
 
 @Directive({
@@ -1003,16 +983,16 @@ export class SuperTableCheckbox extends TableCheckbox  {
 
     onClick(event: Event) {
         const dt = this.dt;
-        if (dt.parent !== null){
-            // perform the change using rows selected in the parent
-            dt.selection = dt.parent.selection;
-            dt.selectionKeys = dt.parent.selectionKeys;
+        if (dt.superTableParent !== null){
+            // perform the change using rows selected in the superTableParent
+            dt.selection = dt.superTableParent.selection;
+            dt.selectionKeys = dt.superTableParent.selectionKeys;
         }
         super.onClick(event);
-        let topParent = dt.parent;
+        let topParent = dt.superTableParent;
         if (topParent !== null){
-            while (topParent.parent){
-                topParent = topParent.parent;
+            while (topParent.superTableParent){
+                topParent = topParent.superTableParent;
             }
             // insure the parent sees the change
             topParent.selection = dt.selection;
@@ -1096,7 +1076,7 @@ export class SuperReorderableRow extends ReorderableRow implements AfterViewInit
                 <p-inputNumber *ngSwitchCase="'numeric'" [ngModel]="filterConstraint?.value" (ngModelChange)="onModelChange($event)" (onKeyDown)="onNumericInputKeyDown($event)" [showButtons]="true"
                     [minFractionDigits]="minFractionDigits" [maxFractionDigits]="maxFractionDigits" [prefix]="prefix" [suffix]="suffix" [placeholder]="placeholder"
                     [mode]="currency ? 'currency' : 'decimal'" [locale]="locale" [localeMatcher]="localeMatcher" [currency]="currency" [currencyDisplay]="currencyDisplay" [useGrouping]="useGrouping"></p-inputNumber>
-                <p-triStateCheckbox *ngSwitchCase="'boolean'" [ngModel]="filterConstraint?.value" (ngModelChange)="onModelChange($event)"></p-triStateCheckbox>
+                <p-checkbox *ngSwitchCase="'boolean'" [ngModel]="filterConstraint?.value" (ngModelChange)="onModelChange($event)" [binary]="false"></p-checkbox>
                 <p-calendar *ngSwitchCase="'date'" [placeholder]="placeholder" [ngModel]="filterConstraint?.value" (ngModelChange)="onModelChange($event)"></p-calendar>
             </ng-container>
         </ng-template>
@@ -1189,8 +1169,8 @@ export class SuperColumnFilterFormElement extends ColumnFilterFormElement implem
     encapsulation: ViewEncapsulation.None
 })
 export class SuperColumnFilter extends ColumnFilter implements AfterContentInit {
-    constructor(@Inject(DOCUMENT) document: Document, el: ElementRef, dt: SuperTable, renderer: Renderer2, config: PrimeNGConfig, overlayService: OverlayService) {
-        super(document, el, dt, renderer, config, overlayService,);
+    constructor(@Inject(DOCUMENT) document: Document, el: ElementRef, dt: SuperTable, renderer: Renderer2, overlayService: OverlayService) {
+        super();
     }
 
     ngAfterContentInit() {
@@ -1198,10 +1178,10 @@ export class SuperColumnFilter extends ColumnFilter implements AfterContentInit 
     }
 }
 @NgModule({
-    imports: [CommonModule,PaginatorModule,InputTextModule,DropdownModule,ScrollingModule,FormsModule,ButtonModule,SelectButtonModule,CalendarModule,InputNumberModule,TriStateCheckboxModule],
+    imports: [CommonModule,PaginatorModule,InputTextModule,DropdownModule,ScrollingModule,FormsModule,ButtonModule,SelectButtonModule,CalendarModule,InputNumberModule],
     exports: [SuperTable,SharedModule,SuperSortableColumn,SuperSelectableRow,SuperRowToggler,SuperContextMenuRow,SuperResizableColumn,SuperReorderableColumn,SuperEditableColumn,SuperCellEditor,SuperSortIcon,
-            SuperTableRadioButton,SuperTableCheckbox,SuperTableHeaderCheckbox,ReorderableRowHandle,SuperReorderableRow,EditableRow,InitEditableRow,SaveEditableRow,CancelEditableRow,ScrollingModule,SuperColumnFilter],
+            SuperTableRadioButton,SuperTableCheckbox,SuperTableHeaderCheckbox,ReorderableRowHandle,SuperReorderableRow,InitEditableRow,SaveEditableRow,CancelEditableRow,ScrollingModule,SuperColumnFilter],
     declarations: [SuperTable,SuperSortableColumn,SuperSelectableRow,SuperRowToggler,SuperContextMenuRow,SuperResizableColumn,SuperReorderableColumn,SuperEditableColumn,SuperCellEditor,SuperTableBody,SuperSortIcon,
-            SuperTableRadioButton,SuperTableCheckbox,SuperTableHeaderCheckbox,ReorderableRowHandle,SuperReorderableRow,EditableRow,InitEditableRow,SaveEditableRow,CancelEditableRow,SuperColumnFilter,SuperColumnFilterFormElement]
+            SuperTableRadioButton,SuperTableCheckbox,SuperTableHeaderCheckbox,ReorderableRowHandle,SuperReorderableRow,InitEditableRow,SaveEditableRow,CancelEditableRow,SuperColumnFilter,SuperColumnFilterFormElement,EditableRow]
 })
 export class SuperTableModule { }

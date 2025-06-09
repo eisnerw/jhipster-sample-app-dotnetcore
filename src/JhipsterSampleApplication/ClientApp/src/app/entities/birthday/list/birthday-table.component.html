@@ -19,7 +19,7 @@
       (onRowCollapse)="onExpandChange(false)"
       (selectionChange)="onCheckboxChange()" 
       (onContextMenuSelect)="setMenu(contextSelectedRow)"
-      [parent] = "parent"
+      [superTableParent] = "superTableParent"
     >
       <ng-template pTemplate="header">
         <tr [style.visibility]="hideHeader ? 'collapse' : 'visible'">
@@ -84,7 +84,7 @@
     </super-table>
   </ng-container>
   <p-scrollTop
-    target="parent"
+    target="superTableParent"
     icon="pi pi-arrow-up"
   ></p-scrollTop>
   <p-dialog header="Categorize {{birthdayDialogTitle}}" [(visible)]="bDisplayCategories" >
