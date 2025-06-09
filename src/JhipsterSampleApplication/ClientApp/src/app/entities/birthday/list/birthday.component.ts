@@ -22,13 +22,21 @@ import { IBirthday } from '../birthday.model';
 import { BirthdayDeleteDialogComponent } from '../delete/birthday-delete-dialog.component';
 import { SortDirective, SortByDirective } from 'app/shared/sort';
 import SharedModule from 'app/shared/shared.module';
+import { SuperTable } from '../../../shared/SuperTable/super-table';
 
 @Component({
   selector: 'jhi-birthday',
   templateUrl: './birthday.component.html',
   schemas: [NO_ERRORS_SCHEMA],
   providers: [MessageService, ConfirmationService],
-  imports: [CommonModule, FormsModule, RouterModule, SharedModule, DatePipe],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    SharedModule,
+    DatePipe,
+    SuperTable,
+  ],
   standalone: true,
 })
 export class BirthdayComponent implements OnInit {
@@ -46,6 +54,13 @@ export class BirthdayComponent implements OnInit {
   ascending!: boolean;
   ngbPaginationPage = 1;
   superTableParent = 'superTableParent';
+  columns = [
+    { field: 'lname', header: 'Name' },
+    { field: 'fname', header: 'First' },
+    { field: 'dob', header: 'Date of Birth' },
+    { field: 'sign', header: 'Sign' },
+    { field: 'isAlive', header: 'Alive?' },
+  ];
 
   // New properties for super-table
   rowData = new Observable<IBirthday[]>();

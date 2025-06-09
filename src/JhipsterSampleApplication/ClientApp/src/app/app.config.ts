@@ -22,6 +22,9 @@ import routes from './app.routes';
 // jhipster-needle-angular-add-module-import JHipster will add new module here
 import { NgbDateDayjsAdapter } from './config/datepicker-adapter';
 import { AppPageTitleStrategy } from './app-page-title-strategy';
+// PrimeNG theming setup
+import { providePrimeNG } from 'primeng/config';
+import Aura from '@primeng/themes/aura';
 
 const routerFeatures: RouterFeatures[] = [
   withComponentInputBinding(),
@@ -42,6 +45,7 @@ if (environment.DEBUG_INFO_ENABLED) {
   routerFeatures.push(withDebugTracing());
 }
 
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes, ...routerFeatures),
@@ -54,6 +58,13 @@ export const appConfig: ApplicationConfig = {
     { provide: NgbDateAdapter, useClass: NgbDateDayjsAdapter },
     httpInterceptorProviders,
     { provide: TitleStrategy, useClass: AppPageTitleStrategy },
+    // PrimeNG theming provider
+    providePrimeNG({
+      theme: {
+        preset: Aura
+      },
+      ripple: true
+    }),    
     // jhipster-needle-angular-add-module JHipster will add new module here
   ],
 };

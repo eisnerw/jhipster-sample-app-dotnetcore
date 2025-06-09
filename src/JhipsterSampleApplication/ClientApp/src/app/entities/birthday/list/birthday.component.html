@@ -11,11 +11,11 @@
     <p-contextMenu #contextMenu [model]="menuItems" (mouseleave)="onContextMenuMouseLeave()" appendTo="body"></p-contextMenu>
     <p-confirmPopup></p-confirmPopup>
     <p-messages></p-messages>
-    <super-table #birthdays [value]="birthday" 
+    <super-table #birthdays [value]="birthday" [columns]="columns"
       [resizableColumns]="true" 
       [globalFilterFields]="['lname', 'fname', 'sign']" 
       dataKey="id" 
-      [(contextMenuSelection)]="contextSelectedRow" 
+      [(contextSelectedRow)]="contextSelectedRow" 
       [contextMenu]="contextMenu"
       selectionMode="multiple" 
       [(selection)]="checkboxSelectedRows"
@@ -58,43 +58,46 @@
         </span>
       </div>
     </ng-template>
-    <ng-template pTemplate="header">
-        <tr>
-          <th style="width: 2rem">
-            <super-tableHeaderCheckbox></super-tableHeaderCheckbox>
-          </th>
-          <th super-ResizableColumn [super-SortableColumn]="'lname'">
-            <div class="p-d-flex p-jc-between p-ai-center">
-              Name
-              <super-sortIcon [field]="'lname'"></super-sortIcon>
-              <super-columnFilter type="text" field="lname" display="menu"></super-columnFilter>
-            </div>
-          </th>
-          <th super-ResizableColumn [super-SortableColumn]="'fname'">
-            <div class="p-d-flex p-jc-between p-ai-center">
-              First
-              <super-sortIcon [field]="'fname'"></super-sortIcon>
-              <super-columnFilter type="text" field="fname" display="menu"></super-columnFilter>
-            </div>
-          </th>
-          <th super-ResizableColumn [super-SortableColumn]="'dob'">
-            <div class="p-d-flex p-jc-between p-ai-center">
-              Date of Birth
-              <super-sortIcon [field]="'dob'"></super-sortIcon>
-              <super-columnFilter type="date" field="dob" display="menu"></super-columnFilter>
-            </div>
-          </th>
-          <th super-ResizableColumn [super-SortableColumn]="'sign'">
-            <div class="p-d-flex p-jc-between p-ai-center">
-              Sign
-              <super-sortIcon [field]="'sign'"></super-sortIcon>
-              <super-columnFilter type="text" field="sign" display="menu"></super-columnFilter>
-            </div>
-          </th>
-          <th>Alive?</th>
-          <th style="width:25px;font-weight: 700;"><span class="p-button-icon pi pi-chevron-right" aria-hidden="true"></span></th>
-        </tr>
-      </ng-template>
+    <ng-template #customHeader pTemplate="header">
+      <tr>
+        <th style="width: 2rem">
+          <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
+        </th>
+        <th pResizableColumn pSortableColumn="lname">
+          <div class="p-d-flex p-jc-between p-ai-center">
+            Name
+            <p-sortIcon field="lname"></p-sortIcon>
+            <p-columnFilter type="text" field="lname" display="menu"></p-columnFilter>
+          </div>
+        </th>
+        <th pResizableColumn pSortableColumn="fname">
+          <div class="p-d-flex p-jc-between p-ai-center">
+            First
+            <p-sortIcon field="fname"></p-sortIcon>
+            <p-columnFilter type="text" field="fname" display="menu"></p-columnFilter>
+          </div>
+        </th>
+        <th pResizableColumn pSortableColumn="dob">
+          <div class="p-d-flex p-jc-between p-ai-center">
+            Date of Birth
+            <p-sortIcon field="dob"></p-sortIcon>
+            <p-columnFilter type="date" field="dob" display="menu"></p-columnFilter>
+          </div>
+        </th>
+        <th pResizableColumn pSortableColumn="sign">
+          <div class="p-d-flex p-jc-between p-ai-center">
+            Sign
+            <p-sortIcon field="sign"></p-sortIcon>
+            <p-columnFilter type="text" field="sign" display="menu"></p-columnFilter>
+          </div>
+        </th>
+        <th>Alive?</th>
+        <th style="width:25px;font-weight: 700;">
+          <span class="p-button-icon pi pi-chevron-right" aria-hidden="true"></span>
+        </th>
+      </tr>
+    </ng-template>
+    
       <ng-template pTemplate="body" let-birthday let-expanded="expanded">
         <tr [super-ContextMenuRow]="birthday">
           <td><super-tableCheckbox [value]="birthday"></super-tableCheckbox></td>
