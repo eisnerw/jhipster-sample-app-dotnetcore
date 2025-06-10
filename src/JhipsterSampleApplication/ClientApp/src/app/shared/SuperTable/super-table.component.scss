@@ -1,0 +1,23 @@
+:host ::ng-deep {
+  .p-button.p-button-text.p-button-rounded.p-button-plain {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    .p-button-icon {
+      font-size: 1rem;
+      color: var(--text-color);
+    }
+
+    &:hover {
+      background: var(--surface-hover);
+    }
+  }
+
+  .pi {
+    font-family: "PrimeIcons" !important;
+  }
+} 

@@ -6,6 +6,7 @@ import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { CheckboxModule } from 'primeng/checkbox';
+import { RippleModule } from 'primeng/ripple';
 
 export interface ColumnConfig {
   field: string;
@@ -20,12 +21,14 @@ export interface ColumnConfig {
   selector: 'super-table',
   standalone: true,
   templateUrl: './super-table.component.html',
+  styleUrl: './super-table.component.scss',
   imports: [
     CommonModule,
     TableModule,
     ButtonModule,
     TooltipModule,
     CheckboxModule,
+    RippleModule,
   ],
 })
 export class SuperTable {
