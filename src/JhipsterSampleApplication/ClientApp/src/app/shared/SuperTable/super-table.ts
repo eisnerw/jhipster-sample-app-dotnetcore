@@ -55,8 +55,21 @@ export class SuperTable {
     @Output() onContextMenuSelect = new EventEmitter<any>();
     @Output() onColResize = new EventEmitter<any>();
 
+    isRowExpanded(row: any): boolean {
+      const key = row.id || row.key || JSON.stringify(row);
+      return this.expandedRowKeys[key] === true;
+    }
+
     toggleRow(row: any) {
       const key = row.id || row.key || JSON.stringify(row);
-      this.expandedRowKeys[key] = !this.expandedRowKeys[key];
+      const isExpanded = this.isRowExpanded(row);
+      
+      if (isExpanded) {
+        delete this.expandedRowKeys[key];
+        this.onRowCollapse.emit(row);
+      } else {
+        this.expandedRowKeys[key] = true;
+        this.onRowExpand.emit(row);
+      }
     }
 }

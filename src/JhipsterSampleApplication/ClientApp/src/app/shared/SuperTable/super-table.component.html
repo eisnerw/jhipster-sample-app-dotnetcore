@@ -37,7 +37,7 @@
       </th>
     </tr>
   </ng-template>
-  <ng-template pTemplate="body" let-rowData let-columns="columns" let-expanded="expanded">
+  <ng-template pTemplate="body" let-rowData let-columns="columns">
     <tr>
       <td *ngFor="let col of columns">
         <ng-container [ngSwitch]="col.type">
@@ -45,7 +45,7 @@
           <span *ngSwitchCase="'data'">{{ rowData[col.field] }}</span>
           <button *ngSwitchCase="'expander'"
                   pButton 
-                  [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                  [icon]="isRowExpanded(rowData) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
                   (click)="toggleRow(rowData)"
                   class="p-button-text p-button-rounded p-button-plain"
                   style="width: 2rem; height: 2rem; padding: 0;">
