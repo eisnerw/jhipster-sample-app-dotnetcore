@@ -20,6 +20,7 @@ import {
   provideHttpClient,
   withInterceptorsFromDi,
 } from '@angular/common/http';
+import { provideAnimations } from '@angular/platform-browser/animations';
 
 import { NgbDateAdapter } from '@ng-bootstrap/ng-bootstrap';
 
@@ -62,6 +63,7 @@ export const appConfig: ApplicationConfig = {
       ServiceWorkerModule.register('ngsw-worker.js', { enabled: false }),
     ),
     provideHttpClient(withInterceptorsFromDi()),
+    provideAnimations(),
     Title,
     { provide: LOCALE_ID, useValue: 'en' },
     { provide: NgbDateAdapter, useClass: NgbDateDayjsAdapter },
