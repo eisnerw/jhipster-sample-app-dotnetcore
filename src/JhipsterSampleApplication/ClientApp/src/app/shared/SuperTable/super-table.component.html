@@ -4,6 +4,10 @@
   [columns]="columns"
   dataKey="id"
   [expandedRowKeys]="expandedRowKeys"
+  [resizableColumns]="resizableColumns"
+  [reorderableColumns]="reorderableColumns"
+  [scrollable]="scrollable"
+  [paginator]="paginator"
   (onColResize)="onColResize.emit($event)"
   (onRowExpand)="onRowExpand.emit($event)"
   (onRowCollapse)="onRowCollapse.emit($event)">
