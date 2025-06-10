@@ -1,9 +1,20 @@
 /* eslint-disable */ 
 
-import { Component, Input, Output, EventEmitter,ContentChild, TemplateRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ContentChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
+import { CheckboxModule } from 'primeng/checkbox';
+
+export interface ColumnConfig {
+  field: string;
+  header: string;
+  filterType?: 'text' | 'date' | 'numeric' | 'boolean';
+  width?: string;
+  style?: string;
+  type?: 'checkbox' | 'expander' | 'data';
+}
 
 @Component({
   selector: 'super-table',
@@ -12,12 +23,14 @@ import { ButtonModule } from 'primeng/button';
   imports: [
     CommonModule,
     TableModule,
-    ButtonModule
-  ]
+    ButtonModule,
+    TooltipModule,
+    CheckboxModule,
+  ],
 })
 export class SuperTable {
     @Input() value: any[] = [];
-    @Input() columns: any[] = [];
+    @Input() columns: ColumnConfig[] = [];
     @Input() resizableColumns = false;
     @Input() reorderableColumns = false;
     @Input() scrollable = false;
@@ -39,8 +52,8 @@ export class SuperTable {
     @Output() onContextMenuSelect = new EventEmitter<any>();
     @Output() onColResize = new EventEmitter<any>();
 
-  toggleRow(row: any) {
-    const key = row.id || row.key || JSON.stringify(row);
-    this.expandedRowKeys[key] = !this.expandedRowKeys[key];
-  }
+    toggleRow(row: any) {
+      const key = row.id || row.key || JSON.stringify(row);
+      this.expandedRowKeys[key] = !this.expandedRowKeys[key];
+    }
 }

@@ -22,7 +22,10 @@ import { IBirthday } from '../birthday.model';
 import { BirthdayDeleteDialogComponent } from '../delete/birthday-delete-dialog.component';
 import { SortDirective, SortByDirective } from 'app/shared/sort';
 import SharedModule from 'app/shared/shared.module';
-import { SuperTable } from '../../../shared/SuperTable/super-table';
+import {
+  SuperTable,
+  ColumnConfig,
+} from '../../../shared/SuperTable/super-table';
 
 @Component({
   selector: 'jhi-birthday',
@@ -54,12 +57,51 @@ export class BirthdayComponent implements OnInit {
   ascending!: boolean;
   ngbPaginationPage = 1;
   superTableParent = 'superTableParent';
-  columns = [
-    { field: 'lname', header: 'Name' },
-    { field: 'fname', header: 'First' },
-    { field: 'dob', header: 'Date of Birth' },
-    { field: 'sign', header: 'Sign' },
-    { field: 'isAlive', header: 'Alive?' },
+  columns: ColumnConfig[] = [
+    {
+      field: 'checkbox',
+      header: '',
+      type: 'checkbox',
+      width: '2rem',
+    },
+    {
+      field: 'lname',
+      header: 'Name',
+      filterType: 'text',
+      width: '200px',
+      type: 'data',
+    },
+    {
+      field: 'fname',
+      header: 'First',
+      filterType: 'text',
+      type: 'data',
+    },
+    {
+      field: 'dob',
+      header: 'Date of Birth',
+      filterType: 'date',
+      type: 'data',
+    },
+    {
+      field: 'sign',
+      header: 'Sign',
+      filterType: 'text',
+      type: 'data',
+    },
+    {
+      field: 'isAlive',
+      header: 'Alive?',
+      filterType: 'boolean',
+      type: 'data',
+    },
+    {
+      field: 'expander',
+      header: '',
+      type: 'expander',
+      width: '25px',
+      style: 'font-weight: 700;',
+    },
   ];
 
   // New properties for super-table

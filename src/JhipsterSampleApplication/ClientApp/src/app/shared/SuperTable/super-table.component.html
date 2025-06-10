@@ -10,24 +10,43 @@
   <ng-template pTemplate="header" let-columns>
     <tr>
       <th *ngFor="let col of columns"
-          pSortableColumn="{{ col.field }}"
+          [pSortableColumn]="col.type === 'data' ? col.field : null"
           pResizableColumn
-      >
-        {{ col.header }}
-        <p-sortIcon [field]="col.field"></p-sortIcon>
-        <p-columnFilter [field]="col.field" display="menu"></p-columnFilter>
+          [style.width]="col.width"
+          [style]="col.style">
+        <div class="p-d-flex p-jc-between p-ai-center">
+          {{ col.header }}
+          <ng-container [ngSwitch]="col.type">
+            <ng-container *ngSwitchCase="'data'">
+              <p-sortIcon [field]="col.field"></p-sortIcon>
+              <p-columnFilter *ngIf="col.filterType" 
+                            [field]="col.field" 
+                            [type]="col.filterType" 
+                            display="menu">
+              </p-columnFilter>
+            </ng-container>
+            <p-tableHeaderCheckbox *ngSwitchCase="'checkbox'"></p-tableHeaderCheckbox>
+            <span *ngSwitchCase="'expander'" class="p-button-icon pi pi-chevron-right" aria-hidden="true"></span>
+          </ng-container>
+        </div>
       </th>
     </tr>
   </ng-template>
   <ng-template pTemplate="body" let-rowData let-columns="columns" let-expanded="expanded">
     <tr>
-      <td>
-        <button pButton icon="pi pi-chevron-down"
-                (click)="toggleRow(rowData)"
-                [ngClass]="{ 'rotated': expanded }">
-        </button>
+      <td *ngFor="let col of columns">
+        <ng-container [ngSwitch]="col.type">
+          <p-tableCheckbox *ngSwitchCase="'checkbox'" [value]="rowData"></p-tableCheckbox>
+          <span *ngSwitchCase="'data'">{{ rowData[col.field] }}</span>
+          <button *ngSwitchCase="'expander'"
+                  pButton 
+                  icon="pi pi-chevron-down"
+                  (click)="toggleRow(rowData)"
+                  [ngClass]="{ 'rotated': expanded }"
+                  class="p-button-text p-button-rounded p-button-plain">
+          </button>
+        </ng-container>
       </td>
-      <td *ngFor="let col of columns">{{ rowData[col.field] }}</td>
     </tr>
   </ng-template>
 
@@ -51,7 +70,6 @@
         (selectionChange)="selectionChange.emit($event)"
         (onContextMenuSelect)="onContextMenuSelect.emit($event)"
     >
-
       <ng-template pTemplate="body" let-detail>
         <tr>
           <td>{{ detail.label }}: {{ detail.value }}</td>
