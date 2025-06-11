@@ -8,6 +8,8 @@ import { TooltipModule } from 'primeng/tooltip';
 import { CheckboxModule } from 'primeng/checkbox';
 import { RippleModule } from 'primeng/ripple';
 import { Table } from 'primeng/table';
+import { MultiSelectModule } from 'primeng/multiselect';
+import { FormsModule } from '@angular/forms';
 
 export interface ColumnConfig {
   field: string;
@@ -15,8 +17,9 @@ export interface ColumnConfig {
   filterType?: 'text' | 'date' | 'numeric' | 'boolean';
   width?: string;
   style?: string;
-  type?: 'checkbox' | 'expander' | 'string' | 'date';
+  type?: 'checkbox' | 'expander' | 'string' | 'date' | 'boolean' | 'list';
   dateFormat?: string;
+  listOptions?: { label: string; value: string }[];
 }
 
 @Component({
@@ -31,6 +34,8 @@ export interface ColumnConfig {
     TooltipModule,
     CheckboxModule,
     RippleModule,
+    MultiSelectModule,
+    FormsModule,
   ],
 })
 export class SuperTable {
@@ -72,4 +77,13 @@ export class SuperTable {
     onRowCollapse(event: any) {
       delete this.expandedRowKeys[event.data.id];
     }    
+
+    filterList(event: any, field: string): void {
+      const selectedValues = event.value.map((item: any) => item.value);
+      if (selectedValues.length === 0) {
+        this.pTable.filter(null, field, 'in');
+      } else {
+        this.pTable.filter(selectedValues, field, 'in');
+      }
+    }
 }

@@ -14,7 +14,7 @@
   <ng-template pTemplate="header" let-columns>
     <tr>
       <th *ngFor="let col of columns"
-          [pSortableColumn]="col.type === 'string' || col.type === 'date' ? col.field : null"
+          [pSortableColumn]="col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list' ? col.field : null"
           pResizableColumn
           [style.width]="col.width"
           [style]="col.style">
@@ -37,6 +37,35 @@
                             display="menu">
               </p-columnFilter>
             </ng-container>
+            <ng-container *ngSwitchCase="'boolean'">
+              <p-sortIcon [field]="col.field"></p-sortIcon>
+              <p-columnFilter *ngIf="col.filterType" 
+                            [field]="col.field" 
+                            [type]="col.filterType" 
+                            display="menu">
+              </p-columnFilter>
+            </ng-container>
+            <ng-container *ngSwitchCase="'list'">
+              <p-sortIcon [field]="col.field"></p-sortIcon>
+              <p-columnFilter [field]="col.field" 
+                            matchMode="in" 
+                            display="menu" 
+                            [showMatchModes]="false" 
+                            [showOperator]="false" 
+                            [showAddButton]="false">
+                <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                  <p-multiselect [options]="col.listOptions"
+                              placeholder="Any" 
+                              (onChange)="filterList($event, col.field)" 
+                              optionLabel="label"
+                              [style]="{ 'min-width': '14rem' }" 
+                              [panelStyle]="{ 'min-width': '16rem' }"
+                              [showToggleAll]="true"
+                              [showClear]="true">
+                  </p-multiselect>
+                </ng-template>
+              </p-columnFilter>
+            </ng-container>
             <p-tableHeaderCheckbox *ngSwitchCase="'checkbox'"></p-tableHeaderCheckbox>
             <span *ngSwitchCase="'expander'"></span>
           </ng-container>
@@ -51,6 +80,8 @@
           <p-tableCheckbox *ngSwitchCase="'checkbox'" [value]="rowData" dataKey="id"></p-tableCheckbox>
           <span *ngSwitchCase="'string'">{{ rowData[col.field] }}</span>
           <span *ngSwitchCase="'date'">{{ rowData[col.field] | date: (col.dateFormat || 'MM/dd/yyyy') }}</span>
+          <span *ngSwitchCase="'boolean'">{{ rowData[col.field] ? 'Yes' : 'No' }}</span>
+          <span *ngSwitchCase="'list'">{{ rowData[col.field] }}</span>
           <button *ngSwitchCase="'expander'"
                   pButton 
                   [icon]="isRowExpanded(rowData) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
