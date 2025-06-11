@@ -1,17 +1,16 @@
 <!-- super-table.component.html -->
-<p-table
+<p-table #pTable
   [value]="value"
   [columns]="columns"
   dataKey="id"
-  [expandedRowKeys]="expandedRowKeys"
   [resizableColumns]="resizableColumns"
   [reorderableColumns]="reorderableColumns"
   [scrollable]="scrollable"
   [paginator]="paginator"
   expandableRow
-  (onColResize)="onColResize.emit($event)"
-  (onRowExpand)="onRowExpand.emit($event)"
-  (onRowCollapse)="onRowCollapse.emit($event)">
+  [expandedRowKeys]="expandedRowKeys"
+  (onRowExpand)="onRowExpand($event)"
+  (onRowCollapse)="onRowCollapse($event)">
   <ng-template pTemplate="header" let-columns>
     <tr>
       <th *ngFor="let col of columns"
@@ -41,12 +40,12 @@
     <tr>
       <td *ngFor="let col of columns">
         <ng-container [ngSwitch]="col.type">
-          <p-tableCheckbox *ngSwitchCase="'checkbox'" [value]="rowData"></p-tableCheckbox>
+          <p-tableCheckbox *ngSwitchCase="'checkbox'" [value]="rowData" dataKey="id"></p-tableCheckbox>
           <span *ngSwitchCase="'data'">{{ rowData[col.field] }}</span>
           <button *ngSwitchCase="'expander'"
                   pButton 
                   [icon]="isRowExpanded(rowData) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                  (click)="toggleRow(rowData)"
+                  [pRowToggler]="rowData"
                   class="p-button-text p-button-rounded p-button-plain"
                   style="width: 2rem; height: 2rem; padding: 0;">
           </button>
@@ -54,36 +53,12 @@
       </td>
     </tr>
   </ng-template>
-
-  <ng-template pTemplate="rowexpansion" let-rowData>
-    <div class="p-3">
-      <h5>Details for {{ rowData.lname }}, {{ rowData.fname }}</h5>
-      <div class="p-grid">
-        <div class="p-col-12 p-md-6">
-          <div class="p-field">
-            <label>Name:</label>
-            <span>{{ rowData.lname }}, {{ rowData.fname }}</span>
-          </div>
-        </div>
-        <div class="p-col-12 p-md-6">
-          <div class="p-field">
-            <label>Date of Birth:</label>
-            <span>{{ rowData.dob | date }}</span>
-          </div>
-        </div>
-        <div class="p-col-12 p-md-6">
-          <div class="p-field">
-            <label>Sign:</label>
-            <span>{{ rowData.sign }}</span>
-          </div>
-        </div>
-        <div class="p-col-12 p-md-6">
-          <div class="p-field">
-            <label>Status:</label>
-            <span>{{ rowData.isAlive ? 'Alive' : 'Deceased' }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+  <ng-template #expandedrow let-rowData>
+    <tr>
+      <td colspan="6">
+        <span style="color: red">EXPANDED ROW!</span><br />
+        {{ rowData.fname }} {{ rowData.lname }}
+      </td>
+    </tr>
   </ng-template>
 </p-table>

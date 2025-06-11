@@ -1,12 +1,13 @@
 /* eslint-disable */ 
 
-import { Component, Input, Output, EventEmitter, ContentChild, TemplateRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ContentChild, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { CheckboxModule } from 'primeng/checkbox';
 import { RippleModule } from 'primeng/ripple';
+import { Table } from 'primeng/table';
 
 export interface ColumnConfig {
   field: string;
@@ -47,10 +48,12 @@ export class SuperTable {
     @Input() expandedRowKeys: { [key: string]: boolean } = {};
     @Input() superTableParent: any;
 
+    @ViewChild('pTable') pTable!: Table;
+
     @ContentChild('customHeader', { read: TemplateRef }) headerTemplate?: TemplateRef<any>;   
     
-    @Output() onRowExpand = new EventEmitter<any>();
-    @Output() onRowCollapse = new EventEmitter<any>();
+    //@Output() onRowExpand = new EventEmitter<any>();
+    //@Output() onRowCollapse = new EventEmitter<any>();
     @Output() selectionChange = new EventEmitter<any>();
     @Output() onContextMenuSelect = new EventEmitter<any>();
     @Output() onColResize = new EventEmitter<any>();
@@ -59,17 +62,12 @@ export class SuperTable {
       const key = row.id || row.key || JSON.stringify(row);
       return this.expandedRowKeys[key] === true;
     }
-
-    toggleRow(row: any) {
-      const key = row.id || row.key || JSON.stringify(row);
-      const isExpanded = this.isRowExpanded(row);
-      
-      if (isExpanded) {
-        delete this.expandedRowKeys[key];
-        this.onRowCollapse.emit(row);
-      } else {
-        this.expandedRowKeys[key] = true;
-        this.onRowExpand.emit(row);
-      }
+    onRowExpand(event: { originalEvent: Event, data: any }) {
+      console.log('Expanded:', event.data);
+      this.expandedRowKeys[event.data.id] = true;
     }
+  
+    onRowCollapse(event: any) {
+      delete this.expandedRowKeys[event.data.id];
+    }    
 }

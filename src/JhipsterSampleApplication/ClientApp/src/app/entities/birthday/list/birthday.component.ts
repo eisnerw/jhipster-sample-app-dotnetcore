@@ -1,3 +1,5 @@
+/* eslint-disable */ 
+
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -16,6 +18,7 @@ import { ContextMenu, ContextMenuModule } from 'primeng/contextmenu';
 import { Table } from 'primeng/table';
 import { Menu } from 'primeng/menu';
 import { DatePipe } from '@angular/common';
+import { TableModule } from 'primeng/table';
 
 import { BirthdayService } from '../service/birthday.service';
 import { IBirthday } from '../birthday.model';
@@ -39,6 +42,7 @@ import {
     SharedModule,
     DatePipe,
     SuperTable,
+    TableModule,
   ],
   standalone: true,
 })
@@ -104,6 +108,18 @@ export class BirthdayComponent implements OnInit {
     },
   ];
 
+  expandedRowKeys: { [key: string]: boolean } = {};
+
+  onRowExpand(event: { originalEvent: Event, data: any }) {
+    console.log('Expanded:', event.data);
+    this.expandedRowKeys[event.data.id] = true;
+  }
+
+  onRowCollapse(event: any) {
+    delete this.expandedRowKeys[event.data.id];
+  }
+
+
   // New properties for super-table
   rowData = new Observable<IBirthday[]>();
   menuItems: MenuItem[] = [
@@ -149,7 +165,7 @@ export class BirthdayComponent implements OnInit {
   contextSelectedRow: IBirthday | null = null;
   checkboxSelectedRows: IBirthday[] = [];
   chipSelectedRows: IBirthday[] = [];
-  expandedRows: Record<string, boolean> = {};
+
   bDisplaySearchDialog = false;
   bDisplayBirthday = false;
   birthdayDialogTitle = '';
@@ -190,9 +206,11 @@ export class BirthdayComponent implements OnInit {
   clearFilters(table: any, searchInput: HTMLInputElement): void {
     searchInput.value = '';
     table.reset();
+    /*
     Object.keys(this.expandedRows).forEach((key) => {
       this.expandedRows[key] = false;
     });
+    */
     table.filterGlobal(searchInput.value, 'contains');
   }
 

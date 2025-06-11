@@ -19,9 +19,7 @@
       [contextMenu]="contextMenu"
       selectionMode="multiple" 
       [(selection)]="checkboxSelectedRows"
-      [expandedRowKeys]="expandedRows"
-      (onRowExpand)="onExpandChange(true)" 
-      (onRowCollapse)="onExpandChange(false)"
+
       (selectionChange)="onCheckboxChange()" 
       (onContextMenuSelect)="setMenu(contextSelectedRow)"
       [superTableParent] = "superTableParent"
@@ -112,14 +110,13 @@
           </td>          
         </tr>
       </ng-template>
-      <ng-template pTemplate="rowexpansion" let-birthday>
-        <td></td>
-        <td colspan="6">
-          <h3>{{ birthday.fname }} {{birthday.lname}}</h3>
-          <iframe style="width:100%; height:100%;" 
-          [src]= "sanitizer.bypassSecurityTrustResourceUrl('api/birthdays/text/'+birthday.elasticId)">"
-          </iframe>
-        </td>
+      <ng-template #expandedrow let-rowData>
+        <tr>
+          <td colspan="6">
+            <span style="color: red">EXPANDED ROW!</span><br />
+            {{ rowData.fname }} {{ rowData.lname }}
+          </td>
+        </tr>
       </ng-template>
     </super-table>
   </ng-container>
