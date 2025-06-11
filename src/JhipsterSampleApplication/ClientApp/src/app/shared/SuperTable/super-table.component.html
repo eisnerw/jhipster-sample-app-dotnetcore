@@ -14,14 +14,22 @@
   <ng-template pTemplate="header" let-columns>
     <tr>
       <th *ngFor="let col of columns"
-          [pSortableColumn]="col.type === 'data' ? col.field : null"
+          [pSortableColumn]="col.type === 'string' || col.type === 'date' ? col.field : null"
           pResizableColumn
           [style.width]="col.width"
           [style]="col.style">
         <div class="p-d-flex p-jc-between p-ai-center">
           {{ col.header }}
           <ng-container [ngSwitch]="col.type">
-            <ng-container *ngSwitchCase="'data'">
+            <ng-container *ngSwitchCase="'string'">
+              <p-sortIcon [field]="col.field"></p-sortIcon>
+              <p-columnFilter *ngIf="col.filterType" 
+                            [field]="col.field" 
+                            [type]="col.filterType" 
+                            display="menu">
+              </p-columnFilter>
+            </ng-container>
+            <ng-container *ngSwitchCase="'date'">
               <p-sortIcon [field]="col.field"></p-sortIcon>
               <p-columnFilter *ngIf="col.filterType" 
                             [field]="col.field" 
@@ -41,7 +49,8 @@
       <td *ngFor="let col of columns">
         <ng-container [ngSwitch]="col.type">
           <p-tableCheckbox *ngSwitchCase="'checkbox'" [value]="rowData" dataKey="id"></p-tableCheckbox>
-          <span *ngSwitchCase="'data'">{{ rowData[col.field] }}</span>
+          <span *ngSwitchCase="'string'">{{ rowData[col.field] }}</span>
+          <span *ngSwitchCase="'date'">{{ rowData[col.field] | date: (col.dateFormat || 'MM/dd/yyyy') }}</span>
           <button *ngSwitchCase="'expander'"
                   pButton 
                   [icon]="isRowExpanded(rowData) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"

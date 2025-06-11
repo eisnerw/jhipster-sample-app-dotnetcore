@@ -15,7 +15,8 @@ export interface ColumnConfig {
   filterType?: 'text' | 'date' | 'numeric' | 'boolean';
   width?: string;
   style?: string;
-  type?: 'checkbox' | 'expander' | 'data';
+  type?: 'checkbox' | 'expander' | 'string' | 'date';
+  dateFormat?: string;
 }
 
 @Component({
