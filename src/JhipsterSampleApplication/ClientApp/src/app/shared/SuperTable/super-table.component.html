@@ -54,10 +54,14 @@
     </tr>
   </ng-template>
   <ng-template #expandedrow let-rowData>
+    <ng-container *ngTemplateOutlet="expandedRowTemplate || defaultExpandedRow; context: { $implicit: rowData }"></ng-container>
+  </ng-template>
+  <ng-template #defaultExpandedRow let-rowData>
     <tr>
-      <td colspan="6">
-        <span style="color: red">EXPANDED ROW!</span><br />
-        {{ rowData.fname }} {{ rowData.lname }}
+      <td [attr.colspan]="columns.length">
+        <div class="p-p-3">
+          <p>No expanded row template provided</p>
+        </div>
       </td>
     </tr>
   </ng-template>

@@ -50,7 +50,8 @@ export class SuperTable {
 
     @ViewChild('pTable') pTable!: Table;
 
-    @ContentChild('customHeader', { read: TemplateRef }) headerTemplate?: TemplateRef<any>;   
+    @ContentChild('customHeader', { read: TemplateRef }) headerTemplate?: TemplateRef<any>;
+    @ContentChild('expandedRow', { read: TemplateRef, static: true }) expandedRowTemplate?: TemplateRef<any>;
     
     //@Output() onRowExpand = new EventEmitter<any>();
     //@Output() onRowCollapse = new EventEmitter<any>();

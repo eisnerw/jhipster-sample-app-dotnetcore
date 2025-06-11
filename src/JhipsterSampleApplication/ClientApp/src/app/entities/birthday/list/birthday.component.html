@@ -19,102 +19,42 @@
       [contextMenu]="contextMenu"
       selectionMode="multiple" 
       [(selection)]="checkboxSelectedRows"
-
       (selectionChange)="onCheckboxChange()" 
       (onContextMenuSelect)="setMenu(contextSelectedRow)"
-      [superTableParent] = "superTableParent"
-    >
-    <ng-template pTemplate="caption">
-      <div class="p-d-flex">
-        <button pButton class="p-button-outlined" style="margin-top:9px; height: 20px; width: 20px;" icon="pi pi-refresh" (click)="refreshData()"></button>
-        &nbsp;
-        <button pButton label="Clear" style="margin-left: 9px;" class="p-button-outlined" icon="pi pi-filter-slash" (click)="clearFilters(birthdays, searchInput)"></button>
-        <span *ngIf="checkboxSelectedRows.length > 2" style="font-weight: 100; padding-top: 10px;"><i>&nbsp;&nbsp;&nbsp;Too many rows selected {{checkboxSelectedRows.length}}</i></span>
-        <span *ngIf="chipSelectedRows.length > 0">
-          <p-menu #menu [popup]="true" [model]="menuItems" (onShow)="onMenuShow($event, chips)" appendTo="body"></p-menu>
-          <p-chips #chips pRipple
-            [(ngModel)]="chipSelectedRows" 
-            (onRemove)="onRemoveChip($event)" 
-            (onChipClick)="onChipClick($event)" 
-          >
-            <ng-template let-item pTemplate="item">
-              <span  (mouseover)="setMenu(item);showMenu($event)" >
-                {{item.fname}} {{item.lname}}<span style="display: none;">{{item.id}}</span>
-              </span>
-            </ng-template>
-          </p-chips>
-        </span>
-        <span class="p-input-icon-left p-ml-auto">
-          <i class="pi pi-search"></i>
-          <input
-            #searchInput
-            pInputText
-            type="text"
-            (input)="birthdaysTable.filterGlobal($any($event.target).value, 'contains')"
-            placeholder="Search keyword"
-          />
-        </span>
-      </div>
-    </ng-template>
-    <ng-template #customHeader pTemplate="header">
-      <tr>
-        <th style="width: 2rem">
-          <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
-        </th>
-        <th pResizableColumn pSortableColumn="lname">
-          <div class="p-d-flex p-jc-between p-ai-center">
-            Name
-            <p-sortIcon field="lname"></p-sortIcon>
-            <p-columnFilter type="text" field="lname" display="menu"></p-columnFilter>
-          </div>
-        </th>
-        <th pResizableColumn pSortableColumn="fname">
-          <div class="p-d-flex p-jc-between p-ai-center">
-            First
-            <p-sortIcon field="fname"></p-sortIcon>
-            <p-columnFilter type="text" field="fname" display="menu"></p-columnFilter>
-          </div>
-        </th>
-        <th pResizableColumn pSortableColumn="dob">
-          <div class="p-d-flex p-jc-between p-ai-center">
-            Date of Birth
-            <p-sortIcon field="dob"></p-sortIcon>
-            <p-columnFilter type="date" field="dob" display="menu"></p-columnFilter>
-          </div>
-        </th>
-        <th pResizableColumn pSortableColumn="sign">
-          <div class="p-d-flex p-jc-between p-ai-center">
-            Sign
-            <p-sortIcon field="sign"></p-sortIcon>
-            <p-columnFilter type="text" field="sign" display="menu"></p-columnFilter>
-          </div>
-        </th>
-        <th>Alive?</th>
-        <th style="width:25px;font-weight: 700;">
-          <span class="p-button-icon pi pi-chevron-right" aria-hidden="true"></span>
-        </th>
-      </tr>
-    </ng-template>
-    
-      <ng-template pTemplate="body" let-birthday let-expanded="expanded">
-        <tr [super-ContextMenuRow]="birthday">
-          <td><super-tableCheckbox [value]="birthday"></super-tableCheckbox></td>
-          <td #tt pTooltip="{{ birthday.lname }}" [tooltipDisabled]='false' style="text-overflow: ellipsis;overflow: hidden;white-space: nowrap;">{{ birthday.lname }}</td>
-          <td>{{ birthday.fname }}</td>
-          <td>{{ birthday.dob | date: 'MM/dd/yyyy' }}</td>
-          <td>{{ birthday.sign }}</td>
-          <td *ngIf="birthday.isAlive">Yes</td>
-          <td *ngIf="!birthday.isAlive">No</td>
-          <td>
-            <button type="button" style="width:2rem" pButton pRipple [super-RowToggler]="birthday" class="p-button-text p-button-rounded p-button-plain" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></button>
-          </td>          
-        </tr>
-      </ng-template>
-      <ng-template #expandedrow let-rowData>
+      [superTableParent] = "superTableParent">
+      
+      <ng-template #expandedRow let-rowData>
         <tr>
-          <td colspan="6">
-            <span style="color: red">EXPANDED ROW!</span><br />
-            {{ rowData.fname }} {{ rowData.lname }}
+          <td [attr.colspan]="columns.length">
+            <div class="p-p-3">
+              <h5>Details for {{ rowData.lname }}, {{ rowData.fname }}</h5>
+              <div class="p-grid">
+                <div class="p-col-12 p-md-6">
+                  <div class="p-field">
+                    <label>Name:</label>
+                    <span>{{ rowData.lname }}, {{ rowData.fname }}</span>
+                  </div>
+                </div>
+                <div class="p-col-12 p-md-6">
+                  <div class="p-field">
+                    <label>Date of Birth:</label>
+                    <span>{{ rowData.dob | date }}</span>
+                  </div>
+                </div>
+                <div class="p-col-12 p-md-6">
+                  <div class="p-field">
+                    <label>Sign:</label>
+                    <span>{{ rowData.sign }}</span>
+                  </div>
+                </div>
+                <div class="p-col-12 p-md-6">
+                  <div class="p-field">
+                    <label>Status:</label>
+                    <span>{{ rowData.isAlive ? 'Alive' : 'Deceased' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </td>
         </tr>
       </ng-template>
