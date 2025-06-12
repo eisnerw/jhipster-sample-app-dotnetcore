@@ -45,12 +45,35 @@ public class Startup : IStartup
 
         // Add ElasticSearch services
         var elasticsearchSettings = configuration.GetSection("Elasticsearch").Get<ElasticsearchSettings>();
-        var settings = new ConnectionSettings(new Uri(elasticsearchSettings.Url))
-            .BasicAuthentication(elasticsearchSettings.Username, elasticsearchSettings.Password)
-            .DefaultIndex(elasticsearchSettings.DefaultIndex);
-        var client = new ElasticClient(settings);
-        services.AddSingleton<IElasticClient>(client);
+        bool useBonsai = configuration.GetValue<bool>("Elasticsearch:UseBonsai");
+        string url = useBonsai ? configuration.GetValue<string>("Bonsai:Url")! : configuration.GetValue<string>("Elasticsearch:Url")!;
+        string username = useBonsai ? configuration.GetValue<string>("Bonsai:Username")! : configuration.GetValue<string>("Elasticsearch:Username")!;
+        string password = useBonsai ? configuration.GetValue<string>("Bonsai:Password")! : configuration.GetValue<string>("Elasticsearch:Password")!;
+        string defaultIndex = configuration.GetValue<string>("Elasticsearch:DefaultIndex")!;    
 
+        var node = new Uri(url);
+        var settings = new ConnectionSettings(node).DefaultIndex(defaultIndex);
+        bool bDebugging = false;
+        if (bDebugging)
+        {
+            // Enable debugging for Elasticsearch
+            settings = settings.EnableDebugMode()
+                .DisableDirectStreaming()
+                .PrettyJson()
+                .MaximumRetries(2)
+                .RequestTimeout(TimeSpan.FromMinutes(2))
+                .DisablePing();
+        }
+        if (useBonsai && !string.IsNullOrEmpty(username))
+        {
+            settings = settings.BasicAuthentication(username, password);
+        }
+        var client = new ElasticClient(settings);
+        var SearchResponse = client.Search<Birthday>(s => s
+            .Query(q => q.MatchAll())
+        );
+        Console.WriteLine($"Got {SearchResponse.Hits.Count} hits");    
+        services.AddSingleton<IElasticClient>(client);
         services.AddScoped<IViewRepository, ViewRepository>();
         services.AddScoped<IViewService, ViewService>();
         services.AddScoped<ViewInitializationService>();

@@ -89,6 +89,7 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] int from = 0,
             [FromQuery] int pageSize = 20,
             [FromQuery] string? sort = null,
+            [FromQuery] string? pitId = null,
             [FromQuery] bool includeWikipedia = false,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
@@ -104,7 +105,7 @@ namespace JhipsterSampleApplication.Controllers
             JObject queryObject = new JObject(
                 new JProperty("query_string", queryStringObject)
             );
-            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory);
+            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory, pitId);
         }
 
         /// <summary>
@@ -142,7 +143,8 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] bool includeWikipedia = false,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
-            [FromQuery] string? secondaryCategory = null)
+            [FromQuery] string? secondaryCategory = null,
+            [FromQuery] string? pitId = null)
         {
            if (!string.IsNullOrEmpty(view))
             {   
@@ -217,7 +219,7 @@ namespace JhipsterSampleApplication.Controllers
             
             searchRequest.Query = new QueryContainerDescriptor<Birthday>().Raw(elasticsearchQuery.ToString());
             searchRequest.Sort = sortDescriptor;
-            var response = await _birthdayService.SearchAsync(searchRequest);
+            var response = await _birthdayService.SearchAsync(searchRequest, pitId);
 
             var birthdayDtos = new List<BirthdayDto>();
             foreach (var hit in response.Hits)

@@ -10,6 +10,10 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
 using JhipsterSampleApplication.Dto;
+using System.Threading;
+using System.IO;
+using System.Text;
+using System.Collections.Specialized;
 
 namespace JhipsterSampleApplication.Domain.Services;
 
@@ -41,8 +45,24 @@ public class BirthdayService : IBirthdayService
     /// </summary>
     /// <param name="request">The search request to execute</param>
     /// <returns>The search response containing Birthday documents</returns>
-    public async Task<ISearchResponse<Birthday>> SearchAsync(ISearchRequest request)
+    public async Task<ISearchResponse<Birthday>> SearchAsync(ISearchRequest request, string? pitId = null) 
     {
+        if (pitId == null)
+        {
+            var pitResponse = await _elasticClient.OpenPointInTimeAsync(new OpenPointInTimeRequest(IndexName)
+            {
+                KeepAlive = "2m" // Set the keep-alive duration for the PIT
+            });
+            if (false && !pitResponse.IsValid) // TODO: Remove this check when PIT is stable
+            {
+                throw new Exception($"Failed to open point in time: {pitResponse.DebugInformation}");
+            }
+            pitId = pitResponse.Id;
+        }
+        if (pitId != null)
+        {
+            request.PointInTime = new PointInTime(pitId);
+        }
         var response = await _elasticClient.SearchAsync<Birthday>(request);
         if (!response.IsValid){
             throw new Exception(response.DebugInformation);

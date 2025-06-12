@@ -9,7 +9,7 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
 {
     public interface IGenericElasticSearchService<T> where T : class
     {
-        Task<ISearchResponse<T>> SearchAsync(ISearchRequest request);
+        Task<ISearchResponse<T>> SearchAsync(ISearchRequest request, string? pitId = null);
         Task<IndexResponse> IndexAsync(T document);
         Task<UpdateResponse<T>> UpdateAsync(string id, T document);
         Task<DeleteResponse> DeleteAsync(string id);
