@@ -1,0 +1,32 @@
+✅ Step 1: Download and install dependencies
+
+sudo apt update
+sudo apt install -y apt-transport-https wget gnupg
+
+✅ Step 2: Import Elasticsearch GPG key
+
+wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/elastic.gpg
+
+✅ Step 3: Add Elasticsearch 7.x repository
+
+echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-7.x.list
+
+✅ Step 4: Install Elasticsearch 7.17
+
+sudo apt update
+sudo apt install elasticsearch=7.17.15
+
+📌 Replace 7.17.15 with your preferred patch version if needed. You can check available versions here if needed.
+
+✅ Step 5: Enable and start Elasticsearch
+
+sudo systemctl daemon-reexec
+sudo systemctl enable elasticsearch
+sudo systemctl start elasticsearch
+
+Check status:
+sudo systemctl status elasticsearch
+
+✅ Step 6: Test the installation
+
+curl -X GET http://localhost:9200

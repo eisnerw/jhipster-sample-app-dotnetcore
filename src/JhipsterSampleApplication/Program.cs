@@ -30,13 +30,6 @@ if (false && !Debugger.IsAttached)
     }
 }
 
-var node = new Uri("https://7303xa0iq9:4cdkz0o14@texttemplate-testing-7087740692.us-east-1.bonsaisearch.net/");
-var setting = new Nest.ConnectionSettings(node).BasicAuthentication("7303xa0iq9", "4cdkz0o14").DefaultIndex("birthdays");
-var elastic = new ElasticClient(setting);
-var SearchResponse = elastic.Search<Birthday>(s => s
-    .Query(q => q.MatchAll())
-);
-Console.WriteLine($"Got {SearchResponse.Hits.Count} hits");
 try
 {
     var webAppOptions = new WebApplicationOptions
@@ -49,6 +42,25 @@ try
     var builder = WebApplication.CreateBuilder(webAppOptions);
 
     builder.Logging.AddSerilog(builder.Configuration);
+
+    var config = builder.Configuration;
+    bool useBonsai = config.GetValue<bool>("Elasticsearch:UseBonsai");
+    string url = useBonsai ? config.GetValue<string>("Bonsai:Url")! : config.GetValue<string>("Elasticsearch:Url")!;
+    string username = useBonsai ? config.GetValue<string>("Bonsai:Username")! : config.GetValue<string>("Elasticsearch:Username")!;
+    string password = useBonsai ? config.GetValue<string>("Bonsai:Password")! : config.GetValue<string>("Elasticsearch:Password")!;
+    string defaultIndex = config.GetValue<string>("Elasticsearch:DefaultIndex")!;    
+
+    var node = new Uri(url);
+    var settings = new ConnectionSettings(node).DefaultIndex(defaultIndex);
+    if (useBonsai && !string.IsNullOrEmpty(username))
+    {
+        settings = settings.BasicAuthentication(username, password);
+    }
+    var elastic = new ElasticClient(settings);
+    var SearchResponse = elastic.Search<Birthday>(s => s
+        .Query(q => q.MatchAll())
+    );
+    Console.WriteLine($"Got {SearchResponse.Hits.Count} hits");    
 
     IStartup startup = new Startup();
 
