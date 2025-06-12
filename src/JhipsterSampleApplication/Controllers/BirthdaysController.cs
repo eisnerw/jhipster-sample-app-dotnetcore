@@ -14,6 +14,7 @@ using System.IO;
 using JhipsterSampleApplication.Dto;
 using Microsoft.Extensions.Logging;
 using AutoMapper;
+using System.Collections.ObjectModel;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -119,6 +120,7 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] int pageSize = 20,
             [FromQuery] int from = 0,
             [FromQuery] string? sort = null,
+            [FromQuery] string? pitId = null,
             [FromQuery] bool includeWikipedia = false,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
@@ -126,7 +128,7 @@ namespace JhipsterSampleApplication.Controllers
         {
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
-            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory);
+            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory, pitId);
         }
 
         /// <summary>
@@ -238,8 +240,8 @@ namespace JhipsterSampleApplication.Controllers
                     Categories = b.Categories
                 });
             }
-
-            return Ok(new SearchResultDto<BirthdayDto> { Hits = birthdayDtos });
+            List<object>? searchAfter = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null; 
+            return Ok(new SearchResultDto<BirthdayDto> { Hits = birthdayDtos, TotalHits = response.Total, HitType = "birthday", PitId = searchRequest.PointInTime.Id, searchAfter = searchAfter });
         }
 
         /// <summary>
@@ -255,6 +257,7 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] int pageSize = 20,
             [FromQuery] int from = 0,
             [FromQuery] string? sort = null,
+            [FromQuery] string? pitId = null,
             [FromQuery] bool includeWikipedia = false,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
@@ -266,7 +269,7 @@ namespace JhipsterSampleApplication.Controllers
             var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
-            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory);
+            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory, pitId);
         }
 
         [HttpGet("{id}")]
@@ -278,7 +281,7 @@ namespace JhipsterSampleApplication.Controllers
                 Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
             };
             
-            var response = await _birthdayService.SearchAsync(searchRequest);
+            var response = await _birthdayService.SearchAsync(searchRequest, "");
             if (!response.IsValid || !response.Documents.Any())
             {
                 return NotFound();
@@ -349,7 +352,7 @@ namespace JhipsterSampleApplication.Controllers
                 Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
             };
             
-            var existingResponse = await _birthdayService.SearchAsync(searchRequest);
+            var existingResponse = await _birthdayService.SearchAsync(searchRequest, "");
             if (!existingResponse.IsValid || !existingResponse.Documents.Any())
             {
                 return NotFound($"Document with ID {id} not found");
@@ -510,7 +513,7 @@ namespace JhipsterSampleApplication.Controllers
                 Query = new QueryContainerDescriptor<Birthday>().Terms(t => t.Field("_id").Terms(request.Ids))
             };
             
-            var response = await _birthdayService.SearchAsync(searchRequest);
+            var response = await _birthdayService.SearchAsync(searchRequest, "");
             if (!response.IsValid)
             {
                 return BadRequest("Failed to search for birthdays");

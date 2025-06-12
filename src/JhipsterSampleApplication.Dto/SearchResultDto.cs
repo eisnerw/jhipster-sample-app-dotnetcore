@@ -10,5 +10,8 @@ namespace JhipsterSampleApplication.Dto
         public string HitType { get; set; } = "hit";
         public string? ViewName { get; set; }
         public string? viewCategory { get; set; }
+        public long TotalHits { get; set; }
+        public ICollection<object>? searchAfter { get; set; }
+        public string? PitId { get; set; }
     }
 }

@@ -53,14 +53,15 @@ public class BirthdayService : IBirthdayService
             {
                 KeepAlive = "2m" // Set the keep-alive duration for the PIT
             });
-            if (false && !pitResponse.IsValid) // TODO: Remove this check when PIT is stable
+            if (!pitResponse.IsValid)
             {
                 throw new Exception($"Failed to open point in time: {pitResponse.DebugInformation}");
             }
             pitId = pitResponse.Id;
         }
-        if (pitId != null)
+        if (!string.IsNullOrEmpty(pitId))
         {
+            // Note: Not setting PIT in the request if pitId is empty string
             request.PointInTime = new PointInTime(pitId);
         }
         var response = await _elasticClient.SearchAsync<Birthday>(request);
