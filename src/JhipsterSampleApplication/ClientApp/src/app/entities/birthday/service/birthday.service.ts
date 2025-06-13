@@ -8,7 +8,13 @@ import { createRequestOption } from 'app/core/request/request-util';
 import { IBirthday } from '../birthday.model';
 
 export type EntityResponseType = HttpResponse<IBirthday>;
-export type EntityArrayResponseType = HttpResponse<{ hits: IBirthday[] }>;
+export type EntityArrayResponseType = HttpResponse<{
+  hits: IBirthday[];
+  hitType: string;
+  totalHits: number;
+  searchAfter: string[];
+  pitId: string | null;
+}>;
 
 @Injectable({ providedIn: 'root' })
 export class BirthdayService {
@@ -36,7 +42,9 @@ export class BirthdayService {
     return this.http.put<IBirthday>(
       `${this.resourceUrl}/${birthday.id}`,
       birthday,
-      { observe: 'response' },
+      {
+        observe: 'response',
+      },
     );
   }
 
@@ -50,21 +58,28 @@ export class BirthdayService {
     const options = createRequestOption(req);
     const page = req?.page ?? 0;
     const size = req?.size ?? 20;
-    return this.http.get<{ hits: IBirthday[] }>(
-      `${this.searchUrl}?query=*&from=${page}&size=${size}`,
-      {
-        params: options,
-        observe: 'response',
-      },
-    );
+    return this.http.get<{
+      hits: IBirthday[];
+      hitType: string;
+      totalHits: number;
+      searchAfter: string[];
+      pitId: string | null;
+    }>(`${this.searchUrl}?query=*&from=${page}&size=${size}`, {
+      params: options,
+      observe: 'response',
+    });
   }
 
   searchWithRuleset(ruleset: any): Observable<EntityArrayResponseType> {
-    return this.http.post<{ hits: IBirthday[] }>(
-      this.rulesetSearchUrl,
-      ruleset,
-      { observe: 'response' },
-    );
+    return this.http.post<{
+      hits: IBirthday[];
+      hitType: string;
+      totalHits: number;
+      searchAfter: string[];
+      pitId: string | null;
+    }>(this.rulesetSearchUrl, ruleset, {
+      observe: 'response',
+    });
   }
 
   delete(id: string): Observable<HttpResponse<{}>> {

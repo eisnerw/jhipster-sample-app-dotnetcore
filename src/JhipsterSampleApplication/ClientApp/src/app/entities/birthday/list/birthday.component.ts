@@ -20,7 +20,7 @@ import { Menu } from 'primeng/menu';
 import { DatePipe } from '@angular/common';
 import { TableModule } from 'primeng/table';
 
-import { BirthdayService } from '../service/birthday.service';
+import { BirthdayService, EntityArrayResponseType } from '../service/birthday.service';
 import { IBirthday } from '../birthday.model';
 import { BirthdayDeleteDialogComponent } from '../delete/birthday-delete-dialog.component';
 import { SortDirective, SortByDirective } from 'app/shared/sort';
@@ -337,7 +337,7 @@ export class BirthdayComponent implements OnInit {
         sort: this.sort(),
       })
       .subscribe({
-        next: (res: HttpResponse<{ hits: IBirthday[] }>) => {
+        next: (res: EntityArrayResponseType) => {
           this.isLoading = false;
           this.onSuccess(res.body, res.headers, pageToLoad, !dontNavigate);
         },
@@ -379,12 +379,18 @@ export class BirthdayComponent implements OnInit {
   }
 
   protected onSuccess(
-    data: { hits: IBirthday[] } | null,
+    data: {
+      hits: IBirthday[];
+      hitType: string;
+      totalHits: number;
+      searchAfter: string[];
+      pitId: string | null;
+    } | null,
     headers: HttpHeaders,
     page: number,
     navigate: boolean,
   ): void {
-    this.totalItems = Number(headers.get('X-Total-Count'));
+    this.totalItems = data?.totalHits ?? Number(headers.get('X-Total-Count'));
     this.page = page;
     this.birthdays = data?.hits ?? [];
     this.rowData = of(this.birthdays);
