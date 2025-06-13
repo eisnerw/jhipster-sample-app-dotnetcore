@@ -40,4 +40,6 @@ docker run -d --name elasticsearch \
   -e "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
   docker.elastic.co/elasticsearch/elasticsearch:7.17.0
 
+  docker start elasticsearch
+  
   docker rm -f elasticsearch
