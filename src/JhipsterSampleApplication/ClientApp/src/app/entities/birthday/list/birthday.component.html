@@ -1,23 +1,43 @@
 <div style="height: calc(100vh - 174px);overflow: auto;">
   <style>
     ::ng-deep .p-datatable .p-datatable-tbody > tr {
-      height: 22px !important;
-      line-height: 22px !important;
       min-height: 22px !important;
-      max-height: 22px !important;
+      line-height: 22px !important;
     }
     ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
       padding: 0 !important;
-      height: 22px !important;
-      line-height: 22px !important;
       min-height: 22px !important;
-      max-height: 22px !important;
+      line-height: 22px !important;
     }
     ::ng-deep .p-datatable .p-datatable-tbody > tr > td > * {
       line-height: 22px !important;
-      height: 22px !important;
       min-height: 22px !important;
-      max-height: 22px !important;
+    }
+    ::ng-deep .p-datatable .p-datatable-tbody > tr > td:first-child {
+      padding: 0 !important;
+      margin: 0 !important;
+      min-height: 22px !important;
+    }
+    ::ng-deep .p-datatable .p-datatable-tbody > tr > td:first-child > div {
+      min-height: 22px !important;
+      line-height: 22px !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    ::ng-deep .p-datatable .p-datatable-tbody > tr.p-datatable-row-expanded {
+      height: auto !important;
+      min-height: 22px !important;
+      max-height: none !important;
+    }
+    ::ng-deep .p-datatable .p-datatable-tbody > tr.p-datatable-row-expanded > td {
+      height: auto !important;
+      min-height: 22px !important;
+      max-height: none !important;
+    }
+    ::ng-deep .p-datatable .p-datatable-tbody > tr.p-datatable-row-expanded > td > * {
+      height: auto !important;
+      min-height: 22px !important;
+      max-height: none !important;
     }
     ::ng-deep .p-checkbox {
       width: 16px !important;
@@ -48,20 +68,68 @@
       height: 9.6px !important;
       border-top-width: 0 !important;
     }
-    ::ng-deep .p-datatable .p-datatable-tbody > tr > td:first-child {
-      padding: 0 !important;
-      margin: 0 !important;
-      height: 22px !important;
-      min-height: 22px !important;
-      max-height: 22px !important;
+    ::ng-deep .p-datatable .p-datatable-thead > tr {
+      height: 32px !important;
+      line-height: 32px !important;
+      min-height: 32px !important;
+      max-height: 32px !important;
     }
-    ::ng-deep .p-datatable .p-datatable-tbody > tr > td:first-child > div {
-      height: 22px !important;
-      min-height: 22px !important;
-      max-height: 22px !important;
-      line-height: 22px !important;
+    ::ng-deep .p-datatable .p-datatable-thead > tr > th {
+      padding: 0 !important;
+      height: 32px !important;
+      line-height: 32px !important;
+      min-height: 32px !important;
+      max-height: 32px !important;
+    }
+    ::ng-deep .p-datatable .p-datatable-thead > tr > th > * {
+      line-height: 32px !important;
+      height: 32px !important;
+      min-height: 32px !important;
+      max-height: 32px !important;
+    }
+    ::ng-deep .p-datatable .p-datatable-thead > tr > th:first-child {
       padding: 0 !important;
       margin: 0 !important;
+      height: 32px !important;
+      min-height: 32px !important;
+      max-height: 32px !important;
+    }
+    ::ng-deep .p-datatable .p-datatable-thead > tr > th:first-child > div {
+      height: 32px !important;
+      min-height: 32px !important;
+      max-height: 32px !important;
+      line-height: 32px !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    ::ng-deep .p-datatable .p-datatable-thead > tr > th:first-child .p-checkbox {
+      width: 16px !important;
+      height: 16px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      min-height: 16px !important;
+      max-height: 16px !important;
+      position: relative !important;
+      top: -3px !important;
+    }
+    ::ng-deep .p-datatable .p-datatable-thead > tr > th:first-child .p-checkbox .p-checkbox-box {
+      width: 16px !important;
+      height: 16px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      min-height: 16px !important;
+      max-height: 16px !important;
+    }
+    ::ng-deep .p-datatable .p-datatable-thead > tr > th:first-child .p-checkbox .p-checkbox-icon {
+      font-size: 12px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      line-height: 12px !important;
+      height: 12px !important;
+    }
+    ::ng-deep .p-datatable .p-datatable-thead > tr > th:first-child .p-checkbox .p-checkbox-input {
+      height: 9.6px !important;
+      border-top-width: 0 !important;
     }
   </style>
   <h2 id="page-heading" data-cy="BirthdayHeading">
