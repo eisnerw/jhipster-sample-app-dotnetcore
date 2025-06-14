@@ -54,6 +54,7 @@ export class BirthdayComponent implements OnInit {
 
   birthdays?: IBirthday[];
   isLoading = false;
+  loadingMessage = '';
   totalItems = 0;
   itemsPerPage = 20;
   page?: number;
@@ -393,7 +394,66 @@ export class BirthdayComponent implements OnInit {
     this.totalItems = data?.totalHits ?? Number(headers.get('X-Total-Count'));
     this.page = page;
     this.birthdays = data?.hits ?? [];
-    this.rowData = of(this.birthdays);
+
+    if (this.birthdays) {
+      const loadIncrement = 50;
+      let loaded = this.birthdays.length;
+      let currentPitId = data?.pitId;
+      let currentSearchAfter = data?.searchAfter;
+      
+      const rowLoader = () => {
+        if (!currentPitId || !currentSearchAfter) {
+          this.loadingMessage = '';
+          return;
+        }
+
+        this.birthdayService
+          .query({
+            page: 0,
+            size: loadIncrement,
+            sort: this.sort(),
+            pitId: currentPitId,
+            searchAfter: currentSearchAfter
+          })
+          .subscribe({
+            next: (res: EntityArrayResponseType) => {
+              if (res.body?.hits) {
+                this.birthdays = [...(this.birthdays ?? []), ...res.body.hits];
+                loaded += res.body.hits.length;
+                currentPitId = res.body.pitId;
+                currentSearchAfter = res.body.searchAfter;
+                
+                const limitData = 1000;
+                if (loaded > limitData) {
+                  this.loadingMessage = `${this.totalItems} hits (too many to display, showing the first ${limitData})`;
+                  this.birthdays = this.birthdays.slice(0, limitData);
+                  this.rowData = of(this.birthdays);
+                  return;
+                }
+
+                this.rowData = of(this.birthdays);
+                if (loaded < this.totalItems) {
+                  this.loadingMessage = `loading ${loaded}...`;
+                  setTimeout(rowLoader, 10);
+                } else {
+                  this.loadingMessage = '';
+                }
+              }
+            },
+            error: () => {
+              this.loadingMessage = '';
+              this.onError();
+            }
+          });
+      };
+
+      this.rowData = of(this.birthdays);
+      if (loaded < this.totalItems) {
+        this.loadingMessage = `loading ${loaded}...`;
+        setTimeout(rowLoader, 10);
+      }
+    }
+
     if (navigate) {
       this.router.navigate(['/birthday'], {
         queryParams: {
