@@ -56,13 +56,19 @@ export class BirthdayComponent implements OnInit {
   isLoading = false;
   loadingMessage = '';
   totalItems = 0;
-  itemsPerPage = 50;
+  itemsPerPage = 20;
   page?: number;
   predicate!: string;
   ascending!: boolean;
   ngbPaginationPage = 1;
   superTableParent = 'superTableParent';
   columns: ColumnConfig[] = [
+    {
+      field: 'lineNumber',
+      header: '#',
+      type: 'lineNumber',
+      width: '4rem',
+    },
     {
       field: 'checkbox',
       header: '',
@@ -417,19 +423,15 @@ export class BirthdayComponent implements OnInit {
           .subscribe({
             next: (res: EntityArrayResponseType) => {
               if (res.body?.hits) {
-                console.log(`rowLoader received ${res.body.hits.length} new rows. Total before append: ${this.birthdays?.length}`);
                 this.birthdays = [...(this.birthdays ?? []), ...res.body.hits];
-                console.log(`Total after append: ${this.birthdays.length}.`);
                 loaded = this.birthdays.length;
                 currentPitId = res.body.pitId;
                 currentSearchAfter = res.body.searchAfter;
                 
-                const limitData = 1000;
+                const limitData = 25;
                 if (loaded > limitData) {
                   this.loadingMessage = `${this.totalItems} hits (too many to display, showing the first ${limitData})`;
                   this.birthdays = this.birthdays.slice(0, limitData);
-                  this.rowData.next(this.birthdays);
-                  return;
                 }
 
                 this.rowData.next(this.birthdays);
@@ -469,5 +471,26 @@ export class BirthdayComponent implements OnInit {
 
   protected onError(): void {
     this.ngbPaginationPage = this.page ?? 1;
+  }
+
+  logSort(event: any): void {
+    const { data, field, order } = event;
+    console.log(`--- Sorting ---`);
+    console.log(`Field: ${field}, Order: ${order === 1 ? 'asc' : 'desc'}`);
+    console.log(`Component 'birthdays' length: ${this.birthdays?.length}`);
+    console.log(`Event 'data' length: ${data.length}`);
+    
+    // Check for duplicates in the component's master list
+    const masterIds = new Set(this.birthdays?.map(b => b.id));
+    if (masterIds.size !== this.birthdays?.length) {
+      console.error(`[ERROR] Duplicate IDs found in component's master 'birthdays' list BEFORE sort.`);
+    }
+
+    // Check for duplicates in the array sorted by PrimeNG
+    const eventIds = new Set(data.map((b: IBirthday) => b.id));
+    if (eventIds.size !== data.length) {
+      console.error(`[ERROR] Duplicate IDs found in the 'event.data' array AFTER sort.`);
+    }
+    console.log(`--- End Sorting ---`);
   }
 }

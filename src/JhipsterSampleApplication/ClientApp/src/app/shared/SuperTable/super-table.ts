@@ -17,7 +17,7 @@ export interface ColumnConfig {
   filterType?: 'text' | 'date' | 'numeric' | 'boolean';
   width?: string;
   style?: string;
-  type?: 'checkbox' | 'expander' | 'string' | 'date' | 'boolean' | 'list';
+  type?: 'checkbox' | 'expander' | 'string' | 'date' | 'boolean' | 'list' | 'lineNumber';
   dateFormat?: string;
   listOptions?: { label: string; value: string }[];
 }
@@ -65,6 +65,7 @@ export class SuperTable {
     @Output() selectionChange = new EventEmitter<any>();
     @Output() onContextMenuSelect = new EventEmitter<any>();
     @Output() onColResize = new EventEmitter<any>();
+    @Output() onSort = new EventEmitter<any>();
 
     isRowExpanded(row: any): boolean {
       const key = row.id || row.key || JSON.stringify(row);

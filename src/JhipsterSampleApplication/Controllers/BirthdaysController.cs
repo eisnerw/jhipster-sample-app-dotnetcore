@@ -91,6 +91,7 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] int pageSize = 20,
             [FromQuery] string? sort = null,
             [FromQuery] string? pitId = null,
+            [FromQuery] string[]? searchAfter = null,
             [FromQuery] bool includeWikipedia = false,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
@@ -106,7 +107,7 @@ namespace JhipsterSampleApplication.Controllers
             JObject queryObject = new JObject(
                 new JProperty("query_string", queryStringObject)
             );
-            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory, pitId);
+            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory, pitId, searchAfter);
         }
 
         /// <summary>
@@ -121,6 +122,7 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] int from = 0,
             [FromQuery] string? sort = null,
             [FromQuery] string? pitId = null,
+            [FromQuery] string[]? searchAfter = null,
             [FromQuery] bool includeWikipedia = false,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
@@ -128,7 +130,7 @@ namespace JhipsterSampleApplication.Controllers
         {
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
-            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory, pitId);
+            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory, pitId, searchAfter);
         }
 
         /// <summary>
@@ -146,7 +148,8 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
             [FromQuery] string? secondaryCategory = null,
-            [FromQuery] string? pitId = null)
+            [FromQuery] string? pitId = null,
+            [FromQuery] string[]? searchAfter = null)
         {
            if (!string.IsNullOrEmpty(view))
             {   
@@ -204,6 +207,12 @@ namespace JhipsterSampleApplication.Controllers
                 From = from
             };
             
+            if (searchAfter != null && searchAfter.Length > 0)
+            {
+                searchRequest.SearchAfter = searchAfter.Cast<object>().ToList();
+                searchRequest.From = null; 
+            }
+
             // Build sort descriptor
             var sortDescriptor = new List<ISort>();
             if (!string.IsNullOrEmpty(sort))
@@ -240,8 +249,8 @@ namespace JhipsterSampleApplication.Controllers
                     Categories = b.Categories
                 });
             }
-            List<object>? searchAfter = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null; 
-            return Ok(new SearchResultDto<BirthdayDto> { Hits = birthdayDtos, TotalHits = response.Total, HitType = "birthday", PitId = searchRequest.PointInTime.Id, searchAfter = searchAfter });
+            List<object>? searchAfterResponse = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null; 
+            return Ok(new SearchResultDto<BirthdayDto> { Hits = birthdayDtos, TotalHits = response.Total, HitType = "birthday", PitId = searchRequest.PointInTime.Id, searchAfter = searchAfterResponse });
         }
 
         /// <summary>
@@ -258,6 +267,7 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] int from = 0,
             [FromQuery] string? sort = null,
             [FromQuery] string? pitId = null,
+            [FromQuery] string[]? searchAfter = null,
             [FromQuery] bool includeWikipedia = false,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
@@ -269,7 +279,7 @@ namespace JhipsterSampleApplication.Controllers
             var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
-            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory, pitId);
+            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory, pitId, searchAfter);
         }
 
         [HttpGet("{id}")]

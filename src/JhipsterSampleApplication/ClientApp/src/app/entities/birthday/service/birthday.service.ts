@@ -56,15 +56,13 @@ export class BirthdayService {
 
   query(req?: any): Observable<EntityArrayResponseType> {
     const options = createRequestOption(req);
-    const page = req?.page ?? 0;
-    const pageSize = req?.size ?? 20;
     return this.http.get<{
       hits: IBirthday[];
       hitType: string;
       totalHits: number;
       searchAfter: string[];
       pitId: string | null;
-    }>(`${this.searchUrl}?query=*&from=${page}&pageSize=${pageSize}`, {
+    }>(`${this.searchUrl}?query=*`, {
       params: options,
       observe: 'response',
     });

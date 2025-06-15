@@ -179,6 +179,7 @@
     <super-table #birthdays 
       [value]="birthday" 
       [columns]="columns"
+      (onSort)="logSort($event)"
       [loadingMessage]="loadingMessage"
       [resizableColumns]="true" 
       [globalFilterFields]="['lname', 'fname', 'sign']" 

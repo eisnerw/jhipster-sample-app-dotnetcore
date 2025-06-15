@@ -8,6 +8,7 @@
   [reorderableColumns]="reorderableColumns"
   [scrollable]="scrollable"
   [paginator]="paginator"
+  (onSort)="onSort.emit($event)"
   expandableRow
   [expandedRowKeys]="expandedRowKeys"
   (onRowExpand)="onRowExpand($event)"
@@ -74,6 +75,7 @@
             </ng-container>
             <p-tableHeaderCheckbox *ngSwitchCase="'checkbox'"></p-tableHeaderCheckbox>
             <span *ngSwitchCase="'expander'"></span>
+            <span *ngSwitchCase="'lineNumber'"></span>
           </ng-container>
         </div>
       </th>
@@ -82,7 +84,7 @@
       <td [attr.colspan]="columns.length">{{loadingMessage}}</td>
     </tr> 
   </ng-template>
-  <ng-template pTemplate="body" let-rowData let-columns="columns">
+  <ng-template pTemplate="body" let-rowData let-columns="columns" let-rowIndex="rowIndex">
     <tr>
       <td *ngFor="let col of columns">
         <ng-container [ngSwitch]="col.type">
@@ -91,6 +93,7 @@
           <span *ngSwitchCase="'date'">{{ rowData[col.field] | date: (col.dateFormat || 'MM/dd/yyyy') }}</span>
           <span *ngSwitchCase="'boolean'">{{ rowData[col.field] ? 'Yes' : 'No' }}</span>
           <span *ngSwitchCase="'list'">{{ rowData[col.field] }}</span>
+          <span *ngSwitchCase="'lineNumber'">{{ rowIndex + 1 }}</span>
           <button *ngSwitchCase="'expander'"
                   pButton 
                   [icon]="isRowExpanded(rowData) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
