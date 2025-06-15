@@ -177,10 +177,10 @@
     <p-confirmPopup></p-confirmPopup>
     <p-messages></p-messages>
     <super-table #birthdays 
-      [value]="birthday" 
+      [value]="(rowData | async) ?? []" 
       [columns]="columns"
       (onSort)="logSort($event)"
-      [loadingMessage]="loadingMessage"
+      [loadingMessage]="(loadingMessage$ | async)!"
       [resizableColumns]="true" 
       [globalFilterFields]="['lname', 'fname', 'sign']" 
       dataKey="id" 

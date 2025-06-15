@@ -52,9 +52,10 @@ export class BirthdayComponent implements OnInit {
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
   @ViewChild('menu') menu!: Menu;
 
-  birthdays?: IBirthday[];
+  birthdays: IBirthday[] = [];
   isLoading = false;
   loadingMessage = '';
+  loadingMessage$ = new BehaviorSubject<string>('');
   totalItems = 0;
   itemsPerPage = 50;
   page?: number;
@@ -411,7 +412,7 @@ export class BirthdayComponent implements OnInit {
 
       const rowLoader = () => {
         if (!currentPitId || !currentSearchAfter) {
-          this.loadingMessage = '';
+          this.loadingMessage$.next('');
           return;
         }
 
@@ -421,12 +422,12 @@ export class BirthdayComponent implements OnInit {
             pageSize: loadIncrement,
             sort: this.sort(),
             pitId: currentPitId,
-            searchAfter: currentSearchAfter
+            searchAfter: currentSearchAfter,
           })
           .subscribe({
             next: (res: EntityArrayResponseType) => {
               if (res.body?.hits) {
-                this.birthdays = [...(this.birthdays ?? []), ...res.body.hits];
+                this.birthdays.push(...res.body.hits);
                 loaded = this.birthdays.length;
                 currentPitId = res.body.pitId;
                 currentSearchAfter = res.body.searchAfter;
@@ -435,31 +436,33 @@ export class BirthdayComponent implements OnInit {
                   this.loadingMessage = `${this.totalItems} hits (too many to display, showing the first ${limitData})`;
                   this.birthdays = this.birthdays.slice(0, limitData);
                   this.rowData.next(this.birthdays);
-                  return; 
+                  this.loadingMessage$.next(this.loadingMessage);
+                  return;
                 }
 
                 chunkCounter++;
                 if (loaded < this.totalItems) {
                   this.loadingMessage = `loading ${loaded}...`;
+                  this.loadingMessage$.next(this.loadingMessage);
                   if (chunkCounter % 5 === 0) {
                     this.rowData.next(this.birthdays);
                   }
                   setTimeout(rowLoader, 10);
                 } else {
-                  this.loadingMessage = '';
+                  this.loadingMessage$.next('');
                   this.rowData.next(this.birthdays);
                 }
               }
             },
             error: () => {
-              this.loadingMessage = '';
+              this.loadingMessage$.next('Error loading data.');
               this.onError();
-            }
+            },
           });
       };
 
       if (this.birthdays.length < this.totalItems && this.birthdays.length < limitData) {
-        this.loadingMessage = `loading ${this.birthdays.length}...`;
+        this.loadingMessage$.next(`loading ${this.birthdays.length}...`);
         setTimeout(rowLoader, 10);
       }
     }
@@ -468,12 +471,10 @@ export class BirthdayComponent implements OnInit {
       this.router.navigate(['/birthday'], {
         queryParams: {
           page: this.page,
-          size: this.itemsPerPage,
-          sort: this.predicate + ',' + (this.ascending ? 'asc' : 'desc'),
+          sort: this.sort().join(','),
         },
       });
     }
-    this.ngbPaginationPage = this.page;
   }
 
   protected onError(): void {
