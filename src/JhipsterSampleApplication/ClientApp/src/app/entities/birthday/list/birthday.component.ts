@@ -3,7 +3,7 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { combineLatest, Observable, of } from 'rxjs';
+import { combineLatest, BehaviorSubject } from 'rxjs';
 import { NgbModal, NgbPagination } from '@ng-bootstrap/ng-bootstrap';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -56,7 +56,7 @@ export class BirthdayComponent implements OnInit {
   isLoading = false;
   loadingMessage = '';
   totalItems = 0;
-  itemsPerPage = 20;
+  itemsPerPage = 50;
   page?: number;
   predicate!: string;
   ascending!: boolean;
@@ -136,7 +136,7 @@ export class BirthdayComponent implements OnInit {
 
 
   // New properties for super-table
-  rowData = new Observable<IBirthday[]>();
+  rowData = new BehaviorSubject<IBirthday[]>([]);
   menuItems: MenuItem[] = [
     {
       label: 'Select action',
@@ -199,7 +199,6 @@ export class BirthdayComponent implements OnInit {
 
   ngOnInit(): void {
     this.handleNavigation();
-    this.rowData = of(this.birthdays ?? []);
   }
 
   trackId(index: number, item: IBirthday): string {
@@ -395,7 +394,7 @@ export class BirthdayComponent implements OnInit {
     this.page = page;
     this.birthdays = data?.hits ?? [];
 
-    if (this.birthdays) {
+    if (this.birthdays && this.birthdays.length < this.totalItems) {
       const loadIncrement = 50;
       let loaded = this.birthdays.length;
       let currentPitId = data?.pitId;
@@ -418,8 +417,10 @@ export class BirthdayComponent implements OnInit {
           .subscribe({
             next: (res: EntityArrayResponseType) => {
               if (res.body?.hits) {
+                console.log(`rowLoader received ${res.body.hits.length} new rows. Total before append: ${this.birthdays?.length}`);
                 this.birthdays = [...(this.birthdays ?? []), ...res.body.hits];
-                loaded += res.body.hits.length;
+                console.log(`Total after append: ${this.birthdays.length}.`);
+                loaded = this.birthdays.length;
                 currentPitId = res.body.pitId;
                 currentSearchAfter = res.body.searchAfter;
                 
@@ -427,11 +428,11 @@ export class BirthdayComponent implements OnInit {
                 if (loaded > limitData) {
                   this.loadingMessage = `${this.totalItems} hits (too many to display, showing the first ${limitData})`;
                   this.birthdays = this.birthdays.slice(0, limitData);
-                  this.rowData = of(this.birthdays);
+                  this.rowData.next(this.birthdays);
                   return;
                 }
 
-                this.rowData = of(this.birthdays);
+                this.rowData.next(this.birthdays);
                 if (loaded < this.totalItems) {
                   this.loadingMessage = `loading ${loaded}...`;
                   setTimeout(rowLoader, 10);
@@ -447,7 +448,7 @@ export class BirthdayComponent implements OnInit {
           });
       };
 
-      this.rowData = of(this.birthdays);
+      this.rowData.next(this.birthdays);
       if (loaded < this.totalItems) {
         this.loadingMessage = `loading ${loaded}...`;
         setTimeout(rowLoader, 10);
