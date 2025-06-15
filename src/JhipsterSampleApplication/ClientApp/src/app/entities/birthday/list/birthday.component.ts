@@ -407,7 +407,8 @@ export class BirthdayComponent implements OnInit {
       let loaded = this.birthdays.length;
       let currentPitId = data?.pitId;
       let currentSearchAfter = data?.searchAfter;
-      
+      let chunkCounter = 0;
+
       const rowLoader = () => {
         if (!currentPitId || !currentSearchAfter) {
           this.loadingMessage = '';
@@ -437,13 +438,16 @@ export class BirthdayComponent implements OnInit {
                   return; 
                 }
 
-                this.rowData.next(this.birthdays);
-
+                chunkCounter++;
                 if (loaded < this.totalItems) {
                   this.loadingMessage = `loading ${loaded}...`;
+                  if (chunkCounter % 5 === 0) {
+                    this.rowData.next(this.birthdays);
+                  }
                   setTimeout(rowLoader, 10);
                 } else {
                   this.loadingMessage = '';
+                  this.rowData.next(this.birthdays);
                 }
               }
             },
