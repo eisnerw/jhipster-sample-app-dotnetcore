@@ -56,7 +56,7 @@ export class BirthdayComponent implements OnInit {
   isLoading = false;
   loadingMessage = '';
   totalItems = 0;
-  itemsPerPage = 20;
+  itemsPerPage = 50;
   page?: number;
   predicate!: string;
   ascending!: boolean;
@@ -339,7 +339,7 @@ export class BirthdayComponent implements OnInit {
     this.birthdayService
       .query({
         page: pageToLoad - 1,
-        size: this.itemsPerPage,
+        pageSize: this.itemsPerPage,
         sort: this.sort(),
       })
       .subscribe({
@@ -399,8 +399,10 @@ export class BirthdayComponent implements OnInit {
     this.totalItems = data?.totalHits ?? Number(headers.get('X-Total-Count'));
     this.page = page;
     this.birthdays = data?.hits ?? [];
+    this.rowData.next(this.birthdays);
+    const limitData = 1000;
 
-    if (this.birthdays && this.birthdays.length < this.totalItems) {
+    if (this.birthdays && this.birthdays.length < this.totalItems && this.birthdays.length < limitData) {
       const loadIncrement = 50;
       let loaded = this.birthdays.length;
       let currentPitId = data?.pitId;
@@ -415,7 +417,7 @@ export class BirthdayComponent implements OnInit {
         this.birthdayService
           .query({
             page: 0,
-            size: loadIncrement,
+            pageSize: loadIncrement,
             sort: this.sort(),
             pitId: currentPitId,
             searchAfter: currentSearchAfter
@@ -428,18 +430,21 @@ export class BirthdayComponent implements OnInit {
                 currentPitId = res.body.pitId;
                 currentSearchAfter = res.body.searchAfter;
                 
-                const limitData = 25;
                 if (loaded > limitData) {
                   this.loadingMessage = `${this.totalItems} hits (too many to display, showing the first ${limitData})`;
                   this.birthdays = this.birthdays.slice(0, limitData);
                 }
 
                 this.rowData.next(this.birthdays);
-                if (loaded < this.totalItems) {
+
+                if (loaded < this.totalItems && loaded < limitData) {
                   this.loadingMessage = `loading ${loaded}...`;
                   setTimeout(rowLoader, 10);
                 } else {
                   this.loadingMessage = '';
+                  if (loaded > limitData) {
+                    this.loadingMessage = `${this.totalItems} hits (too many to display, showing the first ${limitData})`;
+                  }
                 }
               }
             },
@@ -450,9 +455,8 @@ export class BirthdayComponent implements OnInit {
           });
       };
 
-      this.rowData.next(this.birthdays);
-      if (loaded < this.totalItems) {
-        this.loadingMessage = `loading ${loaded}...`;
+      if (this.birthdays.length < this.totalItems && this.birthdays.length < limitData) {
+        this.loadingMessage = `loading ${this.birthdays.length}...`;
         setTimeout(rowLoader, 10);
       }
     }
