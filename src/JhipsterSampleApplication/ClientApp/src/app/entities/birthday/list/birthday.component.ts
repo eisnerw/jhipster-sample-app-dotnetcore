@@ -430,21 +430,20 @@ export class BirthdayComponent implements OnInit {
                 currentPitId = res.body.pitId;
                 currentSearchAfter = res.body.searchAfter;
                 
-                if (loaded > limitData) {
+                if (loaded >= limitData) {
                   this.loadingMessage = `${this.totalItems} hits (too many to display, showing the first ${limitData})`;
                   this.birthdays = this.birthdays.slice(0, limitData);
+                  this.rowData.next(this.birthdays);
+                  return; 
                 }
 
                 this.rowData.next(this.birthdays);
 
-                if (loaded < this.totalItems && loaded < limitData) {
+                if (loaded < this.totalItems) {
                   this.loadingMessage = `loading ${loaded}...`;
                   setTimeout(rowLoader, 10);
                 } else {
                   this.loadingMessage = '';
-                  if (loaded > limitData) {
-                    this.loadingMessage = `${this.totalItems} hits (too many to display, showing the first ${limitData})`;
-                  }
                 }
               }
             },
