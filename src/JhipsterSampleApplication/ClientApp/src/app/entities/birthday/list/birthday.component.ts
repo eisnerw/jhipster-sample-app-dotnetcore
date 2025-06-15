@@ -48,7 +48,7 @@ import {
 })
 export class BirthdayComponent implements OnInit {
   @ViewChild('contextMenu') contextMenu!: ContextMenu;
-  @ViewChild('birthdays') birthdaysTable!: Table;
+  @ViewChild('superTable') superTable!: SuperTable;
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
   @ViewChild('menu') menu!: Menu;
 

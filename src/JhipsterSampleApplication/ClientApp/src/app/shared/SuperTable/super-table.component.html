@@ -18,7 +18,7 @@
     </colgroup>
   </ng-template>  
   <ng-template pTemplate="header" let-columns>
-    <tr>
+    <tr class="header-row">
       <th *ngFor="let col of columns"
           [pSortableColumn]="col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list' ? col.field : null"
           pResizableColumn
@@ -78,6 +78,9 @@
         </div>
       </th>
     </tr>
+    <tr *ngIf="loadingMessage">
+      <td [attr.colspan]="columns.length">{{loadingMessage}}</td>
+    </tr> 
   </ng-template>
   <ng-template pTemplate="body" let-rowData let-columns="columns">
     <tr>

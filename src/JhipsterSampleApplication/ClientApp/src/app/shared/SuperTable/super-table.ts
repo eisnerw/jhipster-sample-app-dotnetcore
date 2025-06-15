@@ -53,6 +53,7 @@ export class SuperTable {
     @Input() selection: any;
     @Input() expandedRowKeys: { [key: string]: boolean } = {};
     @Input() superTableParent: any;
+    @Input() loadingMessage: string | undefined;
 
     @ViewChild('pTable') pTable!: Table;
 
