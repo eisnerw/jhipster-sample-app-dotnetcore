@@ -45,6 +45,7 @@ export class SuperTable {
     @Input() reorderableColumns = false;
     @Input() scrollable = false;
     @Input() paginator = false;
+    @Input() showHeader = true;
     @Input() dataKey: string | undefined;
     @Input() globalFilterFields: string[] = [];
     @Input() contextMenuSelection: any;

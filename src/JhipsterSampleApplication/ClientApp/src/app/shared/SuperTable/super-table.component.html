@@ -18,72 +18,74 @@
       <col *ngFor="let col of columns" [style.width]="col.width">
     </colgroup>
   </ng-template>  
-  <ng-template pTemplate="header" let-columns>
-    <tr class="header-row">
-      <th *ngFor="let col of columns"
-          [pSortableColumn]="col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list' ? col.field : null"
-          pResizableColumn
-          [style.width]="col.width"
-          [style]="col.style">
-        <div class="p-d-flex p-jc-between p-ai-center">
-          {{ col.header }}
-          <ng-container [ngSwitch]="col.type">
-            <ng-container *ngSwitchCase="'string'">
-              <p-sortIcon [field]="col.field"></p-sortIcon>
-              <p-columnFilter *ngIf="col.filterType" 
-                            [field]="col.field" 
-                            [type]="col.filterType" 
-                            display="menu">
-              </p-columnFilter>
+  <ng-container *ngIf="showHeader">
+    <ng-template pTemplate="header" let-columns>
+      <tr class="header-row">
+        <th *ngFor="let col of columns"
+            [pSortableColumn]="col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list' ? col.field : null"
+            pResizableColumn
+            [style.width]="col.width"
+            [style]="col.style">
+          <div class="p-d-flex p-jc-between p-ai-center">
+            {{ col.header }}
+            <ng-container [ngSwitch]="col.type">
+              <ng-container *ngSwitchCase="'string'">
+                <p-sortIcon [field]="col.field"></p-sortIcon>
+                <p-columnFilter *ngIf="col.filterType" 
+                              [field]="col.field" 
+                              [type]="col.filterType" 
+                              display="menu">
+                </p-columnFilter>
+              </ng-container>
+              <ng-container *ngSwitchCase="'date'">
+                <p-sortIcon [field]="col.field"></p-sortIcon>
+                <p-columnFilter *ngIf="col.filterType" 
+                              [field]="col.field" 
+                              [type]="col.filterType" 
+                              display="menu">
+                </p-columnFilter>
+              </ng-container>
+              <ng-container *ngSwitchCase="'boolean'">
+                <p-sortIcon [field]="col.field"></p-sortIcon>
+                <p-columnFilter *ngIf="col.filterType" 
+                              [field]="col.field" 
+                              [type]="col.filterType" 
+                              display="menu">
+                </p-columnFilter>
+              </ng-container>
+              <ng-container *ngSwitchCase="'list'">
+                <p-sortIcon [field]="col.field"></p-sortIcon>
+                <p-columnFilter [field]="col.field" 
+                              matchMode="in" 
+                              display="menu" 
+                              [showMatchModes]="false" 
+                              [showOperator]="false" 
+                              [showAddButton]="false">
+                  <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                    <p-multiselect [options]="col.listOptions"
+                                placeholder="Any" 
+                                (onChange)="filterList($event, col.field)" 
+                                optionLabel="label"
+                                [style]="{ 'min-width': '14rem' }" 
+                                [panelStyle]="{ 'min-width': '16rem' }"
+                                [showToggleAll]="true"
+                                [showClear]="true">
+                    </p-multiselect>
+                  </ng-template>
+                </p-columnFilter>
+              </ng-container>
+              <p-tableHeaderCheckbox *ngSwitchCase="'checkbox'"></p-tableHeaderCheckbox>
+              <span *ngSwitchCase="'expander'"></span>
+              <span *ngSwitchCase="'lineNumber'"></span>
             </ng-container>
-            <ng-container *ngSwitchCase="'date'">
-              <p-sortIcon [field]="col.field"></p-sortIcon>
-              <p-columnFilter *ngIf="col.filterType" 
-                            [field]="col.field" 
-                            [type]="col.filterType" 
-                            display="menu">
-              </p-columnFilter>
-            </ng-container>
-            <ng-container *ngSwitchCase="'boolean'">
-              <p-sortIcon [field]="col.field"></p-sortIcon>
-              <p-columnFilter *ngIf="col.filterType" 
-                            [field]="col.field" 
-                            [type]="col.filterType" 
-                            display="menu">
-              </p-columnFilter>
-            </ng-container>
-            <ng-container *ngSwitchCase="'list'">
-              <p-sortIcon [field]="col.field"></p-sortIcon>
-              <p-columnFilter [field]="col.field" 
-                            matchMode="in" 
-                            display="menu" 
-                            [showMatchModes]="false" 
-                            [showOperator]="false" 
-                            [showAddButton]="false">
-                <ng-template pTemplate="filter" let-value let-filter="filterCallback">
-                  <p-multiselect [options]="col.listOptions"
-                              placeholder="Any" 
-                              (onChange)="filterList($event, col.field)" 
-                              optionLabel="label"
-                              [style]="{ 'min-width': '14rem' }" 
-                              [panelStyle]="{ 'min-width': '16rem' }"
-                              [showToggleAll]="true"
-                              [showClear]="true">
-                  </p-multiselect>
-                </ng-template>
-              </p-columnFilter>
-            </ng-container>
-            <p-tableHeaderCheckbox *ngSwitchCase="'checkbox'"></p-tableHeaderCheckbox>
-            <span *ngSwitchCase="'expander'"></span>
-            <span *ngSwitchCase="'lineNumber'"></span>
-          </ng-container>
-        </div>
-      </th>
-    </tr>
-    <tr *ngIf="loadingMessage">
-      <td [attr.colspan]="columns.length">{{loadingMessage}}</td>
-    </tr> 
-  </ng-template>
+          </div>
+        </th>
+      </tr>
+      <tr *ngIf="loadingMessage">
+        <td [attr.colspan]="columns.length">{{loadingMessage}}</td>
+      </tr> 
+    </ng-template>
+  </ng-container>
   <ng-template pTemplate="body" let-rowData let-columns="columns" let-rowIndex="rowIndex">
     <tr>
       <td *ngFor="let col of columns">
