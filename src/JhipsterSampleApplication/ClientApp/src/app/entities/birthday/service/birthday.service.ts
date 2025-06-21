@@ -85,4 +85,13 @@ export class BirthdayService {
       observe: 'response',
     });
   }
+
+  getUniqueValues(field: string): Observable<HttpResponse<string[]>> {
+    return this.http.get<string[]>(
+      `${this.resourceUrl}/unique-values/${field}`,
+      {
+        observe: 'response',
+      },
+    );
+  }
 }

@@ -143,7 +143,7 @@ export class BirthdayComponent implements OnInit {
 
 
   // New properties for super-table
-  rowData = new BehaviorSubject<IBirthday[]>([]);
+  rowData: BehaviorSubject<IBirthday[]> = new BehaviorSubject<IBirthday[]>([]);
   menuItems: MenuItem[] = [
     {
       label: 'Select action',
@@ -193,13 +193,7 @@ export class BirthdayComponent implements OnInit {
   birthdayDialogTitle = '';
   birthdayDialogId: any = '';
   loading = false;
-  presidents = [
-    'Adams', 'Arthur', 'Biden', 'Buchanan', 'Bush', 'Carter', 'Cleveland', 'Clinton', 'Coolidge',
-    'Eisenhower', 'Fillmore', 'Ford', 'Garfield', 'Grant', 'Harding', 'Harrison', 'Hayes',
-    'Hoover', 'Jackson', 'Jefferson', 'Johnson', 'Kennedy', 'Lincoln', 'Madison', 'McKinley',
-    'Monroe', 'Nixon', 'Obama', 'Pierce', 'Polk', 'Reagan', 'Roosevelt', 'Taft', 'Taylor',
-    'Truman', 'Trump', 'Tyler', 'Van Buren', 'Washington', 'Wilson'
-  ].sort();
+  firstNames: string[] = [];
   viewMode: 'grid' | 'group' = 'group';
   private loadingSubscription?: Subscription;
 
@@ -215,6 +209,15 @@ export class BirthdayComponent implements OnInit {
 
   ngOnInit(): void {
     this.handleNavigation();
+    this.rowData.subscribe((data: IBirthday[]) => {
+      this.birthdays = data;
+    });
+
+    this.birthdayService.getUniqueValues('fname').subscribe(response => {
+      if (response.body) {
+        this.firstNames = response.body.sort();
+      }
+    });
   }
 
   trackId(index: number, item: IBirthday): string {

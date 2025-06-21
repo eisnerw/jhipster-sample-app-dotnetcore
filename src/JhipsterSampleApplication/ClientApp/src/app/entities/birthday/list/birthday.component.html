@@ -195,10 +195,10 @@
 
   <super-table
     *ngIf="viewMode === 'group'"
-    [value]="presidents"
+    [value]="firstNames"
     [displayMode]="'group'"
     [showHeader]="false"
-    [groups]="['Presidents']" />
+    [groups]="['First Names']" />
   
   <ng-container *ngIf="viewMode === 'grid' && (rowData | async) as birthday">
     <p-contextMenu #contextMenu [model]="menuItems" (mouseleave)="onContextMenuMouseLeave()" appendTo="body"></p-contextMenu>
