@@ -3,7 +3,7 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { combineLatest, BehaviorSubject } from 'rxjs';
+import { combineLatest, BehaviorSubject, Subscription } from 'rxjs';
 import { NgbModal, NgbPagination } from '@ng-bootstrap/ng-bootstrap';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -193,6 +193,15 @@ export class BirthdayComponent implements OnInit {
   birthdayDialogTitle = '';
   birthdayDialogId: any = '';
   loading = false;
+  presidents = [
+    'Adams', 'Arthur', 'Biden', 'Buchanan', 'Bush', 'Carter', 'Cleveland', 'Clinton', 'Coolidge',
+    'Eisenhower', 'Fillmore', 'Ford', 'Garfield', 'Grant', 'Harding', 'Harrison', 'Hayes',
+    'Hoover', 'Jackson', 'Jefferson', 'Johnson', 'Kennedy', 'Lincoln', 'Madison', 'McKinley',
+    'Monroe', 'Nixon', 'Obama', 'Pierce', 'Polk', 'Reagan', 'Roosevelt', 'Taft', 'Taylor',
+    'Truman', 'Trump', 'Tyler', 'Van Buren', 'Washington', 'Wilson'
+  ].sort();
+  viewMode: 'grid' | 'group' = 'group';
+  private loadingSubscription?: Subscription;
 
   constructor(
     protected birthdayService: BirthdayService,

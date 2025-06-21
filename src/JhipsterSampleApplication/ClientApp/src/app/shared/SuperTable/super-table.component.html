@@ -1,5 +1,7 @@
 <!-- super-table.component.html -->
-<p-table #pTable
+<p-table
+  *ngIf="displayMode === 'grid'"
+  #pTable
   [value]="value"
   [columns]="columns"
   dataKey="id"
@@ -120,3 +122,10 @@
     </tr>
   </ng-template>
 </p-table>
+
+<div *ngIf="displayMode === 'group'">
+  <h3 *ngIf="groups && groups.length > 0">{{ groups[0] }}</h3>
+  <ul>
+    <li *ngFor="let item of value">{{ item }}</li>
+  </ul>
+</div>

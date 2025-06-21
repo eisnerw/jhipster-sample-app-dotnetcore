@@ -165,14 +165,42 @@
     }
   </style>
   <h2 id="page-heading" data-cy="BirthdayHeading">
-    <span>Birthdays</span><span style="font-size: 16px;font-weight: 700;">... </span><span (click)="showSearchDialog()"><span class="pi pi-search" style="cursor:pointer;"></span></span>
+    <span>Birthdays</span>
+    <div class="d-flex justify-content-end">
+      <button class="btn btn-info me-2" (click)="loadPage(1)" [disabled]="loading">
+        <fa-icon icon="sync" [spin]="loading"></fa-icon>
+        <span>Refresh List</span>
+      </button>
+
+      <button class="btn btn-primary" (click)="viewMode = viewMode === 'grid' ? 'group' : 'grid'">
+        <fa-icon icon="eye"></fa-icon>
+        <span>{{ viewMode === 'grid' ? 'Group View' : 'Grid View' }}</span>
+      </button>
+
+      <button
+        id="jh-create-entity"
+        data-cy="entityCreateButton"
+        class="btn btn-primary jh-create-entity create-birthday ms-2"
+        [routerLink]="['/birthday/new']"
+      >
+        <fa-icon icon="plus"></fa-icon>
+        <span>Create a new Birthday</span>
+      </button>
+    </div>
   </h2>
 
   <jhi-alert-error></jhi-alert-error>
 
   <jhi-alert></jhi-alert>
+
+  <super-table
+    *ngIf="viewMode === 'group'"
+    [value]="presidents"
+    [displayMode]="'group'"
+    [showHeader]="false"
+    [groups]="['Presidents']" />
   
-  <ng-container *ngIf="(rowData | async) as birthday">
+  <ng-container *ngIf="viewMode === 'grid' && (rowData | async) as birthday">
     <p-contextMenu #contextMenu [model]="menuItems" (mouseleave)="onContextMenuMouseLeave()" appendTo="body"></p-contextMenu>
     <p-confirmPopup></p-confirmPopup>
     <p-messages></p-messages>

@@ -41,6 +41,8 @@ export interface ColumnConfig {
 export class SuperTable {
     @Input() value: any[] = [];
     @Input() columns: ColumnConfig[] = [];
+    @Input() groups: string[] | undefined;
+    @Input() displayMode: 'grid' | 'group' = 'grid';
     @Input() resizableColumns = false;
     @Input() reorderableColumns = false;
     @Input() scrollable = false;
