@@ -197,8 +197,9 @@
     *ngIf="viewMode === 'group'"
     [value]="firstNames"
     [displayMode]="'group'"
-    [showHeader]="false"
-    [groups]="['First Names']" />
+    [showHeader]="true"
+    [groups]="['First Names']"
+    [columns]="columns" />
   
   <ng-container *ngIf="viewMode === 'grid' && (rowData | async) as birthday">
     <p-contextMenu #contextMenu [model]="menuItems" (mouseleave)="onContextMenuMouseLeave()" appendTo="body"></p-contextMenu>

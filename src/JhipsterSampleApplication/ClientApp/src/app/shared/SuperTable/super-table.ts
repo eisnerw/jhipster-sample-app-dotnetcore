@@ -43,6 +43,7 @@ export class SuperTable {
     @Input() columns: ColumnConfig[] = [];
     @Input() groups: string[] | undefined;
     @Input() displayMode: 'grid' | 'group' = 'grid';
+    @Input() loading = false;
     @Input() resizableColumns = false;
     @Input() reorderableColumns = false;
     @Input() scrollable = false;
