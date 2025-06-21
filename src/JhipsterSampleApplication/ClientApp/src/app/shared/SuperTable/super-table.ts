@@ -64,8 +64,8 @@ export class SuperTable {
     @ContentChild('customHeader', { read: TemplateRef }) headerTemplate?: TemplateRef<any>;
     @ContentChild('expandedRow', { read: TemplateRef, static: true }) expandedRowTemplate?: TemplateRef<any>;
     
-    //@Output() onRowExpand = new EventEmitter<any>();
-    //@Output() onRowCollapse = new EventEmitter<any>();
+    @Output() rowExpand = new EventEmitter<any>();
+    @Output() rowCollapse = new EventEmitter<any>();
     @Output() selectionChange = new EventEmitter<any>();
     @Output() onContextMenuSelect = new EventEmitter<any>();
     @Output() onColResize = new EventEmitter<any>();
@@ -75,13 +75,31 @@ export class SuperTable {
       const key = row.id || row.key || JSON.stringify(row);
       return this.expandedRowKeys[key] === true;
     }
+
+    isGroupExpanded(groupName: string): boolean {
+      return this.expandedRowKeys[groupName] === true;
+    }
+
+    onGroupToggle(groupName: string): void {
+      const isExpanded = this.isGroupExpanded(groupName);
+      if (isExpanded) {
+        delete this.expandedRowKeys[groupName];
+        this.rowCollapse.emit({ data: groupName });
+      } else {
+        this.expandedRowKeys[groupName] = true;
+        this.rowExpand.emit({ data: groupName });
+      }
+    }
+
     onRowExpand(event: { originalEvent: Event, data: any }) {
       console.log('Expanded:', event.data);
       this.expandedRowKeys[event.data.id] = true;
+      this.rowExpand.emit(event);
     }
   
     onRowCollapse(event: any) {
       delete this.expandedRowKeys[event.data.id];
+      this.rowCollapse.emit(event);
     }    
 
     filterList(event: any, field: string): void {

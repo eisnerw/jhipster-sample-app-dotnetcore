@@ -199,7 +199,13 @@
     [displayMode]="'group'"
     [showHeader]="true"
     [groups]="['First Names']"
-    [columns]="columns" />
+    [columns]="columns">
+    <ng-template #expandedRow let-groupName>
+      <div style="padding: 1rem;">
+        You have expanded the group: <strong>{{ groupName }}</strong>
+      </div>
+    </ng-template>
+  </super-table>
   
   <ng-container *ngIf="viewMode === 'grid' && (rowData | async) as birthday">
     <p-contextMenu #contextMenu [model]="menuItems" (mouseleave)="onContextMenuMouseLeave()" appendTo="body"></p-contextMenu>
