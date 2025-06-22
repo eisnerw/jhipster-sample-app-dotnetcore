@@ -4,18 +4,15 @@ import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-
-import { IBirthday } from '../birthday.model';
-
-import { ITEMS_PER_PAGE } from '../../../../app/config/pagination.constants';
-import { BirthdayService } from '../service/birthday.service';
-import { CategoryService } from '../../category/service/category.service';
-import { Observable } from 'rxjs';
+import { CommonModule, DatePipe } from '@angular/common';
+import { TableModule } from 'primeng/table';
 import { of } from 'rxjs';
-import { SuperTable } from '../../../shared/SuperTable/super-table';
-import { MenuItem, MessageService } from 'primeng/api';
+import { SuperTable } from '../../../shared/SuperTable/super-table.component';
+import { Sort } from 'app/shared/models/sort.model';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { MenuItem } from 'primeng/api';
 import { DomSanitizer } from "@angular/platform-browser";
-import { ConfirmationService, PrimeNGConfig} from "primeng/api";
+import { PrimeNGConfig } from "primeng/api";
 import { faCheck } from '@fortawesome/free-solid-svg-icons';
 import { ICategory } from '../../category/category.model';
 

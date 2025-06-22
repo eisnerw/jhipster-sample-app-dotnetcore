@@ -28,7 +28,10 @@ import SharedModule from 'app/shared/shared.module';
 import {
   SuperTable,
   ColumnConfig,
-} from '../../../shared/SuperTable/super-table';
+} from '../../../shared/SuperTable/super-table.component';
+
+import { ITEMS_PER_PAGE, PAGE_HEADER, TOTAL_COUNT_RESPONSE_HEADER } from 'app/config/pagination.constants';
+import { ASC, DESC, SORT, ITEM_DELETED_EVENT, DEFAULT_SORT_DATA } from 'app/config/navigation.constants';
 
 @Component({
   selector: 'jhi-birthday',
