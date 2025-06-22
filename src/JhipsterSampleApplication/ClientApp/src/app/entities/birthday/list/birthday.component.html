@@ -201,9 +201,15 @@
     [groups]="['First Names']"
     [columns]="columns">
     <ng-template #expandedRow let-groupName>
-      <div style="padding: 1rem;">
-        You have expanded the group: <strong>{{ groupName }}</strong>
-      </div>
+      <super-table
+        [value]="(rowData | async) ?? []"
+        [columns]="columns"
+        [showHeader]="false"
+        [paginator]="false"
+        dataKey="id"
+        styleClass="p-datatable-sm"
+      >
+      </super-table>
     </ng-template>
   </super-table>
   
