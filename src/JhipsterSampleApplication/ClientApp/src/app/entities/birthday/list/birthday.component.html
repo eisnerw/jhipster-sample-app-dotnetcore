@@ -1,4 +1,4 @@
-<div style="height: calc(100vh - 174px);overflow: auto;">
+<div style="height: calc(100vh - 174px); overflow: auto">
   <style>
     ::ng-deep .p-datatable .p-datatable-tbody > tr {
       min-height: 22px !important;
@@ -166,9 +166,10 @@
   </style>
   <h2 id="page-heading" data-cy="BirthdayHeading">
     <span>Birthdays</span>
+
     <div class="d-flex justify-content-end">
-      <button class="btn btn-info me-2" (click)="loadPage(1)" [disabled]="loading">
-        <fa-icon icon="sync" [spin]="loading"></fa-icon>
+      <button class="btn btn-info me-2" (click)="refreshData()" [disabled]="isLoading">
+        <fa-icon icon="sync" [spin]="isLoading"></fa-icon>
         <span>Refresh List</span>
       </button>
 
@@ -190,7 +191,6 @@
   </h2>
 
   <jhi-alert-error></jhi-alert-error>
-
   <jhi-alert></jhi-alert>
 
   <super-table
@@ -198,42 +198,55 @@
     [value]="firstNames"
     [displayMode]="'group'"
     [showHeader]="true"
-    [groups]="['First Names']"
-    [columns]="columns">
-    <ng-template #expandedRow let-groupName>
-      <super-table
-        [value]="(rowData | async) ?? []"
-        [columns]="columns"
-        [showHeader]="false"
-        [paginator]="false"
-        dataKey="id"
-        styleClass="p-datatable-sm"
-      >
-      </super-table>
+    [columns]="columns"
+    dataKey="id"
+    [expandedRowKeys]="expandedRowKeys"
+    (rowExpand)="onRowExpand($event)"
+    (rowCollapse)="onRowCollapse($event)"
+  >
+    <ng-template pTemplate="expandedRow" let-group>
+      <div *ngIf="getBirthdaysForGroup(group).length > 0; else noData">
+        <p-table [value]="getBirthdaysForGroup(group)" [columns]="columns" dataKey="id">
+          <ng-template pTemplate="body" let-birthday>
+            <tr>
+              <!-- This is a simplified view for group details -->
+              <td>{{ birthday.lname }}</td>
+              <td>{{ birthday.fname }}</td>
+              <td>{{ birthday.dob | date: 'mediumDate' }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+      <ng-template #noData>
+        <div class="p-3">No birthdays found for this group.</div>
+      </ng-template>
     </ng-template>
   </super-table>
-  
-  <ng-container *ngIf="viewMode === 'grid' && (rowData | async) as birthday">
+
+  <div *ngIf="viewMode === 'grid'">
     <p-contextMenu #contextMenu [model]="menuItems" (mouseleave)="onContextMenuMouseLeave()" appendTo="body"></p-contextMenu>
     <p-confirmPopup></p-confirmPopup>
     <p-messages></p-messages>
-    <super-table #birthdays 
-      [value]="(rowData | async) ?? []" 
+    <super-table
+      #superTable
+      [value]="birthdays"
       [columns]="columns"
       (onSort)="logSort($event)"
+      [loading]="isLoading"
       [loadingMessage]="(loadingMessage$ | async)!"
       [resizableColumns]="true"
-      [globalFilterFields]="['lname', 'fname', 'sign']" 
-      dataKey="id" 
-      [(contextSelectedRow)]="contextSelectedRow" 
+      [globalFilterFields]="['lname', 'fname', 'sign']"
+      dataKey="id"
+      [(contextMenuSelection)]="contextSelectedRow"
       [contextMenu]="contextMenu"
-      selectionMode="multiple" 
+      selectionMode="multiple"
       [(selection)]="checkboxSelectedRows"
-      (selectionChange)="onCheckboxChange()" 
+      (selectionChange)="onCheckboxChange()"
       (onContextMenuSelect)="setMenu(contextSelectedRow)"
-      [superTableParent] = "superTableParent"
-      styleClass="small-rows">
-      
+      [superTableParent]="superTableParent"
+      styleClass="small-rows"
+      [displayMode]="'grid'"
+    >
       <ng-template #expandedRow let-rowData>
         <tr>
           <td [attr.colspan]="columns.length">
@@ -270,9 +283,5 @@
         </tr>
       </ng-template>
     </super-table>
-  </ng-container>
-  <p-scrollTop
-    target="superTableParent"
-    icon="pi pi-arrow-up"
-  ></p-scrollTop>
+  </div>
 </div> 

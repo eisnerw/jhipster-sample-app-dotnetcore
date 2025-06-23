@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-namespace */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 
 Cypress.Commands.add('getManagementInfo', () => {
   return cy

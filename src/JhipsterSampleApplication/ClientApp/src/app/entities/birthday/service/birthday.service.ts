@@ -56,13 +56,22 @@ export class BirthdayService {
 
   query(req?: any): Observable<EntityArrayResponseType> {
     const options = createRequestOption(req);
+    let queryString = 'query=';
+
+    if (req?.query) {
+      queryString += String(req.query);
+      delete req.query; // Ensure it's not added as a URL parameter again
+    } else {
+      queryString += '*';
+    }
+
     return this.http.get<{
       hits: IBirthday[];
       hitType: string;
       totalHits: number;
       searchAfter: string[];
       pitId: string | null;
-    }>(`${this.searchUrl}?query=*`, {
+    }>(`${this.searchUrl}?${queryString}`, {
       params: options,
       observe: 'response',
     });

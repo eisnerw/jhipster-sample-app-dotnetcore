@@ -67,6 +67,7 @@ export class SuperTable {
     @Output() rowExpand = new EventEmitter<any>();
     @Output() rowCollapse = new EventEmitter<any>();
     @Output() selectionChange = new EventEmitter<any>();
+    @Output() contextMenuSelectionChange = new EventEmitter<any>();
     @Output() onContextMenuSelect = new EventEmitter<any>();
     @Output() onColResize = new EventEmitter<any>();
     @Output() onSort = new EventEmitter<any>();

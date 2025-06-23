@@ -3,7 +3,7 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { combineLatest, BehaviorSubject, Subscription } from 'rxjs';
+import { combineLatest, BehaviorSubject, Subscription, Observable } from 'rxjs';
 import { NgbModal, NgbPagination } from '@ng-bootstrap/ng-bootstrap';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -29,6 +29,7 @@ import {
   SuperTable,
   ColumnConfig,
 } from '../../../shared/SuperTable/super-table.component';
+import { BirthdayDataLoader } from './birthday-data-loader';
 
 import { ITEMS_PER_PAGE, PAGE_HEADER, TOTAL_COUNT_RESPONSE_HEADER } from 'app/config/pagination.constants';
 import { ASC, DESC, SORT, ITEM_DELETED_EVENT, DEFAULT_SORT_DATA } from 'app/config/navigation.constants';
@@ -37,7 +38,7 @@ import { ASC, DESC, SORT, ITEM_DELETED_EVENT, DEFAULT_SORT_DATA } from 'app/conf
   selector: 'jhi-birthday',
   templateUrl: './birthday.component.html',
   schemas: [NO_ERRORS_SCHEMA],
-  providers: [MessageService, ConfirmationService],
+  providers: [MessageService, ConfirmationService, BirthdayDataLoader],
   imports: [
     CommonModule,
     FormsModule,
@@ -57,8 +58,7 @@ export class BirthdayComponent implements OnInit {
 
   birthdays: IBirthday[] = [];
   isLoading = false;
-  loadingMessage = '';
-  loadingMessage$ = new BehaviorSubject<string>('');
+  loadingMessage$: Observable<string>;
   totalItems = 0;
   itemsPerPage = 50;
   page?: number;
@@ -134,16 +134,45 @@ export class BirthdayComponent implements OnInit {
   ];
 
   expandedRowKeys: { [key: string]: boolean } = {};
+  birthdaysByGroup: { [groupName: string]: IBirthday[] } = {};
 
-  onRowExpand(event: { originalEvent: Event, data: any }) {
-    console.log('Expanded:', event.data);
-    this.expandedRowKeys[event.data.id] = true;
+  onRowExpand(event: { originalEvent: Event; data: any }): void {
+    const groupName = event.data;
+    if (typeof groupName === 'string' && !this.birthdaysByGroup[groupName]) {
+      this.loadBirthdaysForGroup(groupName);
+    }
+    this.expandedRowKeys[groupName] = true;
   }
 
-  onRowCollapse(event: any) {
+  onRowCollapse(event: any): void {
     delete this.expandedRowKeys[event.data.id];
+    this.bDisplayBirthday = false;
   }
 
+  getBirthdaysForGroup(groupName: string): IBirthday[] {
+    return this.birthdaysByGroup[groupName] || [];
+  }
+
+  private loadBirthdaysForGroup(groupName: string): void {
+    this.isLoading = true;
+    this.birthdayService
+      .query({
+        query: `fname:${groupName}`,
+        size: 50, // Or some other appropriate limit
+      })
+      .subscribe({
+        next: res => {
+          if (res.body?.hits) {
+            this.birthdaysByGroup[groupName] = res.body.hits;
+          }
+          this.isLoading = false;
+        },
+        error: () => {
+          this.isLoading = false;
+          // Handle error appropriately
+        },
+      });
+  }
 
   // New properties for super-table
   rowData: BehaviorSubject<IBirthday[]> = new BehaviorSubject<IBirthday[]>([]);
@@ -197,7 +226,7 @@ export class BirthdayComponent implements OnInit {
   birthdayDialogId: any = '';
   loading = false;
   firstNames: string[] = [];
-  viewMode: 'grid' | 'group' = 'group';
+  viewMode: 'grid' | 'group' = 'grid';
   private loadingSubscription?: Subscription;
 
   constructor(
@@ -208,12 +237,24 @@ export class BirthdayComponent implements OnInit {
     protected messageService: MessageService,
     public sanitizer: DomSanitizer,
     private confirmationService: ConfirmationService,
-  ) {}
+    private dataLoader: BirthdayDataLoader,
+  ) {
+    this.loadingMessage$ = this.dataLoader.loadingMessage$;
+  }
 
   ngOnInit(): void {
     this.handleNavigation();
-    this.rowData.subscribe((data: IBirthday[]) => {
+    
+    this.dataLoader.data$.subscribe(data => {
       this.birthdays = data;
+    });
+
+    this.dataLoader.totalItems$.subscribe(total => {
+      this.totalItems = total;
+    });
+
+    this.dataLoader.loading$.subscribe(loading => {
+      this.isLoading = loading;
     });
 
     this.birthdayService.getUniqueValues('fname').subscribe(response => {
@@ -326,52 +367,26 @@ export class BirthdayComponent implements OnInit {
   }
 
   onRemoveChip(event: any): void {
-    const chip = event.value;
-    this.checkboxSelectedRows = this.checkboxSelectedRows.filter(
-      (row) => row.id !== chip.id,
-    );
-    this.chipSelectedRows = this.chipSelectedRows.filter(
-      (row) => row.id !== chip.id,
-    );
+    this.chipSelectedRows = this.chipSelectedRows.filter(row => row.id !== event.id);
   }
 
   delete(birthday: IBirthday): void {
-    const modalRef = this.modalService.open(BirthdayDeleteDialogComponent, {
-      size: 'lg',
-      backdrop: 'static',
-    });
+    const modalRef = this.modalService.open(BirthdayDeleteDialogComponent, { size: 'lg', backdrop: 'static' });
     modalRef.componentInstance.birthday = birthday;
-    modalRef.closed.subscribe((reason: string) => {
-      if (reason === 'deleted') {
+    // unsubscribe not needed because closed completes on modal close
+    modalRef.closed.subscribe(reason => {
+      if (reason === ITEM_DELETED_EVENT) {
         this.loadPage();
       }
     });
   }
 
-  loadPage(page?: number, dontNavigate?: boolean): void {
-    this.isLoading = true;
-    const pageToLoad: number = page ?? this.page ?? 1;
-
-    this.birthdayService
-      .query({
-        page: pageToLoad - 1,
-        pageSize: this.itemsPerPage,
-        sort: this.sort(),
-      })
-      .subscribe({
-        next: (res: EntityArrayResponseType) => {
-          this.isLoading = false;
-          this.onSuccess(res.body, res.headers, pageToLoad, !dontNavigate);
-        },
-        error: () => {
-          this.isLoading = false;
-          this.onError();
-        },
-      });
+  loadPage(): void {
+    this.dataLoader.load(this.itemsPerPage, this.predicate, this.ascending);
   }
 
   protected sort(): string[] {
-    const result = [this.predicate + ',' + (this.ascending ? 'asc' : 'desc')];
+    const result = [this.predicate + ',' + (this.ascending ? ASC : DESC)];
     if (this.predicate !== 'id') {
       result.push('id');
     }
@@ -379,141 +394,25 @@ export class BirthdayComponent implements OnInit {
   }
 
   protected handleNavigation(): void {
-    combineLatest([
-      this.activatedRoute.data,
-      this.activatedRoute.queryParamMap,
-    ]).subscribe(([data, params]) => {
+    combineLatest([this.activatedRoute.data, this.activatedRoute.queryParamMap]).subscribe(([data, params]) => {
       const page = params.get('page');
+      const pageSize = params.get('size');
       const pageNumber = page !== null ? +page : 1;
-      const sort = (params.get('sort') ?? data['defaultSort']).split(',');
+      const size = pageSize !== null ? +pageSize : 50;
+      const sort = (params.get(SORT) ?? data[DEFAULT_SORT_DATA]).split(',');
       const predicate = sort[0];
-      const ascending = sort[1] === 'asc';
-      if (
-        pageNumber !== this.page ||
-        predicate !== this.predicate ||
-        ascending !== this.ascending
-      ) {
+      const ascending = sort[1] === ASC;
+      if (pageNumber !== this.page || size !== this.itemsPerPage || predicate !== this.predicate || ascending !== this.ascending) {
+        this.page = pageNumber;
+        this.itemsPerPage = size;
         this.predicate = predicate;
         this.ascending = ascending;
-        this.loadPage(pageNumber, true);
+        this.loadPage();
       }
     });
   }
 
-  protected onSuccess(
-    data: {
-      hits: IBirthday[];
-      hitType: string;
-      totalHits: number;
-      searchAfter: string[];
-      pitId: string | null;
-    } | null,
-    headers: HttpHeaders,
-    page: number,
-    navigate: boolean,
-  ): void {
-    this.totalItems = data?.totalHits ?? Number(headers.get('X-Total-Count'));
-    this.page = page;
-    this.birthdays = data?.hits ?? [];
-    this.rowData.next(this.birthdays);
-    const limitData = 1000;
-
-    if (this.birthdays && this.birthdays.length < this.totalItems && this.birthdays.length < limitData) {
-      const loadIncrement = 50;
-      let loaded = this.birthdays.length;
-      let currentPitId = data?.pitId;
-      let currentSearchAfter = data?.searchAfter;
-      let chunkCounter = 0;
-
-      const rowLoader = () => {
-        if (!currentPitId || !currentSearchAfter) {
-          this.loadingMessage$.next('');
-          return;
-        }
-
-        this.birthdayService
-          .query({
-            page: 0,
-            pageSize: loadIncrement,
-            sort: this.sort(),
-            pitId: currentPitId,
-            searchAfter: currentSearchAfter,
-          })
-          .subscribe({
-            next: (res: EntityArrayResponseType) => {
-              if (res.body?.hits) {
-                this.birthdays.push(...res.body.hits);
-                loaded = this.birthdays.length;
-                currentPitId = res.body.pitId;
-                currentSearchAfter = res.body.searchAfter;
-                
-                if (loaded >= limitData) {
-                  this.loadingMessage = `${this.totalItems} hits (too many to display, showing the first ${limitData})`;
-                  this.birthdays = this.birthdays.slice(0, limitData);
-                  this.rowData.next(this.birthdays);
-                  this.loadingMessage$.next(this.loadingMessage);
-                  return;
-                }
-
-                chunkCounter++;
-                if (loaded < this.totalItems) {
-                  this.loadingMessage = `loading ${loaded}...`;
-                  this.loadingMessage$.next(this.loadingMessage);
-                  if (chunkCounter % 5 === 0) {
-                    this.rowData.next(this.birthdays);
-                  }
-                  setTimeout(rowLoader, 10);
-                } else {
-                  this.loadingMessage$.next('');
-                  this.rowData.next(this.birthdays);
-                }
-              }
-            },
-            error: () => {
-              this.loadingMessage$.next('Error loading data.');
-              this.onError();
-            },
-          });
-      };
-
-      if (this.birthdays.length < this.totalItems && this.birthdays.length < limitData) {
-        this.loadingMessage$.next(`loading ${this.birthdays.length}...`);
-        setTimeout(rowLoader, 10);
-      }
-    }
-
-    if (navigate) {
-      this.router.navigate(['/birthday'], {
-        queryParams: {
-          page: this.page,
-          sort: this.sort().join(','),
-        },
-      });
-    }
-  }
-
-  protected onError(): void {
-    this.ngbPaginationPage = this.page ?? 1;
-  }
-
   logSort(event: any): void {
-    const { data, field, order } = event;
-    console.log(`--- Sorting ---`);
-    console.log(`Field: ${field}, Order: ${order === 1 ? 'asc' : 'desc'}`);
-    console.log(`Component 'birthdays' length: ${this.birthdays?.length}`);
-    console.log(`Event 'data' length: ${data.length}`);
-    
-    // Check for duplicates in the component's master list
-    const masterIds = new Set(this.birthdays?.map(b => b.id));
-    if (masterIds.size !== this.birthdays?.length) {
-      console.error(`[ERROR] Duplicate IDs found in component's master 'birthdays' list BEFORE sort.`);
-    }
-
-    // Check for duplicates in the array sorted by PrimeNG
-    const eventIds = new Set(data.map((b: IBirthday) => b.id));
-    if (eventIds.size !== data.length) {
-      console.error(`[ERROR] Duplicate IDs found in the 'event.data' array AFTER sort.`);
-    }
-    console.log(`--- End Sorting ---`);
+    console.log('sort event', event);
   }
 }
