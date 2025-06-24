@@ -1,6 +1,6 @@
 /* eslint-disable */ 
 
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, TemplateRef } from '@angular/core';
 import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { combineLatest, BehaviorSubject, Subscription, Observable } from 'rxjs';
@@ -57,6 +57,7 @@ export class BirthdayComponent implements OnInit {
   @ViewChild('superTable') superTable!: SuperTable;
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
   @ViewChild('menu') menu!: Menu;
+  @ViewChild('expandedRow', { static: false }) expandedRowTemplate: TemplateRef<any> | undefined;
 
   dataLoader: DataLoader<IBirthday>;
   groups$: Observable<[string, IBirthday[]][]>;

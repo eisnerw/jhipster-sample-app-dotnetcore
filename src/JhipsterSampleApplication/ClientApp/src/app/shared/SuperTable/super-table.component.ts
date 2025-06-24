@@ -59,11 +59,11 @@ export class SuperTable implements OnInit {
     @Input() expandedRowKeys: { [key: string]: boolean } = {};
     @Input() loadingMessage: string | undefined;
     @Input() superTableParent: any;
+    @Input() expandedRowTemplate: TemplateRef<any> | undefined;
 
     @ViewChild('pTable') pTable!: Table;
 
     @ContentChild('customHeader', { read: TemplateRef }) headerTemplate?: TemplateRef<any>;
-    @ContentChild('expandedRow', { read: TemplateRef, static: true }) expandedRowTemplate?: TemplateRef<any>;
     
     @Output() rowExpand = new EventEmitter<any>();
     @Output() rowCollapse = new EventEmitter<any>();

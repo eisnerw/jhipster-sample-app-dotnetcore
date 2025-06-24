@@ -199,11 +199,24 @@
       [dataLoader]="dataLoader"
       [columns]="columns"
       [superTableParent]="this"
+      [expandedRowTemplate]="expandedRowTemplate"
       (selectionChange)="onCheckboxChange()"
       (onContextMenuSelect)="setMenu($event.data)"
       (contextMenuSelectionChange)="onContextMenuSelect($event)"
     ></super-table>
   </div>
+
+  <ng-template #expandedRow let-rowData>
+    <tr>
+      <td [attr.colspan]="columns.length + 1">
+        <h5>Details for {{ rowData.lname }}, {{ rowData.fname }}</h5>
+        <!-- Add more details as needed -->
+        <p>Date of Birth: {{ rowData.dob | date:'longDate' }}</p>
+        <p>Sign: {{ rowData.sign }}</p>
+      </td>
+    </tr>
+  </ng-template>
+
   <div class="table-responsive" *ngIf="viewMode === 'group'">
     <div *ngFor="let group of (groups$ | async)">
       <div class="group-header" (click)="onGroupToggle(group[0])">
