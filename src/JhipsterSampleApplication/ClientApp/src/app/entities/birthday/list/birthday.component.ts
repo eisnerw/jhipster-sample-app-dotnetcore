@@ -30,6 +30,7 @@ import {
   ColumnConfig,
 } from '../../../shared/SuperTable/super-table.component';
 import { BirthdayDataLoader } from './birthday-data-loader';
+import { BirthdayGroupDetailComponent } from './birthday-group-detail.component';
 
 import { ITEMS_PER_PAGE, PAGE_HEADER, TOTAL_COUNT_RESPONSE_HEADER } from 'app/config/pagination.constants';
 import { ASC, DESC, SORT, ITEM_DELETED_EVENT, DEFAULT_SORT_DATA } from 'app/config/navigation.constants';
@@ -47,6 +48,7 @@ import { ASC, DESC, SORT, ITEM_DELETED_EVENT, DEFAULT_SORT_DATA } from 'app/conf
     DatePipe,
     SuperTable,
     TableModule,
+    BirthdayGroupDetailComponent,
   ],
   standalone: true,
 })
@@ -134,44 +136,13 @@ export class BirthdayComponent implements OnInit {
   ];
 
   expandedRowKeys: { [key: string]: boolean } = {};
-  birthdaysByGroup: { [groupName: string]: IBirthday[] } = {};
 
   onRowExpand(event: { originalEvent: Event; data: any }): void {
-    const groupName = event.data;
-    if (typeof groupName === 'string' && !this.birthdaysByGroup[groupName]) {
-      this.loadBirthdaysForGroup(groupName);
-    }
-    this.expandedRowKeys[groupName] = true;
+    this.expandedRowKeys[event.data] = true;
   }
 
   onRowCollapse(event: any): void {
-    delete this.expandedRowKeys[event.data.id];
-    this.bDisplayBirthday = false;
-  }
-
-  getBirthdaysForGroup(groupName: string): IBirthday[] {
-    return this.birthdaysByGroup[groupName] || [];
-  }
-
-  private loadBirthdaysForGroup(groupName: string): void {
-    this.isLoading = true;
-    this.birthdayService
-      .query({
-        query: `fname:${groupName}`,
-        size: 50, // Or some other appropriate limit
-      })
-      .subscribe({
-        next: res => {
-          if (res.body?.hits) {
-            this.birthdaysByGroup[groupName] = res.body.hits;
-          }
-          this.isLoading = false;
-        },
-        error: () => {
-          this.isLoading = false;
-          // Handle error appropriately
-        },
-      });
+    delete this.expandedRowKeys[event.data];
   }
 
   // New properties for super-table

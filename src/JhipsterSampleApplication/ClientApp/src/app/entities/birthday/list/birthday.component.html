@@ -205,21 +205,7 @@
     (rowCollapse)="onRowCollapse($event)"
   >
     <ng-template pTemplate="expandedRow" let-group>
-      <div *ngIf="getBirthdaysForGroup(group).length > 0; else noData">
-        <p-table [value]="getBirthdaysForGroup(group)" [columns]="columns" dataKey="id">
-          <ng-template pTemplate="body" let-birthday>
-            <tr>
-              <!-- This is a simplified view for group details -->
-              <td>{{ birthday.lname }}</td>
-              <td>{{ birthday.fname }}</td>
-              <td>{{ birthday.dob | date: 'mediumDate' }}</td>
-            </tr>
-          </ng-template>
-        </p-table>
-      </div>
-      <ng-template #noData>
-        <div class="p-3">No birthdays found for this group.</div>
-      </ng-template>
+      <jhi-birthday-group-detail [groupName]="group" [columns]="columns"></jhi-birthday-group-detail>
     </ng-template>
   </super-table>
 

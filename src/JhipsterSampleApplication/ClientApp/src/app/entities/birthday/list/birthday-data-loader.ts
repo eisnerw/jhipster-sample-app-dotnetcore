@@ -41,7 +41,12 @@ export class BirthdayDataLoader {
     this.loadingMessage$ = this.loadingMessageSubject.asObservable();
   }
 
-  load(itemsPerPage: number, predicate: string, ascending: boolean, filter?: any): void {
+  load(
+    itemsPerPage: number,
+    predicate: string,
+    ascending: boolean,
+    filter?: any,
+  ): void {
     this.loadingSubject.next(true);
     this.loadingMessageSubject.next('loading...');
 
@@ -58,7 +63,8 @@ export class BirthdayDataLoader {
     };
 
     this.birthdayService.query(queryParams).subscribe({
-      next: (response: HttpResponse<any>) => this.onSuccess(response.body, response.headers, true),
+      next: (response: HttpResponse<any>) =>
+        this.onSuccess(response.body, response.headers, true),
       error: () => this.onError(),
     });
   }
@@ -78,12 +84,17 @@ export class BirthdayDataLoader {
     };
 
     this.birthdayService.query(queryParams).subscribe({
-      next: (response: HttpResponse<any>) => this.onSuccess(response.body, response.headers, false),
+      next: (response: HttpResponse<any>) =>
+        this.onSuccess(response.body, response.headers, false),
       error: () => this.onError(),
     });
   }
 
-  private onSuccess(data: BirthdaySearchResponseData, headers: HttpHeaders, isInitialLoad: boolean): void {
+  private onSuccess(
+    data: BirthdaySearchResponseData,
+    headers: HttpHeaders,
+    isInitialLoad: boolean,
+  ): void {
     const newHits = data?.hits ?? [];
     if (isInitialLoad) {
       this.totalItemsSubject.next(data?.totalHits ?? 0);
@@ -100,7 +111,9 @@ export class BirthdayDataLoader {
     const totalItems = this.totalItemsSubject.getValue();
 
     if (currentLength >= this.dataLoadLimit) {
-      const limitedData = this.dataSubject.getValue().slice(0, this.dataLoadLimit);
+      const limitedData = this.dataSubject
+        .getValue()
+        .slice(0, this.dataLoadLimit);
       this.dataSubject.next(limitedData);
       const message = `${totalItems} hits (too many to display, showing the first ${this.dataLoadLimit})`;
       this.loadingMessageSubject.next(message);
@@ -108,7 +121,11 @@ export class BirthdayDataLoader {
       return;
     }
 
-    if (this.pitId && this.searchAfter.length > 0 && currentLength < totalItems) {
+    if (
+      this.pitId &&
+      this.searchAfter.length > 0 &&
+      currentLength < totalItems
+    ) {
       const message = `loading ${currentLength}...`;
       this.loadingMessageSubject.next(message);
       setTimeout(() => this.loadMore(), 10);
