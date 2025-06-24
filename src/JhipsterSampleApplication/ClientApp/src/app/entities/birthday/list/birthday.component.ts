@@ -17,8 +17,8 @@ import { ConfirmationService } from 'primeng/api';
 import { ContextMenu, ContextMenuModule } from 'primeng/contextmenu';
 import { Table } from 'primeng/table';
 import { Menu } from 'primeng/menu';
-import { DatePipe } from '@angular/common';
 import { TableModule } from 'primeng/table';
+import { tap, switchMap, map } from 'rxjs/operators';
 
 import { BirthdayService, EntityArrayResponseType } from '../service/birthday.service';
 import { IBirthday } from '../birthday.model';
@@ -29,7 +29,7 @@ import {
   SuperTable,
   ColumnConfig,
 } from '../../../shared/SuperTable/super-table.component';
-import { BirthdayDataLoader } from './birthday-data-loader';
+import { DataLoader, FetchFunction } from 'app/shared/data-loader';
 import { BirthdayGroupDetailComponent } from './birthday-group-detail.component';
 
 import { ITEMS_PER_PAGE, PAGE_HEADER, TOTAL_COUNT_RESPONSE_HEADER } from 'app/config/pagination.constants';
@@ -38,14 +38,14 @@ import { ASC, DESC, SORT, ITEM_DELETED_EVENT, DEFAULT_SORT_DATA } from 'app/conf
 @Component({
   selector: 'jhi-birthday',
   templateUrl: './birthday.component.html',
+  styleUrls: ['./birthday.component.scss'],
   schemas: [NO_ERRORS_SCHEMA],
-  providers: [MessageService, ConfirmationService, BirthdayDataLoader],
+  providers: [MessageService, ConfirmationService],
   imports: [
     CommonModule,
     FormsModule,
     RouterModule,
     SharedModule,
-    DatePipe,
     SuperTable,
     TableModule,
     BirthdayGroupDetailComponent,
@@ -58,16 +58,13 @@ export class BirthdayComponent implements OnInit {
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
   @ViewChild('menu') menu!: Menu;
 
-  birthdays: IBirthday[] = [];
-  isLoading = false;
-  loadingMessage$: Observable<string>;
-  totalItems = 0;
+  dataLoader: DataLoader<IBirthday>;
+  groups$: Observable<[string, IBirthday[]][]>;
   itemsPerPage = 50;
-  page?: number;
+  page = 1;
   predicate!: string;
   ascending!: boolean;
   ngbPaginationPage = 1;
-  superTableParent = 'superTableParent';
   columns: ColumnConfig[] = [
     {
       field: 'lineNumber',
@@ -145,8 +142,15 @@ export class BirthdayComponent implements OnInit {
     delete this.expandedRowKeys[event.data];
   }
 
+  onGroupToggle(groupName: string): void {
+    this.expandedRowKeys[groupName] = !this.expandedRowKeys[groupName];
+  }
+
+  isGroupExpanded(groupName: string): boolean {
+    return this.expandedRowKeys[groupName] === true;
+  }
+
   // New properties for super-table
-  rowData: BehaviorSubject<IBirthday[]> = new BehaviorSubject<IBirthday[]>([]);
   menuItems: MenuItem[] = [
     {
       label: 'Select action',
@@ -195,7 +199,6 @@ export class BirthdayComponent implements OnInit {
   bDisplayBirthday = false;
   birthdayDialogTitle = '';
   birthdayDialogId: any = '';
-  loading = false;
   firstNames: string[] = [];
   viewMode: 'grid' | 'group' = 'grid';
   private loadingSubscription?: Subscription;
@@ -207,27 +210,30 @@ export class BirthdayComponent implements OnInit {
     protected modalService: NgbModal,
     protected messageService: MessageService,
     public sanitizer: DomSanitizer,
-    private confirmationService: ConfirmationService,
-    private dataLoader: BirthdayDataLoader,
+    private confirmationService: ConfirmationService
   ) {
-    this.loadingMessage$ = this.dataLoader.loadingMessage$;
+    const fetchFunction: FetchFunction<IBirthday> = (queryParams: any) => {
+      return this.birthdayService.query(queryParams);
+    };
+    this.dataLoader = new DataLoader<IBirthday>(fetchFunction);
+    this.groups$ = this.dataLoader.data$.pipe(
+      map(birthdays => {
+        const groups = new Map<string, IBirthday[]>();
+        birthdays.forEach(b => {
+          const key = b.fname ?? 'unknown';
+          if (!groups.has(key)) {
+            groups.set(key, []);
+          }
+          groups.get(key)!.push(b);
+        });
+        return Array.from(groups.entries());
+      })
+    );
   }
 
   ngOnInit(): void {
     this.handleNavigation();
     
-    this.dataLoader.data$.subscribe(data => {
-      this.birthdays = data;
-    });
-
-    this.dataLoader.totalItems$.subscribe(total => {
-      this.totalItems = total;
-    });
-
-    this.dataLoader.loading$.subscribe(loading => {
-      this.isLoading = loading;
-    });
-
     this.birthdayService.getUniqueValues('fname').subscribe(response => {
       if (response.body) {
         this.firstNames = response.body.sort();
@@ -330,7 +336,10 @@ export class BirthdayComponent implements OnInit {
   }
 
   onChipClick(event: any): void {
-    // Handle chip click event
+  }
+
+  onContextMenuSelect(data: any): void {
+    this.contextSelectedRow = data;
   }
 
   onContextMenuMouseLeave(): void {
@@ -353,7 +362,7 @@ export class BirthdayComponent implements OnInit {
   }
 
   loadPage(): void {
-    this.dataLoader.load(this.itemsPerPage, this.predicate, this.ascending);
+    this.dataLoader.load(this.itemsPerPage, this.predicate, this.ascending, { luceneQuery: '*' });
   }
 
   protected sort(): string[] {
@@ -365,22 +374,18 @@ export class BirthdayComponent implements OnInit {
   }
 
   protected handleNavigation(): void {
-    combineLatest([this.activatedRoute.data, this.activatedRoute.queryParamMap]).subscribe(([data, params]) => {
-      const page = params.get('page');
-      const pageSize = params.get('size');
-      const pageNumber = page !== null ? +page : 1;
-      const size = pageSize !== null ? +pageSize : 50;
-      const sort = (params.get(SORT) ?? data[DEFAULT_SORT_DATA]).split(',');
-      const predicate = sort[0];
-      const ascending = sort[1] === ASC;
-      if (pageNumber !== this.page || size !== this.itemsPerPage || predicate !== this.predicate || ascending !== this.ascending) {
-        this.page = pageNumber;
-        this.itemsPerPage = size;
-        this.predicate = predicate;
-        this.ascending = ascending;
-        this.loadPage();
-      }
-    });
+    combineLatest([this.activatedRoute.data, this.activatedRoute.queryParamMap])
+      .subscribe(([data, params]) => {
+        const page = params.get('page');
+        const pageSize = params.get('size');
+        this.page = page !== null ? +page : 1;
+        this.itemsPerPage = pageSize !== null ? +pageSize : this.itemsPerPage;
+        const sort = (params.get(SORT) ?? data[DEFAULT_SORT_DATA]).split(',');
+        this.predicate = sort[0];
+        this.ascending = sort[1] === ASC;
+        this.ngbPaginationPage = this.page;
+        this.dataLoader.load(this.itemsPerPage, this.predicate, this.ascending, { luceneQuery: '*' });
+      });
   }
 
   logSort(event: any): void {

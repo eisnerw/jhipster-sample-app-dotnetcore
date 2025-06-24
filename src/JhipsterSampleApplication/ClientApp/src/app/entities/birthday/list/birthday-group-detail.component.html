@@ -1,10 +1,7 @@
 <super-table
-  [value]="(birthdays$ | async)!"
+  [dataLoader]="dataLoader"
   [columns]="columns"
-  [loading]="(isLoading$ | async)!"
-  [loadingMessage]="(loadingMessage$ | async)!"
-  [showHeader]="false"
   [displayMode]="'grid'"
-  styleClass="p-datatable-sm"
->
-</super-table> 
+  [superTableParent]="parent"
+  [showHeader]="false"
+></super-table> 

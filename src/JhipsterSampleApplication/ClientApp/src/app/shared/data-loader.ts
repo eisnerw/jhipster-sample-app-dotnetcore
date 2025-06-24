@@ -1,26 +1,27 @@
-import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { IBirthday } from '../birthday.model';
-import { BirthdayService } from '../service/birthday.service';
 import { HttpHeaders, HttpResponse } from '@angular/common/http';
-import { TOTAL_COUNT_RESPONSE_HEADER } from 'app/config/pagination.constants';
 
-type BirthdaySearchResponseData = {
-  hits: IBirthday[];
+export type SearchResponseData<T> = {
+  hits: T[];
   hitType: string;
   totalHits: number;
   searchAfter: string[];
   pitId: string | null;
 } | null;
 
-@Injectable()
-export class BirthdayDataLoader {
-  public data$: Observable<IBirthday[]>;
+export type FetchFunction<T> = (
+  queryParams: any,
+) => Observable<HttpResponse<SearchResponseData<T>>>;
+
+export class DataLoader<T> {
+  public data$: BehaviorSubject<T[]>;
   public totalItems$: Observable<number>;
   public loading$: Observable<boolean>;
   public loadingMessage$: Observable<string>;
 
-  private dataSubject = new BehaviorSubject<IBirthday[]>([]);
+  private buffer: T[] = [];
+  private bufferSubject = new BehaviorSubject<T[]>(this.buffer);
+
   private totalItemsSubject = new BehaviorSubject<number>(0);
   private loadingSubject = new BehaviorSubject<boolean>(false);
   private loadingMessageSubject = new BehaviorSubject<string>('');
@@ -34,8 +35,8 @@ export class BirthdayDataLoader {
   private filter: any;
   private readonly dataLoadLimit = 1000;
 
-  constructor(private birthdayService: BirthdayService) {
-    this.data$ = this.dataSubject.asObservable();
+  constructor(private fetchFunction: FetchFunction<T>) {
+    this.data$ = this.bufferSubject;
     this.totalItems$ = this.totalItemsSubject.asObservable();
     this.loading$ = this.loadingSubject.asObservable();
     this.loadingMessage$ = this.loadingMessageSubject.asObservable();
@@ -54,6 +55,7 @@ export class BirthdayDataLoader {
     this.predicate = predicate;
     this.ascending = ascending;
     this.filter = filter;
+    this.buffer = []; // Reset buffer on new load
 
     const queryParams: any = {
       pageSize: this.itemsPerPage,
@@ -62,7 +64,7 @@ export class BirthdayDataLoader {
       page: 0,
     };
 
-    this.birthdayService.query(queryParams).subscribe({
+    this.fetchFunction(queryParams).subscribe({
       next: (response: HttpResponse<any>) =>
         this.onSuccess(response.body, response.headers, true),
       error: () => this.onError(),
@@ -83,7 +85,7 @@ export class BirthdayDataLoader {
       ...this.filter,
     };
 
-    this.birthdayService.query(queryParams).subscribe({
+    this.fetchFunction(queryParams).subscribe({
       next: (response: HttpResponse<any>) =>
         this.onSuccess(response.body, response.headers, false),
       error: () => this.onError(),
@@ -91,30 +93,30 @@ export class BirthdayDataLoader {
   }
 
   private onSuccess(
-    data: BirthdaySearchResponseData,
+    data: SearchResponseData<T>,
     headers: HttpHeaders,
     isInitialLoad: boolean,
   ): void {
     const newHits = data?.hits ?? [];
     if (isInitialLoad) {
       this.totalItemsSubject.next(data?.totalHits ?? 0);
-      this.dataSubject.next(newHits);
-    } else {
-      const currentData = this.dataSubject.getValue();
-      this.dataSubject.next([...currentData, ...newHits]);
+      this.buffer = [];
+    }
+
+    const remaining = this.dataLoadLimit - this.buffer.length;
+    const toAdd = newHits.slice(0, remaining);
+    if (toAdd.length > 0) {
+      this.buffer.push(...toAdd);
+      this.bufferSubject.next(this.buffer);
     }
 
     this.pitId = data?.pitId ?? null;
     this.searchAfter = data?.searchAfter ?? [];
 
-    const currentLength = this.dataSubject.getValue().length;
+    const currentLength = this.buffer.length;
     const totalItems = this.totalItemsSubject.getValue();
 
     if (currentLength >= this.dataLoadLimit) {
-      const limitedData = this.dataSubject
-        .getValue()
-        .slice(0, this.dataLoadLimit);
-      this.dataSubject.next(limitedData);
       const message = `${totalItems} hits (too many to display, showing the first ${this.dataLoadLimit})`;
       this.loadingMessageSubject.next(message);
       this.loadingSubject.next(false);

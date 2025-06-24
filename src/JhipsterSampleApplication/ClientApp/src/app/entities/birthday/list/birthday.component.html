@@ -168,8 +168,8 @@
     <span>Birthdays</span>
 
     <div class="d-flex justify-content-end">
-      <button class="btn btn-info me-2" (click)="refreshData()" [disabled]="isLoading">
-        <fa-icon icon="sync" [spin]="isLoading"></fa-icon>
+      <button class="btn btn-info me-2" (click)="refreshData()" [disabled]="(dataLoader.loading$ | async)">
+        <fa-icon icon="sync" [spin]="(dataLoader.loading$ | async)"></fa-icon>
         <span>Refresh List</span>
       </button>
 
@@ -193,81 +193,31 @@
   <jhi-alert-error></jhi-alert-error>
   <jhi-alert></jhi-alert>
 
-  <super-table
-    *ngIf="viewMode === 'group'"
-    [value]="firstNames"
-    [displayMode]="'group'"
-    [showHeader]="true"
-    [columns]="columns"
-    dataKey="id"
-    [expandedRowKeys]="expandedRowKeys"
-    (rowExpand)="onRowExpand($event)"
-    (rowCollapse)="onRowCollapse($event)"
-  >
-    <ng-template pTemplate="expandedRow" let-group>
-      <jhi-birthday-group-detail [groupName]="group" [columns]="columns"></jhi-birthday-group-detail>
-    </ng-template>
-  </super-table>
-
-  <div *ngIf="viewMode === 'grid'">
-    <p-contextMenu #contextMenu [model]="menuItems" (mouseleave)="onContextMenuMouseLeave()" appendTo="body"></p-contextMenu>
-    <p-confirmPopup></p-confirmPopup>
-    <p-messages></p-messages>
+  <div class="table-responsive">
     <super-table
-      #superTable
-      [value]="birthdays"
+      *ngIf="viewMode === 'grid'"
+      [dataLoader]="dataLoader"
       [columns]="columns"
-      (onSort)="logSort($event)"
-      [loading]="isLoading"
-      [loadingMessage]="(loadingMessage$ | async)!"
-      [resizableColumns]="true"
-      [globalFilterFields]="['lname', 'fname', 'sign']"
-      dataKey="id"
-      [(contextMenuSelection)]="contextSelectedRow"
-      [contextMenu]="contextMenu"
-      selectionMode="multiple"
-      [(selection)]="checkboxSelectedRows"
+      [superTableParent]="this"
       (selectionChange)="onCheckboxChange()"
-      (onContextMenuSelect)="setMenu(contextSelectedRow)"
-      [superTableParent]="superTableParent"
-      styleClass="small-rows"
-      [displayMode]="'grid'"
-    >
-      <ng-template #expandedRow let-rowData>
-        <tr>
-          <td [attr.colspan]="columns.length">
-            <div class="p-p-3">
-              <h5>Details for {{ rowData.lname }}, {{ rowData.fname }}</h5>
-              <div class="p-grid">
-                <div class="p-col-12 p-md-6">
-                  <div class="p-field">
-                    <label>Name:</label>
-                    <span>{{ rowData.lname }}, {{ rowData.fname }}</span>
-                  </div>
-                </div>
-                <div class="p-col-12 p-md-6">
-                  <div class="p-field">
-                    <label>Date of Birth:</label>
-                    <span>{{ rowData.dob | date }}</span>
-                  </div>
-                </div>
-                <div class="p-col-12 p-md-6">
-                  <div class="p-field">
-                    <label>Sign:</label>
-                    <span>{{ rowData.sign }}</span>
-                  </div>
-                </div>
-                <div class="p-col-12 p-md-6">
-                  <div class="p-field">
-                    <label>Status:</label>
-                    <span>{{ rowData.isAlive ? 'Alive' : 'Deceased' }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-    </super-table>
+      (onContextMenuSelect)="setMenu($event.data)"
+      (contextMenuSelectionChange)="onContextMenuSelect($event)"
+    ></super-table>
   </div>
+  <div class="table-responsive" *ngIf="viewMode === 'group'">
+    <div *ngFor="let group of (groups$ | async)">
+      <div class="group-header" (click)="onGroupToggle(group[0])">
+        <span [class]="isGroupExpanded(group[0]) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></span>
+        {{ group[0] }}
+      </div>
+      <div *ngIf="isGroupExpanded(group[0])">
+        <jhi-birthday-group-detail [group]="group[1]" [columns]="columns" [parent]="this"></jhi-birthday-group-detail>
+      </div>
+    </div>
+  </div>
+  <p-contextMenu #contextMenu [model]="menuItems" (onShow)="onMenuShow($event, 'context')"></p-contextMenu>
+
+  <p-dialog [(visible)]="bDisplaySearchDialog" [modal]="true" header="Search Birthdays">
+    <!-- Search dialog content -->
+  </p-dialog>
 </div> 

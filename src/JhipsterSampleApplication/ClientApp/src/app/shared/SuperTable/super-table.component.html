@@ -1,8 +1,8 @@
 <!-- super-table.component.html -->
 <p-table
-  *ngIf="displayMode === 'grid'"
+  *ngIf="dataLoader && displayMode === 'grid'"
   #pTable
-  [value]="value"
+  [value]="(dataLoader.data$ | async)!"
   [columns]="columns"
   dataKey="id"
   [resizableColumns]="resizableColumns"
@@ -83,8 +83,8 @@
           </div>
         </th>
       </tr>
-      <tr *ngIf="loadingMessage">
-        <td [attr.colspan]="columns.length">{{loadingMessage}}</td>
+      <tr *ngIf="(dataLoader.loading$ | async)">
+        <td [attr.colspan]="columns.length">{{ dataLoader.loadingMessage$ | async }}</td>
       </tr> 
     </ng-template>
   </ng-container>
@@ -123,7 +123,7 @@
   </ng-template>
 </p-table>
 
-<div *ngIf="displayMode === 'group'">
+<div *ngIf="displayMode === 'group' && dataLoader">
   <p-table [columns]="columns" [value]="[]" *ngIf="showHeader" styleClass="p-datatable-gridlines" (onSort)="onSort.emit($event)">
     <ng-template pTemplate="header" let-columns>
       <tr class="header-row">
@@ -189,7 +189,7 @@
       </tr>
     </ng-template>
   </p-table>
-  <p-table [value]="value" styleClass="p-datatable-gridlines">
+  <p-table [value]="(dataLoader.data$ | async)!" styleClass="p-datatable-gridlines">
     <ng-template pTemplate="body" let-rowData>
       <tr class="p-row-odd">
         <td style="width: 3rem; text-align: center;">

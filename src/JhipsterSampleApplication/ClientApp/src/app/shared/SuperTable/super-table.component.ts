@@ -1,6 +1,6 @@
 /* eslint-disable */ 
 
-import { Component, Input, Output, EventEmitter, ContentChild, TemplateRef, ViewChild } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ContentChild, TemplateRef, ViewChild, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -10,6 +10,7 @@ import { RippleModule } from 'primeng/ripple';
 import { Table } from 'primeng/table';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { FormsModule } from '@angular/forms';
+import { DataLoader } from '../data-loader';
 
 export interface ColumnConfig {
   field: string;
@@ -38,8 +39,8 @@ export interface ColumnConfig {
     FormsModule,
   ],
 })
-export class SuperTable {
-    @Input() value: any[] = [];
+export class SuperTable implements OnInit {
+    @Input() dataLoader: DataLoader<any> | undefined;
     @Input() columns: ColumnConfig[] = [];
     @Input() groups: string[] | undefined;
     @Input() displayMode: 'grid' | 'group' = 'grid';
@@ -56,8 +57,8 @@ export class SuperTable {
     @Input() selectionMode: 'single' | 'multiple' | null | undefined;
     @Input() selection: any;
     @Input() expandedRowKeys: { [key: string]: boolean } = {};
-    @Input() superTableParent: any;
     @Input() loadingMessage: string | undefined;
+    @Input() superTableParent: any;
 
     @ViewChild('pTable') pTable!: Table;
 
@@ -71,6 +72,16 @@ export class SuperTable {
     @Output() onContextMenuSelect = new EventEmitter<any>();
     @Output() onColResize = new EventEmitter<any>();
     @Output() onSort = new EventEmitter<any>();
+
+    ngOnInit(): void {
+      if (!this.superTableParent) {
+        throw new Error('superTableParent is a required input');
+      }
+    }
+
+    trackByFn(index: number, item: any): any {
+      return item.id || index;
+    }
 
     isRowExpanded(row: any): boolean {
       const key = row.id || row.key || JSON.stringify(row);
