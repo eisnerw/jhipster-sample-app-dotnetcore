@@ -149,6 +149,7 @@ export class SuperTable implements OnInit {
     if (this.pTable && event?.element) {
       const index = (event.element as any).cellIndex;
       const newWidth = event.element.offsetWidth + 'px';
+      console.log('applyColResize', { index, newWidth, oldWidth: this.columns[index]?.width });
       if (this.columns[index]) {
         this.columns[index].width = newWidth;
         this.columns = [...this.columns];
