@@ -6,7 +6,7 @@
   [columns]="columns"
   dataKey="id"
   [resizableColumns]="resizableColumns"
-  columnResizeMode="fit"
+  [columnResizeMode]="columnResizeMode"
   [reorderableColumns]="reorderableColumns"
   [scrollable]="scrollable"
   [scrollHeight]="scrollHeight"
@@ -127,7 +127,9 @@
 </p-table>
 
 <div *ngIf="displayMode === 'group' && dataLoader">
-  <p-table [columns]="columns" [value]="[]" *ngIf="showHeader" styleClass="p-datatable-gridlines" (onSort)="onSort.emit($event)" (onFilter)="onFilter.emit($event)" (onColResize)="onColResize.emit($event)">
+  <p-table [columns]="columns" [value]="[]" *ngIf="showHeader" styleClass="p-datatable-gridlines"
+           [resizableColumns]="resizableColumns" [columnResizeMode]="columnResizeMode"
+           (onSort)="onSort.emit($event)" (onFilter)="onFilter.emit($event)" (onColResize)="onColResize.emit($event)">
     <ng-template pTemplate="header" let-columns>
       <tr class="header-row">
         <th *ngFor="let col of columns"

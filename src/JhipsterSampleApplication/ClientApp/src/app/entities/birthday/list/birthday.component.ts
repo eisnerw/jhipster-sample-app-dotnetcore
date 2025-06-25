@@ -396,16 +396,23 @@ export class BirthdayComponent implements OnInit {
   onHeaderColResize(event: TableColResizeEvent): void {
     if (event?.element) {
       const index = (event.element as any).cellIndex;
-      const newWidth = event.element.offsetWidth + 'px';
+      const newWidthPx = event.element.offsetWidth + 'px';
+      const newWidth = event.element.offsetWidth;
       if (this.columns[index]) {
-        this.columns[index].width = newWidth;
+        this.columns[index].width = newWidthPx;
         this.columns = [...this.columns];
       }
+
+      // Update style of header table immediately
+      const headerWidths = this.columns.map(c => parseInt(c.width || '0', 10));
+      (this.headerTable.pTable as any).updateStyleElement(headerWidths, index, newWidth, null);
     }
 
     // Propagate updated column definitions to child tables via Input binding
     this.groupDetailComponents?.forEach(cmp => {
       cmp.columns = [...this.columns];
+      const childWidths = cmp.columns.map(c => parseInt(c.width || '0', 10));
+      (cmp.superTableComponent.pTable as any).updateStyleElement(childWidths, index, newWidth, null);
     });
   }
 }
