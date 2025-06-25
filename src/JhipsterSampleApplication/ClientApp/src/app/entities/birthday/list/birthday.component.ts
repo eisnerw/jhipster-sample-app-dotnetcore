@@ -394,11 +394,13 @@ export class BirthdayComponent implements OnInit {
   }
 
   onHeaderColResize(event: TableColResizeEvent): void {
+    let index: number | undefined;
+    let newWidth: number | undefined;
     if (event?.element) {
-      const index = (event.element as any).cellIndex;
+      index = (event.element as any).cellIndex;
       const newWidthPx = event.element.offsetWidth + 'px';
-      const newWidth = event.element.offsetWidth;
-      if (this.columns[index]) {
+      newWidth = event.element.offsetWidth;
+      if (index !== undefined && this.columns[index]) {
         this.columns[index].width = newWidthPx;
         this.columns = [...this.columns];
       }
@@ -408,11 +410,13 @@ export class BirthdayComponent implements OnInit {
       (this.headerTable.pTable as any).updateStyleElement(headerWidths, index, newWidth, null);
     }
 
-    // Propagate updated column definitions to child tables via Input binding
-    this.groupDetailComponents?.forEach(cmp => {
-      cmp.columns = [...this.columns];
-      const childWidths = cmp.columns.map(c => parseInt(c.width || '0', 10));
-      (cmp.superTableComponent.pTable as any).updateStyleElement(childWidths, index, newWidth, null);
-    });
+    if (index !== undefined && newWidth !== undefined) {
+      // Propagate updated column definitions to child tables via Input binding
+      this.groupDetailComponents?.forEach(cmp => {
+        cmp.columns = [...this.columns];
+        const childWidths = cmp.columns.map(c => parseInt(c.width || '0', 10));
+        (cmp.superTableComponent.pTable as any).updateStyleElement(childWidths, index!, newWidth!, null);
+      });
+    }
   }
 }
