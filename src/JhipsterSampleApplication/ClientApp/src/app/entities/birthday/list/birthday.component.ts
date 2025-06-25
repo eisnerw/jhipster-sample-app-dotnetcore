@@ -31,7 +31,7 @@ import {
 } from '../../../shared/SuperTable/super-table.component';
 import { DataLoader, FetchFunction } from 'app/shared/data-loader';
 import { BirthdayGroupDetailComponent } from './birthday-group-detail.component';
-import { TableColResizeEvent } from 'primeng/table';
+import { TableColResizeEvent, TableColumnReorderEvent } from 'primeng/table';
 
 import { ITEMS_PER_PAGE, PAGE_HEADER, TOTAL_COUNT_RESPONSE_HEADER } from 'app/config/pagination.constants';
 import { ASC, DESC, SORT, ITEM_DELETED_EVENT, DEFAULT_SORT_DATA } from 'app/config/navigation.constants';
@@ -413,6 +413,21 @@ export class BirthdayComponent implements OnInit {
       cmp.columns = [...this.columns];
       const childWidths = cmp.columns.map(c => parseInt(c.width || '0', 10));
       (cmp.superTableComponent.pTable as any).updateStyleElement(childWidths, index, newWidth, null);
+    });
+  }
+
+  onColumnReorder(event: TableColumnReorderEvent): void {
+    if (event.dragIndex == null || event.dropIndex == null) {
+      return;
+    }
+
+    const cols = [...this.columns];
+    const moved = cols.splice(event.dragIndex, 1)[0];
+    cols.splice(event.dropIndex, 0, moved);
+    this.columns = cols;
+
+    this.groupDetailComponents?.forEach(cmp => {
+      cmp.columns = [...this.columns];
     });
   }
 }
