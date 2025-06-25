@@ -1,4 +1,10 @@
-import { Component, Input, OnInit, TemplateRef } from '@angular/core';
+import {
+  Component,
+  Input,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 
@@ -23,6 +29,7 @@ export class BirthdayGroupDetailComponent implements OnInit {
   @Input() expandedRowTemplate: TemplateRef<any> | undefined;
 
   dataLoader: DataLoader<IBirthday>;
+  @ViewChild(SuperTable) superTableComponent!: SuperTable;
 
   constructor(private birthdayService: BirthdayService) {
     const fetchFunction: FetchFunction<IBirthday> = (queryParams: any) => {
@@ -34,5 +41,13 @@ export class BirthdayGroupDetailComponent implements OnInit {
   ngOnInit(): void {
     const filter = { query: `fname:"${this.groupName}"` };
     this.dataLoader.load(50, 'lname', true, filter);
+  }
+
+  applySort(event: any): void {
+    this.superTableComponent.applySort(event);
+  }
+
+  applyFilter(event: any): void {
+    this.superTableComponent.applyFilter(event);
   }
 }

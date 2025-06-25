@@ -73,6 +73,7 @@ export class SuperTable implements OnInit {
     @Output() onContextMenuSelect = new EventEmitter<any>();
     @Output() onColResize = new EventEmitter<any>();
     @Output() onSort = new EventEmitter<any>();
+    @Output() onFilter = new EventEmitter<any>();
 
     ngOnInit(): void {
       if (!this.superTableParent) {
@@ -121,6 +122,25 @@ export class SuperTable implements OnInit {
         this.pTable.filter(null, field, 'in');
       } else {
         this.pTable.filter(selectedValues, field, 'in');
+      }
+    }
+
+    applySort(event: any): void {
+      if (this.pTable && event) {
+        (this.pTable as any).sortField = event.sortField || event.field;
+        (this.pTable as any).sortOrder = event.sortOrder || event.order;
+        if ((this.pTable as any).sortSingle) {
+          (this.pTable as any).sortSingle();
+        }
+      }
+    }
+
+    applyFilter(event: any): void {
+      if (this.pTable && event?.filters) {
+        (this.pTable as any).filters = event.filters;
+        if ((this.pTable as any)._filter) {
+          (this.pTable as any)._filter();
+        }
       }
     }
 }
