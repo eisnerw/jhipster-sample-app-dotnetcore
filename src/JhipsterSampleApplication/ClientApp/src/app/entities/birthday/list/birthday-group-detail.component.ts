@@ -1,6 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Observable, of } from 'rxjs';
+import { Observable } from 'rxjs';
 
 import {
   SuperTable,
@@ -8,6 +8,7 @@ import {
 } from 'app/shared/SuperTable/super-table.component';
 import { IBirthday } from '../birthday.model';
 import { DataLoader, FetchFunction } from 'app/shared/data-loader';
+import { BirthdayService } from '../service/birthday.service';
 
 @Component({
   selector: 'jhi-birthday-group-detail',
@@ -16,18 +17,21 @@ import { DataLoader, FetchFunction } from 'app/shared/data-loader';
   templateUrl: './birthday-group-detail.component.html',
 })
 export class BirthdayGroupDetailComponent implements OnInit {
-  @Input() group!: IBirthday[];
+  @Input() groupName!: string;
   @Input() columns!: ColumnConfig[];
   @Input() parent!: any;
 
   dataLoader: DataLoader<IBirthday>;
 
-  constructor() {
-    const fetchFunction: FetchFunction<IBirthday> = () => of();
+  constructor(private birthdayService: BirthdayService) {
+    const fetchFunction: FetchFunction<IBirthday> = (queryParams: any) => {
+      return this.birthdayService.query(queryParams);
+    };
     this.dataLoader = new DataLoader<IBirthday>(fetchFunction);
   }
 
   ngOnInit(): void {
-    this.dataLoader.data$.next(this.group);
+    const filter = { luceneQuery: `fname:"${this.groupName}"` };
+    this.dataLoader.load(50, 'lname', true, filter);
   }
 }
