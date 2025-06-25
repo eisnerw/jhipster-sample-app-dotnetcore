@@ -57,7 +57,7 @@ export class BirthdayComponent implements OnInit {
   @ViewChild('superTable') superTable!: SuperTable;
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
   @ViewChild('menu') menu!: Menu;
-  @ViewChild('expandedRow', { static: false }) expandedRowTemplate: TemplateRef<any> | undefined;
+  @ViewChild('expandedRow', { static: true }) expandedRowTemplate: TemplateRef<any> | undefined;
 
   dataLoader: DataLoader<IBirthday>;
   headerDataLoader: DataLoader<IBirthday>;

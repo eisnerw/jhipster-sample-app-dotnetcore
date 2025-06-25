@@ -34,7 +34,6 @@
       [dataLoader]="dataLoader"
       [columns]="columns"
       [superTableParent]="this"
-      [expandedRowTemplate]="expandedRowTemplate"
       (selectionChange)="onCheckboxChange()"
       (onContextMenuSelect)="setMenu($event.data)"
       (contextMenuSelectionChange)="onContextMenuSelect($event)"
@@ -52,18 +51,21 @@
     </tr>
   </ng-template>
 
-  <div class="table-responsive" *ngIf="viewMode === 'group'">
-    <super-table [columns]="columns" [showHeader]="true" [superTableParent]="this" [dataLoader]="headerDataLoader"></super-table>
-    <div *ngFor="let groupName of (groups$ | async)">
-      <div class="group-header" (click)="onGroupToggle(groupName)">
-        <span [class]="isGroupExpanded(groupName) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></span>
-        {{ groupName }}
-      </div>
-      <div *ngIf="isGroupExpanded(groupName)">
-        <jhi-birthday-group-detail [groupName]="groupName" [columns]="columns" [parent]="this" [expandedRowTemplate]="expandedRow"></jhi-birthday-group-detail>
+  <ng-container *ngIf="viewMode === 'group'">
+    <div class="table-responsive">
+      <super-table [columns]="columns" [showHeader]="true" [superTableParent]="this" [dataLoader]="headerDataLoader"></super-table>
+      <div *ngFor="let groupName of (groups$ | async)">
+        <div class="group-header" (click)="onGroupToggle(groupName)">
+          <span [class]="isGroupExpanded(groupName) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></span>
+          {{ groupName }}
+        </div>
+        <div *ngIf="isGroupExpanded(groupName)">
+          <jhi-birthday-group-detail [groupName]="groupName" [columns]="columns" [parent]="this" [expandedRowTemplate]="expandedRow"></jhi-birthday-group-detail>
+        </div>
       </div>
     </div>
-  </div>
+  </ng-container>
+
   <p-contextMenu #contextMenu [model]="menuItems" (onShow)="onMenuShow($event, 'context')"></p-contextMenu>
 
   <p-dialog [(visible)]="bDisplaySearchDialog" [modal]="true" header="Search Birthdays">
