@@ -46,6 +46,7 @@ export class SuperTable implements OnInit {
     @Input() displayMode: 'grid' | 'group' = 'grid';
     @Input() loading = false;
     @Input() resizableColumns = false;
+    @Input() columnResizeMode: 'fit' | 'expand' = 'expand';
     @Input() reorderableColumns = false;
     @Input() scrollable = false;
     @Input() scrollHeight: string | undefined;
