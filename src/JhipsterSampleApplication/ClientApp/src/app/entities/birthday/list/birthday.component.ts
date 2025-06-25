@@ -31,6 +31,7 @@ import {
 } from '../../../shared/SuperTable/super-table.component';
 import { DataLoader, FetchFunction } from 'app/shared/data-loader';
 import { BirthdayGroupDetailComponent } from './birthday-group-detail.component';
+import { TableColResizeEvent } from 'primeng/table';
 
 import { ITEMS_PER_PAGE, PAGE_HEADER, TOTAL_COUNT_RESPONSE_HEADER } from 'app/config/pagination.constants';
 import { ASC, DESC, SORT, ITEM_DELETED_EVENT, DEFAULT_SORT_DATA } from 'app/config/navigation.constants';
@@ -392,13 +393,15 @@ export class BirthdayComponent implements OnInit {
     this.groupDetailComponents?.forEach(cmp => cmp.applyFilter(event));
   }
 
-  onHeaderColResize(event: any): void {
+  onHeaderColResize(event: TableColResizeEvent): void {
     if (event?.element) {
-      const index = event.element.cellIndex;
+      const index = (event.element as any).cellIndex;
       const newWidth = event.element.offsetWidth + 'px';
       if (this.columns[index]) {
         this.columns[index].width = newWidth;
+        this.columns = [...this.columns];
       }
     }
+    this.groupDetailComponents?.forEach(cmp => cmp.applyColResize(event));
   }
 }
