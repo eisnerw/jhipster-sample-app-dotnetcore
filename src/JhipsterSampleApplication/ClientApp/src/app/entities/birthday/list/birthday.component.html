@@ -238,7 +238,7 @@
         {{ groupName }}
       </div>
       <div *ngIf="isGroupExpanded(groupName)">
-        <jhi-birthday-group-detail [groupName]="groupName" [columns]="columns" [parent]="this"></jhi-birthday-group-detail>
+        <jhi-birthday-group-detail [groupName]="groupName" [columns]="columns" [parent]="this" [expandedRowTemplate]="expandedRow"></jhi-birthday-group-detail>
       </div>
     </div>
   </div>

@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 
@@ -20,6 +20,7 @@ export class BirthdayGroupDetailComponent implements OnInit {
   @Input() groupName!: string;
   @Input() columns!: ColumnConfig[];
   @Input() parent!: any;
+  @Input() expandedRowTemplate: TemplateRef<any> | undefined;
 
   dataLoader: DataLoader<IBirthday>;
 
