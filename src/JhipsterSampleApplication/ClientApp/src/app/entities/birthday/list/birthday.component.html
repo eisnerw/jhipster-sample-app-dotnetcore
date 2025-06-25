@@ -8,7 +8,7 @@
         <span>Refresh List</span>
       </button>
 
-      <button class="btn btn-primary" (click)="viewMode = viewMode === 'grid' ? 'group' : 'grid'">
+      <button class="btn btn-primary" (click)="toggleViewMode()">
         <fa-icon icon="eye"></fa-icon>
         <span>{{ viewMode === 'grid' ? 'Group View' : 'Grid View' }}</span>
       </button>
