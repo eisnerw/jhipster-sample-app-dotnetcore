@@ -1,4 +1,4 @@
-<div style="height: calc(100vh - 174px); overflow: auto">
+<div style="height: calc(100vh - 174px); display: flex; flex-direction: column;">
   <h2 id="page-heading" data-cy="BirthdayHeading">
     <span>Birthdays</span>
 
@@ -28,13 +28,15 @@
   <jhi-alert-error></jhi-alert-error>
   <jhi-alert></jhi-alert>
 
-  <div class="table-responsive">
+  <div class="table-responsive" *ngIf="viewMode === 'grid'" style="flex: 1; min-height: 0">
     <super-table
-      *ngIf="viewMode === 'grid'"
+      class="grid-table"
       [dataLoader]="dataLoader"
       [columns]="columns"
       [superTableParent]="this"
       [resizableColumns]="true"
+      [scrollable]="true"
+      scrollHeight="flex"
       (selectionChange)="onCheckboxChange()"
       (onContextMenuSelect)="setMenu($event.data)"
       (contextMenuSelectionChange)="onContextMenuSelect($event)"
@@ -53,15 +55,17 @@
   </ng-template>
 
   <ng-container *ngIf="viewMode === 'group'">
-    <div class="table-responsive">
+    <div class="table-responsive" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
       <super-table [columns]="columns" [showHeader]="true" [superTableParent]="this" [dataLoader]="headerDataLoader" [resizableColumns]="true"></super-table>
-      <div *ngFor="let groupName of (groups$ | async)">
-        <div class="group-header" (click)="onGroupToggle(groupName)">
-          <span [class]="isGroupExpanded(groupName) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></span>
-          {{ groupName }}
-        </div>
-        <div *ngIf="isGroupExpanded(groupName)">
-          <jhi-birthday-group-detail [groupName]="groupName" [columns]="columns" [parent]="this" [expandedRowTemplate]="expandedRow"></jhi-birthday-group-detail>
+      <div style="overflow-y: auto; flex: 1;">
+        <div *ngFor="let groupName of (groups$ | async)">
+          <div class="group-header" (click)="onGroupToggle(groupName)">
+            <span [class]="isGroupExpanded(groupName) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></span>
+            {{ groupName }}
+          </div>
+          <div *ngIf="isGroupExpanded(groupName)">
+            <jhi-birthday-group-detail [groupName]="groupName" [columns]="columns" [parent]="this" [expandedRowTemplate]="expandedRow"></jhi-birthday-group-detail>
+          </div>
         </div>
       </div>
     </div>

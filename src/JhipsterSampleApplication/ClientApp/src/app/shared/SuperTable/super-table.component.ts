@@ -48,6 +48,7 @@ export class SuperTable implements OnInit {
     @Input() resizableColumns = false;
     @Input() reorderableColumns = false;
     @Input() scrollable = false;
+    @Input() scrollHeight: string | undefined;
     @Input() paginator = false;
     @Input() showHeader = true;
     @Input() dataKey: string | undefined;
