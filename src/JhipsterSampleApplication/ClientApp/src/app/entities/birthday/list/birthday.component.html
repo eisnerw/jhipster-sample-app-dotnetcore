@@ -34,6 +34,7 @@
       [dataLoader]="dataLoader"
       [columns]="columns"
       [superTableParent]="this"
+      [resizableColumns]="true"
       (selectionChange)="onCheckboxChange()"
       (onContextMenuSelect)="setMenu($event.data)"
       (contextMenuSelectionChange)="onContextMenuSelect($event)"
@@ -53,7 +54,7 @@
 
   <ng-container *ngIf="viewMode === 'group'">
     <div class="table-responsive">
-      <super-table [columns]="columns" [showHeader]="true" [superTableParent]="this" [dataLoader]="headerDataLoader"></super-table>
+      <super-table [columns]="columns" [showHeader]="true" [superTableParent]="this" [dataLoader]="headerDataLoader" [resizableColumns]="true"></super-table>
       <div *ngFor="let groupName of (groups$ | async)">
         <div class="group-header" (click)="onGroupToggle(groupName)">
           <span [class]="isGroupExpanded(groupName) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></span>
