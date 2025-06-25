@@ -3,7 +3,7 @@
 import { Component, OnInit, ViewChild, ElementRef, TemplateRef } from '@angular/core';
 import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { combineLatest, BehaviorSubject, Subscription, Observable } from 'rxjs';
+import { combineLatest, BehaviorSubject, Subscription, Observable, of } from 'rxjs';
 import { NgbModal, NgbPagination } from '@ng-bootstrap/ng-bootstrap';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -60,6 +60,7 @@ export class BirthdayComponent implements OnInit {
   @ViewChild('expandedRow', { static: false }) expandedRowTemplate: TemplateRef<any> | undefined;
 
   dataLoader: DataLoader<IBirthday>;
+  headerDataLoader: DataLoader<IBirthday>;
   groups$: Observable<string[]>;
   itemsPerPage = 50;
   page = 1;
@@ -216,6 +217,10 @@ export class BirthdayComponent implements OnInit {
       return this.birthdayService.query(queryParams);
     };
     this.dataLoader = new DataLoader<IBirthday>(fetchFunction);
+
+    const dummyFetch: FetchFunction<IBirthday> = () => of(new HttpResponse<any>({ body: { hits: [], totalHits: 0, searchAfter: [], pitId: null } }));
+    this.headerDataLoader = new DataLoader<IBirthday>(dummyFetch);
+
     this.groups$ = this.birthdayService.getUniqueValues('fname').pipe(
       map(response => response.body ?? []),
       map(names => names.sort())
