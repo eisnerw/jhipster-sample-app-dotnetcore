@@ -1,7 +1,10 @@
 .group-header {
-  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 300;
   padding: 0.5rem;
-  background-color: #f4f4f4;
+  background-color: transparent;
   cursor: pointer;
   border-bottom: 1px solid #ddd;
-} 
+}
