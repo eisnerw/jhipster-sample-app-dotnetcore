@@ -408,4 +408,11 @@ export class BirthdayComponent implements OnInit {
       cmp.columns = [...this.columns];
     });
   }
+
+  toggleViewMode(): void {
+    this.viewMode = this.viewMode === 'grid' ? 'group' : 'grid';
+    if (this.viewMode === 'grid') {
+      this.columns = this.columns.map(col => ({ ...col }));
+    }
+  }
 }
