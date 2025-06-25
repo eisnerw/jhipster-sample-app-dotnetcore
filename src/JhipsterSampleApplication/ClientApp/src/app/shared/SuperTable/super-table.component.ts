@@ -8,7 +8,6 @@ import { TooltipModule } from 'primeng/tooltip';
 import { CheckboxModule } from 'primeng/checkbox';
 import { RippleModule } from 'primeng/ripple';
 import { Table } from 'primeng/table';
-import { TableColResizeEvent } from 'primeng/table';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { FormsModule } from '@angular/forms';
 import { DataLoader } from '../data-loader';
@@ -145,14 +144,4 @@ export class SuperTable implements OnInit {
     }
   }
 
-  applyColResize(event: TableColResizeEvent): void {
-    if (this.pTable && event?.element) {
-      const index = (event.element as any).cellIndex;
-      const newWidth = event.element.offsetWidth + 'px';
-      if (this.columns[index]) {
-        this.columns[index].width = newWidth;
-        this.columns = [...this.columns];
-      }
-    }
-  }
 }
