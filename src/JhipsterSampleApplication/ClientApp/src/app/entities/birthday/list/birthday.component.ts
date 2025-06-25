@@ -1,6 +1,6 @@
 /* eslint-disable */ 
 
-import { Component, OnInit, ViewChild, ElementRef, TemplateRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ViewChildren, QueryList, ElementRef, TemplateRef } from '@angular/core';
 import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { combineLatest, BehaviorSubject, Subscription, Observable, of } from 'rxjs';
@@ -58,6 +58,8 @@ export class BirthdayComponent implements OnInit {
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
   @ViewChild('menu') menu!: Menu;
   @ViewChild('expandedRow', { static: true }) expandedRowTemplate: TemplateRef<any> | undefined;
+  @ViewChild('headerTable') headerTable!: SuperTable;
+  @ViewChildren(BirthdayGroupDetailComponent) groupDetailComponents!: QueryList<BirthdayGroupDetailComponent>;
 
   dataLoader: DataLoader<IBirthday>;
   headerDataLoader: DataLoader<IBirthday>;
@@ -380,5 +382,23 @@ export class BirthdayComponent implements OnInit {
 
   logSort(event: any): void {
     console.log('sort event', event);
+  }
+
+  onHeaderSort(event: any): void {
+    this.groupDetailComponents?.forEach(cmp => cmp.applySort(event));
+  }
+
+  onHeaderFilter(event: any): void {
+    this.groupDetailComponents?.forEach(cmp => cmp.applyFilter(event));
+  }
+
+  onHeaderColResize(event: any): void {
+    if (event?.element) {
+      const index = event.element.cellIndex;
+      const newWidth = event.element.offsetWidth + 'px';
+      if (this.columns[index]) {
+        this.columns[index].width = newWidth;
+      }
+    }
   }
 }
