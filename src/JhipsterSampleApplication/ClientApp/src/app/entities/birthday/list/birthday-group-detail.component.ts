@@ -31,7 +31,7 @@ export class BirthdayGroupDetailComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const filter = { luceneQuery: `fname:"${this.groupName}"` };
+    const filter = { query: `fname:"${this.groupName}"` };
     this.dataLoader.load(50, 'lname', true, filter);
   }
 }

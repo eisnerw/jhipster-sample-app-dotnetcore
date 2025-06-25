@@ -60,7 +60,7 @@ export class BirthdayComponent implements OnInit {
   @ViewChild('expandedRow', { static: false }) expandedRowTemplate: TemplateRef<any> | undefined;
 
   dataLoader: DataLoader<IBirthday>;
-  groups$: Observable<[string, IBirthday[]][]>;
+  groups$: Observable<string[]>;
   itemsPerPage = 50;
   page = 1;
   predicate!: string;
@@ -200,7 +200,6 @@ export class BirthdayComponent implements OnInit {
   bDisplayBirthday = false;
   birthdayDialogTitle = '';
   birthdayDialogId: any = '';
-  firstNames: string[] = [];
   viewMode: 'grid' | 'group' = 'grid';
   private loadingSubscription?: Subscription;
 
@@ -217,29 +216,14 @@ export class BirthdayComponent implements OnInit {
       return this.birthdayService.query(queryParams);
     };
     this.dataLoader = new DataLoader<IBirthday>(fetchFunction);
-    this.groups$ = this.dataLoader.data$.pipe(
-      map(birthdays => {
-        const groups = new Map<string, IBirthday[]>();
-        birthdays.forEach(b => {
-          const key = b.fname ?? 'unknown';
-          if (!groups.has(key)) {
-            groups.set(key, []);
-          }
-          groups.get(key)!.push(b);
-        });
-        return Array.from(groups.entries());
-      })
+    this.groups$ = this.birthdayService.getUniqueValues('fname').pipe(
+      map(response => response.body ?? []),
+      map(names => names.sort())
     );
   }
 
   ngOnInit(): void {
     this.handleNavigation();
-    
-    this.birthdayService.getUniqueValues('fname').subscribe(response => {
-      if (response.body) {
-        this.firstNames = response.body.sort();
-      }
-    });
   }
 
   trackId(index: number, item: IBirthday): string {

@@ -218,13 +218,13 @@
   </ng-template>
 
   <div class="table-responsive" *ngIf="viewMode === 'group'">
-    <div *ngFor="let group of (groups$ | async)">
-      <div class="group-header" (click)="onGroupToggle(group[0])">
-        <span [class]="isGroupExpanded(group[0]) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></span>
-        {{ group[0] }}
+    <div *ngFor="let groupName of (groups$ | async)">
+      <div class="group-header" (click)="onGroupToggle(groupName)">
+        <span [class]="isGroupExpanded(groupName) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></span>
+        {{ groupName }}
       </div>
-      <div *ngIf="isGroupExpanded(group[0])">
-        <jhi-birthday-group-detail [groupName]="group[0]" [columns]="columns" [parent]="this"></jhi-birthday-group-detail>
+      <div *ngIf="isGroupExpanded(groupName)">
+        <jhi-birthday-group-detail [groupName]="groupName" [columns]="columns" [parent]="this"></jhi-birthday-group-detail>
       </div>
     </div>
   </div>
