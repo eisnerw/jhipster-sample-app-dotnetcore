@@ -15,7 +15,6 @@ import {
 import { IBirthday } from '../birthday.model';
 import { DataLoader, FetchFunction } from 'app/shared/data-loader';
 import { BirthdayService } from '../service/birthday.service';
-import { TableColResizeEvent } from 'primeng/table';
 
 @Component({
   selector: 'jhi-birthday-group-detail',
@@ -50,9 +49,5 @@ export class BirthdayGroupDetailComponent implements OnInit {
 
   applyFilter(event: any): void {
     this.superTableComponent.applyFilter(event);
-  }
-
-  applyColResize(event: TableColResizeEvent): void {
-    this.superTableComponent.applyColResize(event);
   }
 }

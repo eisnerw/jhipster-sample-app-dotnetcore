@@ -402,6 +402,10 @@ export class BirthdayComponent implements OnInit {
         this.columns = [...this.columns];
       }
     }
-    this.groupDetailComponents?.forEach(cmp => cmp.applyColResize(event));
+
+    // Propagate updated column definitions to child tables via Input binding
+    this.groupDetailComponents?.forEach(cmp => {
+      cmp.columns = [...this.columns];
+    });
   }
 }
