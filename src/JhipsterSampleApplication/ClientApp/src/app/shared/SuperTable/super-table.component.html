@@ -126,7 +126,7 @@
   </ng-template>
 </p-table>
 
-<div *ngIf="mode === 'group'">
+<div *ngIf="mode === 'group'" class="group-mode-wrapper">
   <p-table [columns]="columns" [value]="[]" *ngIf="showHeader" styleClass="p-datatable-gridlines" (onSort)="onHeaderSort($event)" (onFilter)="onHeaderFilter($event)" (onColResize)="onHeaderColResize($event)">
     <ng-template pTemplate="header" let-columns>
       <tr class="header-row">
@@ -192,7 +192,8 @@
       </tr>
     </ng-template>
   </p-table>
-  <p-table [value]="groups" styleClass="p-datatable-gridlines">
+  <div class="group-table-body" [style.max-height]="scrollHeight">
+    <p-table [value]="groups" styleClass="p-datatable-gridlines">
     <ng-template pTemplate="body" let-rowData>
       <tr class="p-row-odd">
         <td style="width: 3rem; text-align: center;">
@@ -220,5 +221,6 @@
         </td>
       </tr>
     </ng-template>
-  </p-table>
+    </p-table>
+  </div>
 </div>
