@@ -1,6 +1,6 @@
 <!-- super-table.component.html -->
 <p-table
-  *ngIf="dataLoader && displayMode === 'grid'"
+  *ngIf="dataLoader && mode === 'grid'"
   #pTable
   [value]="(dataLoader.data$ | async)!"
   [columns]="columns"
@@ -126,8 +126,8 @@
   </ng-template>
 </p-table>
 
-<div *ngIf="displayMode === 'group' && dataLoader">
-  <p-table [columns]="columns" [value]="[]" *ngIf="showHeader" styleClass="p-datatable-gridlines" (onSort)="onSort.emit($event)" (onFilter)="onFilter.emit($event)" (onColResize)="onColResize.emit($event)">
+<div *ngIf="mode === 'group'">
+  <p-table [columns]="columns" [value]="[]" *ngIf="showHeader" styleClass="p-datatable-gridlines" (onSort)="onHeaderSort($event)" (onFilter)="onHeaderFilter($event)" (onColResize)="onHeaderColResize($event)">
     <ng-template pTemplate="header" let-columns>
       <tr class="header-row">
         <th *ngFor="let col of columns"
@@ -192,7 +192,7 @@
       </tr>
     </ng-template>
   </p-table>
-  <p-table [value]="(dataLoader.data$ | async)!" styleClass="p-datatable-gridlines">
+  <p-table [value]="groups" styleClass="p-datatable-gridlines">
     <ng-template pTemplate="body" let-rowData>
       <tr class="p-row-odd">
         <td style="width: 3rem; text-align: center;">
@@ -205,7 +205,18 @@
       </tr>
       <tr *ngIf="isGroupExpanded(rowData)">
         <td [attr.colspan]="2">
-            <ng-container *ngTemplateOutlet="expandedRowTemplate ?? null; context: { $implicit: rowData }"></ng-container>
+          <super-table
+            #detailTable
+            [dataLoader]="groupLoaders[rowData]"
+            [columns]="columns"
+            [mode]="'grid'"
+            [superTableParent]="superTableParent"
+            [showHeader]="false"
+            [expandedRowTemplate]="expandedRowTemplate"
+            [resizableColumns]="resizableColumns"
+            [scrollable]="scrollable"
+            [scrollHeight]="scrollHeight"
+          ></super-table>
         </td>
       </tr>
     </ng-template>

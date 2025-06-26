@@ -1,6 +1,6 @@
 /* eslint-disable */ 
 
-import { Component, Input, Output, EventEmitter, ContentChild, TemplateRef, ViewChild, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ContentChild, TemplateRef, ViewChild, OnInit, ViewChildren, QueryList } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -42,8 +42,9 @@ export interface ColumnConfig {
 export class SuperTable implements OnInit {
     @Input() dataLoader: DataLoader<any> | undefined;
     @Input() columns: ColumnConfig[] = [];
-    @Input() groups: string[] | undefined;
-    @Input() displayMode: 'grid' | 'group' = 'grid';
+    @Input() groups: string[] = [];
+    @Input() mode: 'grid' | 'group' = 'grid';
+    @Input() groupQuery: ((groupName: string) => DataLoader<any>) | undefined;
     @Input() loading = false;
     @Input() resizableColumns = false;
     @Input() reorderableColumns = false;
@@ -63,6 +64,9 @@ export class SuperTable implements OnInit {
     @Input() expandedRowTemplate: TemplateRef<any> | undefined;
 
     @ViewChild('pTable') pTable!: Table;
+    @ViewChildren('detailTable') detailTables!: QueryList<SuperTable>;
+
+    groupLoaders: { [key: string]: DataLoader<any> } = {};
 
     @ContentChild('customHeader', { read: TemplateRef }) headerTemplate?: TemplateRef<any>;
     
@@ -101,6 +105,9 @@ export class SuperTable implements OnInit {
         this.rowCollapse.emit({ data: groupName });
       } else {
         this.expandedRowKeys[groupName] = true;
+        if (this.groupQuery && !this.groupLoaders[groupName]) {
+          this.groupLoaders[groupName] = this.groupQuery(groupName);
+        }
         this.rowExpand.emit({ data: groupName });
       }
     }
@@ -142,6 +149,29 @@ export class SuperTable implements OnInit {
         (this.pTable as any)._filter();
       }
     }
+  }
+
+  onHeaderSort(event: any): void {
+    this.detailTables?.forEach(table => table.applySort(event));
+  }
+
+  onHeaderFilter(event: any): void {
+    this.detailTables?.forEach(table => table.applyFilter(event));
+  }
+
+  onHeaderColResize(event: any): void {
+    if (event?.element) {
+      const index = (event.element as any).cellIndex;
+      const newWidth = event.element.offsetWidth + 'px';
+      if (this.columns[index]) {
+        this.columns[index].width = newWidth;
+        this.columns = [...this.columns];
+      }
+    }
+
+    this.detailTables?.forEach(table => {
+      table.columns = [...this.columns];
+    });
   }
 
 }

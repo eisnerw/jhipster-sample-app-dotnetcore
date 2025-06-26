@@ -1,9 +1,9 @@
 /* eslint-disable */ 
 
-import { Component, OnInit, ViewChild, ViewChildren, QueryList, ElementRef, TemplateRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, TemplateRef } from '@angular/core';
 import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { combineLatest, BehaviorSubject, Subscription, Observable, of } from 'rxjs';
+import { combineLatest, Subscription } from 'rxjs';
 import { NgbModal, NgbPagination } from '@ng-bootstrap/ng-bootstrap';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -30,8 +30,6 @@ import {
   ColumnConfig,
 } from '../../../shared/SuperTable/super-table.component';
 import { DataLoader, FetchFunction } from 'app/shared/data-loader';
-import { BirthdayGroupDetailComponent } from './birthday-group-detail.component';
-import { TableColResizeEvent } from 'primeng/table';
 
 import { ITEMS_PER_PAGE, PAGE_HEADER, TOTAL_COUNT_RESPONSE_HEADER } from 'app/config/pagination.constants';
 import { ASC, DESC, SORT, ITEM_DELETED_EVENT, DEFAULT_SORT_DATA } from 'app/config/navigation.constants';
@@ -49,7 +47,6 @@ import { ASC, DESC, SORT, ITEM_DELETED_EVENT, DEFAULT_SORT_DATA } from 'app/conf
     SharedModule,
     SuperTable,
     TableModule,
-    BirthdayGroupDetailComponent,
   ],
   standalone: true,
 })
@@ -59,12 +56,10 @@ export class BirthdayComponent implements OnInit {
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
   @ViewChild('menu') menu!: Menu;
   @ViewChild('expandedRow', { static: true }) expandedRowTemplate: TemplateRef<any> | undefined;
-  @ViewChild('headerTable') headerTable!: SuperTable;
-  @ViewChildren(BirthdayGroupDetailComponent) groupDetailComponents!: QueryList<BirthdayGroupDetailComponent>;
+  // The SuperTable in group mode manages its own detail tables
 
   dataLoader: DataLoader<IBirthday>;
-  headerDataLoader: DataLoader<IBirthday>;
-  groups$: Observable<string[]>;
+  groups: string[] = [];
   itemsPerPage = 50;
   page = 1;
   predicate!: string;
@@ -147,14 +142,6 @@ export class BirthdayComponent implements OnInit {
     delete this.expandedRowKeys[event.data];
   }
 
-  onGroupToggle(groupName: string): void {
-    this.expandedRowKeys[groupName] = !this.expandedRowKeys[groupName];
-  }
-
-  isGroupExpanded(groupName: string): boolean {
-    return this.expandedRowKeys[groupName] === true;
-  }
-
   // New properties for super-table
   menuItems: MenuItem[] = [
     {
@@ -221,13 +208,13 @@ export class BirthdayComponent implements OnInit {
     };
     this.dataLoader = new DataLoader<IBirthday>(fetchFunction);
 
-    const dummyFetch: FetchFunction<IBirthday> = () => of(new HttpResponse<any>({ body: { hits: [], totalHits: 0, searchAfter: [], pitId: null } }));
-    this.headerDataLoader = new DataLoader<IBirthday>(dummyFetch);
-
-    this.groups$ = this.birthdayService.getUniqueValues('fname').pipe(
-      map(response => response.body ?? []),
-      map(names => names.sort())
-    );
+    this.birthdayService
+      .getUniqueValues('fname')
+      .pipe(
+        map(response => response.body ?? []),
+        map(names => names.sort()),
+      )
+      .subscribe(names => (this.groups = names));
   }
 
   ngOnInit(): void {
@@ -385,28 +372,13 @@ export class BirthdayComponent implements OnInit {
     console.log('sort event', event);
   }
 
-  onHeaderSort(event: any): void {
-    this.groupDetailComponents?.forEach(cmp => cmp.applySort(event));
-  }
-
-  onHeaderFilter(event: any): void {
-    this.groupDetailComponents?.forEach(cmp => cmp.applyFilter(event));
-  }
-
-  onHeaderColResize(event: TableColResizeEvent): void {
-    if (event?.element) {
-      const index = (event.element as any).cellIndex;
-      const newWidth = event.element.offsetWidth + 'px';
-      if (this.columns[index]) {
-        this.columns[index].width = newWidth;
-        this.columns = [...this.columns];
-      }
-    }
-
-    // Propagate updated column definitions to child tables via Input binding
-    this.groupDetailComponents?.forEach(cmp => {
-      cmp.columns = [...this.columns];
-    });
+  groupQuery(groupName: string): DataLoader<IBirthday> {
+    const fetch: FetchFunction<IBirthday> = (queryParams: any) =>
+      this.birthdayService.query(queryParams);
+    const loader = new DataLoader<IBirthday>(fetch);
+    const filter = { query: `fname:"${groupName}"` };
+    loader.load(this.itemsPerPage, this.predicate, this.ascending, filter);
+    return loader;
   }
 
   toggleViewMode(): void {
