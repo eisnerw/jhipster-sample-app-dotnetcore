@@ -23,7 +23,7 @@
 }
 
 .group-header-table {
-  ::ng-deep .p-datatable-thead > tr {
+  ::ng-deep .p-datatable-thead > tr > th {
     position: sticky;
     top: 0;
     z-index: 1;
