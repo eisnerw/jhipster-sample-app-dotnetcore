@@ -11,6 +11,7 @@ import { Table } from 'primeng/table';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { FormsModule } from '@angular/forms';
 import { DataLoader } from '../data-loader';
+import { GroupDetailComponent } from './group-detail.component';
 
 export interface ColumnConfig {
   field: string;
@@ -37,13 +38,15 @@ export interface ColumnConfig {
     RippleModule,
     MultiSelectModule,
     FormsModule,
+    GroupDetailComponent,
   ],
 })
 export class SuperTable implements OnInit {
     @Input() dataLoader: DataLoader<any> | undefined;
     @Input() columns: ColumnConfig[] = [];
     @Input() groups: string[] | undefined;
-    @Input() displayMode: 'grid' | 'group' = 'grid';
+    @Input() groupQuery: ((group: string) => DataLoader<any>) | undefined;
+    @Input() mode: 'grid' | 'group' = 'grid';
     @Input() loading = false;
     @Input() resizableColumns = false;
     @Input() reorderableColumns = false;
