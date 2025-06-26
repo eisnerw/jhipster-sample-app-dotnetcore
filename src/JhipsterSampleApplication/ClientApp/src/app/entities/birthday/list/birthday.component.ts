@@ -30,7 +30,7 @@ import {
   ColumnConfig,
 } from '../../../shared/SuperTable/super-table.component';
 import { DataLoader, FetchFunction } from 'app/shared/data-loader';
-import { BirthdayGroupDetailComponent } from './birthday-group-detail.component';
+import { GroupDetailComponent } from '../../../shared/SuperTable/group-detail.component';
 import { TableColResizeEvent } from 'primeng/table';
 
 import { ITEMS_PER_PAGE, PAGE_HEADER, TOTAL_COUNT_RESPONSE_HEADER } from 'app/config/pagination.constants';
@@ -49,7 +49,7 @@ import { ASC, DESC, SORT, ITEM_DELETED_EVENT, DEFAULT_SORT_DATA } from 'app/conf
     SharedModule,
     SuperTable,
     TableModule,
-    BirthdayGroupDetailComponent,
+    GroupDetailComponent,
   ],
   standalone: true,
 })
@@ -59,11 +59,9 @@ export class BirthdayComponent implements OnInit {
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
   @ViewChild('menu') menu!: Menu;
   @ViewChild('expandedRow', { static: true }) expandedRowTemplate: TemplateRef<any> | undefined;
-  @ViewChild('headerTable') headerTable!: SuperTable;
-  @ViewChildren(BirthdayGroupDetailComponent) groupDetailComponents!: QueryList<BirthdayGroupDetailComponent>;
+  @ViewChildren(GroupDetailComponent) groupDetailComponents!: QueryList<GroupDetailComponent>;
 
   dataLoader: DataLoader<IBirthday>;
-  headerDataLoader: DataLoader<IBirthday>;
   groups$: Observable<string[]>;
   itemsPerPage = 50;
   page = 1;
@@ -147,13 +145,6 @@ export class BirthdayComponent implements OnInit {
     delete this.expandedRowKeys[event.data];
   }
 
-  onGroupToggle(groupName: string): void {
-    this.expandedRowKeys[groupName] = !this.expandedRowKeys[groupName];
-  }
-
-  isGroupExpanded(groupName: string): boolean {
-    return this.expandedRowKeys[groupName] === true;
-  }
 
   // New properties for super-table
   menuItems: MenuItem[] = [
@@ -220,9 +211,6 @@ export class BirthdayComponent implements OnInit {
       return this.birthdayService.query(queryParams);
     };
     this.dataLoader = new DataLoader<IBirthday>(fetchFunction);
-
-    const dummyFetch: FetchFunction<IBirthday> = () => of(new HttpResponse<any>({ body: { hits: [], totalHits: 0, searchAfter: [], pitId: null } }));
-    this.headerDataLoader = new DataLoader<IBirthday>(dummyFetch);
 
     this.groups$ = this.birthdayService.getUniqueValues('fname').pipe(
       map(response => response.body ?? []),
@@ -407,6 +395,14 @@ export class BirthdayComponent implements OnInit {
     this.groupDetailComponents?.forEach(cmp => {
       cmp.columns = [...this.columns];
     });
+  }
+
+  groupQuery(groupName: string): DataLoader<IBirthday> {
+    const fetchFunction: FetchFunction<IBirthday> = (queryParams: any) => this.birthdayService.query(queryParams);
+    const loader = new DataLoader<IBirthday>(fetchFunction);
+    const filter = { query: `fname:"${groupName}"` };
+    loader.load(50, 'lname', true, filter);
+    return loader;
   }
 
   toggleViewMode(): void {
