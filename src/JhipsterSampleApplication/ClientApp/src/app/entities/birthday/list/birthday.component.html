@@ -28,11 +28,15 @@
   <jhi-alert-error></jhi-alert-error>
   <jhi-alert></jhi-alert>
 
-  <div class="table-responsive" *ngIf="viewMode === 'grid'" style="flex: 1; min-height: 0">
+  <div class="table-responsive" style="flex: 1; min-height: 0">
     <super-table
+      #superTable
       class="grid-table"
       [dataLoader]="dataLoader"
       [columns]="columns"
+      [mode]="viewMode"
+      [groups]="groups"
+      [groupQuery]="groupQuery.bind(this)"
       [superTableParent]="this"
       [resizableColumns]="true"
       [scrollable]="true"
@@ -40,6 +44,7 @@
       (selectionChange)="onCheckboxChange()"
       (onContextMenuSelect)="setMenu($event.data)"
       (contextMenuSelectionChange)="onContextMenuSelect($event)"
+      [expandedRowTemplate]="expandedRow"
     ></super-table>
   </div>
 
@@ -54,23 +59,7 @@
     </tr>
   </ng-template>
 
-  <ng-container *ngIf="viewMode === 'group'">
-    <div class="table-responsive" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
-      <super-table #headerTable [columns]="columns" [showHeader]="true" [superTableParent]="this" [dataLoader]="headerDataLoader" [resizableColumns]="true"
-                   (onSort)="onHeaderSort($event)" (onFilter)="onHeaderFilter($event)" (onColResize)="onHeaderColResize($event)"></super-table>
-      <div style="overflow-y: auto; flex: 1;">
-        <div *ngFor="let groupName of (groups$ | async)">
-          <div class="group-header" (click)="onGroupToggle(groupName)">
-            <span [class]="isGroupExpanded(groupName) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></span>
-            {{ groupName }}
-          </div>
-          <div *ngIf="isGroupExpanded(groupName)">
-            <jhi-birthday-group-detail [groupName]="groupName" [columns]="columns" [parent]="this" [expandedRowTemplate]="expandedRow"></jhi-birthday-group-detail>
-          </div>
-        </div>
-      </div>
-    </div>
-  </ng-container>
+
 
   <p-contextMenu #contextMenu [model]="menuItems" (onShow)="onMenuShow($event, 'context')"></p-contextMenu>
 
