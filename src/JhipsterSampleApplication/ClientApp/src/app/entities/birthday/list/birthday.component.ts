@@ -49,7 +49,6 @@ import { ASC, DESC, SORT, ITEM_DELETED_EVENT, DEFAULT_SORT_DATA } from 'app/conf
     SharedModule,
     SuperTable,
     TableModule,
-    GroupDetailComponent,
   ],
   standalone: true,
 })
