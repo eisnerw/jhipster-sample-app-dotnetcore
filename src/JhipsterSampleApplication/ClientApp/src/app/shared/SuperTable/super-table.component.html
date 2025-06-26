@@ -127,7 +127,7 @@
 </p-table>
 
 <div *ngIf="mode === 'group'">
-  <p-table [columns]="columns" [value]="[]" *ngIf="showHeader" styleClass="p-datatable-gridlines" (onSort)="onHeaderSort($event)" (onFilter)="onHeaderFilter($event)" (onColResize)="onHeaderColResize($event)">
+  <p-table [columns]="columns" [value]="[]" *ngIf="showHeader" styleClass="p-datatable-gridlines group-header-table" (onSort)="onHeaderSort($event)" (onFilter)="onHeaderFilter($event)" (onColResize)="onHeaderColResize($event)">
     <ng-template pTemplate="header" let-columns>
       <tr class="header-row">
         <th *ngFor="let col of columns"
