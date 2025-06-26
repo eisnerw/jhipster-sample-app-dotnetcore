@@ -44,7 +44,8 @@ export interface ColumnConfig {
 export class SuperTable implements OnInit {
     @Input() dataLoader: DataLoader<any> | undefined;
     @Input() columns: ColumnConfig[] = [];
-    @Input() groups: string[] | undefined;
+    // groups can be undefined or null when asynchronously loaded
+    @Input() groups: string[] | null | undefined;
     @Input() groupQuery: ((group: string) => DataLoader<any>) | undefined;
     @Input() mode: 'grid' | 'group' = 'grid';
     @Input() loading = false;
