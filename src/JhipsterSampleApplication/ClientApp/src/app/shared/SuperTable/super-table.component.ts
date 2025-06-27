@@ -143,7 +143,7 @@ export class SuperTable implements OnInit {
     }
 
   applyFilter(event: any): void {
-    if (this.pTable && event?.filters) {
+    if (this.pTable && event?.filters && this.mode == 'grid') {
       (this.pTable as any).filters = event.filters;
       if ((this.pTable as any)._filter) {
         (this.pTable as any)._filter();
@@ -157,6 +157,7 @@ export class SuperTable implements OnInit {
 
   onHeaderFilter(event: any): void {
     this.detailTables?.forEach(table => table.applyFilter(event));
+    this.pTable.filteredValue = null;
   }
 
   onHeaderColResize(event: any): void {
