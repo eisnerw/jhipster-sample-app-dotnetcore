@@ -47,6 +47,10 @@
   "config": {
     "default_environment": "prod"
   },
+  "overrides": {
+    "browser-sync": "3.0.4",
+    "webpack": "5.97.1"
+  },
   "dependencies": {
     "@angular/common": "19.2.7",
     "@angular/compiler": "19.2.7",
@@ -118,9 +122,5 @@
   },
   "cacheDirectories": [
     "node_modules"
-  ],
-  "overrides": {
-    "browser-sync": "3.0.4",
-    "webpack": "5.97.1"
-  }
+  ]
 }
