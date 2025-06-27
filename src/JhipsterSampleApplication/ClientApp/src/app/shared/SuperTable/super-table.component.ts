@@ -1,6 +1,6 @@
 /* eslint-disable */ 
 
-import { Component, Input, Output, EventEmitter, ContentChild, TemplateRef, ViewChild, OnInit, ViewChildren, QueryList } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ContentChild, TemplateRef, ViewChild, OnInit, ViewChildren, QueryList, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -39,7 +39,7 @@ export interface ColumnConfig {
     FormsModule,
   ],
 })
-export class SuperTable implements OnInit {
+export class SuperTable implements OnInit, AfterViewInit, OnDestroy {
     @Input() dataLoader: DataLoader<any> | undefined;
     @Input() columns: ColumnConfig[] = [];
     @Input() groups: string[] = [];
@@ -68,6 +68,10 @@ export class SuperTable implements OnInit {
 
     groupLoaders: { [key: string]: DataLoader<any> } = {};
 
+    private scrollContainer?: HTMLElement;
+    private topGroupName?: string;
+    private scrollListener = () => this.captureTopGroup();
+
     @ContentChild('customHeader', { read: TemplateRef }) headerTemplate?: TemplateRef<any>;
     
     @Output() rowExpand = new EventEmitter<any>();
@@ -77,13 +81,30 @@ export class SuperTable implements OnInit {
     @Output() onContextMenuSelect = new EventEmitter<any>();
     @Output() onColResize = new EventEmitter<any>();
     @Output() onSort = new EventEmitter<any>();
-    @Output() onFilter = new EventEmitter<any>();
+  @Output() onFilter = new EventEmitter<any>();
 
-    ngOnInit(): void {
-      if (!this.superTableParent) {
-        throw new Error('superTableParent is a required input');
+  ngOnInit(): void {
+    if (!this.superTableParent) {
+      throw new Error('superTableParent is a required input');
+    }
+  }
+
+  ngAfterViewInit(): void {
+    if (this.mode === 'group') {
+      const body = (this.pTable?.el?.nativeElement as HTMLElement)?.querySelector(
+        '.p-datatable-scrollable-body'
+      );
+      if (body) {
+        this.scrollContainer = body as HTMLElement;
+        this.scrollContainer.addEventListener('scroll', this.scrollListener);
+        this.captureTopGroup();
       }
     }
+  }
+
+  ngOnDestroy(): void {
+    this.scrollContainer?.removeEventListener('scroll', this.scrollListener);
+  }
 
     trackByFn(index: number, item: any): any {
       return item.id || index;
@@ -152,12 +173,62 @@ export class SuperTable implements OnInit {
   }
 
   onHeaderSort(event: any): void {
+    const targetGroup = this.topGroupName;
     this.detailTables?.forEach(table => table.applySort(event));
+    setTimeout(() => {
+      if (targetGroup) {
+        this.scrollToGroup(targetGroup);
+      }
+    });
   }
 
   onHeaderFilter(event: any): void {
+    const targetGroup = this.topGroupName;
     this.detailTables?.forEach(table => table.applyFilter(event));
     this.pTable.filteredValue = null;
+    setTimeout(() => {
+      if (targetGroup) {
+        this.scrollToGroup(targetGroup);
+      }
+    });
+  }
+
+  private captureTopGroup(): void {
+    if (!this.scrollContainer || this.mode !== 'group') {
+      return;
+    }
+    const rows = Array.from(
+      this.scrollContainer.querySelectorAll('tbody > tr')
+    );
+    for (const row of rows) {
+      const el = row as HTMLElement;
+      if (el.offsetTop + el.offsetHeight > this.scrollContainer.scrollTop) {
+        if (el.classList.contains('p-row-odd')) {
+          const nameCell = el.querySelector('td:nth-child(2)');
+          this.topGroupName = nameCell?.textContent?.trim() || undefined;
+        }
+        break;
+      }
+    }
+  }
+
+  private scrollToGroup(groupName: string): void {
+    if (!this.scrollContainer) {
+      return;
+    }
+    const rows = Array.from(
+      this.scrollContainer.querySelectorAll('tbody > tr')
+    );
+    for (const row of rows) {
+      const el = row as HTMLElement;
+      if (el.classList.contains('p-row-odd')) {
+        const nameCell = el.querySelector('td:nth-child(2)');
+        if (nameCell?.textContent?.trim() === groupName) {
+          this.scrollContainer.scrollTop = el.offsetTop;
+          break;
+        }
+      }
+    }
   }
 
   onHeaderColResize(event: any): void {
