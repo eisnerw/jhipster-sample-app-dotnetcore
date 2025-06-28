@@ -96,6 +96,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private scrollContainer?: HTMLElement;
   private topGroupName?: string;
   private scrollListener = () => this.captureTopGroup();
+  private capturedWidths = false;
 
   @ContentChild('customHeader', { read: TemplateRef })
   headerTemplate?: TemplateRef<any>;
@@ -118,7 +119,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['mode'] && !changes['mode'].firstChange) {
       if (changes['mode'].currentValue === 'group') {
-        setTimeout(() => this.initGroupScroll());
+        setTimeout(() => {
+          this.captureColumnWidths();
+          this.initGroupScroll();
+        });
       } else {
         this.destroyGroupScroll();
       }
@@ -127,7 +131,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   ngAfterViewInit(): void {
     if (this.mode === 'group') {
-      this.initGroupScroll();
+      setTimeout(() => {
+        this.captureColumnWidths();
+        this.initGroupScroll();
+      });
     }
   }
 
@@ -196,6 +203,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   private applyStoredStateToDetails(): void {
     this.detailTables?.forEach((table) => {
+      table.columns = [...this.columns];
       if (this.lastSortEvent) {
         table.applySort(this.lastSortEvent);
       }
@@ -245,6 +253,23 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         this.scrollToGroup(targetGroup);
       }
     });
+  }
+
+  private captureColumnWidths(): void {
+    if (this.capturedWidths || this.mode !== 'group') {
+      return;
+    }
+    const header = this.pTable?.el?.nativeElement.querySelectorAll('th');
+    if (header) {
+      header.forEach((th: HTMLElement, idx: number) => {
+        const width = th.offsetWidth + 'px';
+        if (this.columns[idx]) {
+          this.columns[idx].width = width;
+        }
+      });
+      this.columns = [...this.columns];
+      this.capturedWidths = true;
+    }
   }
 
   private captureTopGroup(): void {
