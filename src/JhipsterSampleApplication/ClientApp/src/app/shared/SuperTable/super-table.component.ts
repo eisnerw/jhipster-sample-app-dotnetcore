@@ -250,7 +250,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   onHeaderFilter(event: any): void {
     const targetGroup = this.topGroupName;
     this.lastFilterEvent = event;
-    this.detailTables?.forEach((table) => table.applyFilter(event));
+    this.detailTables?.forEach(table => table.applyFilter(event));
     this.pTable.filteredValue = null;
     setTimeout(() => {
       if (targetGroup) {
@@ -259,33 +259,44 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     });
   }
 
+  private _getColumnWidths(): string[] | undefined {
+    if (this.pTable?.el) {
+      const header: NodeListOf<HTMLTableCellElement> = this.pTable.el.nativeElement.querySelectorAll('th');
+      if (header) {
+        return Array.from(header).map((th: HTMLTableCellElement) => th.offsetWidth + 'px');
+      }
+    }
+    return undefined;
+  }
+
   private captureColumnWidths(): void {
     if (this.capturedWidths || this.mode !== 'group') {
       return;
     }
-    const header = this.pTable?.el?.nativeElement.querySelectorAll('th');
-    if (header) {
-      header.forEach((th: HTMLElement, idx: number) => {
-        const width = th.offsetWidth + 'px';
-        if (this.columns[idx]) {
-          this.columns[idx].width = width;
+    const widths = this._getColumnWidths();
+    if (widths) {
+      this.columns.forEach((col, index) => {
+        if (col) {
+          col.width = widths[index] || '';
         }
       });
       this.columns = [...this.columns];
+      this.lastColumnWidths = widths;
       this.capturedWidths = true;
     }
   }
 
   private captureTopGroup(): void {
-    if (!this.scrollContainer || this.mode !== 'group') {
+    const scrollContainer = this.scrollContainer;
+    if (!scrollContainer || this.mode !== 'group') {
       return;
     }
     const rows = Array.from(
-      this.scrollContainer.querySelectorAll('tbody > tr'),
+      scrollContainer.querySelectorAll('tbody > tr'),
     );
     for (const row of rows) {
       const el = row as HTMLElement;
-      if (el.offsetTop + el.offsetHeight > this.scrollContainer.scrollTop) {
+      if (el.offsetTop + el.offsetHeight > scrollContainer.scrollTop) {
         if (el.classList.contains('p-row-odd')) {
           const nameCell = el.querySelector('td:nth-child(2)');
           this.topGroupName = nameCell?.textContent?.trim() || undefined;
@@ -315,19 +326,18 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   onHeaderColResize(event: any): void {
-    if (event?.element) {
-      const index = (event.element as any).cellIndex;
-      const newWidth = event.element.offsetWidth + 'px';
-      if (this.columns[index]) {
-        this.columns[index].width = newWidth;
-        this.columns = [...this.columns];
+    this.lastColumnWidths = this._getColumnWidths();
+    const targetGroup = this.topGroupName;
+    this.detailTables?.forEach(table => {
+      if (this.lastColumnWidths) {
+        table.columns = table.columns.map((c, i) => ({ ...c, width: this.lastColumnWidths![i] }));
       }
-    }
-
-    this.lastColumnWidths = this.columns.map(col => col.width || '');
-
-    this.detailTables?.forEach((table) => {
-      table.columns = [...this.columns];
+    });
+    this.onColResize.emit(event);
+    setTimeout(() => {
+      if (targetGroup) {
+        this.scrollToGroup(targetGroup);
+      }
     });
   }
 
