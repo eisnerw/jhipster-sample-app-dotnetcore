@@ -90,6 +90,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   groupLoaders: { [key: string]: DataLoader<any> } = {};
 
+  private lastSortEvent: any;
+  private lastFilterEvent: any;
+
   private scrollContainer?: HTMLElement;
   private topGroupName?: string;
   private scrollListener = () => this.captureTopGroup();
@@ -156,6 +159,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         this.groupLoaders[groupName] = this.groupQuery(groupName);
       }
       this.rowExpand.emit({ data: groupName });
+      setTimeout(() => this.applyStoredStateToDetails());
     }
   }
 
@@ -163,6 +167,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     console.log('Expanded:', event.data);
     this.expandedRowKeys[event.data.id] = true;
     this.rowExpand.emit(event);
+    setTimeout(() => this.applyStoredStateToDetails());
   }
 
   onRowCollapse(event: any) {
@@ -177,6 +182,27 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     } else {
       this.pTable.filter(selectedValues, field, 'in');
     }
+  }
+
+  handleSort(event: any): void {
+    this.lastSortEvent = event;
+    this.onSort.emit(event);
+  }
+
+  handleFilter(event: any): void {
+    this.lastFilterEvent = event;
+    this.onFilter.emit(event);
+  }
+
+  private applyStoredStateToDetails(): void {
+    this.detailTables?.forEach((table) => {
+      if (this.lastSortEvent) {
+        table.applySort(this.lastSortEvent);
+      }
+      if (this.lastFilterEvent) {
+        table.applyFilter(this.lastFilterEvent);
+      }
+    });
   }
 
   applySort(event: any): void {
@@ -200,6 +226,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   onHeaderSort(event: any): void {
     const targetGroup = this.topGroupName;
+    this.lastSortEvent = event;
     this.detailTables?.forEach((table) => table.applySort(event));
     setTimeout(() => {
       if (targetGroup) {
@@ -210,6 +237,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   onHeaderFilter(event: any): void {
     const targetGroup = this.topGroupName;
+    this.lastFilterEvent = event;
     this.detailTables?.forEach((table) => table.applyFilter(event));
     this.pTable.filteredValue = null;
     setTimeout(() => {
