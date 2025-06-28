@@ -317,7 +317,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   onHeaderColResize(event: any): void {
     let index: number | undefined;
     if (event?.element) {
-      index = (event.element as any).cellIndex;
+      index = Array.from(event.element.parentElement?.children || []).indexOf(
+        event.element,
+      );
       const newWidth = event.element.offsetWidth + 'px';
       this.updateColumnWidth(index!, newWidth);
     }
