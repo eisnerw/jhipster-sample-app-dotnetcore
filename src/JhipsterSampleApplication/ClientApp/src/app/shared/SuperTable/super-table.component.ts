@@ -15,6 +15,7 @@ import {
   OnDestroy,
   OnChanges,
   SimpleChanges,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
@@ -111,6 +112,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Output() onSort = new EventEmitter<any>();
   @Output() onFilter = new EventEmitter<any>();
 
+  constructor(private cdr: ChangeDetectorRef) {}
+
   ngOnInit(): void {
     if (!this.superTableParent) {
       throw new Error('superTableParent is a required input');
@@ -203,7 +206,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   private applyStoredStateToDetails(): void {
-    this.detailTables?.forEach((table) => {
+    this.detailTables?.forEach(table => {
       table.columns = [...this.columns];
       if (this.lastSortEvent) {
         table.applySort(this.lastSortEvent);
@@ -213,6 +216,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       }
       if (this.lastColumnWidths) {
         table.columns = table.columns.map((c, i) => ({ ...c, width: this.lastColumnWidths![i] }));
+        table.cdr.detectChanges();
       }
     });
   }
@@ -327,16 +331,16 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   onHeaderColResize(event: any): void {
     this.lastColumnWidths = this._getColumnWidths();
-    const targetGroup = this.topGroupName;
     this.detailTables?.forEach(table => {
       if (this.lastColumnWidths) {
         table.columns = table.columns.map((c, i) => ({ ...c, width: this.lastColumnWidths![i] }));
+        table.cdr.detectChanges();
       }
     });
     this.onColResize.emit(event);
     setTimeout(() => {
-      if (targetGroup) {
-        this.scrollToGroup(targetGroup);
+      if (this.topGroupName) {
+        this.scrollToGroup(this.topGroupName);
       }
     });
   }
