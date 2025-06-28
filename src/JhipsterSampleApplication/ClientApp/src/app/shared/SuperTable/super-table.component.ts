@@ -273,12 +273,12 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   private initGroupScroll(): void {
-    const body = (this.pTable?.el?.nativeElement as HTMLElement)?.querySelector(
-      '.p-datatable-scrollable-body',
-    );
+    const body =
+      (this.pTable?.scroller?.getElementRef()?.nativeElement as HTMLElement) ||
+      (this.pTable?.wrapperViewChild?.nativeElement as HTMLElement);
     if (body) {
       this.destroyGroupScroll();
-      this.scrollContainer = body as HTMLElement;
+      this.scrollContainer = body;
       this.scrollContainer.addEventListener('scroll', this.scrollListener);
       this.captureTopGroup();
     }
