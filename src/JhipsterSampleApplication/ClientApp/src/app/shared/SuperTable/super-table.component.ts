@@ -92,6 +92,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   private lastSortEvent: any;
   private lastFilterEvent: any;
+  private lastColumnWidths: string[] | undefined;
 
   private scrollContainer?: HTMLElement;
   private topGroupName?: string;
@@ -202,6 +203,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       if (this.lastFilterEvent) {
         table.applyFilter(this.lastFilterEvent);
       }
+      if (this.lastColumnWidths) {
+        table.columns = table.columns.map((c, i) => ({ ...c, width: this.lastColumnWidths![i] }));
+      }
     });
   }
 
@@ -294,6 +298,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         this.columns = [...this.columns];
       }
     }
+
+    this.lastColumnWidths = this.columns.map(col => col.width || '');
 
     this.detailTables?.forEach((table) => {
       table.columns = [...this.columns];
