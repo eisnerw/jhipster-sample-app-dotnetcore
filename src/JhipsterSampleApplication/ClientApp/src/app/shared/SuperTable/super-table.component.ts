@@ -315,20 +315,33 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   onHeaderColResize(event: any): void {
+    let index: number | undefined;
     if (event?.element) {
-      const index = (event.element as any).cellIndex;
+      index = (event.element as any).cellIndex;
       const newWidth = event.element.offsetWidth + 'px';
-      if (this.columns[index]) {
-        this.columns[index].width = newWidth;
-        this.columns = [...this.columns];
-      }
+      this.updateColumnWidth(index!, newWidth);
     }
 
     this.lastColumnWidths = this.columns.map(col => col.width || '');
 
-    this.detailTables?.forEach((table) => {
-      table.columns = [...this.columns];
-    });
+    if (index !== undefined) {
+      this.detailTables?.forEach(table => {
+        table.propagateColumnWidthChange(index!, this.lastColumnWidths![index!]);
+      });
+    }
+  }
+
+  propagateColumnWidthChange(index: number, width: string): void {
+    this.updateColumnWidth(index, width);
+    this.lastColumnWidths = this.columns.map(col => col.width || '');
+    this.detailTables?.forEach(child => child.propagateColumnWidthChange(index, width));
+  }
+
+  private updateColumnWidth(index: number, width: string): void {
+    if (this.columns[index]) {
+      this.columns[index].width = width;
+      this.columns = [...this.columns];
+    }
   }
 
   private initGroupScroll(): void {
