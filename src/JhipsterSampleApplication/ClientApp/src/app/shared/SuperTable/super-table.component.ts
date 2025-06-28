@@ -243,8 +243,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   onHeaderSort(event: any): void {
     const targetGroup = this.topGroupName;
     this.lastSortEvent = event;
-    this.detailTables?.forEach((table) => table.applySort(event));
-    setTimeout(() => {
+    this.detailTables?.forEach(table => table.applySort(event));
+    requestAnimationFrame(() => {
       if (targetGroup) {
         this.scrollToGroup(targetGroup);
       }
@@ -291,22 +291,25 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   private captureTopGroup(): void {
-    const scrollContainer = this.scrollContainer;
-    if (!scrollContainer || this.mode !== 'group') {
+    if (!this.scrollContainer || this.mode !== 'group') {
       return;
     }
-    const rows = Array.from(
-      scrollContainer.querySelectorAll('tbody > tr'),
-    );
+
+    const rows = Array.from(this.scrollContainer.querySelectorAll('tbody > tr.p-row-odd')) as HTMLElement[];
+    let topRow: HTMLElement | undefined;
+    let minDistance = Number.MAX_VALUE;
+
     for (const row of rows) {
-      const el = row as HTMLElement;
-      if (el.offsetTop + el.offsetHeight > scrollContainer.scrollTop) {
-        if (el.classList.contains('p-row-odd')) {
-          const nameCell = el.querySelector('td:nth-child(2)');
-          this.topGroupName = nameCell?.textContent?.trim() || undefined;
-        }
-        break;
+      const distance = Math.abs(row.offsetTop - this.scrollContainer.scrollTop);
+      if (distance < minDistance) {
+        minDistance = distance;
+        topRow = row;
       }
+    }
+
+    if (topRow) {
+      const nameCell = topRow.querySelector('td:nth-child(2)');
+      this.topGroupName = nameCell?.textContent?.trim() || undefined;
     }
   }
 
@@ -314,17 +317,18 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     if (!this.scrollContainer) {
       return;
     }
-    const rows = Array.from(
-      this.scrollContainer.querySelectorAll('tbody > tr'),
-    );
+
+    const rows = Array.from(this.scrollContainer.querySelectorAll('tbody > tr.p-row-odd')) as HTMLElement[];
+    if (rows.length > 0 && rows[0].querySelector('td:nth-child(2)')?.textContent?.trim() === groupName) {
+      this.scrollContainer.scrollTop = 0;
+      return;
+    }
+
     for (const row of rows) {
-      const el = row as HTMLElement;
-      if (el.classList.contains('p-row-odd')) {
-        const nameCell = el.querySelector('td:nth-child(2)');
-        if (nameCell?.textContent?.trim() === groupName) {
-          this.scrollContainer.scrollTop = el.offsetTop;
-          break;
-        }
+      const nameCell = row.querySelector('td:nth-child(2)');
+      if (nameCell?.textContent?.trim() === groupName) {
+        this.scrollContainer.scrollTop = row.offsetTop;
+        break;
       }
     }
   }
@@ -338,7 +342,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       }
     });
     this.onColResize.emit(event);
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       if (this.topGroupName) {
         this.scrollToGroup(this.topGroupName);
       }
