@@ -189,24 +189,25 @@
   (onColResize)="onHeaderColResize($event)"
   [value]="groups"
 >
-  <ng-template pTemplate="header" let-columns>
-    <tr class="header-row">
-      <th
-        *ngFor="let col of columns"
-        [pSortableColumn]="
-          col.type === 'string' ||
-          col.type === 'date' ||
-          col.type === 'boolean' ||
-          col.type === 'list'
-            ? col.field
-            : undefined
-        "
-        pResizableColumn
-        [style.width]="col.width"
-        [style]="col.style"
-      >
-        <div class="p-d-flex p-jc-between p-ai-center">
-          {{ col.header }}
+  <ng-container *ngIf="showHeader && !superTableParent">
+    <ng-template pTemplate="header" let-columns>
+      <tr class="header-row">
+        <th
+          *ngFor="let col of columns"
+          [pSortableColumn]="
+            col.type === 'string' ||
+            col.type === 'date' ||
+            col.type === 'boolean' ||
+            col.type === 'list'
+              ? col.field
+              : undefined
+          "
+          pResizableColumn
+          [style.width]="col.width"
+          [style]="col.style"
+        >
+          <div class="p-d-flex p-jc-between p-ai-center">
+            {{ col.header }}
           <ng-container [ngSwitch]="col.type">
             <ng-container *ngSwitchCase="'string'">
               <p-sortIcon [field]="col.field"></p-sortIcon>
@@ -276,7 +277,8 @@
         </div>
       </th>
     </tr>
-  </ng-template>
+    </ng-template>
+  </ng-container>
   <ng-template pTemplate="body" let-rowData>
     <tr class="p-row-odd">
       <td style="width: 3rem; text-align: center">
@@ -303,12 +305,11 @@
           #detailTable
           class="grid-table"
           [dataLoader]="groupLoaders[rowData.name]?.loader"
-          [groups]="groupLoaders[rowData.name]?.groups"
+          [groups]="groupLoaders[rowData.name]?.groups || []"
           [mode]="groupLoaders[rowData.name]?.mode || 'grid'"
           [groupQuery]="groupQuery"
           [columns]="columns"
           [superTableParent]="this"
-          [showHeader]="false"
           [expandedRowTemplate]="expandedRowTemplate"
           [resizableColumns]="resizableColumns"
           [scrollable]="scrollable"

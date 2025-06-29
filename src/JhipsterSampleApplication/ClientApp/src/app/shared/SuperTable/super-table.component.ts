@@ -103,7 +103,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @ViewChild('pTable') pTable!: Table;
   @ViewChildren('detailTable') detailTables!: QueryList<SuperTable>;
 
-  groupLoaders: { [key: string]: GroupData } = {};
+  groupLoaders: { [key: string]: GroupData | undefined } = {};
 
   private lastSortEvent: any;
   private lastFilterEvent: any;
