@@ -46,6 +46,12 @@ export interface ColumnConfig {
   listOptions?: { label: string; value: string }[];
 }
 
+export interface GroupDescriptor {
+  name: string;
+  count: number;
+  query: string;
+}
+
 @Component({
   selector: 'super-table',
   standalone: true,
@@ -65,9 +71,9 @@ export interface ColumnConfig {
 export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Input() dataLoader: DataLoader<any> | undefined;
   @Input() columns: ColumnConfig[] = [];
-  @Input() groups: string[] = [];
+  @Input() groups: GroupDescriptor[] = [];
   @Input() mode: 'grid' | 'group' = 'grid';
-  @Input() groupQuery: ((groupName: string) => DataLoader<any>) | undefined;
+  @Input() groupQuery: ((group: GroupDescriptor) => DataLoader<any>) | undefined;
   @Input() loading = false;
   @Input() resizableColumns = false;
   @Input() reorderableColumns = false;
@@ -83,7 +89,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Input() selection: any;
   @Input() expandedRowKeys: { [key: string]: boolean } = {};
   @Input() loadingMessage: string | undefined;
-  @Input() superTableParent: any;
+  @Input() superTableParent: SuperTable | null = null;
   @Input() expandedRowTemplate: TemplateRef<any> | undefined;
 
   @ViewChild('pTable') pTable!: Table;
@@ -115,9 +121,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
-    if (!this.superTableParent) {
-      throw new Error('superTableParent is a required input');
-    }
+    // no initialization required
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -155,21 +159,22 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     return this.expandedRowKeys[key] === true;
   }
 
-  isGroupExpanded(groupName: string): boolean {
-    return this.expandedRowKeys[groupName] === true;
+  isGroupExpanded(group: GroupDescriptor): boolean {
+    return this.expandedRowKeys[group.name] === true;
   }
 
-  onGroupToggle(groupName: string): void {
-    const isExpanded = this.isGroupExpanded(groupName);
+  onGroupToggle(group: GroupDescriptor): void {
+    const groupName = group.name;
+    const isExpanded = this.isGroupExpanded(group);
     if (isExpanded) {
       delete this.expandedRowKeys[groupName];
-      this.rowCollapse.emit({ data: groupName });
+      this.rowCollapse.emit({ data: group });
     } else {
       this.expandedRowKeys[groupName] = true;
       if (this.groupQuery && !this.groupLoaders[groupName]) {
-        this.groupLoaders[groupName] = this.groupQuery(groupName);
+        this.groupLoaders[groupName] = this.groupQuery(group);
       }
-      this.rowExpand.emit({ data: groupName });
+      this.rowExpand.emit({ data: group });
       setTimeout(() => this.applyStoredStateToDetails());
     }
   }

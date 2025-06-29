@@ -24,7 +24,7 @@
       <col *ngFor="let col of columns" [style.width]="col.width" />
     </colgroup>
   </ng-template>
-  <ng-container *ngIf="showHeader">
+  <ng-container *ngIf="showHeader && !superTableParent">
     <ng-template pTemplate="header" let-columns>
       <tr class="header-row">
         <th
@@ -295,17 +295,17 @@
           ></span>
         </button>
       </td>
-      <td>{{ rowData }}</td>
+      <td>{{ rowData.name }}</td>
     </tr>
     <tr *ngIf="isGroupExpanded(rowData)">
       <td [attr.colspan]="columns.length">
         <super-table
           #detailTable
           class="grid-table"
-          [dataLoader]="groupLoaders[rowData]"
+          [dataLoader]="groupLoaders[rowData.name]"
           [columns]="columns"
           [mode]="'grid'"
-          [superTableParent]="superTableParent"
+          [superTableParent]="this"
           [showHeader]="false"
           [expandedRowTemplate]="expandedRowTemplate"
           [resizableColumns]="resizableColumns"
