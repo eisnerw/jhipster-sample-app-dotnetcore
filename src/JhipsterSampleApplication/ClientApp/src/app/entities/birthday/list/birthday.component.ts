@@ -28,6 +28,7 @@ import SharedModule from 'app/shared/shared.module';
 import {
   SuperTable,
   ColumnConfig,
+  GroupDescriptor,
 } from '../../../shared/SuperTable/super-table.component';
 import { DataLoader, FetchFunction } from 'app/shared/data-loader';
 
@@ -59,7 +60,7 @@ export class BirthdayComponent implements OnInit {
   // The SuperTable in group mode manages its own detail tables
 
   dataLoader: DataLoader<IBirthday>;
-  groups: string[] = [];
+  groups: GroupDescriptor[] = [];
   itemsPerPage = 50;
   page = 1;
   predicate!: string;
@@ -214,7 +215,7 @@ export class BirthdayComponent implements OnInit {
         map(response => response.body ?? []),
         map(names => names.sort()),
       )
-      .subscribe(names => (this.groups = names));
+      .subscribe(names => (this.groups = names.map(name => ({ name, count: 0, query: `fname:"${name}"` }))));
   }
 
   ngOnInit(): void {
@@ -372,11 +373,11 @@ export class BirthdayComponent implements OnInit {
     console.log('sort event', event);
   }
 
-  groupQuery(groupName: string): DataLoader<IBirthday> {
+  groupQuery(group: GroupDescriptor): DataLoader<IBirthday> {
     const fetch: FetchFunction<IBirthday> = (queryParams: any) =>
       this.birthdayService.query(queryParams);
     const loader = new DataLoader<IBirthday>(fetch);
-    const filter = { query: `fname:"${groupName}"` };
+    const filter = { query: group.query };
     loader.load(this.itemsPerPage, this.predicate, this.ascending, filter);
     return loader;
   }
