@@ -287,6 +287,7 @@
           pButton
           class="p-button-text p-button-rounded p-button-plain"
           (click)="onGroupToggle(rowData)"
+          [style.margin-left.px]="getGroupIndent(rowData) * 16"
         >
           <span
             [class]="
