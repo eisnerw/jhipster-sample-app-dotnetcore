@@ -49,7 +49,7 @@ export interface ColumnConfig {
 export interface GroupDescriptor {
   name: string;
   count: number;
-  query: string;
+  categories?: string[] | null;
 }
 
 @Component({
