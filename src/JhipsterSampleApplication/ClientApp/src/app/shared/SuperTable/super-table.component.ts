@@ -171,6 +171,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     return this.expandedRowKeys[group.name] === true;
   }
 
+  getGroupIndent(group: GroupDescriptor): number {
+    return group.categories ? group.categories.length : 0;
+  }
+
   onGroupToggle(group: GroupDescriptor): void {
     const groupName = group.name;
     const isExpanded = this.isGroupExpanded(group);
@@ -183,7 +187,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         this.groupLoaders[groupName] = this.groupQuery(group);
       }
       this.rowExpand.emit({ data: group });
-      setTimeout(() => this.applyStoredStateToDetails());
+      setTimeout(() => {
+        this.captureColumnWidths();
+        this.applyStoredStateToDetails();
+      });
     }
   }
 

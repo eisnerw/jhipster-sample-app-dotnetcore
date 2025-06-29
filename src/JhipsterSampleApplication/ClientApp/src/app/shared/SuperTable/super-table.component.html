@@ -297,7 +297,9 @@
           ></span>
         </button>
       </td>
-      <td>{{ rowData.name }}</td>
+      <td [style.padding-left.px]="getGroupIndent(rowData) * 16">
+        {{ rowData.name }}
+      </td>
     </tr>
     <tr *ngIf="isGroupExpanded(rowData)">
       <td [attr.colspan]="columns.length">
