@@ -302,9 +302,11 @@
         <super-table
           #detailTable
           class="grid-table"
-          [dataLoader]="groupLoaders[rowData.name]"
+          [dataLoader]="groupLoaders[rowData.name]?.loader"
+          [groups]="groupLoaders[rowData.name]?.groups"
+          [mode]="groupLoaders[rowData.name]?.mode || 'grid'"
+          [groupQuery]="groupQuery"
           [columns]="columns"
-          [mode]="'grid'"
           [superTableParent]="this"
           [showHeader]="false"
           [expandedRowTemplate]="expandedRowTemplate"

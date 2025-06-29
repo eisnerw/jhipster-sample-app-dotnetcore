@@ -5,7 +5,7 @@ import { map } from 'rxjs/operators';
 
 import { ApplicationConfigService } from 'app/core/config/application-config.service';
 import { createRequestOption } from 'app/core/request/request-util';
-import { IBirthday } from '../birthday.model';
+import { IBirthday, IViewResult } from '../birthday.model';
 
 export type EntityResponseType = HttpResponse<IBirthday>;
 export type EntityArrayResponseType = HttpResponse<{
@@ -14,6 +14,14 @@ export type EntityArrayResponseType = HttpResponse<{
   totalHits: number;
   searchAfter: string[];
   pitId: string | null;
+}>;
+
+export type ViewArrayResponseType = HttpResponse<{
+  hits: IViewResult[];
+  hitType: string;
+  viewName: string;
+  viewCategory?: string;
+  totalHits: number;
 }>;
 
 @Injectable({ providedIn: 'root' })
@@ -102,5 +110,28 @@ export class BirthdayService {
         observe: 'response',
       },
     );
+  }
+
+  searchView(req: any): Observable<ViewArrayResponseType> {
+    const options = createRequestOption(req);
+    let queryString = 'query=';
+
+    if (req?.query) {
+      queryString += String(req.query);
+      delete req.query;
+    } else {
+      queryString += '*';
+    }
+
+    return this.http.get<{
+      hits: IViewResult[];
+      hitType: string;
+      viewName: string;
+      viewCategory?: string;
+      totalHits: number;
+    }>(`${this.searchUrl}?${queryString}`, {
+      params: options,
+      observe: 'response',
+    });
   }
 }
