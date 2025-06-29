@@ -215,7 +215,7 @@ export class BirthdayComponent implements OnInit {
         map(response => response.body ?? []),
         map(names => names.sort()),
       )
-      .subscribe(names => (this.groups = names.map(name => ({ name, count: 0, query: `fname:"${name}"` }))));
+      .subscribe(names => (this.groups = names.map(name => ({ name, count: 0, categories: null }))));
   }
 
   ngOnInit(): void {
@@ -377,7 +377,7 @@ export class BirthdayComponent implements OnInit {
     const fetch: FetchFunction<IBirthday> = (queryParams: any) =>
       this.birthdayService.query(queryParams);
     const loader = new DataLoader<IBirthday>(fetch);
-    const filter = { query: group.query };
+    const filter = { query: `fname:"${group.name}"` };
     loader.load(this.itemsPerPage, this.predicate, this.ascending, filter);
     return loader;
   }
