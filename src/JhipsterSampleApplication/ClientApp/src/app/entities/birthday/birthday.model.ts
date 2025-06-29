@@ -17,3 +17,8 @@ export class Birthday implements IBirthday {
     public isAlive?: boolean,
   ) {}
 }
+
+export interface IViewResult {
+  categoryName: string;
+  count: number;
+}

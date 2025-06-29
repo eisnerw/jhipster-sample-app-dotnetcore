@@ -29,6 +29,7 @@ import {
   SuperTable,
   ColumnConfig,
   GroupDescriptor,
+  GroupData,
 } from '../../../shared/SuperTable/super-table.component';
 import { DataLoader, FetchFunction } from 'app/shared/data-loader';
 
@@ -210,12 +211,11 @@ export class BirthdayComponent implements OnInit {
     this.dataLoader = new DataLoader<IBirthday>(fetchFunction);
 
     this.birthdayService
-      .getUniqueValues('fname')
-      .pipe(
-        map(response => response.body ?? []),
-        map(names => names.sort()),
-      )
-      .subscribe(names => (this.groups = names.map(name => ({ name, count: 0, categories: null }))));
+      .searchView({ query: '*', from: 0, pageSize: 1000, view: 'sign/birth year' })
+      .pipe(map(res => res.body?.hits ?? []))
+      .subscribe(hits => {
+        this.groups = hits.map(h => ({ name: h.categoryName, count: h.count, categories: null }));
+      });
   }
 
   ngOnInit(): void {
@@ -373,13 +373,35 @@ export class BirthdayComponent implements OnInit {
     console.log('sort event', event);
   }
 
-  groupQuery(group: GroupDescriptor): DataLoader<IBirthday> {
+  groupQuery(group: GroupDescriptor): GroupData {
+    if (!group.categories || group.categories.length === 0) {
+      const groupData: GroupData = { mode: 'group', groups: [] };
+      this.birthdayService
+        .searchView({
+          query: '*',
+          from: 0,
+          pageSize: 1000,
+          view: 'sign/birth year',
+          category: group.name,
+        })
+        .pipe(map(res => res.body?.hits ?? []))
+        .subscribe(hits => {
+          groupData.groups = hits.map(h => ({ name: h.categoryName, count: h.count, categories: [group.name] }));
+        });
+      return groupData;
+    }
+
     const fetch: FetchFunction<IBirthday> = (queryParams: any) =>
       this.birthdayService.query(queryParams);
     const loader = new DataLoader<IBirthday>(fetch);
-    const filter = { query: `fname:"${group.name}"` };
+    const filter = {
+      query: '*',
+      view: 'sign/birth year',
+      category: group.categories[0],
+      secondaryCategory: group.name,
+    };
     loader.load(this.itemsPerPage, this.predicate, this.ascending, filter);
-    return loader;
+    return { mode: 'grid', loader };
   }
 
   toggleViewMode(): void {

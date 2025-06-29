@@ -52,6 +52,12 @@ export interface GroupDescriptor {
   categories?: string[] | null;
 }
 
+export interface GroupData {
+  mode: 'grid' | 'group';
+  loader?: DataLoader<any>;
+  groups?: GroupDescriptor[];
+}
+
 @Component({
   selector: 'super-table',
   standalone: true,
@@ -73,7 +79,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Input() columns: ColumnConfig[] = [];
   @Input() groups: GroupDescriptor[] = [];
   @Input() mode: 'grid' | 'group' = 'grid';
-  @Input() groupQuery: ((group: GroupDescriptor) => DataLoader<any>) | undefined;
+  @Input() groupQuery:
+    | ((group: GroupDescriptor) => GroupData)
+    | undefined;
   @Input() loading = false;
   @Input() resizableColumns = false;
   @Input() reorderableColumns = false;
@@ -95,7 +103,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @ViewChild('pTable') pTable!: Table;
   @ViewChildren('detailTable') detailTables!: QueryList<SuperTable>;
 
-  groupLoaders: { [key: string]: DataLoader<any> } = {};
+  groupLoaders: { [key: string]: GroupData } = {};
 
   private lastSortEvent: any;
   private lastFilterEvent: any;
