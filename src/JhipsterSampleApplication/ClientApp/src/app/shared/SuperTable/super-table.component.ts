@@ -132,6 +132,11 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     // no initialization required
   }
 
+  getIndentStyle(group: GroupDescriptor): { [key: string]: string } {
+    const level = group.categories ? group.categories.length : 0;
+    return { 'padding-left': `${level * 1.5}rem` };
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['mode'] && !changes['mode'].firstChange) {
       if (changes['mode'].currentValue === 'group') {
@@ -219,6 +224,11 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   private applyStoredStateToDetails(): void {
+    const currentWidths = this._getColumnWidths();
+    if (currentWidths) {
+      this.lastColumnWidths = currentWidths;
+    }
+
     this.detailTables?.forEach(table => {
       table.columns = [...this.columns];
       if (this.lastSortEvent) {

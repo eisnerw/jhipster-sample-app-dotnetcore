@@ -281,23 +281,26 @@
   </ng-container>
   <ng-template pTemplate="body" let-rowData>
     <tr class="p-row-odd">
-      <td style="width: 3rem; text-align: center">
-        <button
-          type="button"
-          pButton
-          class="p-button-text p-button-rounded p-button-plain"
-          (click)="onGroupToggle(rowData)"
-        >
-          <span
-            [class]="
-              isGroupExpanded(rowData)
-                ? 'pi pi-chevron-down'
-                : 'pi pi-chevron-right'
-            "
-          ></span>
-        </button>
+      <td [attr.colspan]="columns.length">
+        <div style="display: flex; align-items: center">
+          <span [ngStyle]="getIndentStyle(rowData)"></span>
+          <button
+            type="button"
+            pButton
+            class="p-button-text p-button-rounded p-button-plain"
+            (click)="onGroupToggle(rowData)"
+          >
+            <span
+              [class]="
+                isGroupExpanded(rowData)
+                  ? 'pi pi-chevron-down'
+                  : 'pi pi-chevron-right'
+              "
+            ></span>
+          </button>
+          {{ rowData.name }}
+        </div>
       </td>
-      <td>{{ rowData.name }}</td>
     </tr>
     <tr *ngIf="isGroupExpanded(rowData)">
       <td [attr.colspan]="columns.length">
