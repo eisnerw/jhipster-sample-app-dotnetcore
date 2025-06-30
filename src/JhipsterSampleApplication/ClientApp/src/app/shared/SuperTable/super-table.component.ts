@@ -17,6 +17,7 @@ import {
   SimpleChanges,
   ChangeDetectorRef,
 } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -113,6 +114,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private topGroupName?: string;
   private scrollListener = () => this.captureTopGroup();
   private capturedWidths = false;
+  private detailTablesChangeSub?: Subscription;
 
   @ContentChild('customHeader', { read: TemplateRef })
   headerTemplate?: TemplateRef<any>;
@@ -157,10 +159,14 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         this.initGroupScroll();
       });
     }
+    this.detailTablesChangeSub = this.detailTables.changes.subscribe(() => {
+      setTimeout(() => this.applyStoredStateToDetails());
+    });
   }
 
   ngOnDestroy(): void {
     this.destroyGroupScroll();
+    this.detailTablesChangeSub?.unsubscribe();
   }
 
   trackByFn(index: number, item: any): any {
