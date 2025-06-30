@@ -335,8 +335,18 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     }
 
     if (topRow) {
-      const nameCell = topRow.querySelector('td:nth-child(2)');
-      this.topGroupName = nameCell?.textContent?.trim() || undefined;
+      const td = topRow.querySelector('td');
+      const div = td?.querySelector('div');
+      let groupName: string | undefined;
+    
+      if (div) {
+        const textNode = Array.from(div.childNodes).find(
+          node => node.nodeType === Node.TEXT_NODE && node.textContent?.trim()
+        );
+        groupName = textNode?.textContent?.trim();
+      }
+    
+      this.topGroupName = groupName;
     }
   }
 
@@ -344,18 +354,31 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     if (!this.scrollContainer) {
       return;
     }
-
+  
     const rows = Array.from(this.scrollContainer.querySelectorAll('tbody > tr.p-row-odd')) as HTMLElement[];
-    if (rows.length > 0 && rows[0].querySelector('td:nth-child(2)')?.textContent?.trim() === groupName) {
-      this.scrollContainer.scrollTop = 0;
-      return;
-    }
-
+  
     for (const row of rows) {
-      const nameCell = row.querySelector('td:nth-child(2)');
-      if (nameCell?.textContent?.trim() === groupName) {
-        this.scrollContainer.scrollTop = row.offsetTop;
-        break;
+      const td = row.querySelector('td');
+      const button = td?.querySelector('button');
+    
+      if (button && td) {
+        let sibling = button.nextSibling;
+        while (sibling) {
+          if (sibling.nodeType === Node.TEXT_NODE) {
+            const text = sibling.textContent?.trim();
+            if (text === groupName) {
+              this.scrollContainer.scrollTop = row.offsetTop;
+              return;
+            }
+          } else if (sibling.nodeType === Node.ELEMENT_NODE) {
+            const text = (sibling as HTMLElement).innerText?.trim();
+            if (text === groupName) {
+              this.scrollContainer.scrollTop = row.offsetTop;
+              return;
+            }
+          }
+          sibling = sibling.nextSibling;
+        }
       }
     }
   }
