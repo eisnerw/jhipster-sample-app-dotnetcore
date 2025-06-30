@@ -188,12 +188,13 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         this.groupLoaders[groupName] = this.groupQuery(group);
       }
       this.rowExpand.emit({ data: group });
+      console.log(`[SuperTable] >>> Group toggled for: ${group.name}.`);
       setTimeout(() => this.applyStoredStateToDetails());
     }
   }
 
   onRowExpand(event: { originalEvent: Event; data: any }) {
-    console.log('Expanded:', event.data);
+    console.log(`[SuperTable] >>> Row expanded for id: ${event.data.id}.`);
     this.expandedRowKeys[event.data.id] = true;
     this.rowExpand.emit(event);
     setTimeout(() => this.applyStoredStateToDetails());
@@ -224,12 +225,18 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   private applyStoredStateToDetails(): void {
+    console.log('[SuperTable] --- Entering applyStoredStateToDetails ---');
     const currentWidths = this._getColumnWidths();
     if (currentWidths) {
+      console.log('[SuperTable] Captured new widths in applyStoredStateToDetails:', currentWidths);
       this.lastColumnWidths = currentWidths;
+    } else {
+      console.log('[SuperTable] Could not capture new widths in applyStoredStateToDetails.');
     }
 
-    this.detailTables?.forEach(table => {
+    console.log('[SuperTable] Applying widths to detail tables. Last known good widths:', this.lastColumnWidths);
+    this.detailTables?.forEach((table, index) => {
+      console.log(`[SuperTable] -> Applying to detail table ${index}`);
       table.columns = [...this.columns];
       if (this.lastSortEvent) {
         table.applySort(this.lastSortEvent);
@@ -242,6 +249,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         table.cdr.detectChanges();
       }
     });
+    console.log('[SuperTable] --- Exiting applyStoredStateToDetails ---');
   }
 
   applySort(event: any): void {
@@ -287,12 +295,18 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   private _getColumnWidths(): string[] | undefined {
+    console.log('[SuperTable] _getColumnWidths called.');
     if (this.pTable?.el) {
       const header: NodeListOf<HTMLTableCellElement> = this.pTable.el.nativeElement.querySelectorAll('th');
-      if (header) {
-        return Array.from(header).map((th: HTMLTableCellElement) => th.offsetWidth + 'px');
+      if (header && header.length > 0) {
+        const widths = Array.from(header).map((th: HTMLTableCellElement) => th.offsetWidth + 'px');
+        console.log('[SuperTable] Got column widths from DOM:', widths);
+        return widths;
+      } else {
+        console.log('[SuperTable] DOM query for header columns returned nothing.');
       }
     }
+    console.log('[SuperTable] Could not get column widths from DOM.');
     return undefined;
   }
 
@@ -357,7 +371,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   onHeaderColResize(event: any): void {
+    console.log('[SuperTable] === Resizer Moved ===');
     this.lastColumnWidths = this._getColumnWidths();
+    console.log('[SuperTable] Stored new widths on resize:', this.lastColumnWidths);
     this.detailTables?.forEach(table => {
       if (this.lastColumnWidths) {
         table.columns = table.columns.map((c, i) => ({ ...c, width: this.lastColumnWidths![i] }));
