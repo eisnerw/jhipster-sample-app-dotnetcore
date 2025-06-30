@@ -27,6 +27,7 @@ import { Table } from 'primeng/table';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { FormsModule } from '@angular/forms';
 import { DataLoader } from '../data-loader';
+import { Subscription } from 'rxjs';
 
 export interface ColumnConfig {
   field: string;
@@ -113,6 +114,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private topGroupName?: string;
   private scrollListener = () => this.captureTopGroup();
   private capturedWidths = false;
+  private detailTablesSub?: Subscription;
 
   @ContentChild('customHeader', { read: TemplateRef })
   headerTemplate?: TemplateRef<any>;
@@ -157,9 +159,13 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         this.initGroupScroll();
       });
     }
+    this.detailTablesSub = this.detailTables.changes.subscribe(() =>
+      setTimeout(() => this.applyStoredStateToDetails()),
+    );
   }
 
   ngOnDestroy(): void {
+    this.detailTablesSub?.unsubscribe();
     this.destroyGroupScroll();
   }
 
