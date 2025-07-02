@@ -335,17 +335,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     }
 
     if (topRow) {
-      const td = topRow.querySelector('td');
-      const div = td?.querySelector('div');
-      let groupName: string | undefined;
-    
-      if (div) {
-        const textNode = Array.from(div.childNodes).find(
-          node => node.nodeType === Node.TEXT_NODE && node.textContent?.trim()
-        );
-        groupName = textNode?.textContent?.trim();
-      }
-    
+      const nameEl = topRow.querySelector('span.group-name');
+      const groupName = nameEl?.textContent?.trim();
       this.topGroupName = groupName;
     }
   }
@@ -358,27 +349,11 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     const rows = Array.from(this.scrollContainer.querySelectorAll('tbody > tr.p-row-odd')) as HTMLElement[];
   
     for (const row of rows) {
-      const td = row.querySelector('td');
-      const button = td?.querySelector('button');
-    
-      if (button && td) {
-        let sibling = button.nextSibling;
-        while (sibling) {
-          if (sibling.nodeType === Node.TEXT_NODE) {
-            const text = sibling.textContent?.trim();
-            if (text === groupName) {
-              this.scrollContainer.scrollTop = row.offsetTop;
-              return;
-            }
-          } else if (sibling.nodeType === Node.ELEMENT_NODE) {
-            const text = (sibling as HTMLElement).innerText?.trim();
-            if (text === groupName) {
-              this.scrollContainer.scrollTop = row.offsetTop;
-              return;
-            }
-          }
-          sibling = sibling.nextSibling;
-        }
+      const nameEl = row.querySelector('span.group-name');
+      const text = nameEl?.textContent?.trim();
+      if (text === groupName) {
+        this.scrollContainer.scrollTop = row.offsetTop;
+        return;
       }
     }
   }
