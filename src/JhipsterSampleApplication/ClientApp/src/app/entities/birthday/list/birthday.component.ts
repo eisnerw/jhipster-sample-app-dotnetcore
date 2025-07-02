@@ -62,6 +62,11 @@ export class BirthdayComponent implements OnInit {
 
   dataLoader: DataLoader<IBirthday>;
   groups: GroupDescriptor[] = [];
+  viewName = 'sign/birth year';
+  views = [
+    { label: 'Sign/Birth Year', value: 'sign/birth year' },
+    { label: 'First Name', value: 'first name' },
+  ];
   itemsPerPage = 50;
   page = 1;
   predicate!: string;
@@ -209,12 +214,23 @@ export class BirthdayComponent implements OnInit {
       return this.birthdayService.query(queryParams);
     };
     this.dataLoader = new DataLoader<IBirthday>(fetchFunction);
+    this.loadRootGroups();
+  }
 
+  loadRootGroups(): void {
     this.birthdayService
-      .searchView({ query: '*', from: 0, pageSize: 1000, view: 'sign/birth year' })
+      .searchView({ query: '*', from: 0, pageSize: 1000, view: this.viewName })
       .pipe(map(res => res.body?.hits ?? []))
       .subscribe(hits => {
-        this.groups = hits.map(h => ({ name: h.categoryName, count: h.count, categories: null }));
+        if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
+          this.groups = hits.map(h => ({ name: h.categoryName, count: h.count, categories: null }));
+          this.viewMode = 'group';
+        } else {
+          this.groups = [];
+          const filter: any = { query: '*', view: this.viewName };
+          this.dataLoader.load(this.itemsPerPage, this.predicate, this.ascending, filter);
+          this.viewMode = 'grid';
+        }
       });
   }
 
@@ -236,6 +252,11 @@ export class BirthdayComponent implements OnInit {
 
   refreshData(): void {
     this.loadPage();
+  }
+
+  onViewChange(view: string): void {
+    this.viewName = view;
+    this.loadRootGroups();
   }
 
   clearFilters(table: any, searchInput: HTMLInputElement): void {
@@ -374,34 +395,31 @@ export class BirthdayComponent implements OnInit {
   }
 
   groupQuery(group: GroupDescriptor): GroupData {
-    if (!group.categories || group.categories.length === 0) {
-      const groupData: GroupData = { mode: 'group', groups: [] };
-      this.birthdayService
-        .searchView({
-          query: '*',
-          from: 0,
-          pageSize: 1000,
-          view: 'sign/birth year',
-          category: group.name,
-        })
-        .pipe(map(res => res.body?.hits ?? []))
-        .subscribe(hits => {
-          groupData.groups = hits.map(h => ({ name: h.categoryName, count: h.count, categories: [group.name] }));
-        });
-      return groupData;
-    }
+    const path = group.categories ? [...group.categories, group.name] : [group.name];
+    const params: any = { query: '*', from: 0, pageSize: 1000, view: this.viewName };
+    if (path.length >= 1) params.category = path[0];
+    if (path.length >= 2) params.secondaryCategory = path[1];
 
-    const fetch: FetchFunction<IBirthday> = (queryParams: any) =>
-      this.birthdayService.query(queryParams);
-    const loader = new DataLoader<IBirthday>(fetch);
-    const filter = {
-      query: '*',
-      view: 'sign/birth year',
-      category: group.categories[0],
-      secondaryCategory: group.name,
-    };
-    loader.load(this.itemsPerPage, this.predicate, this.ascending, filter);
-    return { mode: 'grid', loader };
+    const groupData: GroupData = { mode: 'group', groups: [] };
+    this.birthdayService
+      .searchView(params)
+      .pipe(map(res => res.body?.hits ?? []))
+      .subscribe(hits => {
+        if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
+          groupData.groups = hits.map(h => ({ name: h.categoryName, count: h.count, categories: path }));
+          groupData.mode = 'group';
+        } else {
+          const fetch: FetchFunction<IBirthday> = (queryParams: any) => this.birthdayService.query(queryParams);
+          const loader = new DataLoader<IBirthday>(fetch);
+          const filter: any = { query: '*', view: this.viewName };
+          if (path.length >= 1) filter.category = path[0];
+          if (path.length >= 2) filter.secondaryCategory = path[1];
+          loader.load(this.itemsPerPage, this.predicate, this.ascending, filter);
+          groupData.mode = 'grid';
+          groupData.loader = loader;
+        }
+      });
+    return groupData;
   }
 
   toggleViewMode(): void {
