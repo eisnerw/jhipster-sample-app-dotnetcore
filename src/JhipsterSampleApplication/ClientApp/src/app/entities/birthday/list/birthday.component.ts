@@ -22,6 +22,7 @@ import { tap, switchMap, map } from 'rxjs/operators';
 
 import { BirthdayService, EntityArrayResponseType } from '../service/birthday.service';
 import { IBirthday } from '../birthday.model';
+import { ViewService } from '../../view/service/view.service';
 import { BirthdayDeleteDialogComponent } from '../delete/birthday-delete-dialog.component';
 import { SortDirective, SortByDirective } from 'app/shared/sort';
 import SharedModule from 'app/shared/shared.module';
@@ -62,11 +63,8 @@ export class BirthdayComponent implements OnInit {
 
   dataLoader: DataLoader<IBirthday>;
   groups: GroupDescriptor[] = [];
-  viewName = 'sign/birth year';
-  views = [
-    { label: 'Sign/Birth Year', value: 'sign/birth year' },
-    { label: 'First Name', value: 'first name' },
-  ];
+  viewName = '';
+  views: { label: string; value: string }[] = [];
   itemsPerPage = 50;
   page = 1;
   predicate!: string;
@@ -208,13 +206,13 @@ export class BirthdayComponent implements OnInit {
     protected modalService: NgbModal,
     protected messageService: MessageService,
     public sanitizer: DomSanitizer,
-    private confirmationService: ConfirmationService
+    private confirmationService: ConfirmationService,
+    protected viewService: ViewService
   ) {
     const fetchFunction: FetchFunction<IBirthday> = (queryParams: any) => {
       return this.birthdayService.query(queryParams);
     };
     this.dataLoader = new DataLoader<IBirthday>(fetchFunction);
-    this.loadRootGroups();
   }
 
   loadRootGroups(): void {
@@ -234,7 +232,19 @@ export class BirthdayComponent implements OnInit {
       });
   }
 
+  loadViews(): void {
+    this.viewService.query().subscribe(res => {
+      const body = res.body ?? [];
+      this.views = body.map(v => ({ label: v.name, value: v.id! }));
+      if (this.views.length > 0 && !this.viewName) {
+        this.viewName = this.views[0].value;
+        this.loadRootGroups();
+      }
+    });
+  }
+
   ngOnInit(): void {
+    this.loadViews();
     this.handleNavigation();
   }
 
