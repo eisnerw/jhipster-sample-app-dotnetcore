@@ -13,6 +13,10 @@
         <span>{{ viewMode === 'grid' ? 'Group View' : 'Grid View' }}</span>
       </button>
 
+      <select class="form-select ms-2 w-auto" [(ngModel)]="viewName" (change)="onViewChange(viewName)">
+        <option *ngFor="let v of views" [ngValue]="v.value">{{ v.label }}</option>
+      </select>
+
       <button
         id="jh-create-entity"
         data-cy="entityCreateButton"
