@@ -24,6 +24,13 @@ To build the library, run:
 ng build popup-ngx-query-builder
 ```
 
+Before running this command, ensure that the `ngx-query-builder` project has been
+built:
+
+```bash
+ng build ngx-query-builder
+```
+
 This command will compile your project, and the build artifacts will be placed in the `dist/` directory.
 
 ### Publishing the Library
