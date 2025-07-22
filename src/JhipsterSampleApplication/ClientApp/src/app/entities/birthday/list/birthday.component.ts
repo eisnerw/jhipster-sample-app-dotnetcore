@@ -1,6 +1,6 @@
 /* eslint-disable */ 
 
-import { Component, OnInit, ViewChild, ElementRef, TemplateRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, TemplateRef, AfterViewInit } from '@angular/core';
 import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { combineLatest, Subscription } from 'rxjs';
@@ -36,6 +36,7 @@ import { DataLoader, FetchFunction } from 'app/shared/data-loader';
 
 import { ITEMS_PER_PAGE, PAGE_HEADER, TOTAL_COUNT_RESPONSE_HEADER } from 'app/config/pagination.constants';
 import { ASC, DESC, SORT, ITEM_DELETED_EVENT, DEFAULT_SORT_DATA } from 'app/config/navigation.constants';
+import { QueryInputComponent, bqlToRuleset, rulesetToBql } from 'popup-ngx-query-builder';
 
 @Component({
   selector: 'jhi-birthday',
@@ -50,10 +51,11 @@ import { ASC, DESC, SORT, ITEM_DELETED_EVENT, DEFAULT_SORT_DATA } from 'app/conf
     SharedModule,
     SuperTable,
     TableModule,
+    QueryInputComponent, 
   ],
   standalone: true,
 })
-export class BirthdayComponent implements OnInit {
+export class BirthdayComponent implements OnInit, AfterViewInit {
   @ViewChild('contextMenu') contextMenu!: ContextMenu;
   @ViewChild('superTable') superTable!: SuperTable;
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
@@ -61,6 +63,8 @@ export class BirthdayComponent implements OnInit {
   @ViewChild('expandedRow', { static: true }) expandedRowTemplate: TemplateRef<any> | undefined;
   // The SuperTable in group mode manages its own detail tables
 
+  currentQuery = '';
+  rulesetJson = '';  
   dataLoader: DataLoader<IBirthday>;
   groups: GroupDescriptor[] = [];
   viewName = '';
@@ -243,9 +247,25 @@ export class BirthdayComponent implements OnInit {
     });
   }
 
+  @ViewChild(QueryInputComponent) queryInput!: QueryInputComponent;
+
   ngOnInit(): void {
     this.loadViews();
     this.handleNavigation();
+  }
+
+  ngAfterViewInit(): void {
+    this.onQueryChange(this.currentQuery);
+  }  
+
+  onQueryChange(query: string) {
+    this.currentQuery = query;
+    try {
+      const rs = bqlToRuleset(query, this.queryInput.queryBuilderConfig);
+      this.rulesetJson = JSON.stringify(rs, null, 2);
+    } catch {
+      this.rulesetJson = '';
+    }
   }
 
   trackId(index: number, item: IBirthday): string {
