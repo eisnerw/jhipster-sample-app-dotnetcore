@@ -127,7 +127,7 @@
                value="and" #andOption />
         <label (click)="changeCondition(andOption.value)" [ngClass]="getClassNames('switchLabel')">
           <ng-container *ngIf="data.rules.length !== 1; else blankAnd">AND</ng-container>
-          <ng-template #blankAnd><span class="q-switch-label-empty">AND</span></ng-template>
+          <ng-template #blankAnd><span class="q-switch-label-empty">&nbsp;</span></ng-template>
         </label>
       </div>
       <div [ngClass]="getClassNames('switchControl')"
@@ -136,7 +136,7 @@
                value="or" #orOption />
         <label (click)="changeCondition(orOption.value)" [ngClass]="getClassNames('switchLabel')">
           <ng-container *ngIf="data.rules.length !== 1; else blankOr">OR</ng-container>
-          <ng-template #blankOr><span class="q-switch-label-empty">OR</span></ng-template>
+          <ng-template #blankOr><span class="q-switch-label-empty">&nbsp;</span></ng-template>
         </label>
       </div>
     </div>
