@@ -22,12 +22,12 @@
     "lib": ["es2018", "es2020", "dom"],
     "paths": {
       "ngx-query-builder": [
-        "./dist/ngx-query-builder",
-        "./projects/ngx-query-builder/src/public-api"
+        "../dist/ngx-query-builder",
+        "../projects/ngx-query-builder/src/public-api"
       ],
       "popup-ngx-query-builder": [
-        "./dist/popup-ngx-query-builder",
-        "./projects/popup-ngx-query-builder/src/public-api"
+        "../dist/popup-ngx-query-builder",
+        "../projects/popup-ngx-query-builder/src/public-api"
       ]
     }
   },
