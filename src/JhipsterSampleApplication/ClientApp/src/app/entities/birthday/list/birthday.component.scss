@@ -202,3 +202,31 @@
   overflow-y: auto;
   min-height: 0;
 }
+
+/* Fine tune the popup query builder look so that it matches the demo project
+   size wise.  The buttons already match well but the font size for labels and
+   form controls is too large in the JHipster app compared to the demo. */
+
+:host {
+  /* Scope the overrides to the query builder */
+  ::ng-deep ngx-query-builder {
+    font-size: 0.875rem;
+
+    .q-switch-label,
+    .q-button,
+    .q-input-control,
+    .q-field-control,
+    .q-operator-control,
+    .q-entity-control,
+    .p-inputtext,
+    .p-dropdown-label {
+      font-size: 0.875rem;
+      padding: 0.25rem 0.5rem;
+      line-height: 1rem;
+    }
+
+    .p-dropdown-trigger {
+      width: 1.5rem;
+    }
+  }
+}
