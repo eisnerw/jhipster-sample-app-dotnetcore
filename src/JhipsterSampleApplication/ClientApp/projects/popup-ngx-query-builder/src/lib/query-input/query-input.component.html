@@ -1,0 +1,43 @@
+<div class="query-input">
+  <button pButton icon="pi pi-search" class="search-btn" (click)="clickSearch()"></button>
+
+  <div class="text" *ngIf="!editing" (click)="startEdit()">
+    <span [ngClass]="{'placeholder': !query}">{{ query || placeholder }}</span>
+  </div>
+  <input pInputText *ngIf="editing" [(ngModel)]="query" (ngModelChange)="onQueryChange()" (keyup.enter)="acceptEdit()" [ngClass]="{'invalid': !validQuery}" />
+
+  <div class="btn-group" *ngIf="editing">
+    <button pButton icon="pi pi-times" (click)="cancelEdit()"></button>
+    <button pButton icon="pi pi-check" (click)="acceptEdit()" [disabled]="!validQuery"></button>
+  </div>
+</div>
+
+<p-dialog 
+  [(visible)]="showBuilder" 
+  [modal]="true" 
+  [closable]="true"
+  [draggable]="true"
+  [resizable]="true"
+  [maximizable]="true"
+  header="Query Builder" 
+  [style]="{width: '800px', height: '600px', minWidth: '600px', minHeight: '400px'}"
+  [contentStyle]="{height: 'calc(100% - 120px)', overflow: 'auto', padding: '0'}"
+  styleClass="query-builder-dialog"
+  [baseZIndex]="10000">
+  
+  <ngx-query-builder
+    [(ngModel)]="builderQuery"
+    [config]="queryBuilderConfig"
+    [allowNot]="allowNot"
+    [allowConvertToRuleset]="allowConvertToRuleset"
+    [allowRuleUpDown]="allowRuleUpDown"
+    [ruleName]="ruleName"
+    [rulesetName]="rulesetName"></ngx-query-builder>
+  
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button pButton label="Cancel" (click)="cancelQuery()" class="p-button-secondary"></button>
+      <button pButton label="Apply" (click)="applyQuery()" class="p-button-primary"></button>
+    </div>
+  </ng-template>
+</p-dialog>
