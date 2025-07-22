@@ -1,4 +1,4 @@
-<div class="query-input">
+<div class="query-input" [class.editing]="editing">
   <button pButton icon="pi pi-search" class="search-btn" (click)="clickSearch()"></button>
 
   <div class="text" *ngIf="!editing" (click)="startEdit()">
@@ -7,8 +7,8 @@
   <input pInputText *ngIf="editing" [(ngModel)]="query" (ngModelChange)="onQueryChange()" (keyup.enter)="acceptEdit()" [ngClass]="{'invalid': !validQuery}" />
 
   <div class="btn-group" *ngIf="editing">
-    <button pButton icon="pi pi-times" (click)="cancelEdit()"></button>
-    <button pButton icon="pi pi-check" (click)="acceptEdit()" [disabled]="!validQuery"></button>
+    <i class="pi pi-times action-icon" (click)="cancelEdit()"></i>
+    <i class="pi pi-check action-icon" (click)="acceptEdit()" [ngClass]="{'disabled': !validQuery}"></i>
   </div>
 </div>
 
