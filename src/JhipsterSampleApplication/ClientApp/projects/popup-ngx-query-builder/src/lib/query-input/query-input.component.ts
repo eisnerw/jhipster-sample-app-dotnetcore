@@ -29,7 +29,7 @@ import { EditRulesetDialogComponent } from './edit-ruleset-dialog.component';
   templateUrl: './query-input.component.html'
 })
 export class QueryInputComponent implements OnInit {
-  @Input() placeholder = 'click search icon for widget or click to edit';
+  @Input() placeholder = 'BQL';
   @Input() query = '';
   @Input() config?: QueryBuilderConfig;
   @Input() allowNot = true;

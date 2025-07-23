@@ -4,7 +4,7 @@
     <lib-query-input
       [(query)]="currentQuery"
       (queryChange)="onQueryChange($event)"
-      placeholder="BQL">
+      placeholder="click search icon for widget or click to edit">
     </lib-query-input>
     <div class="d-flex ms-auto">
       <button class="btn btn-info me-2" (click)="refreshData()" [disabled]="(dataLoader.loading$ | async)">

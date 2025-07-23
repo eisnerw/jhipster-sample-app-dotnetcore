@@ -58,6 +58,11 @@
       color: #999;
       font-style: italic;
       font-size: 1rem;
+      display: inline;
+      background-color: transparent;
+      min-height: 0;
+      cursor: text;
+      vertical-align: baseline;
     }
   }
   
