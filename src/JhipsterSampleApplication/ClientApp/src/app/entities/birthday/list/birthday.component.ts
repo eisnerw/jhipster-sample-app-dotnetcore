@@ -67,7 +67,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   rulesetJson = '';  
   dataLoader: DataLoader<IBirthday>;
   groups: GroupDescriptor[] = [];
-  viewName = '';
+  viewName: string | null = null;
   views: { label: string; value: string }[] = [];
   itemsPerPage = 50;
   page = 1;
@@ -220,8 +220,15 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   loadRootGroups(): void {
+    if (!this.viewName) {
+      this.groups = [];
+      this.loadPage();
+      this.viewMode = 'grid';
+      return;
+    }
+
     this.birthdayService
-      .searchView({ query: '*', from: 0, pageSize: 1000, view: this.viewName })
+      .searchView({ query: '*', from: 0, pageSize: 1000, view: this.viewName! })
       .pipe(map(res => res.body?.hits ?? []))
       .subscribe(hits => {
         if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
@@ -229,7 +236,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
           this.viewMode = 'group';
         } else {
           this.groups = [];
-          const filter: any = { query: '*', view: this.viewName };
+          const filter: any = { query: '*', view: this.viewName! };
           this.dataLoader.load(this.itemsPerPage, this.predicate, this.ascending, filter);
           this.viewMode = 'grid';
         }
@@ -240,10 +247,6 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     this.viewService.query().subscribe(res => {
       const body = res.body ?? [];
       this.views = body.map(v => ({ label: v.name, value: v.id! }));
-      if (this.views.length > 0 && !this.viewName) {
-        this.viewName = this.views[0].value;
-        this.loadRootGroups();
-      }
     });
   }
 
@@ -284,9 +287,15 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     this.loadPage();
   }
 
-  onViewChange(view: string): void {
+  onViewChange(view: string | null): void {
     this.viewName = view;
-    this.loadRootGroups();
+    if (this.viewName) {
+      this.loadRootGroups();
+    } else {
+      this.groups = [];
+      this.viewMode = 'grid';
+      this.loadPage();
+    }
   }
 
   clearFilters(table: any, searchInput: HTMLInputElement): void {
@@ -426,7 +435,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
 
   groupQuery(group: GroupDescriptor): GroupData {
     const path = group.categories ? [...group.categories, group.name] : [group.name];
-    const params: any = { query: '*', from: 0, pageSize: 1000, view: this.viewName };
+    const params: any = { query: '*', from: 0, pageSize: 1000, view: this.viewName! };
     if (path.length >= 1) params.category = path[0];
     if (path.length >= 2) params.secondaryCategory = path[1];
 
@@ -441,7 +450,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
         } else {
           const fetch: FetchFunction<IBirthday> = (queryParams: any) => this.birthdayService.query(queryParams);
           const loader = new DataLoader<IBirthday>(fetch);
-          const filter: any = { query: '*', view: this.viewName };
+          const filter: any = { query: '*', view: this.viewName! };
           if (path.length >= 1) filter.category = path[0];
           if (path.length >= 2) filter.secondaryCategory = path[1];
           loader.load(this.itemsPerPage, this.predicate, this.ascending, filter);
@@ -452,10 +461,6 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     return groupData;
   }
 
-  toggleViewMode(): void {
-    this.viewMode = this.viewMode === 'grid' ? 'group' : 'grid';
-    if (this.viewMode === 'grid') {
-      this.columns = this.columns.map(col => ({ ...col }));
-    }
-  }
+  // view mode is controlled by the selected view
 }
+

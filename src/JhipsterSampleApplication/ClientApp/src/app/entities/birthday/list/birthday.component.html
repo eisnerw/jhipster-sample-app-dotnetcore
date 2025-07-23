@@ -12,12 +12,8 @@
         <span>Refresh List</span>
       </button>
 
-      <button class="btn btn-primary" (click)="toggleViewMode()">
-        <fa-icon icon="eye"></fa-icon>
-        <span>{{ viewMode === 'grid' ? 'Group View' : 'Grid View' }}</span>
-      </button>
-
-      <select class="form-select ms-2 w-auto" [(ngModel)]="viewName" (change)="onViewChange(viewName)">
+      <select class="form-select ms-2 w-auto" [(ngModel)]="viewName" (ngModelChange)="onViewChange($event)">
+        <option [ngValue]="null">Select a view</option>
         <option *ngFor="let v of views" [ngValue]="v.value">{{ v.label }}</option>
       </select>
 
