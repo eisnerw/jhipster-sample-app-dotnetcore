@@ -43,7 +43,7 @@
           [style]="col.style"
         >
           <div class="header-cell">
-            <span class="header-text">{{ col.header }}</span>
+            <span *ngIf="col.filterType" class="header-text">{{ col.header }}</span>
             <ng-container [ngSwitch]="col.type">
               <ng-container *ngSwitchCase="'string'">
                 <p-sortIcon class="sort-icon" [field]="col.field"></p-sortIcon>
@@ -147,7 +147,7 @@
           <span
             *ngSwitchCase="'date'"
             class="cell-content"
-            [pTooltip]="rowData[col.field] | date: col.dateFormat || 'MM/dd/yyyy'"
+            [pTooltip]="(rowData[col.field] | date: col.dateFormat || 'MM/dd/yyyy') || ''"
             >{{ rowData[col.field] | date: col.dateFormat || 'MM/dd/yyyy' }}</span
           >
           <span
