@@ -33,12 +33,16 @@ export interface EditRulesetDialogData {
 export class EditRulesetDialogComponent {
   text: string;
   state: 'valid' | 'invalid-bql' | 'invalid-query' = 'valid';
+  private readonly originalName?: string;
 
   constructor(
     public dialogRef: MatDialogRef<EditRulesetDialogComponent, RuleSet | null>,
     @Inject(MAT_DIALOG_DATA) public data: EditRulesetDialogData
   ) {
-    this.text = rulesetToBql(data.ruleset, data.config);
+    const copy = JSON.parse(JSON.stringify(data.ruleset));
+    this.originalName = (copy as any).name;
+    delete (copy as any).name;
+    this.text = rulesetToBql(copy, data.config);
     this.validate();
   }
 
@@ -60,6 +64,9 @@ export class EditRulesetDialogComponent {
     try {
       const val = bqlToRuleset(this.text.trim(), this.data.config);
       if (this.data.validate(val)) {
+        if (this.originalName) {
+          (val as any).name = this.originalName;
+        }
         this.dialogRef.close(val);
       }
     } catch {
