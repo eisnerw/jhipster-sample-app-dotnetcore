@@ -42,12 +42,13 @@
           [style.width]="col.width"
           [style]="col.style"
         >
-          <div class="p-d-flex p-jc-between p-ai-center">
-            {{ col.header }}
+          <div class="header-cell">
+            <span class="header-text">{{ col.header }}</span>
             <ng-container [ngSwitch]="col.type">
               <ng-container *ngSwitchCase="'string'">
-                <p-sortIcon [field]="col.field"></p-sortIcon>
+                <p-sortIcon class="sort-icon" [field]="col.field"></p-sortIcon>
                 <p-columnFilter
+                  class="filter-button"
                   *ngIf="col.filterType"
                   [field]="col.field"
                   [type]="col.filterType"
@@ -56,8 +57,9 @@
                 </p-columnFilter>
               </ng-container>
               <ng-container *ngSwitchCase="'date'">
-                <p-sortIcon [field]="col.field"></p-sortIcon>
+                <p-sortIcon class="sort-icon" [field]="col.field"></p-sortIcon>
                 <p-columnFilter
+                  class="filter-button"
                   *ngIf="col.filterType"
                   [field]="col.field"
                   [type]="col.filterType"
@@ -66,8 +68,9 @@
                 </p-columnFilter>
               </ng-container>
               <ng-container *ngSwitchCase="'boolean'">
-                <p-sortIcon [field]="col.field"></p-sortIcon>
+                <p-sortIcon class="sort-icon" [field]="col.field"></p-sortIcon>
                 <p-columnFilter
+                  class="filter-button"
                   *ngIf="col.filterType"
                   [field]="col.field"
                   [type]="col.filterType"
@@ -76,8 +79,9 @@
                 </p-columnFilter>
               </ng-container>
               <ng-container *ngSwitchCase="'list'">
-                <p-sortIcon [field]="col.field"></p-sortIcon>
+                <p-sortIcon class="sort-icon" [field]="col.field"></p-sortIcon>
                 <p-columnFilter
+                  class="filter-button"
                   [field]="col.field"
                   matchMode="in"
                   display="menu"
