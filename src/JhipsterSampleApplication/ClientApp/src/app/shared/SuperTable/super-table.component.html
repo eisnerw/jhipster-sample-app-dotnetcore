@@ -11,6 +11,7 @@
   [scrollable]="scrollable"
   [scrollHeight]="scrollHeight"
   [paginator]="paginator"
+  [showGridlines]="true"
   (onSort)="handleSort($event)"
   (onFilter)="handleFilter($event)"
   (onColResize)="onColResize.emit($event)"
@@ -133,15 +134,36 @@
             [value]="rowData"
             dataKey="id"
           ></p-tableCheckbox>
-          <span *ngSwitchCase="'string'">{{ rowData[col.field] }}</span>
-          <span *ngSwitchCase="'date'">{{
-            rowData[col.field] | date: col.dateFormat || 'MM/dd/yyyy'
-          }}</span>
-          <span *ngSwitchCase="'boolean'">{{
-            rowData[col.field] ? 'Yes' : 'No'
-          }}</span>
-          <span *ngSwitchCase="'list'">{{ rowData[col.field] }}</span>
-          <span *ngSwitchCase="'lineNumber'">{{ rowIndex + 1 }}</span>
+          <span
+            *ngSwitchCase="'string'"
+            class="cell-content"
+            [pTooltip]="rowData[col.field]"
+            >{{ rowData[col.field] }}</span
+          >
+          <span
+            *ngSwitchCase="'date'"
+            class="cell-content"
+            [pTooltip]="rowData[col.field] | date: col.dateFormat || 'MM/dd/yyyy'"
+            >{{ rowData[col.field] | date: col.dateFormat || 'MM/dd/yyyy' }}</span
+          >
+          <span
+            *ngSwitchCase="'boolean'"
+            class="cell-content"
+            [pTooltip]="rowData[col.field] ? 'Yes' : 'No'"
+            >{{ rowData[col.field] ? 'Yes' : 'No' }}</span
+          >
+          <span
+            *ngSwitchCase="'list'"
+            class="cell-content"
+            [pTooltip]="rowData[col.field]"
+            >{{ rowData[col.field] }}</span
+          >
+          <span
+            *ngSwitchCase="'lineNumber'"
+            class="cell-content"
+            [pTooltip]="rowIndex + 1"
+            >{{ rowIndex + 1 }}</span
+          >
           <button
             *ngSwitchCase="'expander'"
             pButton
@@ -291,6 +313,7 @@
             (click)="onGroupToggle(rowData)"
           >
             <span
+              class="group-toggle-icon"
               [class]="
                 isGroupExpanded(rowData)
                   ? 'pi pi-chevron-down'
