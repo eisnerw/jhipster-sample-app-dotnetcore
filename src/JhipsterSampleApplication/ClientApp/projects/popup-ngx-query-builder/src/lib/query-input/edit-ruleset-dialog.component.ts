@@ -27,7 +27,7 @@ export interface EditRulesetDialogData {
     </div>
   `,
   styles: [
-    `.dialog-output { width: 100%; height: 100%; resize: both; box-sizing: border-box; }`
+    `.dialog-output { width: 100%; height: 100%; resize: none; box-sizing: border-box; }`
   ]
 })
 export class EditRulesetDialogComponent {
