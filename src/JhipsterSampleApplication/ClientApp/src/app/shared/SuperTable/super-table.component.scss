@@ -36,4 +36,34 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  .header-cell {
+    position: relative;
+    min-height: 32px;
+  }
+
+  .header-text {
+    padding-right: 0.5rem;
+  }
+
+  .sort-icon {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+
+    .p-sortable-column-icon {
+      font-size: 10px;
+    }
+  }
+
+  .filter-button {
+    position: absolute;
+    right: 0;
+
+    .p-column-filter-menu-button {
+      width: 1rem;
+      height: 1rem;
+      font-size: 10px;
+    }
+  }
 }
