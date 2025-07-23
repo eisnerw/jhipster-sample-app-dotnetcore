@@ -1663,6 +1663,7 @@ export class QueryBuilderComponent
       return;
     }
     const modified = this.namedRulesetModified(ruleset);
+    const valid = !this.isRulesetInvalid(ruleset);
     this.dialog
       .open(NamedRulesetDialogComponent, {
         data: {
@@ -1670,6 +1671,7 @@ export class QueryBuilderComponent
           rulesetName: this.rulesetName,
           allowDelete: true,
           modified,
+          valid,
           allowEdit: !!this.config.editNamedRuleset,
           rulesetNameSanitizer: this.config.rulesetNameSanitizer,
         },
