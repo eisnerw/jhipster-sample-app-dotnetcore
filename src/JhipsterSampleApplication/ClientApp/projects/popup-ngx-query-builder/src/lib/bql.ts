@@ -42,10 +42,20 @@ function tokenize(input: string): Token[] {
   let i = 0;
   while (i < input.length) {
     const ch = input[i];
-    if (/\s/.test(ch)) { i++; continue; }
-    if ((ch === '!' && i + 1 < input.length && input[i + 1] === '=') || /=|<|>/.test(ch)) {
-      let op = ch; i++;
-      if (i < input.length && input[i] === '=') { op += '='; i++; }
+    if (/\s/.test(ch)) {
+      i++;
+      continue;
+    }
+    if (
+      (ch === '!' && i + 1 < input.length && input[i + 1] === '=') ||
+      /=|<|>/.test(ch)
+    ) {
+      let op = ch;
+      i++;
+      if (i < input.length && input[i] === '=') {
+        op += '=';
+        i++;
+      }
       tokens.push({ type: 'operator', value: op });
       continue;
     }
@@ -54,26 +64,45 @@ function tokenize(input: string): Token[] {
       while (j < input.length && /[A-Za-z]/.test(input[j])) j++;
       const word = input.slice(i, j);
       const up = word.toUpperCase();
-      if ((up === '!CONTAINS' || up === '!LIKE') && (j === input.length || /\s|\(|\)|!|&|\||=|<|>|"/.test(input[j]))) {
+      if (
+        (up === '!CONTAINS' || up === '!LIKE') &&
+        (j === input.length || /\s|\(|\)|!|&|\||=|<|>|"/.test(input[j]))
+      ) {
         tokens.push({ type: 'operator', value: up });
         i = j;
         continue;
       }
     }
-    if (ch === '(' || ch === ')' || ch === '!' || ch === '&' || ch === '|' || ch === ',') {
+    if (
+      ch === '(' ||
+      ch === ')' ||
+      ch === '!' ||
+      ch === '&' ||
+      ch === '|' ||
+      ch === ','
+    ) {
       tokens.push({ type: 'symbol', value: ch });
-      i++; continue;
+      i++;
+      continue;
     }
     if (ch === '"') {
-      let j = i + 1; let str = '';
+      let j = i + 1;
+      let str = '';
       while (j < input.length) {
-        if (input[j] === '\\') { str += input[j+1]; j += 2; continue; }
-        if (input[j] === '"') { break; }
+        if (input[j] === '\\') {
+          str += input[j + 1];
+          j += 2;
+          continue;
+        }
+        if (input[j] === '"') {
+          break;
+        }
         str += input[j];
         j++;
       }
-      tokens.push({ type: 'string', value: JSON.parse(input.slice(i, j+1)) });
-      i = j + 1; continue;
+      tokens.push({ type: 'string', value: JSON.parse(input.slice(i, j + 1)) });
+      i = j + 1;
+      continue;
     }
     let j = i;
     while (j < input.length && !/\s|\(|\)|!|&|\||=|<|>|,/.test(input[j])) j++;
@@ -97,7 +126,11 @@ function toOperatorToken(op: string): string {
   return op;
 }
 
-function parseValue(token: Token, field: string, config: QueryBuilderConfig): any {
+function parseValue(
+  token: Token,
+  field: string,
+  config: QueryBuilderConfig,
+): any {
   const fieldConf = config.fields[field];
   if (!fieldConf) return token.value;
   const type = fieldConf.type;
@@ -108,13 +141,24 @@ function parseValue(token: Token, field: string, config: QueryBuilderConfig): an
   return v;
 }
 
-export interface ParseInfo { index: number; length: number }
+export interface ParseInfo {
+  index: number;
+  length: number;
+}
 
-export function bqlToRuleset(input: string, config: QueryBuilderConfig, info?: ParseInfo): RuleSet {
+export function bqlToRuleset(
+  input: string,
+  config: QueryBuilderConfig,
+  info?: ParseInfo,
+): RuleSet {
   const tokens = tokenize(input);
   let pos = 0;
-  function peek() { return tokens[pos]; }
-  function consume() { return tokens[pos++]; }
+  function peek() {
+    return tokens[pos];
+  }
+  function consume() {
+    return tokens[pos++];
+  }
 
   function parsePrimary(): RuleSet {
     const tok = peek();
@@ -129,7 +173,12 @@ export function bqlToRuleset(input: string, config: QueryBuilderConfig, info?: P
       expr.isChild = true;
       return expr;
     }
-    if (tok.value === '!') { consume(); const inner = parsePrimary(); inner.not = !inner.not; return inner; }
+    if (tok.value === '!') {
+      consume();
+      const inner = parsePrimary();
+      inner.not = !inner.not;
+      return inner;
+    }
     if (tok.type === 'word' && isRulesetName(tok.value)) {
       consume();
       const name = tok.value;
@@ -153,7 +202,11 @@ export function bqlToRuleset(input: string, config: QueryBuilderConfig, info?: P
 
     const first = consume();
     const next = peek();
-    if (next && (next.type === 'operator' || (next.type === 'word' && isAlphaOperator(next.value)))) {
+    if (
+      next &&
+      (next.type === 'operator' ||
+        (next.type === 'word' && isAlphaOperator(next.value)))
+    ) {
       const opTok = consume();
       const field = first.value;
       let operator = opTok.value;
@@ -161,12 +214,21 @@ export function bqlToRuleset(input: string, config: QueryBuilderConfig, info?: P
         operator = opTok.value.toLowerCase();
       }
 
-      if (operator === 'not' && peek() && peek().type === 'word' && peek().value.toLowerCase() === 'in') {
+      if (
+        operator === 'not' &&
+        peek() &&
+        peek().type === 'word' &&
+        peek().value.toLowerCase() === 'in'
+      ) {
         consume();
         operator = 'not in';
       }
 
-      if ((operator === 'in' || operator === 'not in') && peek() && peek().value === '(') {
+      if (
+        (operator === 'in' || operator === 'not in') &&
+        peek() &&
+        peek().value === '('
+      ) {
         consume(); // (
         const values: any[] = [];
         while (peek() && peek().value !== ')') {
@@ -174,27 +236,47 @@ export function bqlToRuleset(input: string, config: QueryBuilderConfig, info?: P
           if (tok.type !== 'word' && tok.type !== 'string') {
             throw new Error('Unexpected token');
           }
-          const v = tok.type === 'string' ? tok.value : parseValue(tok, field, config);
+          const v =
+            tok.type === 'string' ? tok.value : parseValue(tok, field, config);
           values.push(v);
-          if (peek() && peek().value === ',') { consume(); }
+          if (peek() && peek().value === ',') {
+            consume();
+          }
         }
-        if (!peek() || peek().value !== ')') { throw new Error('Missing closing parenthesis'); }
+        if (!peek() || peek().value !== ')') {
+          throw new Error('Missing closing parenthesis');
+        }
         consume();
         if (values.length === 0) {
           throw new Error('IN requires at least one value');
         }
-        return { condition: 'and', rules: [{ field, operator, value: values }] };
+        return {
+          condition: 'and',
+          rules: [{ field, operator, value: values }],
+        };
       }
 
       const valTok = consume();
       if (!valTok) {
         throw new Error('Unexpected end of input');
       }
-      const value = valTok.type === 'string' ? valTok.value : parseValue(valTok, field, config);
+      const value =
+        valTok.type === 'string'
+          ? valTok.value
+          : parseValue(valTok, field, config);
       return { condition: 'and', rules: [{ field, operator, value }] };
     } else {
       const value = first.type === 'string' ? first.value : first.value;
-      return { condition: 'and', rules: [{ field: 'document', operator: 'contains', value: parseValue({type:'word', value}, 'document', config) }] };
+      return {
+        condition: 'and',
+        rules: [
+          {
+            field: 'document',
+            operator: 'contains',
+            value: parseValue({ type: 'word', value }, 'document', config),
+          },
+        ],
+      };
     }
   }
 
@@ -210,7 +292,9 @@ export function bqlToRuleset(input: string, config: QueryBuilderConfig, info?: P
           } catch {
             stored = undefined;
           }
-          const child = stored ? { ...JSON.parse(JSON.stringify(stored)), name: rs.name } : rs;
+          const child = stored
+            ? { ...JSON.parse(JSON.stringify(stored)), name: rs.name }
+            : rs;
           return { condition: 'and', rules: [child], not: true };
         }
         rs.not = !rs.not;
@@ -256,26 +340,39 @@ export function bqlToRuleset(input: string, config: QueryBuilderConfig, info?: P
 
   function parseAnd(): RuleSet {
     let left = parseUnary();
-    while (peek() && peek().value === '&') { consume(); const right = parseUnary(); left = merge(left, right, 'and'); }
+    while (peek() && peek().value === '&') {
+      consume();
+      const right = parseUnary();
+      left = merge(left, right, 'and');
+    }
     return left;
   }
 
   function parseOr(): RuleSet {
     let left = parseAnd();
-    while (peek() && peek().value === '|') { consume(); const right = parseAnd(); left = merge(left, right, 'or'); }
+    while (peek() && peek().value === '|') {
+      consume();
+      const right = parseAnd();
+      left = merge(left, right, 'or');
+    }
     return left;
   }
 
-  function parseExpression(): RuleSet { return parseOr(); }
+  function parseExpression(): RuleSet {
+    return parseOr();
+  }
 
   const result = simplify(parseExpression(), true);
-  if (info) { info.index = pos; info.length = tokens.length; }
+  if (info) {
+    info.index = pos;
+    info.length = tokens.length;
+  }
   return result;
 }
 
 function valueToString(value: any): string {
   if (Array.isArray(value)) {
-    return '(' + value.map(v => valueToString(v)).join(',') + ')';
+    return '(' + value.map((v) => valueToString(v)).join(',') + ')';
   }
   if (typeof value === 'string' && /^[A-Za-z0-9._-]+$/.test(value)) {
     return value;
@@ -285,7 +382,10 @@ function valueToString(value: any): string {
 
 export function rulesetToBql(rs: RuleSet, config: QueryBuilderConfig): string {
   function ruleToString(rule: Rule): string {
-    if (rule.field === 'document' && rule.operator.toLowerCase() === 'contains') {
+    if (
+      rule.field === 'document' &&
+      rule.operator.toLowerCase() === 'contains'
+    ) {
       return valueToString(rule.value);
     }
     const op = toOperatorToken(rule.operator);
@@ -303,7 +403,9 @@ export function rulesetToBql(rs: RuleSet, config: QueryBuilderConfig): string {
     return isRule(only) || (!isRule(only) && isAtomic(only as RuleSet));
   }
 
-  function prec(cond: 'and' | 'or'): number { return cond === 'or' ? 1 : 2; }
+  function prec(cond: 'and' | 'or'): number {
+    return cond === 'or' ? 1 : 2;
+  }
 
   function rulesetString(r: RuleSet, parent?: 'and' | 'or'): string {
     if (r.name) {
@@ -336,7 +438,11 @@ export function rulesetToBql(rs: RuleSet, config: QueryBuilderConfig): string {
     }
 
     if (r.not) {
-      if (r.rules.length === 1 && !isRule(r.rules[0]) && isAtomic(r.rules[0] as RuleSet)) {
+      if (
+        r.rules.length === 1 &&
+        !isRule(r.rules[0]) &&
+        isAtomic(r.rules[0] as RuleSet)
+      ) {
         result = `!${result}`;
       } else if (r.rules.length === 1 && isRule(r.rules[0])) {
         result = `!${result}`;
@@ -350,7 +456,11 @@ export function rulesetToBql(rs: RuleSet, config: QueryBuilderConfig): string {
   return rulesetString(rs);
 }
 
-function validateRule(rule: Rule, parent: RuleSet, config: QueryBuilderConfig): boolean {
+function validateRule(
+  rule: Rule,
+  parent: RuleSet,
+  config: QueryBuilderConfig,
+): boolean {
   const fieldConf = config.fields[rule.field];
   if (!fieldConf) return false;
 
@@ -374,7 +484,7 @@ function validateRule(rule: Rule, parent: RuleSet, config: QueryBuilderConfig): 
 
   let allowedValues: any[] | undefined;
   if (fieldConf.options) {
-    allowedValues = fieldConf.options.map(o => o.value);
+    allowedValues = fieldConf.options.map((o) => o.value);
   }
   if (fieldConf.categorySource) {
     try {
@@ -387,9 +497,16 @@ function validateRule(rule: Rule, parent: RuleSet, config: QueryBuilderConfig): 
     }
   }
 
-  if ((fieldConf.type === 'category' || allowedValues) && allowedValues && allowedValues.length) {
+  if (
+    (fieldConf.type === 'category' || allowedValues) &&
+    allowedValues &&
+    allowedValues.length
+  ) {
     if (rule.operator === 'in' || rule.operator === 'not in') {
-      if (!Array.isArray(rule.value) || !rule.value.every((v: any) => allowedValues!.includes(v))) {
+      if (
+        !Array.isArray(rule.value) ||
+        !rule.value.every((v: any) => allowedValues!.includes(v))
+      ) {
         return false;
       }
     } else if (!allowedValues.includes(rule.value)) {
@@ -411,8 +528,15 @@ function validateRule(rule: Rule, parent: RuleSet, config: QueryBuilderConfig): 
   return true;
 }
 
-function validateRuleset(rs: RuleSet, config: QueryBuilderConfig, parent?: RuleSet): boolean {
+export function validateRuleset(
+  rs: RuleSet,
+  config: QueryBuilderConfig,
+  ancestors: string[] = [],
+): boolean {
   if (rs.name) {
+    if (ancestors.includes(rs.name)) {
+      return false;
+    }
     if (!config.getNamedRuleset) {
       return false;
     }
@@ -425,6 +549,7 @@ function validateRuleset(rs: RuleSet, config: QueryBuilderConfig, parent?: RuleS
     if (!stored) {
       return false;
     }
+    ancestors = [...ancestors, rs.name];
   }
   for (const child of rs.rules) {
     const asRule = child as Rule;
@@ -433,7 +558,7 @@ function validateRuleset(rs: RuleSet, config: QueryBuilderConfig, parent?: RuleS
         return false;
       }
     } else if ((child as RuleSet).rules) {
-      if (!validateRuleset(child as RuleSet, config, rs)) {
+      if (!validateRuleset(child as RuleSet, config, ancestors)) {
         return false;
       }
     }
@@ -441,16 +566,19 @@ function validateRuleset(rs: RuleSet, config: QueryBuilderConfig, parent?: RuleS
   return true;
 }
 
-export function validateBql(bql: string, config: QueryBuilderConfig): boolean {
+export function validateBql(
+  bql: string,
+  config: QueryBuilderConfig,
+  ancestors: string[] = [],
+): boolean {
   try {
     const info: ParseInfo = { index: 0, length: 0 };
     const rs = bqlToRuleset(bql, config, info);
     if (info.index !== info.length) {
       return false;
     }
-    return validateRuleset(rs, config);
+    return validateRuleset(rs, config, ancestors);
   } catch {
     return false;
   }
 }
-

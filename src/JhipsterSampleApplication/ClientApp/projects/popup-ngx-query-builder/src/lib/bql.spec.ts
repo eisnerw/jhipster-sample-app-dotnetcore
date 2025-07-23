@@ -5,7 +5,11 @@ describe('BQL named ruleset support', () => {
   const config: QueryBuilderConfig = { fields: {} } as any;
 
   it('should convert named ruleset to its name', () => {
-    const rs: RuleSet = { condition: 'and', rules: [{ field: 'a', operator: '=', value: 1 }], name: 'TEST' };
+    const rs: RuleSet = {
+      condition: 'and',
+      rules: [{ field: 'a', operator: '=', value: 1 }],
+      name: 'TEST',
+    };
     expect(rulesetToBql(rs, config)).toBe('TEST');
   });
 
@@ -24,7 +28,7 @@ describe('BQL named ruleset support', () => {
   it('should load named ruleset from config', () => {
     const get = jasmine.createSpy('get').and.returnValue({
       condition: 'and',
-      rules: [{ field: 'a', operator: '=', value: 1 }]
+      rules: [{ field: 'a', operator: '=', value: 1 }],
     });
     const cfg: QueryBuilderConfig = { fields: {}, getNamedRuleset: get } as any;
     const rs = bqlToRuleset('TEST', cfg);
@@ -37,7 +41,7 @@ describe('BQL named ruleset support', () => {
   it('should load negated named ruleset from config', () => {
     const get = jasmine.createSpy('get').and.returnValue({
       condition: 'and',
-      rules: [{ field: 'a', operator: '=', value: 1 }]
+      rules: [{ field: 'a', operator: '=', value: 1 }],
     });
     const cfg: QueryBuilderConfig = { fields: {}, getNamedRuleset: get } as any;
     const rs = bqlToRuleset('!TEST', cfg);
@@ -50,7 +54,9 @@ describe('BQL named ruleset support', () => {
   });
 
   it('should create rulesets for parentheses', () => {
-    const cfg: QueryBuilderConfig = { fields: { a: { type: 'string' }, b: { type: 'string' } } } as any;
+    const cfg: QueryBuilderConfig = {
+      fields: { a: { type: 'string' }, b: { type: 'string' } },
+    } as any;
     const rs = bqlToRuleset('(a=1) & (b=2)', cfg);
     expect(rs.rules.length).toBe(2);
     const first = rs.rules[0] as RuleSet;
@@ -66,7 +72,9 @@ describe('BQL named ruleset support', () => {
   });
 
   it('should flatten simple OR queries into a single ruleset', () => {
-    const cfg: QueryBuilderConfig = { fields: { fname: { type: 'string' } } } as any;
+    const cfg: QueryBuilderConfig = {
+      fields: { fname: { type: 'string' } },
+    } as any;
     const rs = bqlToRuleset('fname=bill | fname=john', cfg);
     expect(rs.condition).toBe('or');
     expect(rs.rules.length).toBe(2);
@@ -79,7 +87,9 @@ describe('BQL named ruleset support', () => {
   });
 
   it('should not wrap single rules when combining with groups', () => {
-    const cfg: QueryBuilderConfig = { fields: { fname: { type: 'string' }, document: { type: 'string' } } } as any;
+    const cfg: QueryBuilderConfig = {
+      fields: { fname: { type: 'string' }, document: { type: 'string' } },
+    } as any;
     const rs = bqlToRuleset('(fname=bill | fname=john) & foo', cfg);
     expect(rs.condition).toBe('and');
     expect(rs.rules.length).toBe(2);
@@ -89,14 +99,18 @@ describe('BQL named ruleset support', () => {
   });
 
   it('should omit redundant parentheses when stringifying', () => {
-    const cfg: QueryBuilderConfig = { fields: { a: { type: 'string' } } } as any;
+    const cfg: QueryBuilderConfig = {
+      fields: { a: { type: 'string' } },
+    } as any;
     const rs = bqlToRuleset('(a=1)', cfg);
     expect(rulesetToBql(rs, cfg)).toBe('a=1');
   });
 
   it('should parse and stringify !CONTAINS operator', () => {
     const cfg: QueryBuilderConfig = {
-      fields: { fname: { type: 'string', operators: ['contains', '!contains'] } }
+      fields: {
+        fname: { type: 'string', operators: ['contains', '!contains'] },
+      },
     } as any;
     const rs = bqlToRuleset('fname !CONTAINS bob', cfg);
     const r = rs.rules[0] as Rule;
@@ -108,7 +122,7 @@ describe('BQL named ruleset support', () => {
 
   it('should parse and stringify !LIKE operator', () => {
     const cfg: QueryBuilderConfig = {
-      fields: { fname: { type: 'string', operators: ['like', '!like'] } }
+      fields: { fname: { type: 'string', operators: ['like', '!like'] } },
     } as any;
     const rs = bqlToRuleset('fname !LIKE bob', cfg);
     const r = rs.rules[0] as Rule;
@@ -119,7 +133,7 @@ describe('BQL named ruleset support', () => {
 
   it('should parse and stringify IN operator', () => {
     const cfg: QueryBuilderConfig = {
-      fields: { sign: { type: 'string', operators: ['in'] } }
+      fields: { sign: { type: 'string', operators: ['in'] } },
     } as any;
     const rs = bqlToRuleset('sign IN (aries,taurus)', cfg);
     const r = rs.rules[0] as Rule;
@@ -130,7 +144,7 @@ describe('BQL named ruleset support', () => {
 
   it('should parse IN operator with quoted value', () => {
     const cfg: QueryBuilderConfig = {
-      fields: { sign: { type: 'string', operators: ['in'] } }
+      fields: { sign: { type: 'string', operators: ['in'] } },
     } as any;
     const rs = bqlToRuleset('sign IN ("abc")', cfg);
     const r = rs.rules[0] as Rule;
@@ -140,7 +154,7 @@ describe('BQL named ruleset support', () => {
 
   it('should parse IN operator with whitespace', () => {
     const cfg: QueryBuilderConfig = {
-      fields: { sign: { type: 'string', operators: ['in'] } }
+      fields: { sign: { type: 'string', operators: ['in'] } },
     } as any;
     const rs = bqlToRuleset('sign IN (aries,   taurus, gemini)', cfg);
     const r = rs.rules[0] as Rule;
@@ -149,7 +163,7 @@ describe('BQL named ruleset support', () => {
 
   it('should throw on IN operator with no values', () => {
     const cfg: QueryBuilderConfig = {
-      fields: { sign: { type: 'string', operators: ['in'] } }
+      fields: { sign: { type: 'string', operators: ['in'] } },
     } as any;
     expect(() => bqlToRuleset('sign IN ()', cfg)).toThrow();
   });
@@ -158,9 +172,13 @@ describe('BQL named ruleset support', () => {
 describe('validateBql', () => {
   const cfg: QueryBuilderConfig = {
     fields: {
-      sign: { name: 'Sign', type: 'category', options: [{ name: 'Aries', value: 'aries' }] },
-      age: { name: 'Age', type: 'number', operators: ['=', '>'] }
-    }
+      sign: {
+        name: 'Sign',
+        type: 'category',
+        options: [{ name: 'Aries', value: 'aries' }],
+      },
+      age: { name: 'Age', type: 'number', operators: ['=', '>'] },
+    },
   } as any;
 
   it('should accept valid category value', () => {
@@ -198,58 +216,128 @@ describe('validateBql', () => {
   it('should accept != operator for string fields', () => {
     const cfg2: QueryBuilderConfig = {
       fields: {
-        fname: { name: 'First Name', type: 'string', operators: ['=', '!='] }
-      }
+        fname: { name: 'First Name', type: 'string', operators: ['=', '!='] },
+      },
     } as any;
     expect(validateBql('fname!=john', cfg2)).toBeTrue();
   });
 
   it('should accept !CONTAINS operator', () => {
     const cfg3: QueryBuilderConfig = {
-      fields: { fname: { name: 'First', type: 'string', operators: ['!contains'] } }
+      fields: {
+        fname: { name: 'First', type: 'string', operators: ['!contains'] },
+      },
     } as any;
     expect(validateBql('fname !CONTAINS bob', cfg3)).toBeTrue();
   });
 
   it('should accept !LIKE operator', () => {
     const cfg4: QueryBuilderConfig = {
-      fields: { fname: { name: 'First', type: 'string', operators: ['!like'] } }
+      fields: {
+        fname: { name: 'First', type: 'string', operators: ['!like'] },
+      },
     } as any;
     expect(validateBql('fname !LIKE bob', cfg4)).toBeTrue();
   });
 
   it('should accept IN operator', () => {
     const cfg5: QueryBuilderConfig = {
-      fields: { sign: { name: 'Sign', type: 'category', options: [{ name: 'Aries', value: 'aries' }, { name: 'Taurus', value: 'taurus' }], operators: ['in'] } }
+      fields: {
+        sign: {
+          name: 'Sign',
+          type: 'category',
+          options: [
+            { name: 'Aries', value: 'aries' },
+            { name: 'Taurus', value: 'taurus' },
+          ],
+          operators: ['in'],
+        },
+      },
     } as any;
     expect(validateBql('sign IN (aries,taurus)', cfg5)).toBeTrue();
   });
 
   it('should accept IN operator with whitespace', () => {
     const cfg5: QueryBuilderConfig = {
-      fields: { sign: { name: 'Sign', type: 'category', options: [{ name: 'Aries', value: 'aries' }, { name: 'Taurus', value: 'taurus' }, { name: 'Gemini', value: 'gemini' }], operators: ['in'] } }
+      fields: {
+        sign: {
+          name: 'Sign',
+          type: 'category',
+          options: [
+            { name: 'Aries', value: 'aries' },
+            { name: 'Taurus', value: 'taurus' },
+            { name: 'Gemini', value: 'gemini' },
+          ],
+          operators: ['in'],
+        },
+      },
     } as any;
     expect(validateBql('sign IN (aries,   taurus, gemini)', cfg5)).toBeTrue();
   });
 
   it('should accept IN operator with quoted value', () => {
     const cfg5: QueryBuilderConfig = {
-      fields: { sign: { name: 'Sign', type: 'category', options: [{ name: 'Abc', value: 'abc' }], operators: ['in'] } }
+      fields: {
+        sign: {
+          name: 'Sign',
+          type: 'category',
+          options: [{ name: 'Abc', value: 'abc' }],
+          operators: ['in'],
+        },
+      },
     } as any;
     expect(validateBql('sign IN ("abc")', cfg5)).toBeTrue();
   });
 
   it('should reject IN operator with no values', () => {
     const cfg5: QueryBuilderConfig = {
-      fields: { sign: { name: 'Sign', type: 'category', options: [], operators: ['in'] } }
+      fields: {
+        sign: {
+          name: 'Sign',
+          type: 'category',
+          options: [],
+          operators: ['in'],
+        },
+      },
     } as any;
     expect(validateBql('sign IN ()', cfg5)).toBeFalse();
   });
 
   it('should reject invalid value in IN operator', () => {
     const cfg5: QueryBuilderConfig = {
-      fields: { sign: { name: 'Sign', type: 'category', options: [{ name: 'Aries', value: 'aries' }], operators: ['in'] } }
+      fields: {
+        sign: {
+          name: 'Sign',
+          type: 'category',
+          options: [{ name: 'Aries', value: 'aries' }],
+          operators: ['in'],
+        },
+      },
     } as any;
     expect(validateBql('sign IN (aries,taurus)', cfg5)).toBeFalse();
+  });
+
+  it('should reject named ruleset loops', () => {
+    const cfgLoop: QueryBuilderConfig = {
+      fields: {},
+      getNamedRuleset: (n: string) => ({ condition: 'and', rules: [] }) as any,
+    } as any;
+    expect(validateBql('A', cfgLoop, ['A'])).toBeFalse();
+  });
+
+  it('should reject indirect named ruleset loops', () => {
+    const cfgLoop: QueryBuilderConfig = {
+      fields: {},
+      getNamedRuleset: (n: string) => {
+        if (n === 'B') {
+          return {
+            condition: 'and',
+            rules: [{ name: 'A', condition: 'and', rules: [] }],
+          } as any;
+        }
+        return { condition: 'and', rules: [] } as any;
+      },
+    } as any;
+    expect(validateBql('B', cfgLoop, ['A'])).toBeFalse();
   });
 });
