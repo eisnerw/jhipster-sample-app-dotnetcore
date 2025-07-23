@@ -1144,9 +1144,6 @@ export class QueryBuilderComponent
     if (!ruleset || !ruleset.rules) {
       return false;
     }
-    if (ruleset.name && this.namedRulesetModified(ruleset)) {
-      return true;
-    }
     if (!this.config.allowEmptyRulesets && this.isEmptyRuleset(ruleset)) {
       return true;
     }
