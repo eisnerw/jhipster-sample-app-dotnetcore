@@ -6,8 +6,18 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { DropdownModule } from 'primeng/dropdown';
 import { TreeModule } from 'primeng/tree';
-import { QueryBuilderModule, QueryBuilderConfig, RuleSet, Rule } from 'ngx-query-builder';
-import { bqlToRuleset, rulesetToBql, validateBql } from '../bql';
+import {
+  QueryBuilderModule,
+  QueryBuilderConfig,
+  RuleSet,
+  Rule,
+} from 'ngx-query-builder';
+import {
+  bqlToRuleset,
+  rulesetToBql,
+  validateBql,
+  validateRuleset,
+} from '../bql';
 import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
 import { EditRulesetDialogComponent } from './edit-ruleset-dialog.component';
@@ -23,10 +33,10 @@ import { EditRulesetDialogComponent } from './edit-ruleset-dialog.component';
     InputTextModule,
     DropdownModule,
     TreeModule,
-    QueryBuilderModule
+    QueryBuilderModule,
   ],
   styleUrls: ['./query-input.component.scss'],
-  templateUrl: './query-input.component.html'
+  templateUrl: './query-input.component.html',
 })
 export class QueryInputComponent implements OnInit {
   @Input() placeholder = 'BQL';
@@ -74,18 +84,40 @@ export class QueryInputComponent implements OnInit {
   // Default configuration for the query builder
   defaultConfig: QueryBuilderConfig = {
     fields: {
-      document: { name: 'Document', type: 'string', operators: ["contains", "!contains"]},
+      document: {
+        name: 'Document',
+        type: 'string',
+        operators: ['contains', '!contains'],
+      },
       // lname: { name: 'Last Name', type: 'string', operators: ['=', '!=', 'contains', 'like', 'exists'] },
       lname: {
         name: 'Last Name',
-        type: 'category'
+        type: 'category',
       },
-      fname: { name: 'First Name', type: 'string', operators: ['=', '!=', 'contains', '!contains', 'like', '!like', 'exists'] },
+      fname: {
+        name: 'First Name',
+        type: 'string',
+        operators: [
+          '=',
+          '!=',
+          'contains',
+          '!contains',
+          'like',
+          '!like',
+          'exists',
+        ],
+      },
       isAlive: { name: 'Alive?', type: 'boolean' },
-      categories: { name: 'Category', type: 'string', operators: ["contains", "!contains", "exists"]},
+      categories: {
+        name: 'Category',
+        type: 'string',
+        operators: ['contains', '!contains', 'exists'],
+      },
       dob: {
-        name: 'Birthday', type: 'date', operators: ['=', '<=', '>', '<', '>='],
-        defaultValue: (() => new Date())
+        name: 'Birthday',
+        type: 'date',
+        operators: ['=', '<=', '>', '<', '>='],
+        defaultValue: () => new Date(),
       },
       sign: {
         name: 'Astrological Sign',
@@ -102,10 +134,10 @@ export class QueryInputComponent implements OnInit {
           { name: 'Sagittarius', value: 'sagittarius' },
           { name: 'Capricorn', value: 'capricorn' },
           { name: 'Aquarius', value: 'aquarius' },
-          { name: 'Pisces    ', value: 'pisces' }      
-        ]
-      }
-    }
+          { name: 'Pisces    ', value: 'pisces' },
+        ],
+      },
+    },
   };
 
   get queryBuilderConfig(): QueryBuilderConfig {
@@ -117,18 +149,18 @@ export class QueryInputComponent implements OnInit {
       saveNamedRuleset: this.saveNamedRuleset.bind(this),
       deleteNamedRuleset: this.deleteNamedRuleset.bind(this),
       editNamedRuleset: this.editNamedRuleset.bind(this),
-      customCollapsedSummary: this.collapsedSummary.bind(this)
+      customCollapsedSummary: this.collapsedSummary.bind(this),
     } as QueryBuilderConfig;
   }
 
   clickSearch() {
     this.builderQuery = this.parseQuery(this.query);
-    
+
     // Ensure the query has the required structure
     if (!this.builderQuery.condition) {
       this.builderQuery.condition = 'and';
     }
-    
+
     this.showBuilder = true;
   }
 
@@ -172,29 +204,36 @@ export class QueryInputComponent implements OnInit {
     if (!query || typeof query !== 'object') {
       return { condition: 'and', rules: [] };
     }
-    
+
     const cleaned: RuleSet = {
       condition: query.condition || 'and',
-      rules: (query.rules || []).map((item: any) => {
-        // Check if this is a nested ruleset
-        if (item.condition && item.rules) {
-          // Recursively clean nested rulesets
-          return this.cleanQuery(item);
-        }
-        // This is a regular rule - validate it has required fields
-        else if (item.field && item.operator && (item.value !== undefined && item.value !== '')) {
-          return item;
-        }
-        // Invalid rule, exclude it
-        return null;
-      }).filter(item => item !== null)
+      rules: (query.rules || [])
+        .map((item: any) => {
+          // Check if this is a nested ruleset
+          if (item.condition && item.rules) {
+            // Recursively clean nested rulesets
+            return this.cleanQuery(item);
+          }
+          // This is a regular rule - validate it has required fields
+          else if (
+            item.field &&
+            item.operator &&
+            item.value !== undefined &&
+            item.value !== ''
+          ) {
+            return item;
+          }
+          // Invalid rule, exclude it
+          return null;
+        })
+        .filter((item) => item !== null),
     };
-    
+
     // Include additional properties if they exist
     if (query.not !== undefined) {
       cleaned.not = query.not;
     }
-    if (query.name !== undefined){
+    if (query.name !== undefined) {
       cleaned.name = query.name;
     }
     if (query.collapsed !== undefined) {
@@ -203,7 +242,7 @@ export class QueryInputComponent implements OnInit {
     if (query.isChild !== undefined) {
       cleaned.isChild = query.isChild;
     }
-    
+
     return cleaned;
   }
 
@@ -233,25 +272,40 @@ export class QueryInputComponent implements OnInit {
     delete this.namedRulesets[name];
   }
 
-  async editNamedRuleset(rs: RuleSet): Promise<RuleSet | null> {
-    const result = await firstValueFrom(this.dialog.open(EditRulesetDialogComponent, {
-      data: {
-        ruleset: JSON.parse(JSON.stringify(rs)),
-        rulesetName: this.rulesetName,
-        validate: (r: any) => !!r && typeof r === 'object' && Array.isArray(r.rules) && r.rules.length > 0,
-        config: this.queryBuilderConfig
-      },
-      width: '800px',
-      panelClass: 'resizable-dialog',
-      autoFocus: false
-    }).afterClosed());
+  async editNamedRuleset(
+    rs: RuleSet,
+    ancestors: string[] = [],
+  ): Promise<RuleSet | null> {
+    const result = await firstValueFrom(
+      this.dialog
+        .open(EditRulesetDialogComponent, {
+          data: {
+            ruleset: JSON.parse(JSON.stringify(rs)),
+            rulesetName: this.rulesetName,
+            validate: (r: any) =>
+              !!r &&
+              typeof r === 'object' &&
+              Array.isArray(r.rules) &&
+              r.rules.length > 0 &&
+              validateRuleset(r, this.queryBuilderConfig, [
+                ...ancestors,
+                rs.name ?? '',
+              ]),
+            config: this.queryBuilderConfig,
+          },
+          width: '800px',
+          panelClass: 'resizable-dialog',
+          autoFocus: false,
+        })
+        .afterClosed(),
+    );
     return result || null;
   }
 
   collapsedSummary(ruleset: RuleSet): string {
     const names = new Set<string>();
     const walk = (rs: RuleSet) => {
-      rs.rules.forEach(r => {
+      rs.rules.forEach((r) => {
         if ((r as Rule).field) {
           const field = this.queryBuilderConfig.fields[(r as Rule).field];
           names.add(field?.name || (r as Rule).field);

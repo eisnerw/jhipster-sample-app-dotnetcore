@@ -3,7 +3,7 @@ import {
   NG_VALUE_ACCESSOR,
   NG_VALIDATORS,
   ValidationErrors,
-  Validator
+  Validator,
 } from '@angular/forms';
 import { QueryOperatorDirective } from '../directives/query-operator.directive';
 import { QueryFieldDirective } from '../directives/query-field.directive';
@@ -34,7 +34,10 @@ import {
   ArrowIconContext,
   Rule,
   RuleSet,
-  EmptyWarningContext, RulesetRemoveButtonContext, RulesetAddRulesetButtonContext, RulesetAddRuleButtonContext,
+  EmptyWarningContext,
+  RulesetRemoveButtonContext,
+  RulesetAddRulesetButtonContext,
+  RulesetAddRuleButtonContext,
 } from '../models/query-builder.interfaces';
 import {
   ChangeDetectorRef,
@@ -49,23 +52,26 @@ import {
   TemplateRef,
   ViewChild,
   ElementRef,
-  booleanAttribute
+  booleanAttribute,
 } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { AddNamedRulesetDialogComponent } from './add-named-ruleset-dialog.component';
-import { NamedRulesetDialogComponent, NamedRulesetDialogResult } from './named-ruleset-dialog.component';
+import {
+  NamedRulesetDialogComponent,
+  NamedRulesetDialogResult,
+} from './named-ruleset-dialog.component';
 import { MessageDialogComponent } from './message-dialog.component';
 
 export const CONTROL_VALUE_ACCESSOR: any = {
   provide: NG_VALUE_ACCESSOR,
   useExisting: forwardRef(() => QueryBuilderComponent),
-  multi: true
+  multi: true,
 };
 
 export const VALIDATOR: any = {
   provide: NG_VALIDATORS,
   useExisting: forwardRef(() => QueryBuilderComponent),
-  multi: true
+  multi: true,
 };
 
 @Component({
@@ -73,9 +79,11 @@ export const VALIDATOR: any = {
   templateUrl: './query-builder.component.html',
   styleUrls: ['./query-builder.component.css'],
   providers: [CONTROL_VALUE_ACCESSOR, VALIDATOR],
-  standalone: false
+  standalone: false,
 })
-export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, Validator {
+export class QueryBuilderComponent
+  implements OnChanges, ControlValueAccessor, Validator
+{
   private static parentMap = new WeakMap<RuleSet, RuleSet | null>();
   public fields!: Field[];
   public entities!: Entity[];
@@ -117,7 +125,7 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
     equalIcon: 'q-icon q-equal-icon',
     collapsedSummary: 'q-collapsed-summary',
     searchIcon: 'q-icon q-search-icon',
-    saveIcon: 'q-icon q-save-icon'
+    saveIcon: 'q-icon q-save-icon',
   };
   public defaultOperatorMap: Record<string, string[]> = {
     string: ['=', '!=', 'contains', '!contains', 'like', '!like'],
@@ -125,7 +133,7 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
     time: ['=', '!=', '>', '>=', '<', '<='],
     date: ['=', '!=', '>', '>=', '<', '<='],
     category: ['=', '!=', 'in', 'not in'],
-    boolean: ['=']
+    boolean: ['='],
   };
 
   // For ControlValueAccessor interface
@@ -141,7 +149,8 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
   @Input() allowCollapse = true;
   @Input() allowRuleUpDown = false;
   @Input() hideButtons = false;
-  @Input() emptyMessage = 'A ruleset cannot be empty. Please add a rule or remove it all together.';
+  @Input() emptyMessage =
+    'A ruleset cannot be empty. Please add a rule or remove it all together.';
   @Input() ruleName = 'Rule';
   @Input() rulesetName = 'Ruleset';
   @Input() classNames!: QueryBuilderClassNames;
@@ -155,9 +164,12 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
   @Input() parentEntityTemplate!: QueryEntityDirective;
   @Input() parentSwitchGroupTemplate!: QuerySwitchGroupDirective;
   @Input() parentButtonGroupTemplate!: QueryButtonGroupDirective;
-  @Input() parentRulesetAddRuleButtonTemplate!: QueryRulesetAddRuleButtonDirective;
-  @Input() parentRulesetAddRulesetButtonTemplate!: QueryRulesetAddRulesetButtonDirective;
-  @Input() parentRulesetRemoveButtonTemplate!: QueryRulesetRemoveButtonDirective;
+  @Input()
+  parentRulesetAddRuleButtonTemplate!: QueryRulesetAddRuleButtonDirective;
+  @Input()
+  parentRulesetAddRulesetButtonTemplate!: QueryRulesetAddRulesetButtonDirective;
+  @Input()
+  parentRulesetRemoveButtonTemplate!: QueryRulesetRemoveButtonDirective;
   @Input() parentRuleRemoveButtonTemplate!: QueryRuleRemoveButtonDirective;
   @Input() parentEmptyWarningTemplate!: QueryEmptyWarningDirective;
   @Input() parentChangeCallback!: () => void;
@@ -165,43 +177,79 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
   @Input() persistValueOnFieldChange = false;
   @Input() defaultRuleAttribute: string | null = null;
 
-  @ViewChild('treeContainer', {static: true}) treeContainer!: ElementRef;
+  @ViewChild('treeContainer', { static: true }) treeContainer!: ElementRef;
   public collapsed = false;
   public hoveringSwitchGroup = false;
 
-  @ContentChild(QueryButtonGroupDirective) buttonGroupTemplate!: QueryButtonGroupDirective;
-  @ContentChild(QuerySwitchGroupDirective) switchGroupTemplate!: QuerySwitchGroupDirective;
+  @ContentChild(QueryButtonGroupDirective)
+  buttonGroupTemplate!: QueryButtonGroupDirective;
+  @ContentChild(QuerySwitchGroupDirective)
+  switchGroupTemplate!: QuerySwitchGroupDirective;
   @ContentChild(QueryFieldDirective) fieldTemplate!: QueryFieldDirective;
   @ContentChild(QueryEntityDirective) entityTemplate!: QueryEntityDirective;
-  @ContentChild(QueryOperatorDirective) operatorTemplate!: QueryOperatorDirective;
-  @ContentChild(QueryRulesetAddRuleButtonDirective) rulesetAddRuleButtonTemplate!: QueryRulesetAddRuleButtonDirective;
-  @ContentChild(QueryRulesetAddRulesetButtonDirective) rulesetAddRulesetButtonTemplate!: QueryRulesetAddRulesetButtonDirective;
-  @ContentChild(QueryRulesetRemoveButtonDirective) rulesetRemoveButtonTemplate!: QueryRulesetRemoveButtonDirective;
-  @ContentChild(QueryRuleRemoveButtonDirective) ruleRemoveButtonTemplate!: QueryRuleRemoveButtonDirective;
-  @ContentChild(QueryEmptyWarningDirective) emptyWarningTemplate!: QueryEmptyWarningDirective;
-  @ContentChild(QueryArrowIconDirective) arrowIconTemplate!: QueryArrowIconDirective;
-  @ContentChildren(QueryInputDirective) inputTemplates!: QueryList<QueryInputDirective>;
+  @ContentChild(QueryOperatorDirective)
+  operatorTemplate!: QueryOperatorDirective;
+  @ContentChild(QueryRulesetAddRuleButtonDirective)
+  rulesetAddRuleButtonTemplate!: QueryRulesetAddRuleButtonDirective;
+  @ContentChild(QueryRulesetAddRulesetButtonDirective)
+  rulesetAddRulesetButtonTemplate!: QueryRulesetAddRulesetButtonDirective;
+  @ContentChild(QueryRulesetRemoveButtonDirective)
+  rulesetRemoveButtonTemplate!: QueryRulesetRemoveButtonDirective;
+  @ContentChild(QueryRuleRemoveButtonDirective)
+  ruleRemoveButtonTemplate!: QueryRuleRemoveButtonDirective;
+  @ContentChild(QueryEmptyWarningDirective)
+  emptyWarningTemplate!: QueryEmptyWarningDirective;
+  @ContentChild(QueryArrowIconDirective)
+  arrowIconTemplate!: QueryArrowIconDirective;
+  @ContentChildren(QueryInputDirective)
+  inputTemplates!: QueryList<QueryInputDirective>;
 
   private defaultTemplateTypes: string[] = [
-    'string', 'number', 'time', 'date', 'category', 'boolean', 'multiselect'];
+    'string',
+    'number',
+    'time',
+    'date',
+    'category',
+    'boolean',
+    'multiselect',
+  ];
   private defaultPersistValueTypes: string[] = [
-    'string', 'number', 'time', 'date', 'boolean'];
+    'string',
+    'number',
+    'time',
+    'date',
+    'boolean',
+  ];
   private defaultEmptyList: any[] = [];
   private operatorsCache!: Record<string, string[]>;
   private inputContextCache = new Map<Rule, InputContext>();
   private operatorContextCache = new Map<Rule, OperatorContext>();
   private fieldContextCache = new Map<Rule, FieldContext>();
   private entityContextCache = new Map<Rule, EntityContext>();
-  private rulesetAddRuleButtonContextCache = new Map<Rule, RulesetAddRuleButtonContext>();
-  private rulesetAddRulesetButtonContextCache = new Map<Rule, RulesetAddRulesetButtonContext>();
-  private rulesetRemoveButtonContextCache = new Map<Rule, RulesetRemoveButtonContext>();
-  private ruleRemoveButtonContextCache = new Map<Rule, RuleRemoveButtonContext>();
+  private rulesetAddRuleButtonContextCache = new Map<
+    Rule,
+    RulesetAddRuleButtonContext
+  >();
+  private rulesetAddRulesetButtonContextCache = new Map<
+    Rule,
+    RulesetAddRulesetButtonContext
+  >();
+  private rulesetRemoveButtonContextCache = new Map<
+    Rule,
+    RulesetRemoveButtonContext
+  >();
+  private ruleRemoveButtonContextCache = new Map<
+    Rule,
+    RuleRemoveButtonContext
+  >();
   private buttonGroupContext!: ButtonGroupContext;
   public namingRuleset: RuleSet | null = null;
   public namingRulesetName = '';
 
-  constructor(private changeDetectorRef: ChangeDetectorRef,
-              private dialog: MatDialog) { }
+  constructor(
+    private changeDetectorRef: ChangeDetectorRef,
+    private dialog: MatDialog,
+  ) {}
 
   // ----------OnChanges Implementation----------
 
@@ -215,24 +263,29 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
         return field;
       });
       if (config.entities) {
-        this.entities = Object.keys(config.entities).map((value) => {
-          const entity = config.entities?.[value];
-          if (entity) {
-            entity.value = entity.value || value;
-          }
-          return entity;
-        }).filter((entity) => entity !== undefined) as Entity[];
+        this.entities = Object.keys(config.entities)
+          .map((value) => {
+            const entity = config.entities?.[value];
+            if (entity) {
+              entity.value = entity.value || value;
+            }
+            return entity;
+          })
+          .filter((entity) => entity !== undefined) as Entity[];
       } else {
         this.entities = [];
       }
       this.operatorsCache = {};
       this.registerParentRefs(this.data, this.parentValue || null);
     } else {
-      throw new Error(`Expected 'config' must be a valid object, got ${type} instead.`);
+      throw new Error(
+        `Expected 'config' must be a valid object, got ${type} instead.`,
+      );
     }
 
     if (changes['config']) {
-      const prev: QueryBuilderConfig | undefined = changes['config'].previousValue;
+      const prev: QueryBuilderConfig | undefined =
+        changes['config'].previousValue;
       const prevHasEntities = prev && prev.entities;
       const currHasEntities = this.config.entities;
       if (prevHasEntities && !currHasEntities) {
@@ -258,7 +311,10 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
     const ruleErrorStore: any[] = [];
     let hasErrors = false;
 
-    if (!this.config.allowEmptyRulesets && this.checkEmptyRuleInRuleset(this.data)) {
+    if (
+      !this.config.allowEmptyRulesets &&
+      this.checkEmptyRuleInRuleset(this.data)
+    ) {
       errors['empty'] = 'Empty rulesets are not allowed.';
       hasErrors = true;
     }
@@ -307,7 +363,7 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
 
   getDisabledState = (): boolean => {
     return this.disabled;
-  }
+  };
 
   findTemplateForRule(rule: Rule): TemplateRef<any> | undefined {
     const type = this.getInputType(rule.field, rule.operator);
@@ -326,7 +382,9 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
 
   findQueryInput(type: string): QueryInputDirective | undefined {
     const templates = this.parentInputTemplates || this.inputTemplates;
-    return (templates || []).find((item: QueryInputDirective) => item.queryInputType === type);
+    return (templates || []).find(
+      (item: QueryInputDirective) => item.queryInputType === type,
+    );
   }
 
   getOperators(field: string): string[] {
@@ -345,11 +403,15 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
     if (fieldObject && fieldObject.operators) {
       operators = fieldObject.operators;
     } else if (type) {
-      operators = (this.operatorMap && this.operatorMap[type]) || this.defaultOperatorMap[type] || this.defaultEmptyList;
+      operators =
+        (this.operatorMap && this.operatorMap[type]) ||
+        this.defaultOperatorMap[type] ||
+        this.defaultEmptyList;
       if (operators.length === 0) {
         console.warn(
           `No operators found for field '${field}' with type ${fieldObject.type}. ` +
-          `Please define an 'operators' property on the field or use the 'operatorMap' binding to fix this.`);
+            `Please define an 'operators' property on the field or use the 'operatorMap' binding to fix this.`,
+        );
       }
       if (fieldObject.nullable) {
         operators = operators.concat(['is null', 'is not null']);
@@ -379,14 +441,16 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
     }
 
     if (!this.config.fields[field]) {
-      throw new Error(`No configuration for field '${field}' could be found! Please add it to config.fields.`);
+      throw new Error(
+        `No configuration for field '${field}' could be found! Please add it to config.fields.`,
+      );
     }
 
     const type = this.config.fields[field].type;
     switch (operator) {
       case 'is null':
       case 'is not null':
-        return undefined;  // No displayed component
+        return undefined; // No displayed component
       case 'in':
       case 'not in':
         return type === 'category' || type === 'boolean' ? 'multiselect' : type;
@@ -410,8 +474,14 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
   }
 
   getClassNames(...args: any[]): string | undefined {
-    const clsLookup = this.classNames ? this.classNames : this.defaultClassNames;
-    const classNames = args.map((id) => (clsLookup as any)[id] || (this.defaultClassNames as any)[id]).filter((c) => !!c);
+    const clsLookup = this.classNames
+      ? this.classNames
+      : this.defaultClassNames;
+    const classNames = args
+      .map(
+        (id) => (clsLookup as any)[id] || (this.defaultClassNames as any)[id],
+      )
+      .filter((c) => !!c);
     return classNames.length ? classNames.join(' ') : undefined;
   }
 
@@ -427,8 +497,10 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
       if (entityFields && entityFields.length) {
         return entityFields[0];
       } else {
-        console.warn(`No fields found for entity '${entity.name}'. ` +
-          `A 'defaultOperator' is also not specified on the field config. Operator value will default to null.`);
+        console.warn(
+          `No fields found for entity '${entity.name}'. ` +
+            `A 'defaultOperator' is also not specified on the field config. Operator value will default to null.`,
+        );
         return undefined;
       }
     }
@@ -438,12 +510,15 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
     if (field && field.defaultOperator !== undefined) {
       return this.getDefaultValue(field.defaultOperator);
     } else {
-      const operators = field && field.value ? this.getOperators(field.value) : [];
+      const operators =
+        field && field.value ? this.getOperators(field.value) : [];
       if (operators && operators.length) {
         return operators[0];
       } else {
-        console.warn(`No operators found for field '${field?.value}'. ` +
-          `A 'defaultOperator' is also not specified on the field config. Operator value will default to null.`);
+        console.warn(
+          `No operators found for field '${field?.value}'. ` +
+            `A 'defaultOperator' is also not specified on the field config. Operator value will default to null.`,
+        );
         return undefined;
       }
     }
@@ -460,18 +535,22 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
     } else {
       let field = this.fields[0];
       if (this.defaultRuleAttribute) {
-        const match = this.fields.find(f => f.value === this.defaultRuleAttribute);
+        const match = this.fields.find(
+          (f) => f.value === this.defaultRuleAttribute,
+        );
         if (match) {
           field = match;
         }
       }
       if (field.value) {
-        parent.rules = parent.rules.concat([{ 
-          field: field.value,
-          operator: this.getDefaultOperator(field) || '',
-          value: this.getDefaultValue(field.defaultValue),
-          entity: field.entity
-        } as Rule] as Rule[]);
+        parent.rules = parent.rules.concat([
+          {
+            field: field.value,
+            operator: this.getDefaultOperator(field) || '',
+            value: this.getDefaultValue(field.defaultValue),
+            entity: field.entity,
+          } as Rule,
+        ] as Rule[]);
       }
     }
 
@@ -508,7 +587,11 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
     this.moveRule(rule, parent, 1);
   }
 
-  private moveRule(rule: Rule | RuleSet, parent: RuleSet | undefined, step: number): void {
+  private moveRule(
+    rule: Rule | RuleSet,
+    parent: RuleSet | undefined,
+    step: number,
+  ): void {
     if (this.disabled) {
       return;
     }
@@ -592,7 +675,9 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
 
     if (parent) {
       const idx = parent.rules.indexOf(ruleset);
-      if (idx === -1) { return; }
+      if (idx === -1) {
+        return;
+      }
       parent.rules.splice(idx, 1, wrapper);
       this.registerParentRefs(wrapper, parent);
     } else if (ruleset === this.data) {
@@ -666,7 +751,8 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
   computedTreeContainerHeight(): void {
     const nativeElement: HTMLElement = this.treeContainer?.nativeElement;
     if (nativeElement && nativeElement.firstElementChild) {
-      nativeElement.style.maxHeight = (nativeElement.firstElementChild.clientHeight + 8) + 'px';
+      nativeElement.style.maxHeight =
+        nativeElement.firstElementChild.clientHeight + 8 + 'px';
     }
   }
 
@@ -696,7 +782,11 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
     }
 
     if (this.config.coerceValueForOperator) {
-      rule.value = this.config.coerceValueForOperator(rule.operator, rule.value, rule);
+      rule.value = this.config.coerceValueForOperator(
+        rule.operator,
+        rule.value,
+        rule,
+      );
     } else {
       rule.value = this.coerceValueForOperator(rule.operator, rule.value, rule);
     }
@@ -706,7 +796,10 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
   }
 
   coerceValueForOperator(operator: string, value: any, rule: Rule): any {
-    const inputType: string | undefined = this.getInputType(rule.field, operator);
+    const inputType: string | undefined = this.getInputType(
+      rule.field,
+      operator,
+    );
     if (inputType === 'multiselect' && !Array.isArray(value)) {
       return [value];
     }
@@ -733,7 +826,10 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
     const nextField: Field = this.config.fields[fieldValue];
 
     const nextValue = this.calculateFieldChangeValue(
-      currentField, nextField, rule.value);
+      currentField,
+      nextField,
+      rule.value,
+    );
 
     if (nextValue !== undefined) {
       rule.value = nextValue;
@@ -757,19 +853,26 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
     this.handleDataChange();
   }
 
-  changeEntity(entityValue: string, rule: Rule, index: number, data: RuleSet): void {
+  changeEntity(
+    entityValue: string,
+    rule: Rule,
+    index: number,
+    data: RuleSet,
+  ): void {
     if (this.disabled) {
       return;
     }
     let i = index;
     let rs = data;
-    const entity: Entity | undefined = this.entities.find((e) => e?.value === entityValue);
+    const entity: Entity | undefined = this.entities.find(
+      (e) => e?.value === entityValue,
+    );
     const defaultField: Field | undefined = this.getDefaultField(entity);
     if (!rs) {
       rs = this.data;
       i = rs.rules.findIndex((x) => x === rule);
     }
-    rule.field = defaultField && defaultField.value || '';
+    rule.field = (defaultField && defaultField.value) || '';
     rs.rules[i] = rule;
     if (defaultField) {
       this.changeField(rule.field, rule);
@@ -819,22 +922,29 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
   }
 
   getRulesetAddRuleButtonTemplate(): TemplateRef<any> | undefined {
-    const t = this.parentRulesetAddRuleButtonTemplate || this.rulesetAddRuleButtonTemplate;
+    const t =
+      this.parentRulesetAddRuleButtonTemplate ||
+      this.rulesetAddRuleButtonTemplate;
     return t?.template;
   }
 
   getRulesetAddRulesetButtonTemplate(): TemplateRef<any> | undefined {
-    const t = this.parentRulesetAddRulesetButtonTemplate || this.rulesetAddRulesetButtonTemplate;
+    const t =
+      this.parentRulesetAddRulesetButtonTemplate ||
+      this.rulesetAddRulesetButtonTemplate;
     return t?.template;
   }
 
   getRulesetRemoveButtonTemplate(): TemplateRef<any> | undefined {
-    const t = this.parentRulesetRemoveButtonTemplate || this.rulesetRemoveButtonTemplate;
+    const t =
+      this.parentRulesetRemoveButtonTemplate ||
+      this.rulesetRemoveButtonTemplate;
     return t?.template;
   }
 
   getRuleRemoveButtonTemplate(): TemplateRef<any> | undefined {
-    const t = this.parentRuleRemoveButtonTemplate || this.ruleRemoveButtonTemplate;
+    const t =
+      this.parentRuleRemoveButtonTemplate || this.ruleRemoveButtonTemplate;
     return t?.template;
   }
 
@@ -865,42 +975,51 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
         parentValue: this.parentValue,
         addRule: this.addRule.bind(this),
         addRuleSet: this.allowRuleset && this.addRuleSet.bind(this),
-        removeRuleSet: this.allowRuleset && this.parentValue && this.removeRuleSet.bind(this),
+        removeRuleSet:
+          this.allowRuleset &&
+          this.parentValue &&
+          this.removeRuleSet.bind(this),
         getDisabledState: this.getDisabledState,
-        $implicit: this.data
+        $implicit: this.data,
       };
     }
     return this.buttonGroupContext;
   }
 
-  getRulesetAddRuleButtonContext(rule: Rule): RulesetAddRuleButtonContext | undefined {
+  getRulesetAddRuleButtonContext(
+    rule: Rule,
+  ): RulesetAddRuleButtonContext | undefined {
     if (!this.rulesetAddRuleButtonContextCache.has(rule)) {
       this.rulesetAddRuleButtonContextCache.set(rule, {
         addRule: this.addRule.bind(this),
         getDisabledState: this.getDisabledState,
-        $implicit: rule
+        $implicit: rule,
       });
     }
     return this.rulesetAddRuleButtonContextCache.get(rule);
   }
 
-  getRulesetAddRulesetButtonContext(rule: Rule): RulesetAddRulesetButtonContext | undefined {
+  getRulesetAddRulesetButtonContext(
+    rule: Rule,
+  ): RulesetAddRulesetButtonContext | undefined {
     if (!this.rulesetAddRulesetButtonContextCache.has(rule)) {
       this.rulesetAddRulesetButtonContextCache.set(rule, {
         addRuleSet: this.addRuleSet.bind(this),
         getDisabledState: this.getDisabledState,
-        $implicit: rule
+        $implicit: rule,
       });
     }
     return this.rulesetAddRulesetButtonContextCache.get(rule);
   }
 
-  getRulesetRemoveButtonContext(rule: Rule): RulesetRemoveButtonContext | undefined {
+  getRulesetRemoveButtonContext(
+    rule: Rule,
+  ): RulesetRemoveButtonContext | undefined {
     if (!this.rulesetRemoveButtonContextCache.has(rule)) {
       this.rulesetRemoveButtonContextCache.set(rule, {
         removeRuleSet: this.removeRuleSet.bind(this),
         getDisabledState: this.getDisabledState,
-        $implicit: rule
+        $implicit: rule,
       });
     }
     return this.rulesetRemoveButtonContextCache.get(rule);
@@ -911,7 +1030,7 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
       this.ruleRemoveButtonContextCache.set(rule, {
         removeRule: this.removeRule.bind(this),
         getDisabledState: this.getDisabledState,
-        $implicit: rule
+        $implicit: rule,
       });
     }
     return this.ruleRemoveButtonContextCache.get(rule);
@@ -924,7 +1043,7 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
         getFields: this.getFields.bind(this),
         getDisabledState: this.getDisabledState,
         fields: this.fields,
-        $implicit: rule
+        $implicit: rule,
       });
     }
     return this.fieldContextCache.get(rule);
@@ -936,7 +1055,7 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
         onChange: this.changeEntity.bind(this),
         getDisabledState: this.getDisabledState,
         entities: this.entities,
-        $implicit: rule
+        $implicit: rule,
       });
     }
     return this.entityContextCache.get(rule);
@@ -948,14 +1067,14 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
       onChangeNot: this.changeNot.bind(this),
       allowNot: this.allowNot,
       getDisabledState: this.getDisabledState,
-      $implicit: this.data
+      $implicit: this.data,
     };
   }
 
   getArrowIconContext(): ArrowIconContext {
     return {
       getDisabledState: this.getDisabledState,
-      $implicit: this.data
+      $implicit: this.data,
     };
   }
 
@@ -963,7 +1082,7 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
     return {
       getDisabledState: this.getDisabledState,
       message: this.emptyMessage,
-      $implicit: this.data
+      $implicit: this.data,
     };
   }
 
@@ -973,13 +1092,16 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
         onChange: this.changeOperator.bind(this),
         getDisabledState: this.getDisabledState,
         operators: this.getOperators(rule.field),
-        $implicit: rule
+        $implicit: rule,
       });
     }
     return this.operatorContextCache.get(rule);
   }
 
-  getInputContext(rule: Rule, parent: RuleSet = this.data): InputContext | undefined {
+  getInputContext(
+    rule: Rule,
+    parent: RuleSet = this.data,
+  ): InputContext | undefined {
     const opts = this.getOptions(rule.field, rule, parent);
     if (!this.inputContextCache.has(rule)) {
       this.inputContextCache.set(rule, {
@@ -987,7 +1109,7 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
         getDisabledState: this.getDisabledState,
         options: opts,
         field: this.config.fields[rule.field],
-        $implicit: rule
+        $implicit: rule,
       });
     } else {
       const ctx = this.inputContextCache.get(rule)!;
@@ -1019,33 +1141,43 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
   }
 
   isRulesetInvalid(ruleset: RuleSet): boolean {
-    if (!ruleset || !ruleset.rules) { return false; }
+    if (!ruleset || !ruleset.rules) {
+      return false;
+    }
     if (ruleset.name && this.namedRulesetModified(ruleset)) {
       return true;
     }
     if (!this.config.allowEmptyRulesets && this.isEmptyRuleset(ruleset)) {
       return true;
     }
-    return ruleset.rules.some((r) => this.isRuleset(r) ? this.isRulesetInvalid(r) : this.isRuleInvalid(r as Rule, ruleset));
+    return ruleset.rules.some((r) =>
+      this.isRuleset(r)
+        ? this.isRulesetInvalid(r)
+        : this.isRuleInvalid(r as Rule, ruleset),
+    );
   }
 
   private calculateFieldChangeValue(
     currentField: Field | undefined,
     nextField: Field | undefined,
-    currentValue: any
+    currentValue: any,
   ): any {
-
     if (this.config.calculateFieldChangeValue) {
       return this.config.calculateFieldChangeValue(
-        currentField, nextField, currentValue);
+        currentField,
+        nextField,
+        currentValue,
+      );
     }
 
     const canKeepValue = () => {
       if (!currentField || !nextField) {
         return false;
       }
-      return currentField.type === nextField.type
-        && this.defaultPersistValueTypes.indexOf(currentField.type) !== -1;
+      return (
+        currentField.type === nextField.type &&
+        this.defaultPersistValueTypes.indexOf(currentField.type) !== -1
+      );
     };
 
     if (this.persistValueOnFieldChange && canKeepValue()) {
@@ -1156,7 +1288,7 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
         delete ruleset.not;
       }
     }
-    
+
     // Recursively update nested rulesets
     if (ruleset.rules) {
       ruleset.rules.forEach((rule: Rule | RuleSet) => {
@@ -1168,7 +1300,9 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
   }
 
   private addEntitiesToRuleset(ruleset: RuleSet): void {
-    if (!ruleset.rules) { return; }
+    if (!ruleset.rules) {
+      return;
+    }
     ruleset.rules.forEach((rule: Rule | RuleSet) => {
       if (this.isRuleset(rule)) {
         this.addEntitiesToRuleset(rule);
@@ -1177,7 +1311,9 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
           const fieldConf = this.config.fields[rule.field];
           let entity = fieldConf && fieldConf.entity;
           if (!entity) {
-            const matched = Object.values(this.config.fields).find(f => (f as Field).name === rule.field && (f as Field).entity);
+            const matched = Object.values(this.config.fields).find(
+              (f) => (f as Field).name === rule.field && (f as Field).entity,
+            );
             if (matched) {
               entity = (matched as Field).entity;
             }
@@ -1191,7 +1327,9 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
   }
 
   private removeEntitiesFromRuleset(ruleset: RuleSet): void {
-    if (!ruleset.rules) { return; }
+    if (!ruleset.rules) {
+      return;
+    }
     ruleset.rules.forEach((rule: Rule | RuleSet) => {
       if (this.isRuleset(rule)) {
         this.removeEntitiesFromRuleset(rule);
@@ -1218,12 +1356,12 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
 
     // Create a deep copy to avoid modifying the original data
     const cleanedData = JSON.parse(JSON.stringify(source));
-    
+
     // Remove 'not' property if allowNot is false
     if (!this.allowNot && cleanedData.hasOwnProperty('not')) {
       delete cleanedData.not;
     }
-    
+
     // Recursively clean nested rulesets
     if (cleanedData.rules) {
       cleanedData.rules = cleanedData.rules.map((rule: Rule | RuleSet) => {
@@ -1235,7 +1373,10 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
               const fieldConf = this.config.fields[rule.field];
               let entity = fieldConf && fieldConf.entity;
               if (!entity) {
-                const matched = Object.values(this.config.fields).find(f => (f as Field).name === rule.field && (f as Field).entity);
+                const matched = Object.values(this.config.fields).find(
+                  (f) =>
+                    (f as Field).name === rule.field && (f as Field).entity,
+                );
                 if (matched) {
                   entity = (matched as Field).entity;
                 }
@@ -1253,14 +1394,14 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
         }
       });
     }
-    
+
     return cleanedData;
   }
 
   private registerParentRefs(ruleset: RuleSet, parent: RuleSet | null): void {
     QueryBuilderComponent.parentMap.set(ruleset, parent);
     if (ruleset.rules) {
-      ruleset.rules.forEach(r => {
+      ruleset.rules.forEach((r) => {
         if (this.isRuleset(r)) {
           this.registerParentRefs(r, ruleset);
         }
@@ -1273,7 +1414,9 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
   }
 
   private storeUnstoredNamedRulesets(root: RuleSet): void {
-    if (!this.config.saveNamedRuleset || !this.config.listNamedRulesets) { return; }
+    if (!this.config.saveNamedRuleset || !this.config.listNamedRulesets) {
+      return;
+    }
     const stored = new Set(this.config.listNamedRulesets() || []);
     const walk = (rs: RuleSet) => {
       if (rs.name && !stored.has(rs.name)) {
@@ -1281,7 +1424,7 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
         stored.add(rs.name);
       }
       if (rs.rules) {
-        rs.rules.forEach(child => {
+        rs.rules.forEach((child) => {
           if (this.isRuleset(child)) {
             walk(child);
           }
@@ -1301,7 +1444,12 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
     return current;
   }
 
-  private updateNamedRulesetInstances(name: string, source: RuleSet, skip?: RuleSet, root: RuleSet = this.data): void {
+  private updateNamedRulesetInstances(
+    name: string,
+    source: RuleSet,
+    skip?: RuleSet,
+    root: RuleSet = this.data,
+  ): void {
     const walk = (rs: RuleSet) => {
       const parent = QueryBuilderComponent.parentMap.get(rs) || null;
       if (rs !== skip && rs.name === name) {
@@ -1317,7 +1465,7 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
         rs = clone;
       }
       if (rs.rules) {
-        rs.rules.forEach(child => {
+        rs.rules.forEach((child) => {
           if (this.isRuleset(child)) {
             walk(child);
           }
@@ -1328,13 +1476,19 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
     this.changeDetectorRef.detectChanges();
   }
 
-  private renameNamedRulesetInstances(oldName: string, newName: string, source: RuleSet, skip?: RuleSet, root: RuleSet = this.data): void {
+  private renameNamedRulesetInstances(
+    oldName: string,
+    newName: string,
+    source: RuleSet,
+    skip?: RuleSet,
+    root: RuleSet = this.data,
+  ): void {
     const walk = (rs: RuleSet) => {
       if (rs.name === oldName) {
         rs.name = newName;
       }
       if (rs.rules) {
-        rs.rules.forEach(child => {
+        rs.rules.forEach((child) => {
           if (this.isRuleset(child)) {
             walk(child);
           }
@@ -1348,17 +1502,23 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
     const walk = (rs: RuleSet): boolean => {
       if (rs.name === name) return true;
       if (rs.rules) {
-        return rs.rules.some(child => this.isRuleset(child) && walk(child));
+        return rs.rules.some((child) => this.isRuleset(child) && walk(child));
       }
       return false;
     };
     return walk(root);
   }
 
-  private renameCreatesCycle(oldName: string, newName: string, root: RuleSet = this.data): boolean {
+  private renameCreatesCycle(
+    oldName: string,
+    newName: string,
+    root: RuleSet = this.data,
+  ): boolean {
     let cycle = false;
     const check = (rs: RuleSet) => {
-      if (cycle) { return; }
+      if (cycle) {
+        return;
+      }
       if (rs.name === oldName) {
         const ancestors = this.getAncestorNames(rs);
         if (ancestors.indexOf(newName) !== -1) {
@@ -1367,7 +1527,7 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
         }
       }
       if (rs.rules) {
-        rs.rules.forEach(child => {
+        rs.rules.forEach((child) => {
           if (this.isRuleset(child)) {
             check(child);
           }
@@ -1379,11 +1539,21 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
   }
 
   private saveNamedRulesetDefinition(ruleset: RuleSet, oldName?: string): void {
-    if (!ruleset.name || !this.config.saveNamedRuleset) { return; }
+    if (!ruleset.name || !this.config.saveNamedRuleset) {
+      return;
+    }
     const root = this.getRootRuleset(ruleset);
     if (oldName && oldName !== ruleset.name) {
-      if (this.renameCreatesCycle(oldName, ruleset.name, root)) { return; }
-      this.renameNamedRulesetInstances(oldName, ruleset.name, ruleset, ruleset, root);
+      if (this.renameCreatesCycle(oldName, ruleset.name, root)) {
+        return;
+      }
+      this.renameNamedRulesetInstances(
+        oldName,
+        ruleset.name,
+        ruleset,
+        ruleset,
+        root,
+      );
       if (this.config.deleteNamedRuleset) {
         this.config.deleteNamedRuleset(oldName);
       }
@@ -1411,7 +1581,9 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
     if (!/^[A-Z0-9_]+$/.test(name) || !/[A-Z]/.test(name)) {
       return false;
     }
-    const existing = this.config.listNamedRulesets ? this.config.listNamedRulesets() : [];
+    const existing = this.config.listNamedRulesets
+      ? this.config.listNamedRulesets()
+      : [];
     if (current) {
       if (current.name === name) {
         return true;
@@ -1425,86 +1597,118 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
   }
 
   addNamedRuleSet(parent?: RuleSet): void {
-    if (this.disabled || !this.config.listNamedRulesets || !this.config.getNamedRuleset) {
+    if (
+      this.disabled ||
+      !this.config.listNamedRulesets ||
+      !this.config.getNamedRuleset
+    ) {
       return;
     }
     const target = parent || this.data;
     const excluded = this.getAncestorNames(target);
     const names = this.config
       .listNamedRulesets()
-      .filter(n => excluded.indexOf(n) === -1)
+      .filter((n) => excluded.indexOf(n) === -1)
       .sort();
     if (names.length === 0) {
       this.dialog.open(MessageDialogComponent, {
-        data: { title: 'Named ' + this.rulesetName, message: 'No saved ' + this.rulesetName + 's available.' }
+        data: {
+          title: 'Named ' + this.rulesetName,
+          message: 'No saved ' + this.rulesetName + 's available.',
+        },
       });
       return;
     }
-    this.dialog.open(AddNamedRulesetDialogComponent, {
-      data: { names, rulesetName: this.rulesetName }
-    }).afterClosed().subscribe((selection: string | null) => {
-      if (selection && names.includes(selection)) {
-        const rs = this.cloneRuleset(this.config.getNamedRuleset!(selection));
-        this.registerParentRefs(rs, target);
-        target.rules.push(rs);
-        this.handleTouched();
-        this.handleDataChange();
-      }
-    });
+    this.dialog
+      .open(AddNamedRulesetDialogComponent, {
+        data: { names, rulesetName: this.rulesetName },
+      })
+      .afterClosed()
+      .subscribe((selection: string | null) => {
+        if (selection && names.includes(selection)) {
+          const rs = this.cloneRuleset(this.config.getNamedRuleset!(selection));
+          this.registerParentRefs(rs, target);
+          target.rules.push(rs);
+          this.handleTouched();
+          this.handleDataChange();
+        }
+      });
   }
 
   namedRulesetModified(ruleset: RuleSet): boolean {
-    if (!ruleset.name || !this.config.getNamedRuleset) { return false; }
-    let saved : RuleSet | null = null;
+    if (!ruleset.name || !this.config.getNamedRuleset) {
+      return false;
+    }
+    let saved: RuleSet | null = null;
     try {
       saved = this.config.getNamedRuleset(ruleset.name);
     } catch {
       // ignore errors retrieving from store
     }
-    if (!saved) { return false; }
+    if (!saved) {
+      return false;
+    }
     const a = JSON.stringify({ ...ruleset, name: undefined });
     const b = JSON.stringify({ ...saved, name: undefined });
     return a !== b;
   }
 
   namedRulesetAction(ruleset: RuleSet = this.data): void {
-    if (!ruleset.name || !this.config.getNamedRuleset || !this.config.saveNamedRuleset || !this.config.deleteNamedRuleset) {
+    if (
+      !ruleset.name ||
+      !this.config.getNamedRuleset ||
+      !this.config.saveNamedRuleset ||
+      !this.config.deleteNamedRuleset
+    ) {
       return;
     }
     const modified = this.namedRulesetModified(ruleset);
-    this.dialog.open(NamedRulesetDialogComponent, {
-      data: {
-        name: ruleset.name!,
-        rulesetName: this.rulesetName,
-        allowDelete: true,
-        modified,
-        allowEdit: !!this.config.editNamedRuleset,
-        rulesetNameSanitizer: this.config.rulesetNameSanitizer
-      }
-    }).afterClosed().subscribe((result: NamedRulesetDialogResult | undefined) => {
-      if (!result || result.action === 'cancel') { return; }
-      if (result.action === 'undo') {
-        try {
-          const stored = this.config.getNamedRuleset!(ruleset.name!);
-          if (stored) {
-            const clone = this.cloneRuleset(stored);
-            Object.keys(ruleset).forEach(k => delete (ruleset as any)[k]);
-            Object.assign(ruleset, clone);
-            this.registerParentRefs(ruleset, QueryBuilderComponent.parentMap.get(ruleset) || null);
-          }
-        } catch {
-          // ignore errors restoring from store
+    this.dialog
+      .open(NamedRulesetDialogComponent, {
+        data: {
+          name: ruleset.name!,
+          rulesetName: this.rulesetName,
+          allowDelete: true,
+          modified,
+          allowEdit: !!this.config.editNamedRuleset,
+          rulesetNameSanitizer: this.config.rulesetNameSanitizer,
+        },
+      })
+      .afterClosed()
+      .subscribe((result: NamedRulesetDialogResult | undefined) => {
+        if (!result || result.action === 'cancel') {
+          return;
         }
-        this.handleTouched();
-        this.handleDataChange();
-        return;
-      }
-      if (result.action === 'edit' && this.config.editNamedRuleset) {
-        Promise.resolve(this.config.editNamedRuleset(this.cloneRuleset(ruleset)))
-          .then(edited => {
+        if (result.action === 'undo') {
+          try {
+            const stored = this.config.getNamedRuleset!(ruleset.name!);
+            if (stored) {
+              const clone = this.cloneRuleset(stored);
+              Object.keys(ruleset).forEach((k) => delete (ruleset as any)[k]);
+              Object.assign(ruleset, clone);
+              this.registerParentRefs(
+                ruleset,
+                QueryBuilderComponent.parentMap.get(ruleset) || null,
+              );
+            }
+          } catch {
+            // ignore errors restoring from store
+          }
+          this.handleTouched();
+          this.handleDataChange();
+          return;
+        }
+        if (result.action === 'edit' && this.config.editNamedRuleset) {
+          Promise.resolve(
+            this.config.editNamedRuleset(
+              this.cloneRuleset(ruleset),
+              this.getAncestorNames(ruleset),
+            ),
+          ).then((edited) => {
             if (edited) {
-              const parent = QueryBuilderComponent.parentMap.get(ruleset) || null;
-              Object.keys(ruleset).forEach(k => delete (ruleset as any)[k]);
+              const parent =
+                QueryBuilderComponent.parentMap.get(ruleset) || null;
+              Object.keys(ruleset).forEach((k) => delete (ruleset as any)[k]);
               Object.assign(ruleset, edited);
               this.registerParentRefs(ruleset, parent);
               this.saveNamedRulesetDefinition(ruleset);
@@ -1512,69 +1716,90 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
             this.handleTouched();
             this.handleDataChange();
           });
-        return;
-      }
-      if (result.action === 'removeName' || !result.name || result.name.trim() === '') {
-        const name = ruleset.name as string;
-        delete ruleset.name;
-        const finalize = () => {
-          this.handleTouched();
-          this.handleDataChange();
-        };
-        if (!this.isRulesetNameInUse(name, this.getRootRuleset(ruleset))) {
-          this.dialog.open(MessageDialogComponent, {
-            data: {
-              title: 'Delete Named ' + this.rulesetName + '?',
-              message: `The ${this.rulesetName} named "${name}" is no longer being used. Delete it?`,
-              confirm: true
-            }
-          }).afterClosed().subscribe((confirmDelete: boolean) => {
-            if (confirmDelete) {
-              this.config.deleteNamedRuleset!(name);
-            }
-            finalize();
-          });
-        } else {
-          finalize();
+          return;
         }
-        return;
-      }
-      const newName = result.name.trim();
-      if (!this.isValidRulesetName(newName, ruleset)) {
-        this.dialog.open(MessageDialogComponent, { data: { title: 'Invalid name', message: 'Invalid name' } });
-        return;
-      }
-      const oldName = ruleset.name!;
-      const root = this.getRootRuleset(ruleset);
-      if (oldName !== newName && this.renameCreatesCycle(oldName, newName, root)) {
-        this.dialog.open(MessageDialogComponent, { data: { title: 'Invalid name', message: 'Invalid name' } });
-        return;
-      }
-      ruleset.name = newName;
-      this.saveNamedRulesetDefinition(ruleset, oldName);
-      this.handleTouched();
-      this.handleDataChange();
-    });
+        if (
+          result.action === 'removeName' ||
+          !result.name ||
+          result.name.trim() === ''
+        ) {
+          const name = ruleset.name as string;
+          delete ruleset.name;
+          const finalize = () => {
+            this.handleTouched();
+            this.handleDataChange();
+          };
+          if (!this.isRulesetNameInUse(name, this.getRootRuleset(ruleset))) {
+            this.dialog
+              .open(MessageDialogComponent, {
+                data: {
+                  title: 'Delete Named ' + this.rulesetName + '?',
+                  message: `The ${this.rulesetName} named "${name}" is no longer being used. Delete it?`,
+                  confirm: true,
+                },
+              })
+              .afterClosed()
+              .subscribe((confirmDelete: boolean) => {
+                if (confirmDelete) {
+                  this.config.deleteNamedRuleset!(name);
+                }
+                finalize();
+              });
+          } else {
+            finalize();
+          }
+          return;
+        }
+        const newName = result.name.trim();
+        if (!this.isValidRulesetName(newName, ruleset)) {
+          this.dialog.open(MessageDialogComponent, {
+            data: { title: 'Invalid name', message: 'Invalid name' },
+          });
+          return;
+        }
+        const oldName = ruleset.name!;
+        const root = this.getRootRuleset(ruleset);
+        if (
+          oldName !== newName &&
+          this.renameCreatesCycle(oldName, newName, root)
+        ) {
+          this.dialog.open(MessageDialogComponent, {
+            data: { title: 'Invalid name', message: 'Invalid name' },
+          });
+          return;
+        }
+        ruleset.name = newName;
+        this.saveNamedRulesetDefinition(ruleset, oldName);
+        this.handleTouched();
+        this.handleDataChange();
+      });
   }
 
   startNamingRuleset(ruleset: RuleSet = this.data): void {
-    if (!this.config.saveNamedRuleset) { return; }
+    if (!this.config.saveNamedRuleset) {
+      return;
+    }
     this.namingRuleset = ruleset;
     this.namingRulesetName = '';
   }
 
   confirmNamingRuleset(): void {
     const ruleset = this.namingRuleset;
-    if (!ruleset) { return; }
+    if (!ruleset) {
+      return;
+    }
     const name = this.namingRulesetName.trim();
     if (!this.isValidRulesetName(name, ruleset)) {
       this.dialog.open(MessageDialogComponent, {
-        data: { title: 'Invalid name', message: 'Invalid name' }
+        data: { title: 'Invalid name', message: 'Invalid name' },
       });
       return;
     }
     ruleset.name = name;
-    this.registerParentRefs(ruleset, QueryBuilderComponent.parentMap.get(ruleset) || null);
+    this.registerParentRefs(
+      ruleset,
+      QueryBuilderComponent.parentMap.get(ruleset) || null,
+    );
     this.saveNamedRulesetDefinition(ruleset);
     this.namingRuleset = null;
     this.handleTouched();
@@ -1583,8 +1808,13 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
 
   onNamingInput(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const sanitizer = this.config.rulesetNameSanitizer ||
-      ((v: string) => v.toUpperCase().replace(/ /g, '_').replace(/[^A-Z0-9_]/g, ''));
+    const sanitizer =
+      this.config.rulesetNameSanitizer ||
+      ((v: string) =>
+        v
+          .toUpperCase()
+          .replace(/ /g, '_')
+          .replace(/[^A-Z0-9_]/g, ''));
     this.namingRulesetName = sanitizer(input.value);
   }
 
@@ -1593,7 +1823,9 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
   }
 
   removeRulesetName(ruleset: RuleSet = this.data): void {
-    if (!ruleset.name) { return; }
+    if (!ruleset.name) {
+      return;
+    }
     const name = ruleset.name;
     delete ruleset.name;
     const finalize = () => {
@@ -1609,5 +1841,4 @@ export class QueryBuilderComponent implements OnChanges, ControlValueAccessor, V
       finalize();
     }
   }
-
 }

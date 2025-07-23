@@ -105,15 +105,20 @@ export interface QueryBuilderConfig {
   removeRuleSet?: (ruleset: RuleSet, parent: RuleSet) => void;
   removeRule?: (rule: Rule, parent: RuleSet) => void;
   coerceValueForOperator?: (operator: string, value: any, rule: Rule) => any;
-  calculateFieldChangeValue?: (currentField: Field | undefined,
-                               nextField: Field | undefined,
-                               currentValue: any) => any;
+  calculateFieldChangeValue?: (
+    currentField: Field | undefined,
+    nextField: Field | undefined,
+    currentValue: any,
+  ) => any;
   customCollapsedSummary?: (ruleset: RuleSet) => string;
   listNamedRulesets?: () => string[];
   getNamedRuleset?: (name: string) => RuleSet;
   saveNamedRuleset?: (ruleset: RuleSet) => void;
   deleteNamedRuleset?: (name: string) => void;
-  editNamedRuleset?: (ruleset: RuleSet) => Promise<RuleSet | null> | RuleSet | null;
+  editNamedRuleset?: (
+    ruleset: RuleSet,
+    ancestors?: string[],
+  ) => Promise<RuleSet | null> | RuleSet | null;
   rulesetNameSanitizer?: (value: string) => string;
 }
 
