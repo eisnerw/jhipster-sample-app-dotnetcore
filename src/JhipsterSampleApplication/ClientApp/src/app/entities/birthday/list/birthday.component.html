@@ -1,12 +1,12 @@
 <div style="height: calc(100vh - 174px); display: flex; flex-direction: column;">
-  <h2 id="page-heading" data-cy="BirthdayHeading">
+  <h2 id="page-heading" data-cy="BirthdayHeading" class="d-flex align-items-center gap-2">
     <span>Birthdays...</span>
     <lib-query-input
       [(query)]="currentQuery"
       (queryChange)="onQueryChange($event)"
       placeholder="BQL">
     </lib-query-input>
-    <div class="d-flex justify-content-end">
+    <div class="d-flex ms-auto">
       <button class="btn btn-info me-2" (click)="refreshData()" [disabled]="(dataLoader.loading$ | async)">
         <fa-icon icon="sync" [spin]="(dataLoader.loading$ | async)"></fa-icon>
         <span>Refresh List</span>
