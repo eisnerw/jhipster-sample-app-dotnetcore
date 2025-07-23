@@ -19,7 +19,7 @@ export interface EditRulesetDialogData {
   template: `
     <h1 mat-dialog-title>Edit {{data.rulesetName}}</h1>
     <div mat-dialog-content>
-      <textarea class="dialog-output" [(ngModel)]="text" (ngModelChange)="onChange($event)"></textarea>
+      <textarea class="dialog-output" [(ngModel)]="text" (ngModelChange)="onChange($event)" [ngClass]="{'invalid': state !== 'valid'}"></textarea>
     </div>
     <div mat-dialog-actions>
       <button mat-button (click)="dialogRef.close()">Cancel</button>
@@ -27,7 +27,8 @@ export interface EditRulesetDialogData {
     </div>
   `,
   styles: [
-    `.dialog-output { width: 100%; height: 100%; resize: none; box-sizing: border-box; }`
+    `.dialog-output { width: 100%; height: 100%; resize: none; box-sizing: border-box; }
+    .invalid { background: #ffd6d6; }`
   ]
 })
 export class EditRulesetDialogComponent {

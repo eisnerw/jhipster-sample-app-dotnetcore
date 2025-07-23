@@ -6,6 +6,7 @@ export interface NamedRulesetDialogData {
   rulesetName: string;
   allowDelete: boolean;
   modified: boolean;
+  valid: boolean;
   rulesetNameSanitizer?: (value: string) => string;
   allowEdit?: boolean;
 }
@@ -61,6 +62,9 @@ export class NamedRulesetDialogComponent {
   }
 
   isUpdateDisabled(): boolean {
+    if (!this.data.valid) {
+      return true;
+    }
     return !this.data.modified && this.name.trim() === this.data.name;
   }
 }
