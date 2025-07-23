@@ -29,7 +29,7 @@ import { EditRulesetDialogComponent } from './edit-ruleset-dialog.component';
   templateUrl: './query-input.component.html'
 })
 export class QueryInputComponent implements OnInit {
-  @Input() placeholder = 'Enter query';
+  @Input() placeholder = 'click search icon for widget or click to edit';
   @Input() query = '';
   @Input() config?: QueryBuilderConfig;
   @Input() allowNot = true;
@@ -44,6 +44,7 @@ export class QueryInputComponent implements OnInit {
   builderQuery: RuleSet = { condition: 'and', rules: [] };
   namedRulesets: Record<string, RuleSet> = {};
   validQuery = true;
+  private previousQuery = '';
 
   constructor(private dialog: MatDialog) {}
 
@@ -52,8 +53,18 @@ export class QueryInputComponent implements OnInit {
   }
 
   startEdit() {
+    this.previousQuery = this.query;
     this.editing = true;
     this.onQueryChange();
+  }
+
+  clearQuery(event?: Event) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.query = '';
+    this.onQueryChange();
+    this.queryChange.emit(this.query);
   }
 
   onQueryChange() {
@@ -130,10 +141,13 @@ export class QueryInputComponent implements OnInit {
 
   cancelEdit() {
     this.editing = false;
+    this.query = this.previousQuery;
+    this.onQueryChange();
   }
 
   acceptEdit() {
     this.editing = false;
+    this.previousQuery = this.query;
     this.queryChange.emit(this.query);
   }
 
