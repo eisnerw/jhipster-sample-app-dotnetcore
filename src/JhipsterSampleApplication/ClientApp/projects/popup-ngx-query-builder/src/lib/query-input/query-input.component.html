@@ -3,6 +3,7 @@
 
   <div class="text" *ngIf="!editing" (click)="startEdit()">
     <span [ngClass]="{'placeholder': !query}">{{ query || placeholder }}</span>
+    <i class="pi pi-times clear-icon" *ngIf="query" (click)="clearQuery($event)"></i>
   </div>
   <input pInputText *ngIf="editing" [(ngModel)]="query" (ngModelChange)="onQueryChange()" (keyup.enter)="acceptEdit()" [ngClass]="{'invalid': !validQuery}" />
 
