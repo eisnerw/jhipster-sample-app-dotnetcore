@@ -363,4 +363,21 @@
   .q-name-modified {
     font-weight: bold;
   }
+
+  .q-name-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
+  .q-name-remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    border: none;
+    background: none;
+    padding: 0 2px;
+    font-size: 0.65em;
+    cursor: pointer;
+    line-height: 1;
+  }
 }
