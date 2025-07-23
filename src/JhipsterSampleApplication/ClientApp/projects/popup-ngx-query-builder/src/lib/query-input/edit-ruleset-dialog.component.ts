@@ -2,12 +2,14 @@ import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { RuleSet } from 'ngx-query-builder';
+import { RuleSet, QueryBuilderConfig } from 'ngx-query-builder';
+import { bqlToRuleset, rulesetToBql } from '../bql';
 
 export interface EditRulesetDialogData {
   ruleset: RuleSet;
   rulesetName: string;
   validate: (rs: any) => boolean;
+  config: QueryBuilderConfig;
 }
 
 @Component({
@@ -30,13 +32,13 @@ export interface EditRulesetDialogData {
 })
 export class EditRulesetDialogComponent {
   text: string;
-  state: 'valid' | 'invalid-json' | 'invalid-query' = 'valid';
+  state: 'valid' | 'invalid-bql' | 'invalid-query' = 'valid';
 
   constructor(
     public dialogRef: MatDialogRef<EditRulesetDialogComponent, RuleSet | null>,
     @Inject(MAT_DIALOG_DATA) public data: EditRulesetDialogData
   ) {
-    this.text = JSON.stringify(data.ruleset, null, 2);
+    this.text = rulesetToBql(data.ruleset, data.config);
     this.validate();
   }
 
@@ -47,16 +49,16 @@ export class EditRulesetDialogComponent {
 
   private validate(): void {
     try {
-      const val = JSON.parse(this.text.trim());
+      const val = bqlToRuleset(this.text.trim(), this.data.config);
       this.state = this.data.validate(val) ? 'valid' : 'invalid-query';
     } catch {
-      this.state = 'invalid-json';
+      this.state = 'invalid-bql';
     }
   }
 
   save(): void {
     try {
-      const val = JSON.parse(this.text.trim());
+      const val = bqlToRuleset(this.text.trim(), this.data.config);
       if (this.data.validate(val)) {
         this.dialogRef.close(val);
       }

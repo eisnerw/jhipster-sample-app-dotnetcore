@@ -238,7 +238,8 @@ export class QueryInputComponent implements OnInit {
       data: {
         ruleset: JSON.parse(JSON.stringify(rs)),
         rulesetName: this.rulesetName,
-        validate: (r: any) => !!r && typeof r === 'object' && Array.isArray(r.rules) && r.rules.length > 0
+        validate: (r: any) => !!r && typeof r === 'object' && Array.isArray(r.rules) && r.rules.length > 0,
+        config: this.queryBuilderConfig
       },
       width: '800px',
       panelClass: 'resizable-dialog',
