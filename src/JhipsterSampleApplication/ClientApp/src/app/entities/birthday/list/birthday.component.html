@@ -12,10 +12,21 @@
         <span>Refresh List</span>
       </button>
 
-      <select class="form-select ms-2 w-auto" [(ngModel)]="viewName" (ngModelChange)="onViewChange($event)">
-        <option [ngValue]="null">Select a view</option>
-        <option *ngFor="let v of views" [ngValue]="v.value">{{ v.label }}</option>
-      </select>
+      <div class="d-flex align-items-center ms-2">
+        <select class="form-select w-auto" [(ngModel)]="viewName" (ngModelChange)="onViewChange($event)">
+          <option [ngValue]="null">Select a view</option>
+          <option *ngFor="let v of views" [ngValue]="v.value">{{ v.label }}</option>
+        </select>
+        <button
+          *ngIf="viewName"
+          type="button"
+          class="btn btn-link p-0 ms-1"
+          aria-label="Clear selected view"
+          (click)="onViewChange(null)"
+        >
+          <fa-icon icon="times"></fa-icon>
+        </button>
+      </div>
 
       <button
         id="jh-create-entity"
