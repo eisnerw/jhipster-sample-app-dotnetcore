@@ -259,8 +259,13 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    this.birthdayService
-      .searchView({ query: '*', from: 0, pageSize: 1000, view: this.viewName! })
+    const viewParams: any = { from: 0, pageSize: 1000, view: this.viewName! };
+    const hasQuery = this.currentQuery && this.currentQuery.trim().length > 0;
+    const viewObservable = hasQuery
+      ? this.birthdayService.searchWithBql(this.currentQuery.trim(), viewParams)
+      : this.birthdayService.searchView({ ...viewParams, query: '*' });
+
+    viewObservable
       .pipe(map((res) => res.body?.hits ?? []))
       .subscribe((hits) => {
         if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
@@ -272,7 +277,12 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
           this.viewMode = 'group';
         } else {
           this.groups = [];
-          const filter: any = { query: '*', view: this.viewName! };
+          const filter: any = { view: this.viewName! };
+          if (hasQuery) {
+            filter.bqlQuery = this.currentQuery.trim();
+          } else {
+            filter.query = '*';
+          }
           this.dataLoader.load(
             this.itemsPerPage,
             this.predicate,
@@ -514,7 +524,6 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       ? [...group.categories, group.name]
       : [group.name];
     const params: any = {
-      query: '*',
       from: 0,
       pageSize: 1000,
       view: this.viewName!,
@@ -523,8 +532,12 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     if (path.length >= 2) params.secondaryCategory = path[1];
 
     const groupData: GroupData = { mode: 'group', groups: [] };
-    this.birthdayService
-      .searchView(params)
+    const hasQuery = this.currentQuery && this.currentQuery.trim().length > 0;
+    const searchObservable = hasQuery
+      ? this.birthdayService.searchWithBql(this.currentQuery.trim(), params)
+      : this.birthdayService.searchView({ ...params, query: '*' });
+
+    searchObservable
       .pipe(map((res) => res.body?.hits ?? []))
       .subscribe((hits) => {
         if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
@@ -535,10 +548,21 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
           }));
           groupData.mode = 'group';
         } else {
-          const fetch: FetchFunction<IBirthday> = (queryParams: any) =>
-            this.birthdayService.query(queryParams);
+          const fetch: FetchFunction<IBirthday> = (queryParams: any) => {
+            if (queryParams.bqlQuery) {
+              const bql = queryParams.bqlQuery;
+              delete queryParams.bqlQuery;
+              return this.birthdayService.searchWithBql(bql, queryParams);
+            }
+            return this.birthdayService.query(queryParams);
+          };
           const loader = new DataLoader<IBirthday>(fetch);
-          const filter: any = { query: '*', view: this.viewName! };
+          const filter: any = { view: this.viewName! };
+          if (hasQuery) {
+            filter.bqlQuery = this.currentQuery.trim();
+          } else {
+            filter.query = '*';
+          }
           if (path.length >= 1) filter.category = path[0];
           if (path.length >= 2) filter.secondaryCategory = path[1];
           loader.load(
