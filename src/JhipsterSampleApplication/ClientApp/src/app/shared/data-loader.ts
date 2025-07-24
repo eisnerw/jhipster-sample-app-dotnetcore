@@ -117,9 +117,16 @@ export class DataLoader<T> {
     const totalItems = this.totalItemsSubject.getValue();
 
     if (currentLength >= this.dataLoadLimit) {
-      const message = `${totalItems} hits (too many to display, showing the first ${this.dataLoadLimit})`;
-      this.loadingMessageSubject.next(message);
-      this.loadingSubject.next(false);
+      if (totalItems > this.dataLoadLimit) {
+        const hitLabel =
+          totalItems >= 10000 ? 'Over 10000' : totalItems.toString();
+        const message = `${hitLabel} hits (too many to display, showing the first ${this.dataLoadLimit})`;
+        this.loadingMessageSubject.next(message);
+        this.loadingSubject.next(true);
+      } else {
+        this.loadingMessageSubject.next('');
+        this.loadingSubject.next(false);
+      }
       return;
     }
 
