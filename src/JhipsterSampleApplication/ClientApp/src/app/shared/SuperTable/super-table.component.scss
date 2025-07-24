@@ -67,3 +67,8 @@
     }
   }
 }
+
+:host ::ng-deep .loading-row td {
+  border-bottom: 1px solid var(--surface-border, #dee2e6);
+}
+
