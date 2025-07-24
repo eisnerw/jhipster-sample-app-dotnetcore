@@ -47,6 +47,7 @@ export class QueryInputComponent implements OnInit {
   @Input() allowRuleUpDown = true;
   @Input() ruleName = 'Rule';
   @Input() rulesetName = 'Ruleset';
+  @Input() defaultRuleAttribute: string | null = null;
   @Output() queryChange = new EventEmitter<string>();
 
   editing = false;
@@ -184,8 +185,16 @@ export class QueryInputComponent implements OnInit {
   }
 
   parseQuery(text: string): RuleSet {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      const fields = Object.keys(this.queryBuilderConfig.fields);
+      const attr = this.defaultRuleAttribute || fields[0];
+      const rule = attr ? ({ field: attr } as Rule) : undefined;
+      return { condition: 'and', rules: rule ? [rule] : [] };
+    }
+
     try {
-      return bqlToRuleset(text, this.queryBuilderConfig);
+      return bqlToRuleset(trimmed, this.queryBuilderConfig);
     } catch {
       return { condition: 'and', rules: [] };
     }
