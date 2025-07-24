@@ -259,29 +259,58 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    this.birthdayService
-      .searchView({ query: '*', from: 0, pageSize: 1000, view: this.viewName! })
-      .pipe(map((res) => res.body?.hits ?? []))
-      .subscribe((hits) => {
-        if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
-          this.groups = hits.map((h) => ({
-            name: h.categoryName,
-            count: h.count,
-            categories: null,
-          }));
-          this.viewMode = 'group';
-        } else {
-          this.groups = [];
-          const filter: any = { query: '*', view: this.viewName! };
-          this.dataLoader.load(
-            this.itemsPerPage,
-            this.predicate,
-            this.ascending,
-            filter,
-          );
-          this.viewMode = 'grid';
-        }
-      });
+    const viewParams: any = { from: 0, pageSize: 1000, view: this.viewName! };
+    const hasQuery = this.currentQuery && this.currentQuery.trim().length > 0;
+    if (hasQuery) {
+      this.birthdayService
+        .searchWithBql(this.currentQuery.trim(), viewParams)
+        .pipe(map(res => res.body?.hits ?? []))
+        .subscribe((hits: any[]) => {
+          if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
+            this.groups = hits.map((h) => ({
+              name: h.categoryName,
+              count: h.count,
+              categories: null,
+            }));
+            this.viewMode = 'group';
+          } else {
+            this.groups = [];
+            const filter: any = { view: this.viewName! };
+            filter.bqlQuery = this.currentQuery.trim();
+            this.dataLoader.load(
+              this.itemsPerPage,
+              this.predicate,
+              this.ascending,
+              filter,
+            );
+            this.viewMode = 'grid';
+          }
+        });
+    } else {
+      this.birthdayService
+        .searchView({ ...viewParams, query: '*' })
+        .pipe(map(res => res.body?.hits ?? []))
+        .subscribe((hits: any[]) => {
+          if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
+            this.groups = hits.map((h) => ({
+              name: h.categoryName,
+              count: h.count,
+              categories: null,
+            }));
+            this.viewMode = 'group';
+          } else {
+            this.groups = [];
+            const filter: any = { view: this.viewName!, query: '*' };
+            this.dataLoader.load(
+              this.itemsPerPage,
+              this.predicate,
+              this.ascending,
+              filter,
+            );
+            this.viewMode = 'grid';
+          }
+        });
+    }
   }
 
   loadViews(): void {
@@ -514,7 +543,6 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       ? [...group.categories, group.name]
       : [group.name];
     const params: any = {
-      query: '*',
       from: 0,
       pageSize: 1000,
       view: this.viewName!,
@@ -523,34 +551,79 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     if (path.length >= 2) params.secondaryCategory = path[1];
 
     const groupData: GroupData = { mode: 'group', groups: [] };
-    this.birthdayService
-      .searchView(params)
-      .pipe(map((res) => res.body?.hits ?? []))
-      .subscribe((hits) => {
-        if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
-          groupData.groups = hits.map((h) => ({
-            name: h.categoryName,
-            count: h.count,
-            categories: path,
-          }));
-          groupData.mode = 'group';
-        } else {
-          const fetch: FetchFunction<IBirthday> = (queryParams: any) =>
-            this.birthdayService.query(queryParams);
-          const loader = new DataLoader<IBirthday>(fetch);
-          const filter: any = { query: '*', view: this.viewName! };
-          if (path.length >= 1) filter.category = path[0];
-          if (path.length >= 2) filter.secondaryCategory = path[1];
-          loader.load(
-            this.itemsPerPage,
-            this.predicate,
-            this.ascending,
-            filter,
-          );
-          groupData.mode = 'grid';
-          groupData.loader = loader;
-        }
-      });
+    const hasQuery = this.currentQuery && this.currentQuery.trim().length > 0;
+    if (hasQuery) {
+      this.birthdayService
+        .searchWithBql(this.currentQuery.trim(), params)
+        .pipe(map(res => res.body?.hits ?? []))
+        .subscribe((hits: any[]) => {
+          if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
+            groupData.groups = hits.map((h) => ({
+              name: h.categoryName,
+              count: h.count,
+              categories: path,
+            }));
+            groupData.mode = 'group';
+          } else {
+            const fetch: FetchFunction<IBirthday> = (queryParams: any) => {
+              if (queryParams.bqlQuery) {
+                const bql = queryParams.bqlQuery;
+                delete queryParams.bqlQuery;
+                return this.birthdayService.searchWithBql(bql, queryParams);
+              }
+              return this.birthdayService.query(queryParams);
+            };
+            const loader = new DataLoader<IBirthday>(fetch);
+            const filter: any = { view: this.viewName! };
+            filter.bqlQuery = this.currentQuery.trim();
+            if (path.length >= 1) filter.category = path[0];
+            if (path.length >= 2) filter.secondaryCategory = path[1];
+            loader.load(
+              this.itemsPerPage,
+              this.predicate,
+              this.ascending,
+              filter,
+            );
+            groupData.mode = 'grid';
+            groupData.loader = loader;
+          }
+        });
+    } else {
+      this.birthdayService
+        .searchView({ ...params, query: '*' })
+        .pipe(map(res => res.body?.hits ?? []))
+        .subscribe((hits: any[]) => {
+          if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
+            groupData.groups = hits.map((h) => ({
+              name: h.categoryName,
+              count: h.count,
+              categories: path,
+            }));
+            groupData.mode = 'group';
+          } else {
+            const fetch: FetchFunction<IBirthday> = (queryParams: any) => {
+              if (queryParams.bqlQuery) {
+                const bql = queryParams.bqlQuery;
+                delete queryParams.bqlQuery;
+                return this.birthdayService.searchWithBql(bql, queryParams);
+              }
+              return this.birthdayService.query(queryParams);
+            };
+            const loader = new DataLoader<IBirthday>(fetch);
+            const filter: any = { view: this.viewName!, query: '*' };
+            if (path.length >= 1) filter.category = path[0];
+            if (path.length >= 2) filter.secondaryCategory = path[1];
+            loader.load(
+              this.itemsPerPage,
+              this.predicate,
+              this.ascending,
+              filter,
+            );
+            groupData.mode = 'grid';
+            groupData.loader = loader;
+          }
+        });
+    }
     return groupData;
   }
 
