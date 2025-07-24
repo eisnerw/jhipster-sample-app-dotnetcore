@@ -3,7 +3,7 @@
   *ngIf="dataLoader && mode === 'grid'"
   #pTable
   [value]="(dataLoader.data$ | async)!"
-  [columns]="columns"
+  [columns]="visibleColumns"
   dataKey="id"
   [resizableColumns]="resizableColumns"
   columnResizeMode="fit"
@@ -118,7 +118,7 @@
         </th>
       </tr>
       <tr *ngIf="dataLoader.loading$ | async" class="loading-row">
-        <td [attr.colspan]="columns.length">
+        <td [attr.colspan]="visibleColumns.length">
           {{ dataLoader.loadingMessage$ | async }}
         </td>
       </tr>
@@ -194,7 +194,7 @@
   </ng-template>
   <ng-template #defaultExpandedRow let-rowData>
     <tr>
-      <td [attr.colspan]="columns.length">
+      <td [attr.colspan]="visibleColumns.length">
         <div class="p-p-3">
           <p>No expanded row template provided</p>
         </div>
@@ -203,7 +203,7 @@
   </ng-template>
 </p-table>
 <p-table
-  [columns]="columns"
+  [columns]="visibleColumns"
   *ngIf="mode === 'group'"
   #pTable
   [resizableColumns]="resizableColumns"
@@ -308,7 +308,7 @@
   </ng-container>
   <ng-template pTemplate="body" let-rowData>
     <tr class="p-row-odd">
-      <td [attr.colspan]="columns.length">
+      <td [attr.colspan]="visibleColumns.length">
         <div style="display: flex; align-items: center">
           <span [ngStyle]="getIndentStyle(rowData)"></span>
           <button
@@ -332,7 +332,7 @@
       </td>
     </tr>
     <tr *ngIf="isGroupExpanded(rowData)">
-      <td [attr.colspan]="columns.length">
+      <td [attr.colspan]="visibleColumns.length">
         <super-table
           #detailTable
           class="grid-table"
@@ -340,7 +340,8 @@
           [groups]="groupLoaders[rowData.name]?.groups || []"
           [mode]="groupLoaders[rowData.name]?.mode || 'grid'"
           [groupQuery]="groupQuery"
-          [columns]="columns"
+          [columns]="visibleColumns"
+          [showRowNumbers]="showRowNumbers"
           [superTableParent]="this"
           [expandedRowTemplate]="expandedRowTemplate"
           [resizableColumns]="resizableColumns"

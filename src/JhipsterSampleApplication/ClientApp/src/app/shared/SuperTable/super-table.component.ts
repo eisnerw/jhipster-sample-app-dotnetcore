@@ -93,6 +93,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Input() globalFilterFields: string[] = [];
   @Input() contextMenuSelection: any;
   @Input() contextMenu: any;
+  @Input() showRowNumbers = false;
   @Input() selectionMode: 'single' | 'multiple' | null | undefined;
   @Input() selection: any;
   @Input() expandedRowKeys: { [key: string]: boolean } = {};
@@ -113,6 +114,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private topGroupName?: string;
   private scrollListener = () => this.captureTopGroup();
   private capturedWidths = false;
+
+  get visibleColumns(): ColumnConfig[] {
+    return this.showRowNumbers ? this.columns : this.columns.filter(c => c.type !== 'lineNumber');
+  }
 
   @ContentChild('customHeader', { read: TemplateRef })
   headerTemplate?: TemplateRef<any>;
