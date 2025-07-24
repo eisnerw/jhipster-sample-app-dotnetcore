@@ -34,6 +34,9 @@ export class BirthdayService {
   protected rulesetSearchUrl = this.applicationConfigService.getEndpointFor(
     'api/birthdays/search/ruleset',
   );
+  protected bqlSearchUrl = this.applicationConfigService.getEndpointFor(
+    'api/birthdays/search/bql',
+  );
 
   constructor(
     protected http: HttpClient,
@@ -93,6 +96,24 @@ export class BirthdayService {
       searchAfter: string[];
       pitId: string | null;
     }>(this.rulesetSearchUrl, ruleset, {
+      observe: 'response',
+    });
+  }
+
+  searchWithBql(
+    bqlQuery: string,
+    req?: any,
+  ): Observable<EntityArrayResponseType> {
+    const options = createRequestOption(req);
+    return this.http.post<{
+      hits: IBirthday[];
+      hitType: string;
+      totalHits: number;
+      searchAfter: string[];
+      pitId: string | null;
+    }>(this.bqlSearchUrl, bqlQuery, {
+      params: options,
+      headers: { 'Content-Type': 'text/plain' },
       observe: 'response',
     });
   }

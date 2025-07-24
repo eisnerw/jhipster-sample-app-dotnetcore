@@ -1,6 +1,13 @@
-/* eslint-disable */ 
+/* eslint-disable */
 
-import { Component, OnInit, ViewChild, ElementRef, TemplateRef, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ViewChild,
+  ElementRef,
+  TemplateRef,
+  AfterViewInit,
+} from '@angular/core';
 import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { combineLatest, Subscription } from 'rxjs';
@@ -20,7 +27,10 @@ import { Menu } from 'primeng/menu';
 import { TableModule } from 'primeng/table';
 import { tap, switchMap, map } from 'rxjs/operators';
 
-import { BirthdayService, EntityArrayResponseType } from '../service/birthday.service';
+import {
+  BirthdayService,
+  EntityArrayResponseType,
+} from '../service/birthday.service';
 import { IBirthday } from '../birthday.model';
 import { ViewService } from '../../view/service/view.service';
 import { BirthdayDeleteDialogComponent } from '../delete/birthday-delete-dialog.component';
@@ -34,9 +44,23 @@ import {
 } from '../../../shared/SuperTable/super-table.component';
 import { DataLoader, FetchFunction } from 'app/shared/data-loader';
 
-import { ITEMS_PER_PAGE, PAGE_HEADER, TOTAL_COUNT_RESPONSE_HEADER } from 'app/config/pagination.constants';
-import { ASC, DESC, SORT, ITEM_DELETED_EVENT, DEFAULT_SORT_DATA } from 'app/config/navigation.constants';
-import { QueryInputComponent, bqlToRuleset, rulesetToBql } from 'popup-ngx-query-builder';
+import {
+  ITEMS_PER_PAGE,
+  PAGE_HEADER,
+  TOTAL_COUNT_RESPONSE_HEADER,
+} from 'app/config/pagination.constants';
+import {
+  ASC,
+  DESC,
+  SORT,
+  ITEM_DELETED_EVENT,
+  DEFAULT_SORT_DATA,
+} from 'app/config/navigation.constants';
+import {
+  QueryInputComponent,
+  bqlToRuleset,
+  rulesetToBql,
+} from 'popup-ngx-query-builder';
 
 @Component({
   selector: 'jhi-birthday',
@@ -51,7 +75,7 @@ import { QueryInputComponent, bqlToRuleset, rulesetToBql } from 'popup-ngx-query
     SharedModule,
     SuperTable,
     TableModule,
-    QueryInputComponent, 
+    QueryInputComponent,
   ],
   standalone: true,
 })
@@ -60,11 +84,13 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   @ViewChild('superTable') superTable!: SuperTable;
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
   @ViewChild('menu') menu!: Menu;
-  @ViewChild('expandedRow', { static: true }) expandedRowTemplate: TemplateRef<any> | undefined;
+  @ViewChild('expandedRow', { static: true }) expandedRowTemplate:
+    | TemplateRef<any>
+    | undefined;
   // The SuperTable in group mode manages its own detail tables
 
   currentQuery = '';
-  rulesetJson = '';  
+  rulesetJson = '';
   dataLoader: DataLoader<IBirthday>;
   groups: GroupDescriptor[] = [];
   viewName: string | null = null;
@@ -123,8 +149,8 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
         { label: 'Sagittarius', value: 'Sagittarius' },
         { label: 'Capricorn', value: 'Capricorn' },
         { label: 'Aquarius', value: 'Aquarius' },
-        { label: 'Pisces', value: 'Pisces' }
-      ]
+        { label: 'Pisces', value: 'Pisces' },
+      ],
     },
     {
       field: 'isAlive',
@@ -212,9 +238,14 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     protected messageService: MessageService,
     public sanitizer: DomSanitizer,
     private confirmationService: ConfirmationService,
-    protected viewService: ViewService
+    protected viewService: ViewService,
   ) {
     const fetchFunction: FetchFunction<IBirthday> = (queryParams: any) => {
+      if (queryParams.bqlQuery) {
+        const bql = queryParams.bqlQuery;
+        delete queryParams.bqlQuery;
+        return this.birthdayService.searchWithBql(bql, queryParams);
+      }
       return this.birthdayService.query(queryParams);
     };
     this.dataLoader = new DataLoader<IBirthday>(fetchFunction);
@@ -230,24 +261,33 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
 
     this.birthdayService
       .searchView({ query: '*', from: 0, pageSize: 1000, view: this.viewName! })
-      .pipe(map(res => res.body?.hits ?? []))
-      .subscribe(hits => {
+      .pipe(map((res) => res.body?.hits ?? []))
+      .subscribe((hits) => {
         if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
-          this.groups = hits.map(h => ({ name: h.categoryName, count: h.count, categories: null }));
+          this.groups = hits.map((h) => ({
+            name: h.categoryName,
+            count: h.count,
+            categories: null,
+          }));
           this.viewMode = 'group';
         } else {
           this.groups = [];
           const filter: any = { query: '*', view: this.viewName! };
-          this.dataLoader.load(this.itemsPerPage, this.predicate, this.ascending, filter);
+          this.dataLoader.load(
+            this.itemsPerPage,
+            this.predicate,
+            this.ascending,
+            filter,
+          );
           this.viewMode = 'grid';
         }
       });
   }
 
   loadViews(): void {
-    this.viewService.query().subscribe(res => {
+    this.viewService.query().subscribe((res) => {
       const body = res.body ?? [];
-      this.views = body.map(v => ({ label: v.name, value: v.id! }));
+      this.views = body.map((v) => ({ label: v.name, value: v.id! }));
     });
   }
 
@@ -260,7 +300,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     this.onQueryChange(this.currentQuery);
-  }  
+  }
 
   onQueryChange(query: string) {
     this.currentQuery = query;
@@ -270,6 +310,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     } catch {
       this.rulesetJson = '';
     }
+    this.loadPage();
   }
 
   trackId(index: number, item: IBirthday): string {
@@ -377,8 +418,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     chipsEl.addEventListener('mouseout', chipsMouseOut);
   }
 
-  onChipClick(event: any): void {
-  }
+  onChipClick(event: any): void {}
 
   onContextMenuSelect(data: any): void {
     this.contextSelectedRow = data;
@@ -389,14 +429,19 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   onRemoveChip(event: any): void {
-    this.chipSelectedRows = this.chipSelectedRows.filter(row => row.id !== event.id);
+    this.chipSelectedRows = this.chipSelectedRows.filter(
+      (row) => row.id !== event.id,
+    );
   }
 
   delete(birthday: IBirthday): void {
-    const modalRef = this.modalService.open(BirthdayDeleteDialogComponent, { size: 'lg', backdrop: 'static' });
+    const modalRef = this.modalService.open(BirthdayDeleteDialogComponent, {
+      size: 'lg',
+      backdrop: 'static',
+    });
     modalRef.componentInstance.birthday = birthday;
     // unsubscribe not needed because closed completes on modal close
-    modalRef.closed.subscribe(reason => {
+    modalRef.closed.subscribe((reason) => {
       if (reason === ITEM_DELETED_EVENT) {
         this.loadPage();
       }
@@ -404,7 +449,21 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   loadPage(): void {
-    this.dataLoader.load(this.itemsPerPage, this.predicate, this.ascending, { luceneQuery: '*' });
+    const filter: any = {};
+    if (this.currentQuery && this.currentQuery.trim().length > 0) {
+      filter.bqlQuery = this.currentQuery.trim();
+    } else {
+      filter.luceneQuery = '*';
+    }
+    if (this.viewName) {
+      filter.view = this.viewName;
+    }
+    this.dataLoader.load(
+      this.itemsPerPage,
+      this.predicate,
+      this.ascending,
+      filter,
+    );
   }
 
   protected sort(): string[] {
@@ -416,18 +475,34 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   protected handleNavigation(): void {
-    combineLatest([this.activatedRoute.data, this.activatedRoute.queryParamMap])
-      .subscribe(([data, params]) => {
-        const page = params.get('page');
-        const pageSize = params.get('size');
-        this.page = page !== null ? +page : 1;
-        this.itemsPerPage = pageSize !== null ? +pageSize : this.itemsPerPage;
-        const sort = (params.get(SORT) ?? data[DEFAULT_SORT_DATA]).split(',');
-        this.predicate = sort[0];
-        this.ascending = sort[1] === ASC;
-        this.ngbPaginationPage = this.page;
-        this.dataLoader.load(this.itemsPerPage, this.predicate, this.ascending, { luceneQuery: '*' });
-      });
+    combineLatest([
+      this.activatedRoute.data,
+      this.activatedRoute.queryParamMap,
+    ]).subscribe(([data, params]) => {
+      const page = params.get('page');
+      const pageSize = params.get('size');
+      this.page = page !== null ? +page : 1;
+      this.itemsPerPage = pageSize !== null ? +pageSize : this.itemsPerPage;
+      const sort = (params.get(SORT) ?? data[DEFAULT_SORT_DATA]).split(',');
+      this.predicate = sort[0];
+      this.ascending = sort[1] === ASC;
+      this.ngbPaginationPage = this.page;
+      const filter: any = {};
+      if (this.currentQuery && this.currentQuery.trim().length > 0) {
+        filter.bqlQuery = this.currentQuery.trim();
+      } else {
+        filter.luceneQuery = '*';
+      }
+      if (this.viewName) {
+        filter.view = this.viewName;
+      }
+      this.dataLoader.load(
+        this.itemsPerPage,
+        this.predicate,
+        this.ascending,
+        filter,
+      );
+    });
   }
 
   logSort(event: any): void {
@@ -435,26 +510,43 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   groupQuery(group: GroupDescriptor): GroupData {
-    const path = group.categories ? [...group.categories, group.name] : [group.name];
-    const params: any = { query: '*', from: 0, pageSize: 1000, view: this.viewName! };
+    const path = group.categories
+      ? [...group.categories, group.name]
+      : [group.name];
+    const params: any = {
+      query: '*',
+      from: 0,
+      pageSize: 1000,
+      view: this.viewName!,
+    };
     if (path.length >= 1) params.category = path[0];
     if (path.length >= 2) params.secondaryCategory = path[1];
 
     const groupData: GroupData = { mode: 'group', groups: [] };
     this.birthdayService
       .searchView(params)
-      .pipe(map(res => res.body?.hits ?? []))
-      .subscribe(hits => {
+      .pipe(map((res) => res.body?.hits ?? []))
+      .subscribe((hits) => {
         if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
-          groupData.groups = hits.map(h => ({ name: h.categoryName, count: h.count, categories: path }));
+          groupData.groups = hits.map((h) => ({
+            name: h.categoryName,
+            count: h.count,
+            categories: path,
+          }));
           groupData.mode = 'group';
         } else {
-          const fetch: FetchFunction<IBirthday> = (queryParams: any) => this.birthdayService.query(queryParams);
+          const fetch: FetchFunction<IBirthday> = (queryParams: any) =>
+            this.birthdayService.query(queryParams);
           const loader = new DataLoader<IBirthday>(fetch);
           const filter: any = { query: '*', view: this.viewName! };
           if (path.length >= 1) filter.category = path[0];
           if (path.length >= 2) filter.secondaryCategory = path[1];
-          loader.load(this.itemsPerPage, this.predicate, this.ascending, filter);
+          loader.load(
+            this.itemsPerPage,
+            this.predicate,
+            this.ascending,
+            filter,
+          );
           groupData.mode = 'grid';
           groupData.loader = loader;
         }
@@ -464,4 +556,3 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
 
   // view mode is controlled by the selected view
 }
-
