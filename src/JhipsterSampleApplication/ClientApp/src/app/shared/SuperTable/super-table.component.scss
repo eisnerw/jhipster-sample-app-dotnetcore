@@ -75,3 +75,11 @@
   padding-left: 4px;
 }
 
+/* Center checkboxes in table cells */
+:host ::ng-deep td > p-tablecheckbox,
+:host ::ng-deep td > p-tableHeaderCheckbox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
