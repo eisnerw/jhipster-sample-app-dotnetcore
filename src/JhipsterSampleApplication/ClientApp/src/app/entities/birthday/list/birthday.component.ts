@@ -201,6 +201,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   birthdayDialogTitle = '';
   birthdayDialogId: any = '';
   viewMode: 'grid' | 'group' = 'grid';
+  showRowNumbers = false;
   private loadingSubscription?: Subscription;
 
   constructor(
