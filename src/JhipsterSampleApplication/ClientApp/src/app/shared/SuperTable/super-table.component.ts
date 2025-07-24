@@ -309,15 +309,22 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     if (this.capturedWidths || this.mode !== 'group') {
       return;
     }
+
     const widths = this._getColumnWidths();
     if (widths) {
+      const finalWidths: string[] = [];
       this.columns.forEach((col, index) => {
         if (col) {
-          col.width = widths[index] || '';
+          const width = col.width ?? widths[index] ?? '';
+          col.width = width;
+          finalWidths.push(width);
+        } else {
+          finalWidths.push(widths[index] ?? '');
         }
       });
+
       this.columns = [...this.columns];
-      this.lastColumnWidths = widths;
+      this.lastColumnWidths = finalWidths;
       this.capturedWidths = true;
     }
   }
