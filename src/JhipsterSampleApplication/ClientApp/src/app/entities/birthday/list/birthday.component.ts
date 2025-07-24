@@ -339,7 +339,11 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     } catch {
       this.rulesetJson = '';
     }
-    this.loadPage();
+    if (this.viewName) {
+      this.loadRootGroups();
+    } else {
+      this.loadPage();
+    }
   }
 
   trackId(index: number, item: IBirthday): string {
@@ -355,7 +359,11 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   refreshData(): void {
-    this.loadPage();
+    if (this.viewName) {
+      this.loadRootGroups();
+    } else {
+      this.loadPage();
+    }
   }
 
   onViewChange(view: string | null): void {
