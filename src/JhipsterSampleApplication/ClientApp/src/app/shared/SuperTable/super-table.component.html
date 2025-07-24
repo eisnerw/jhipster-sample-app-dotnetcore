@@ -117,7 +117,7 @@
           </div>
         </th>
       </tr>
-      <tr *ngIf="dataLoader.loading$ | async">
+      <tr *ngIf="dataLoader.loading$ | async" class="loading-row">
         <td [attr.colspan]="columns.length">
           {{ dataLoader.loadingMessage$ | async }}
         </td>
@@ -210,6 +210,7 @@
   columnResizeMode="fit"
   [scrollable]="true"
   [scrollHeight]="scrollHeight"
+  [showGridlines]="false"
   (onSort)="onHeaderSort($event)"
   (onFilter)="onHeaderFilter($event)"
   (onColResize)="onHeaderColResize($event)"
