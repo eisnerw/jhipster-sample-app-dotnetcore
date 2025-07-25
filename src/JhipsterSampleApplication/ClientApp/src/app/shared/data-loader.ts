@@ -42,6 +42,15 @@ export class DataLoader<T> {
     this.loadingMessage$ = this.loadingMessageSubject.asObservable();
   }
 
+  /**
+   * Reload the current data set using the last applied parameters.
+   * This is useful for refresh actions where the filter or sort
+   * hasn't changed but fresh data is desired.
+   */
+  reload(): void {
+    this.load(this.itemsPerPage, this.predicate, this.ascending, this.filter);
+  }
+
   load(
     itemsPerPage: number,
     predicate: string,

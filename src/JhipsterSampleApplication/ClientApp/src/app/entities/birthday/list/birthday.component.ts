@@ -389,7 +389,8 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     if (this.viewName) {
       this.loadRootGroups(true);
     } else {
-      this.loadPage();
+      // Reload using existing parameters when no view is selected
+      this.dataLoader.reload();
       if (this.lastSortEvent) {
         setTimeout(() => this.superTable.applySort(this.lastSortEvent));
       }
