@@ -341,11 +341,29 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   @ViewChild(QueryInputComponent) queryInput!: QueryInputComponent;
 
   ngOnInit(): void {
+    console.log('BirthdayComponent ngOnInit called');
+    console.log('dataLoader:', this.dataLoader);
+    console.log('dataLoader.loading$ initial:', this.dataLoader.loading$);
+    
     this.loadViews();
     this.handleNavigation();
+    
+    // Subscribe to loading state changes for debugging
+    this.dataLoader.loading$.subscribe(loading => {
+      console.log('Loading state changed to:', loading);
+    });
+    
+    // Auto-reset stuck loading state after 5 seconds
+    setTimeout(() => {
+      if (this.dataLoader['loadingSubject']?.getValue() === true) {
+        console.warn('Loading state was stuck at true, auto-resetting...');
+        this.forceResetLoading();
+      }
+    }, 5000);
   }
 
   ngAfterViewInit(): void {
+    console.log('BirthdayComponent ngAfterViewInit called');
     this.onQueryChange(this.currentQuery);
   }
 
@@ -381,20 +399,52 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   refreshData(): void {
-    if (this.viewMode === 'group') {
-      this.lastExpandedGroups = Object.keys(
-        this.superTable.expandedRowKeys,
-      ).filter((key) => this.groups.find((g) => g.name === key));
-    }
-    if (this.viewName) {
-      this.loadRootGroups(true);
-    } else {
-      this.loadPage();
-      if (this.lastSortEvent) {
-        setTimeout(() => this.superTable.applySort(this.lastSortEvent));
+    console.log('refreshData called');
+    
+    try {
+      if (this.viewMode === 'group') {
+        this.lastExpandedGroups = Object.keys(
+          this.superTable.expandedRowKeys,
+        ).filter((key) => this.groups.find((g) => g.name === key));
       }
+      if (this.viewName) {
+        this.loadRootGroups(true);
+      } else {
+        this.loadPage();
+        if (this.lastSortEvent) {
+          setTimeout(() => this.superTable.applySort(this.lastSortEvent));
+        }
+      }
+    } catch (error) {
+      console.error('Error in refreshData:', error);
+      this.forceResetLoading();
     }
   }
+
+  // Add a method to force reset the loading state
+  forceResetLoading(): void {
+    console.log('Force resetting loading state');
+    
+    // Reset loading state
+    if (this.dataLoader['loadingSubject']) {
+      this.dataLoader['loadingSubject'].next(false);
+    }
+    if (this.dataLoader['loadingMessageSubject']) {
+      this.dataLoader['loadingMessageSubject'].next('');
+    }
+    
+    // Reset internal DataLoader pagination state to prevent stuck states
+    if (this.dataLoader['pitId']) {
+      this.dataLoader['pitId'] = null;
+    }
+    if (this.dataLoader['searchAfter']) {
+      this.dataLoader['searchAfter'] = [];
+    }
+    
+    console.log('Loading state reset complete');
+  }
+
+
 
   onViewChange(view: string | null): void {
     this.viewName = view;
@@ -679,5 +729,4 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     return groupData;
   }
 
-  // view mode is controlled by the selected view
 }

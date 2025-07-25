@@ -15,7 +15,7 @@
       <button
         class="btn btn-info me-2"
         (click)="refreshData()"
-        [disabled]="dataLoader.loading$ | async"
+        [title]="(dataLoader.loading$ | async) ? 'Refresh (cancel current and restart)' : 'Refresh List'"
       >
         <fa-icon icon="sync" [spin]="dataLoader.loading$ | async"></fa-icon>
         <span>Refresh List</span>

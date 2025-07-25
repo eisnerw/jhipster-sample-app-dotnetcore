@@ -140,6 +140,8 @@ export class DataLoader<T> {
     ) {
       const message = `loading ${currentLength}...`;
       this.loadingMessageSubject.next(message);
+      // Keep loading state as true since we're going to load more data
+      this.loadingSubject.next(true);
       setTimeout(() => this.loadMore(), 10);
     } else {
       this.loadingMessageSubject.next('');
