@@ -56,6 +56,9 @@ export class DataLoader<T> {
     this.ascending = ascending;
     this.filter = filter;
     this.buffer = []; // Reset buffer on new load
+    // Reset pagination state to ensure a fresh search
+    this.pitId = null;
+    this.searchAfter = [];
 
     const queryParams: any = {
       pageSize: this.itemsPerPage,
