@@ -153,6 +153,11 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         this.destroyGroupScroll();
       }
     }
+    if (changes['groups'] && !changes['groups'].firstChange) {
+      // Clear cached group data and expanded state when groups change
+      this.groupLoaders = {};
+      this.expandedRowKeys = {};
+    }
   }
 
   ngAfterViewInit(): void {
