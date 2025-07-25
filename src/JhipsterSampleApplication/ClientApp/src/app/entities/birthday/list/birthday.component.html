@@ -1,21 +1,36 @@
-<div style="height: calc(100vh - 174px); display: flex; flex-direction: column;">
-  <h2 id="page-heading" data-cy="BirthdayHeading" class="d-flex align-items-center gap-2">
+<div style="height: calc(100vh - 174px); display: flex; flex-direction: column">
+  <h2
+    id="page-heading"
+    data-cy="BirthdayHeading"
+    class="d-flex align-items-center gap-2"
+  >
     <span>Birthdays...</span>
     <lib-query-input
       [(query)]="currentQuery"
       (queryChange)="onQueryChange($event)"
-      placeholder="click search icon for widget or click to edit">
+      placeholder="click search icon for widget or click to edit"
+    >
     </lib-query-input>
     <div class="d-flex ms-auto">
-      <button class="btn btn-info me-2" (click)="refreshData()" [disabled]="(dataLoader.loading$ | async)">
-        <fa-icon icon="sync" [spin]="(dataLoader.loading$ | async)"></fa-icon>
+      <button
+        class="btn btn-info me-2"
+        (click)="refreshData()"
+        [disabled]="dataLoader.loading$ | async"
+      >
+        <fa-icon icon="sync" [spin]="dataLoader.loading$ | async"></fa-icon>
         <span>Refresh List</span>
       </button>
 
       <div class="d-flex align-items-center ms-2">
-        <select class="form-select w-auto" [(ngModel)]="viewName" (ngModelChange)="onViewChange($event)">
+        <select
+          class="form-select w-auto"
+          [(ngModel)]="viewName"
+          (ngModelChange)="onViewChange($event)"
+        >
           <option [ngValue]="null">Select a view</option>
-          <option *ngFor="let v of views" [ngValue]="v.value">{{ v.label }}</option>
+          <option *ngFor="let v of views" [ngValue]="v.value">
+            {{ v.label }}
+          </option>
         </select>
         <button
           *ngIf="viewName"
@@ -28,14 +43,24 @@
         </button>
       </div>
 
-      <div class="form-check ms-2" style="font-size: 1rem; display: flex; align-items: center; font-weight: 400;">
+      <div
+        class="form-check ms-2"
+        style="
+          font-size: 1rem;
+          display: flex;
+          align-items: center;
+          font-weight: 400;
+        "
+      >
         <input
           id="showRowNumbers"
           type="checkbox"
           class="form-check-input"
           [(ngModel)]="showRowNumbers"
         />
-        <label for="showRowNumbers" class="form-check-label">&nbsp;Show row numbers</label>
+        <label for="showRowNumbers" class="form-check-label"
+          >&nbsp;Show row numbers</label
+        >
       </div>
 
       <button
@@ -69,6 +94,7 @@
       (selectionChange)="onCheckboxChange()"
       (onContextMenuSelect)="setMenu($event.data)"
       (contextMenuSelectionChange)="onContextMenuSelect($event)"
+      (onSort)="onSort($event)"
       [expandedRowTemplate]="expandedRow"
     ></super-table>
   </div>
@@ -78,17 +104,23 @@
       <td [attr.colspan]="columns.length + 1">
         <h5>Details for {{ rowData.lname }}, {{ rowData.fname }}</h5>
         <!-- Add more details as needed -->
-        <p>Date of Birth: {{ rowData.dob | date:'longDate' }}</p>
+        <p>Date of Birth: {{ rowData.dob | date: 'longDate' }}</p>
         <p>Sign: {{ rowData.sign }}</p>
       </td>
     </tr>
   </ng-template>
 
+  <p-contextMenu
+    #contextMenu
+    [model]="menuItems"
+    (onShow)="onMenuShow($event, 'context')"
+  ></p-contextMenu>
 
-
-  <p-contextMenu #contextMenu [model]="menuItems" (onShow)="onMenuShow($event, 'context')"></p-contextMenu>
-
-  <p-dialog [(visible)]="bDisplaySearchDialog" [modal]="true" header="Search Birthdays">
+  <p-dialog
+    [(visible)]="bDisplaySearchDialog"
+    [modal]="true"
+    header="Search Birthdays"
+  >
     <!-- Search dialog content -->
   </p-dialog>
-</div> 
+</div>
