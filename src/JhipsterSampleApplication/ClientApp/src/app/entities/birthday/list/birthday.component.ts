@@ -222,6 +222,9 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   checkboxSelectedRows: IBirthday[] = [];
   chipSelectedRows: IBirthday[] = [];
 
+  private lastSortEvent: any = null;
+  private lastExpandedGroups: string[] = [];
+
   bDisplaySearchDialog = false;
   bDisplayBirthday = false;
   birthdayDialogTitle = '';
@@ -251,11 +254,14 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     this.dataLoader = new DataLoader<IBirthday>(fetchFunction);
   }
 
-  loadRootGroups(): void {
+  loadRootGroups(restoreState: boolean = false): void {
     if (!this.viewName) {
       this.groups = [];
       this.loadPage();
       this.viewMode = 'grid';
+      if (restoreState && this.lastSortEvent) {
+        setTimeout(() => this.superTable.applySort(this.lastSortEvent));
+      }
       return;
     }
 
@@ -264,7 +270,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     if (hasQuery) {
       this.birthdayService
         .searchWithBql(this.currentQuery.trim(), viewParams)
-        .pipe(map(res => res.body?.hits ?? []))
+        .pipe(map((res) => res.body?.hits ?? []))
         .subscribe((hits: any[]) => {
           if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
             this.groups = hits.map((h) => ({
@@ -273,6 +279,9 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
               categories: null,
             }));
             this.viewMode = 'group';
+            if (restoreState) {
+              setTimeout(() => this.restoreState());
+            }
           } else {
             this.groups = [];
             const filter: any = { view: this.viewName! };
@@ -284,12 +293,15 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
               filter,
             );
             this.viewMode = 'grid';
+            if (restoreState && this.lastSortEvent) {
+              setTimeout(() => this.superTable.applySort(this.lastSortEvent));
+            }
           }
         });
     } else {
       this.birthdayService
         .searchView({ ...viewParams, query: '*' })
-        .pipe(map(res => res.body?.hits ?? []))
+        .pipe(map((res) => res.body?.hits ?? []))
         .subscribe((hits: any[]) => {
           if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
             this.groups = hits.map((h) => ({
@@ -298,6 +310,9 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
               categories: null,
             }));
             this.viewMode = 'group';
+            if (restoreState) {
+              setTimeout(() => this.restoreState());
+            }
           } else {
             this.groups = [];
             const filter: any = { view: this.viewName!, query: '*' };
@@ -308,6 +323,9 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
               filter,
             );
             this.viewMode = 'grid';
+            if (restoreState && this.lastSortEvent) {
+              setTimeout(() => this.superTable.applySort(this.lastSortEvent));
+            }
           }
         });
     }
@@ -358,11 +376,23 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     this.bDisplaySearchDialog = false;
   }
 
+  onSort(event: any): void {
+    this.lastSortEvent = event;
+  }
+
   refreshData(): void {
+    if (this.viewMode === 'group') {
+      this.lastExpandedGroups = Object.keys(
+        this.superTable.expandedRowKeys,
+      ).filter((key) => this.groups.find((g) => g.name === key));
+    }
     if (this.viewName) {
-      this.loadRootGroups();
+      this.loadRootGroups(true);
     } else {
       this.loadPage();
+      if (this.lastSortEvent) {
+        setTimeout(() => this.superTable.applySort(this.lastSortEvent));
+      }
     }
   }
 
@@ -422,6 +452,20 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       this.menuItems[1].label = `Select another birthday to relate`;
     }
     this.contextSelectedRow = birthday;
+  }
+
+  private restoreState(): void {
+    if (this.viewMode === 'group') {
+      for (const name of this.lastExpandedGroups) {
+        const group = this.groups.find((g) => g.name === name);
+        if (group) {
+          this.superTable.onGroupToggle(group);
+        }
+      }
+    }
+    if (this.lastSortEvent) {
+      this.superTable.applySort(this.lastSortEvent);
+    }
   }
 
   showMenu(event: MouseEvent): void {
@@ -563,7 +607,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     if (hasQuery) {
       this.birthdayService
         .searchWithBql(this.currentQuery.trim(), params)
-        .pipe(map(res => res.body?.hits ?? []))
+        .pipe(map((res) => res.body?.hits ?? []))
         .subscribe((hits: any[]) => {
           if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
             groupData.groups = hits.map((h) => ({
@@ -599,7 +643,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     } else {
       this.birthdayService
         .searchView({ ...params, query: '*' })
-        .pipe(map(res => res.body?.hits ?? []))
+        .pipe(map((res) => res.body?.hits ?? []))
         .subscribe((hits: any[]) => {
           if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
             groupData.groups = hits.map((h) => ({
