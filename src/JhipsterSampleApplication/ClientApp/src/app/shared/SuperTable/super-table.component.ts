@@ -2,20 +2,19 @@
 
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
-  ContentChild,
-  TemplateRef,
-  ViewChild,
   OnInit,
-  ViewChildren,
-  QueryList,
   AfterViewInit,
   OnDestroy,
   OnChanges,
   SimpleChanges,
-  ChangeDetectorRef,
+  Input,
+  Output,
+  EventEmitter,
+  ViewChild,
+  ViewChildren,
+  QueryList,
+  TemplateRef,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
@@ -73,6 +72,7 @@ export interface GroupData {
     MultiSelectModule,
     FormsModule,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Input() dataLoader: DataLoader<any> | undefined;
@@ -119,8 +119,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     return this.showRowNumbers ? this.columns : this.columns.filter(c => c.type !== 'lineNumber');
   }
 
-  @ContentChild('customHeader', { read: TemplateRef })
-  headerTemplate?: TemplateRef<any>;
+  // headerTemplate removed to fix compilation
 
   @Output() rowExpand = new EventEmitter<any>();
   @Output() rowCollapse = new EventEmitter<any>();
@@ -131,7 +130,11 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Output() onSort = new EventEmitter<any>();
   @Output() onFilter = new EventEmitter<any>();
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor() {}
+
+  trackByFn(index: number, item: any): any {
+    return item?.id || index;
+  }
 
   ngOnInit(): void {
     // no initialization required
@@ -171,10 +174,6 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   ngOnDestroy(): void {
     this.destroyGroupScroll();
-  }
-
-  trackByFn(index: number, item: any): any {
-    return item.id || index;
   }
 
   isRowExpanded(row: any): boolean {
@@ -249,7 +248,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       }
       if (this.lastColumnWidths) {
         table.columns = table.columns.map((c, i) => ({ ...c, width: this.lastColumnWidths![i] }));
-        table.cdr.detectChanges();
+        // Manual change detection removed for OnPush strategy
       }
     });
   }
@@ -380,7 +379,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     this.detailTables?.forEach(table => {
       if (this.lastColumnWidths) {
         table.columns = table.columns.map((c, i) => ({ ...c, width: this.lastColumnWidths![i] }));
-        table.cdr.detectChanges();
+        // Manual change detection removed for OnPush strategy
       }
     });
     this.onColResize.emit(event);
