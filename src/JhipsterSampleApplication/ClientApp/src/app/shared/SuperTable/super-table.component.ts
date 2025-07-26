@@ -145,19 +145,44 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['mode'] && !changes['mode'].firstChange) {
+      const currentWidths = this._getColumnWidths();
+      if (currentWidths) {
+        this.lastColumnWidths = currentWidths;
+      }
+
       if (changes['mode'].currentValue === 'group') {
         setTimeout(() => {
-          this.captureColumnWidths();
+          if (this.lastColumnWidths) {
+            this.applyColumnWidths(this.lastColumnWidths);
+          }
           this.initGroupScroll();
+          this.captureColumnWidths();
         });
       } else {
         this.destroyGroupScroll();
+        setTimeout(() => {
+          if (this.lastColumnWidths) {
+            this.applyColumnWidths(this.lastColumnWidths);
+          }
+        });
       }
     }
     if (changes['groups'] && !changes['groups'].firstChange) {
+      const currentWidths = this._getColumnWidths();
+      if (currentWidths) {
+        this.lastColumnWidths = currentWidths;
+      }
+
       // Clear cached group data and expanded state when groups change
       this.groupLoaders = {};
       this.expandedRowKeys = {};
+
+      setTimeout(() => {
+        if (this.lastColumnWidths) {
+          this.applyColumnWidths(this.lastColumnWidths);
+        }
+        this.captureColumnWidths();
+      });
     }
   }
 
@@ -306,6 +331,20 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       
     } else {
     }
+  }
+
+  // Apply an array of widths to this table's columns and DOM
+  private applyColumnWidths(widths: string[] | undefined): void {
+    if (!widths || widths.length === 0) {
+      return;
+    }
+
+    this.columns = this.columns.map((col, idx) => ({
+      ...col,
+      width: widths[idx] ?? col.width,
+    }));
+
+    this.forceColumnUpdate(widths);
   }
 
   // Single method to apply header column widths to all detail tables
