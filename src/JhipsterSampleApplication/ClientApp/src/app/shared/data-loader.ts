@@ -110,15 +110,7 @@ export class DataLoader<T> {
     const toAdd = newHits.slice(0, remaining);
     if (toAdd.length > 0) {
       this.buffer.push(...toAdd);
-
-      // PERFORMANCE: Batch DOM updates - only emit every 100 items to reduce rendering
-      const shouldEmitUpdate =
-        this.buffer.length % 100 === 0 ||
-        this.buffer.length >= this.dataLoadLimit;
-
-      if (shouldEmitUpdate) {
-        this.bufferSubject.next([...this.buffer]); // New array reference for change detection
-      }
+      this.bufferSubject.next(this.buffer);
     }
 
     this.pitId = data?.pitId ?? null;

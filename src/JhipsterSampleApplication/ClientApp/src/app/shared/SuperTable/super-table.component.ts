@@ -14,7 +14,6 @@ import {
   ViewChildren,
   QueryList,
   TemplateRef,
-  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
@@ -72,7 +71,6 @@ export interface GroupData {
     MultiSelectModule,
     FormsModule,
   ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Input() dataLoader: DataLoader<any> | undefined;
@@ -202,7 +200,6 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   onRowExpand(event: { originalEvent: Event; data: any }) {
-    console.log('Expanded:', event.data);
     this.expandedRowKeys[event.data.id] = true;
     this.rowExpand.emit(event);
     setTimeout(() => this.applyStoredStateToDetails());
@@ -232,31 +229,172 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     this.onFilter.emit(event);
   }
 
+  // Method to force column width updates in detail tables
+  forceColumnUpdate(explicitWidths?: string[]): void {
+    // Technique 1: Trigger a columns change to force template update
+    this.columns = [...this.columns];
+    
+    // Technique 2: Force change detection on this component
+    if ((this as any).cd) {
+      (this as any).cd.detectChanges();
+    }
+    
+    // Technique 3: Force PrimeNG table to recalculate (if available)
+    if (this.pTable) {
+      // Try to trigger PrimeNG's internal column update
+      if ((this.pTable as any).updateColumns) {
+        (this.pTable as any).updateColumns();
+      }
+      
+      // Force table to recalculate layout
+      if ((this.pTable as any).cd) {
+        (this.pTable as any).cd.detectChanges();
+      }
+    }
+    
+    // Technique 4: Manually update DOM as fallback
+    setTimeout(() => {
+      this.forceWidthsInDOM(explicitWidths);
+    }, 20);
+  }
+  
+  // Force column widths directly in DOM
+  private forceWidthsInDOM(explicitWidths?: string[]): void {
+    
+    if (this.pTable?.el) {
+      const headers: NodeListOf<HTMLTableCellElement> = this.pTable.el.nativeElement.querySelectorAll('th');
+      const colElements: NodeListOf<HTMLElement> = this.pTable.el.nativeElement.querySelectorAll('col');
+      
+      // Use explicit widths if provided, otherwise fall back to component columns
+      const widthsToUse = explicitWidths || this.columns.map(c => c.width).filter(w => w);
+      
+      if (colElements.length === 0) {
+        const tableEl = this.pTable.el.nativeElement.querySelector('table');
+        if (tableEl) {
+          const colgroup = tableEl.querySelector('colgroup');
+          if (colgroup) {
+            const cols = colgroup.querySelectorAll('col');
+          }
+        }
+        return;
+      }
+      
+      // Focus on <col> elements since detail tables have no headers
+      widthsToUse.forEach((width, index) => {
+        if (width && index < colElements.length) {
+          
+          // Update <col> element with multiple CSS properties
+          const colEl = colElements[index];
+          colEl.style.width = width;
+          colEl.style.minWidth = width;
+          colEl.style.maxWidth = width;
+          colEl.setAttribute('style', `width: ${width} !important; min-width: ${width} !important; max-width: ${width} !important;`);
+          
+        } else if (index >= colElements.length) {
+        } else if (!width) {
+        }
+      });
+      
+      // Force a reflow to ensure styles take effect
+      const table = this.pTable.el.nativeElement.querySelector('table');
+      if (table) {
+        const originalDisplay = table.style.display;
+        table.style.display = 'none';
+        table.offsetHeight; // Trigger reflow
+        table.style.display = originalDisplay;
+      }
+      
+    } else {
+    }
+  }
+
+  // Single method to apply header column widths to all detail tables
+  private applyHeaderWidthsToDetailTables(): void {
+    if (!this.detailTables || this.detailTables.length === 0) {
+      return;
+    }
+
+    // Always get current widths from header
+    const headerWidths = this._getColumnWidths();
+    if (!headerWidths) {
+      return;
+    }
+
+    this.detailTables.forEach((table, index) => {
+      if (table.columns && headerWidths) {
+        const minLength = Math.min(table.columns.length, headerWidths.length);
+        
+        // Apply header widths to all columns
+        table.columns = table.columns.map((col, i) => {
+          if (i < minLength) {
+            return { ...col, width: headerWidths[i] };
+          }
+          return { ...col }; // Keep original width for out-of-range columns
+        });
+
+        // Force DOM update with header widths
+        setTimeout(() => {
+          table.forceColumnUpdate(headerWidths);
+        }, 10);
+      }
+    });
+  }
+
   private applyStoredStateToDetails(): void {
     const currentWidths = this._getColumnWidths();
     if (currentWidths) {
       this.lastColumnWidths = currentWidths;
     }
 
-    this.detailTables?.forEach(table => {
+    // Read current state from header table (source of truth)
+    let currentSortEvent = null;
+    let currentFilterEvent = null;
+    
+    if (this.pTable) {
+      const headerTable = this.pTable as any;
+      
+      // Get current sort state
+      if (headerTable.sortField && headerTable.sortOrder !== undefined) {
+        currentSortEvent = {
+          field: headerTable.sortField,
+          order: headerTable.sortOrder
+        };
+      }
+      
+      // Get current filter state  
+      if (headerTable.filters) {
+        currentFilterEvent = {
+          filters: headerTable.filters
+        };
+      }
+    }
+
+    this.detailTables?.forEach((table, index) => {
       table.columns = [...this.columns];
-      if (this.lastSortEvent) {
-        table.applySort(this.lastSortEvent);
+      
+      // Apply current sort (from header, not stale stored event)
+      if (currentSortEvent) {
+        table.applySort(currentSortEvent);
       }
-      if (this.lastFilterEvent) {
-        table.applyFilter(this.lastFilterEvent);
-      }
-      if (this.lastColumnWidths) {
-        table.columns = table.columns.map((c, i) => ({ ...c, width: this.lastColumnWidths![i] }));
-        // Manual change detection removed for OnPush strategy
+      
+      // Apply current filter (from header, not stale stored event)
+      if (currentFilterEvent) {
+        table.applyFilter(currentFilterEvent);
       }
     });
+
+    // Apply header widths to detail tables (scenario 1: collapser opening)
+    setTimeout(() => {
+      this.applyHeaderWidthsToDetailTables();
+    }, 20);
   }
 
   applySort(event: any): void {
     if (this.pTable && event) {
+      
       (this.pTable as any).sortField = event.sortField || event.field;
       (this.pTable as any).sortOrder = event.sortOrder || event.order;
+      
       if ((this.pTable as any).sortSingle) {
         (this.pTable as any).sortSingle();
       }
@@ -275,6 +413,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   onHeaderSort(event: any): void {
     const targetGroup = this.topGroupName;
     this.lastSortEvent = event;
+    this.onSort.emit(event); // FIX: Emit sort event to parent component
     this.detailTables?.forEach(table => table.applySort(event));
     requestAnimationFrame(() => {
       if (targetGroup) {
@@ -296,14 +435,19 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   private _getColumnWidths(): string[] | undefined {
+    
     if (this.superTableParent) {
       return this.superTableParent._getColumnWidths();
     }
 
     if (this.pTable?.el) {
       const header: NodeListOf<HTMLTableCellElement> = this.pTable.el.nativeElement.querySelectorAll('th');
-      if (header) {
-        return Array.from(header).map((th: HTMLTableCellElement) => th.offsetWidth + 'px');
+      if (header && header.length > 0) {
+        const widths = Array.from(header).map((th: HTMLTableCellElement) => {
+          const width = th.offsetWidth + 'px';
+          return width;
+        });
+        return widths;
       }
     }
     return undefined;
@@ -376,13 +520,13 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   onHeaderColResize(event: any): void {
     this.lastColumnWidths = this._getColumnWidths();
-    this.detailTables?.forEach(table => {
-      if (this.lastColumnWidths) {
-        table.columns = table.columns.map((c, i) => ({ ...c, width: this.lastColumnWidths![i] }));
-        // Manual change detection removed for OnPush strategy
-      }
-    });
+    
+    // Apply header widths to detail tables (scenario 3: column width changed)
+    this.applyHeaderWidthsToDetailTables();
+    
     this.onColResize.emit(event);
+    
+    // Restore scroll position after resize
     requestAnimationFrame(() => {
       if (this.topGroupName) {
         this.scrollToGroup(this.topGroupName);
@@ -405,5 +549,12 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private destroyGroupScroll(): void {
     this.scrollContainer?.removeEventListener('scroll', this.scrollListener);
     this.scrollContainer = undefined;
+  }
+
+  // Public method for external components to trigger width alignment (scenario 2: grid refresh)
+  public alignDetailTableWidths(): void {
+    setTimeout(() => {
+      this.applyHeaderWidthsToDetailTables();
+    }, 50);
   }
 }

@@ -255,6 +255,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   loadRootGroups(restoreState: boolean = false): void {
+    
     if (!this.viewName) {
       this.groups = [];
       this.loadPage();
@@ -267,6 +268,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
 
     const viewParams: any = { from: 0, pageSize: 1000, view: this.viewName! };
     const hasQuery = this.currentQuery && this.currentQuery.trim().length > 0;
+    
     if (hasQuery) {
       this.birthdayService
         .searchWithBql(this.currentQuery.trim(), viewParams)
@@ -341,29 +343,26 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   @ViewChild(QueryInputComponent) queryInput!: QueryInputComponent;
 
   ngOnInit(): void {
-    console.log('BirthdayComponent ngOnInit called');
-    console.log('dataLoader:', this.dataLoader);
-    console.log('dataLoader.loading$ initial:', this.dataLoader.loading$);
-    
     this.loadViews();
     this.handleNavigation();
     
-    // Subscribe to loading state changes for debugging
     this.dataLoader.loading$.subscribe(loading => {
-      console.log('Loading state changed to:', loading);
+      if (!loading) {
+        // Data loading completed
+      }
     });
     
-    // Auto-reset stuck loading state after 5 seconds
+    // Force reset loading state if stuck  
     setTimeout(() => {
-      if (this.dataLoader['loadingSubject']?.getValue() === true) {
-        console.warn('Loading state was stuck at true, auto-resetting...');
-        this.forceResetLoading();
-      }
-    }, 5000);
+      this.dataLoader.loading$.subscribe(loading => {
+        if (loading) {
+          this.forceResetLoading();
+        }
+      });
+    }, 10000); // 10 second timeout
   }
 
   ngAfterViewInit(): void {
-    console.log('BirthdayComponent ngAfterViewInit called');
     this.onQueryChange(this.currentQuery);
   }
 
@@ -399,21 +398,26 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   refreshData(): void {
-    console.log('refreshData called');
-    
     try {
       if (this.viewMode === 'group') {
         this.lastExpandedGroups = Object.keys(
           this.superTable.expandedRowKeys,
         ).filter((key) => this.groups.find((g) => g.name === key));
+        
+        // Capture current scroll position before refresh
+        if (this.superTable && (this.superTable as any).captureTopGroup) {
+          (this.superTable as any).captureTopGroup();
+        }
       }
+      
       if (this.viewName) {
-        this.loadRootGroups(true);
+        this.loadRootGroups(true); // Pass true to restore state
       } else {
         this.loadPage();
-        if (this.lastSortEvent) {
-          setTimeout(() => this.superTable.applySort(this.lastSortEvent));
-        }
+        // Smart approach: Read sort from headers after data loads
+        setTimeout(() => {
+          this.restoreCurrentSortFromHeaders();
+        }, 100);
       }
     } catch (error) {
       console.error('Error in refreshData:', error);
@@ -423,8 +427,6 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
 
   // Add a method to force reset the loading state
   forceResetLoading(): void {
-    console.log('Force resetting loading state');
-    
     // Reset loading state
     if (this.dataLoader['loadingSubject']) {
       this.dataLoader['loadingSubject'].next(false);
@@ -440,11 +442,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     if (this.dataLoader['searchAfter']) {
       this.dataLoader['searchAfter'] = [];
     }
-    
-    console.log('Loading state reset complete');
   }
-
-
 
   onViewChange(view: string | null): void {
     this.viewName = view;
@@ -505,6 +503,8 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   private restoreState(): void {
+    
+    // ALWAYS restore expanded groups (this was working before)
     if (this.viewMode === 'group') {
       for (const name of this.lastExpandedGroups) {
         const group = this.groups.find((g) => g.name === name);
@@ -513,9 +513,23 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
         }
       }
     }
-    if (this.lastSortEvent) {
-      this.superTable.applySort(this.lastSortEvent);
-    }
+    
+    // Use the new header-reading approach for sorting
+    setTimeout(() => this.restoreCurrentSortFromHeaders(), 100);
+    
+    // Apply header widths to detail tables after refresh (scenario 2: grid refresh)
+    setTimeout(() => {
+      if (this.superTable) {
+        this.superTable.alignDetailTableWidths();
+      }
+    }, 150);
+    
+    // Restore scroll position after everything else is restored
+    setTimeout(() => {
+      if (this.viewMode === 'group' && this.superTable && (this.superTable as any).topGroupName) {
+        (this.superTable as any).scrollToGroup((this.superTable as any).topGroupName);
+      }
+    }, 200);
   }
 
   showMenu(event: MouseEvent): void {
@@ -727,6 +741,27 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
         });
     }
     return groupData;
+  }
+
+  // Smart approach: Read current sort state from header table instead of capturing events
+  private restoreCurrentSortFromHeaders(): void {
+    
+    if (this.superTable?.pTable) {
+      const headerTable = this.superTable.pTable as any;
+      
+      const currentSortField = headerTable.sortField;
+      const currentSortOrder = headerTable.sortOrder;
+      
+      if (currentSortField && currentSortOrder !== undefined) {
+        const sortEvent = {
+          field: currentSortField,
+          order: currentSortOrder
+        };
+        
+        this.superTable.applySort(sortEvent);
+      }
+    }
+    
   }
 
 }

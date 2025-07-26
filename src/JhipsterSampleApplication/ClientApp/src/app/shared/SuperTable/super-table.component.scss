@@ -66,6 +66,53 @@
       font-size: 10px;
     }
   }
+
+  // Force table to respect column width constraints
+  .p-datatable .p-datatable-table {
+    table-layout: fixed !important;
+  }
+
+  // Force all table cells to respect width constraints and handle overflow
+  .p-datatable .p-datatable-tbody > tr > td,
+  .p-datatable .p-datatable-thead > tr > th {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    max-width: 0 !important; // Force width constraint
+  }
+
+  // Ensure cell content also respects constraints (but exclude group row containers)
+  .p-datatable .p-datatable-tbody > tr > td > *:not([style*="display: flex"]),
+  .p-datatable .p-datatable-thead > tr > th > *:not([style*="display: flex"]) {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    max-width: 100% !important;
+    display: block !important;
+  }
+
+  // Preserve flex layout for group rows
+  .p-datatable .p-datatable-tbody > tr > td > div[style*="display: flex"] {
+    display: flex !important;
+    align-items: center !important;
+    white-space: normal !important;
+    overflow: visible !important;
+  }
+
+  // Ensure group row children maintain proper inline layout
+  .p-datatable .p-datatable-tbody > tr > td > div[style*="display: flex"] > * {
+    display: initial !important;
+    white-space: normal !important;
+    overflow: visible !important;
+  }
+
+  // Special handling for buttons and checkboxes - don't apply text constraints
+  .p-datatable .p-datatable-tbody > tr > td > .p-button,
+  .p-datatable .p-datatable-tbody > tr > td > p-tablecheckbox,
+  .p-datatable .p-datatable-thead > tr > th > p-tableHeaderCheckbox {
+    display: flex !important;
+    white-space: normal !important;
+  }
 }
 
 :host ::ng-deep .loading-row td {
