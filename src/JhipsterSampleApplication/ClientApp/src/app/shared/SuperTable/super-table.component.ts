@@ -320,21 +320,26 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       return;
     }
 
-    this.detailTables.forEach((table, index) => {
+    this.detailTables.forEach(table => {
       if (table.columns && headerWidths) {
         const minLength = Math.min(table.columns.length, headerWidths.length);
-        
-        // Apply header widths to all columns
+
+        const appliedWidths: string[] = [];
+
         table.columns = table.columns.map((col, i) => {
           if (i < minLength) {
-            return { ...col, width: headerWidths[i] };
+            const parentCol = this.columns[i];
+            const width = parentCol?.width || headerWidths[i];
+            appliedWidths.push(width);
+            return { ...col, width };
           }
-          return { ...col }; // Keep original width for out-of-range columns
+          appliedWidths.push(col.width ?? '');
+          return { ...col };
         });
 
         // Force DOM update with header widths
         setTimeout(() => {
-          table.forceColumnUpdate(headerWidths);
+          table.forceColumnUpdate(appliedWidths);
         }, 10);
       }
     });
