@@ -243,7 +243,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         table.applyFilter(this.lastFilterEvent);
       }
       if (this.lastColumnWidths) {
-        table.columns = table.columns.map((c, i) => ({ ...c, width: this.lastColumnWidths![i] }));
+        table.visibleColumns.forEach((c, i) => {
+          c.width = this.lastColumnWidths![i];
+        });
+        table.columns = [...table.columns];
         table.cdr.detectChanges();
       }
     });
@@ -311,10 +314,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     }
     const widths = this._getColumnWidths();
     if (widths) {
-      this.columns.forEach((col, index) => {
-        if (col) {
-          col.width = widths[index] || '';
-        }
+      this.visibleColumns.forEach((col, index) => {
+        col.width = widths[index] || '';
       });
       this.columns = [...this.columns];
       this.lastColumnWidths = widths;
@@ -365,9 +366,18 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   onHeaderColResize(event: any): void {
     this.lastColumnWidths = this._getColumnWidths();
+    if (this.lastColumnWidths) {
+      this.visibleColumns.forEach((c, i) => {
+        c.width = this.lastColumnWidths![i];
+      });
+      this.columns = [...this.columns];
+    }
     this.detailTables?.forEach(table => {
       if (this.lastColumnWidths) {
-        table.columns = table.columns.map((c, i) => ({ ...c, width: this.lastColumnWidths![i] }));
+        table.visibleColumns.forEach((c, i) => {
+          c.width = this.lastColumnWidths![i];
+        });
+        table.columns = [...table.columns];
         table.cdr.detectChanges();
       }
     });
