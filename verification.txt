@@ -1,0 +1,18 @@
+Checkbox centered
+All columns labeled (Missing "Sign")
+Can resize in either grid or group mode
+Resize, sort, filtering retained after refresh or view change
+Scroll position  remembered
+
+
+Future:
+Retains last column repositions from grid to group mode
+Global filtering
+Highlight search terms
+Chip bar
+Right click menus
+Save named rulesets in elasticsearch
+CONTAINS regex
+No hits
+
+Bugs:
