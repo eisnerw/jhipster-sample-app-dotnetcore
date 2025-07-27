@@ -352,10 +352,13 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       }
     });
     
-    // Force reset loading state if stuck  
+    // Force reset loading state if stuck
     setTimeout(() => {
-      this.dataLoader.loading$.subscribe(loading => {
-        if (loading) {
+      combineLatest([
+        this.dataLoader.loading$,
+        this.dataLoader.loadingMessage$,
+      ]).subscribe(([loading, message]) => {
+        if (loading && (!message || message.toLowerCase().startsWith('loading'))) {
           this.forceResetLoading();
         }
       });
