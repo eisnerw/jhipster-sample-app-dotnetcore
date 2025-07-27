@@ -15,6 +15,7 @@ import {
   QueryList,
   TemplateRef,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
@@ -130,7 +131,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Output() onSort = new EventEmitter<any>();
   @Output() onFilter = new EventEmitter<any>();
 
-  constructor() {}
+  constructor(private cdr: ChangeDetectorRef) {}
 
   trackByFn(index: number, item: any): any {
     return item?.id || index;
@@ -246,11 +247,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       if (this.lastFilterEvent) {
         table.applyFilter(this.lastFilterEvent);
       }
-      if (this.lastColumnWidths) {
-        table.columns = table.columns.map((c, i) => ({ ...c, width: this.lastColumnWidths![i] }));
-        // Manual change detection removed for OnPush strategy
-      }
     });
+
   }
 
   applySort(event: any): void {
@@ -313,22 +311,13 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     if (this.capturedWidths || this.mode !== 'group') {
       return;
     }
-
     const widths = this._getColumnWidths();
     if (widths) {
-      const finalWidths: string[] = [];
-      this.columns.forEach((col, index) => {
-        if (col) {
-          const width = col.width ?? widths[index] ?? '';
-          col.width = width;
-          finalWidths.push(width);
-        } else {
-          finalWidths.push(widths[index] ?? '');
-        }
+      this.visibleColumns.forEach((col, index) => {
+        col.width = widths[index] || '';
       });
-
       this.columns = [...this.columns];
-      this.lastColumnWidths = finalWidths;
+      this.lastColumnWidths = widths;
       this.capturedWidths = true;
     }
   }
@@ -376,10 +365,19 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   onHeaderColResize(event: any): void {
     this.lastColumnWidths = this._getColumnWidths();
+    if (this.lastColumnWidths) {
+      this.visibleColumns.forEach((c, i) => {
+        c.width = this.lastColumnWidths![i];
+      });
+      this.columns = [...this.columns];
+    }
     this.detailTables?.forEach(table => {
       if (this.lastColumnWidths) {
-        table.columns = table.columns.map((c, i) => ({ ...c, width: this.lastColumnWidths![i] }));
-        // Manual change detection removed for OnPush strategy
+        table.visibleColumns.forEach((c, i) => {
+          c.width = this.lastColumnWidths![i];
+        });
+        table.columns = [...table.columns];
+        table.cdr.detectChanges();
       }
     });
     this.onColResize.emit(event);
