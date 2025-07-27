@@ -27,7 +27,15 @@
           <fa-icon icon="times"></fa-icon>
         </button>
       </div>
-
+      <div class="form-check ms-2">
+        <input
+          id="showRowNumbers"
+          type="checkbox"
+          class="form-check-input"
+          [(ngModel)]="showRowNumbers"
+        />
+        <label for="showRowNumbers" class="form-check-label">Show row numbers</label>
+      </div>
       <button
         id="jh-create-entity"
         data-cy="entityCreateButton"
@@ -55,6 +63,7 @@
       [resizableColumns]="true"
       [scrollable]="true"
       scrollHeight="flex"
+      [showRowNumbers]="showRowNumbers"
       (selectionChange)="onCheckboxChange()"
       (onContextMenuSelect)="setMenu($event.data)"
       (contextMenuSelectionChange)="onContextMenuSelect($event)"
