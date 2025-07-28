@@ -116,6 +116,14 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private scrollListener = () => this.captureTopGroup();
   private capturedWidths = false;
 
+  get sortEvent(): any {
+    return this.lastSortEvent;
+  }
+
+  get filterEvent(): any {
+    return this.lastFilterEvent;
+  }
+
   get visibleColumns(): ColumnConfig[] {
     return this.showRowNumbers ? this.columns : this.columns.filter(c => c.type !== 'lineNumber');
   }
