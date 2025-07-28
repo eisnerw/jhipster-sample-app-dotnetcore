@@ -80,9 +80,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Input() columns: ColumnConfig[] = [];
   @Input() groups: GroupDescriptor[] = [];
   @Input() mode: 'grid' | 'group' = 'grid';
-  @Input() groupQuery:
-    | ((group: GroupDescriptor) => GroupData)
-    | undefined;
+  @Input() groupQuery: ((group: GroupDescriptor) => GroupData) | undefined;
   @Input() loading = false;
   @Input() resizableColumns = false;
   @Input() reorderableColumns = false;
@@ -125,7 +123,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   get visibleColumns(): ColumnConfig[] {
-    return this.showRowNumbers ? this.columns : this.columns.filter(c => c.type !== 'lineNumber');
+    return this.showRowNumbers
+      ? this.columns
+      : this.columns.filter((c) => c.type !== 'lineNumber');
   }
 
   // headerTemplate removed to fix compilation
@@ -179,6 +179,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         this.initGroupScroll();
       });
     }
+    this.detailTables.changes.subscribe(() => {
+      setTimeout(() => this.applyStoredStateToDetails(), 500);
+    });
   }
 
   ngOnDestroy(): void {
@@ -206,7 +209,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         this.groupLoaders[groupName] = this.groupQuery(group);
       }
       this.rowExpand.emit({ data: group });
-      setTimeout(() => this.applyStoredStateToDetails());
+      setTimeout(() => this.applyStoredStateToDetails(), 500);
     }
   }
 
@@ -214,7 +217,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     console.log('Expanded:', event.data);
     this.expandedRowKeys[event.data.id] = true;
     this.rowExpand.emit(event);
-    setTimeout(() => this.applyStoredStateToDetails());
+    setTimeout(() => this.applyStoredStateToDetails(), 500);
   }
 
   onRowCollapse(event: any) {
@@ -293,7 +296,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       this.lastColumnWidths = currentWidths;
     }
 
-    this.detailTables?.forEach(table => {
+    this.detailTables?.forEach((table) => {
       table.columns = [...this.columns];
       if (this.lastSortEvent) {
         table.applySort(this.lastSortEvent);
@@ -302,7 +305,6 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         table.applyFilter(this.lastFilterEvent);
       }
     });
-
   }
 
   applySort(event: any): void {
@@ -327,7 +329,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   onHeaderSort(event: any): void {
     const targetGroup = this.topGroupName;
     this.lastSortEvent = event;
-    this.detailTables?.forEach(table => table.applySort(event));
+    this.detailTables?.forEach((table) => table.applySort(event));
     requestAnimationFrame(() => {
       if (targetGroup) {
         this.scrollToGroup(targetGroup);
@@ -338,7 +340,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   onHeaderFilter(event: any): void {
     const targetGroup = this.topGroupName;
     this.lastFilterEvent = event;
-    this.detailTables?.forEach(table => table.applyFilter(event));
+    this.detailTables?.forEach((table) => table.applyFilter(event));
     this.pTable.filteredValue = null;
     setTimeout(() => {
       if (targetGroup) {
@@ -353,9 +355,12 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     }
 
     if (this.pTable?.el) {
-      const header: NodeListOf<HTMLTableCellElement> = this.pTable.el.nativeElement.querySelectorAll('th');
+      const header: NodeListOf<HTMLTableCellElement> =
+        this.pTable.el.nativeElement.querySelectorAll('th');
       if (header) {
-        return Array.from(header).map((th: HTMLTableCellElement) => th.offsetWidth + 'px');
+        return Array.from(header).map(
+          (th: HTMLTableCellElement) => th.offsetWidth + 'px',
+        );
       }
     }
     return undefined;
@@ -381,7 +386,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       return;
     }
 
-    const rows = Array.from(this.scrollContainer.querySelectorAll('tbody > tr.p-row-odd')) as HTMLElement[];
+    const rows = Array.from(
+      this.scrollContainer.querySelectorAll('tbody > tr.p-row-odd'),
+    ) as HTMLElement[];
     let topRow: HTMLElement | undefined;
     let minDistance = Number.MAX_VALUE;
 
@@ -404,9 +411,11 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     if (!this.scrollContainer) {
       return;
     }
-  
-    const rows = Array.from(this.scrollContainer.querySelectorAll('tbody > tr.p-row-odd')) as HTMLElement[];
-  
+
+    const rows = Array.from(
+      this.scrollContainer.querySelectorAll('tbody > tr.p-row-odd'),
+    ) as HTMLElement[];
+
     for (const row of rows) {
       const nameEl = row.querySelector('span.group-name');
       const text = nameEl?.textContent?.trim();
@@ -425,7 +434,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       });
       this.columns = [...this.columns];
     }
-    this.detailTables?.forEach(table => {
+    this.detailTables?.forEach((table) => {
       if (this.lastColumnWidths) {
         table.visibleColumns.forEach((c, i) => {
           c.width = this.lastColumnWidths![i];
