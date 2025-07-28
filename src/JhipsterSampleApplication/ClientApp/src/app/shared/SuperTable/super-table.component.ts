@@ -233,6 +233,52 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     this.onFilter.emit(event);
   }
 
+  /**
+   * Capture the current header state (widths, sort, filters) from the
+   * underlying PrimeNG table and store them in the internal properties. This
+   * should be invoked before a mode change or data refresh so the latest
+   * column settings can be restored afterwards.
+   */
+  captureHeaderState(): void {
+    this.lastColumnWidths = this._getColumnWidths();
+    if (this.pTable) {
+      const sortField = (this.pTable as any).sortField;
+      const sortOrder = (this.pTable as any).sortOrder;
+      if (sortField !== undefined) {
+        this.lastSortEvent = {
+          field: sortField,
+          sortField,
+          order: sortOrder,
+          sortOrder,
+        };
+      }
+      const filters = (this.pTable as any).filters;
+      if (filters) {
+        this.lastFilterEvent = { filters };
+      }
+    }
+  }
+
+  /**
+   * Apply previously captured header state to the current table instance.
+   * This is used after switching modes or refreshing the list so the
+   * user's column settings remain intact.
+   */
+  applyCapturedHeaderState(): void {
+    if (this.lastColumnWidths) {
+      this.visibleColumns.forEach((c, i) => {
+        c.width = this.lastColumnWidths![i];
+      });
+      this.columns = [...this.columns];
+    }
+    if (this.lastSortEvent) {
+      this.applySort(this.lastSortEvent);
+    }
+    if (this.lastFilterEvent) {
+      this.applyFilter(this.lastFilterEvent);
+    }
+  }
+
   private applyStoredStateToDetails(): void {
     const currentWidths = this._getColumnWidths();
     if (currentWidths) {
@@ -262,7 +308,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   applyFilter(event: any): void {
-    if (this.pTable && event?.filters && this.mode == 'grid') {
+    if (this.pTable && event?.filters) {
       (this.pTable as any).filters = event.filters;
       if ((this.pTable as any)._filter) {
         (this.pTable as any)._filter();
