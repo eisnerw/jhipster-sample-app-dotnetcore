@@ -273,7 +273,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       this.loadPage();
       this.viewMode = 'grid';
       if (restoreState) {
-        setTimeout(() => this.superTable.applyCapturedHeaderState());
+        setTimeout(() => this.superTable.applyCapturedHeaderState(), 500);
       }
       return;
     }
@@ -293,9 +293,9 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
             }));
             this.viewMode = 'group';
             if (restoreState) {
-              setTimeout(() => this.restoreState());
+              setTimeout(() => this.restoreState(), 500);
             } else {
-              setTimeout(() => this.superTable.applyCapturedHeaderState());
+              setTimeout(() => this.superTable.applyCapturedHeaderState(), 500);
             }
           } else {
             this.groups = [];
@@ -308,7 +308,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
               filter,
             );
             this.viewMode = 'grid';
-            setTimeout(() => this.superTable.applyCapturedHeaderState());
+            setTimeout(() => this.superTable.applyCapturedHeaderState(), 500);
           }
         });
     } else {
@@ -324,9 +324,9 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
             }));
             this.viewMode = 'group';
             if (restoreState) {
-              setTimeout(() => this.restoreState());
+              setTimeout(() => this.restoreState(), 500);
             } else {
-              setTimeout(() => this.superTable.applyCapturedHeaderState());
+              setTimeout(() => this.superTable.applyCapturedHeaderState(), 500);
             }
           } else {
             this.groups = [];
@@ -338,7 +338,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
               filter,
             );
             this.viewMode = 'grid';
-            setTimeout(() => this.superTable.applyCapturedHeaderState());
+            setTimeout(() => this.superTable.applyCapturedHeaderState(), 500);
           }
         });
     }
@@ -537,7 +537,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       }
     }
     this.superTable.applyCapturedHeaderState();
-    setTimeout(() => (this.superTable as any).applyStoredStateToDetails(),1000);
+    setTimeout(() => (this.superTable as any).applyStoredStateToDetails(),500);
   }
 
   showMenu(event: MouseEvent): void {
@@ -618,7 +618,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       this.ascending,
       filter,
     );
-    setTimeout(() => this.superTable.applyCapturedHeaderState());
+    setTimeout(() => this.superTable.applyCapturedHeaderState(), 500);
   }
 
   protected sort(): string[] {
