@@ -232,6 +232,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     } else {
       this.pTable.filter(selectedValues, field, 'in');
     }
+    // Persist filter state so it can be restored after mode changes
+    this.lastFilterEvent = { filters: (this.pTable as any).filters };
   }
 
   handleSort(event: any): void {
@@ -370,6 +372,16 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     if (this.capturedWidths || this.mode !== 'group') {
       return;
     }
+    if (this.lastColumnWidths) {
+      // If we already have stored widths (e.g. from grid mode), reuse them
+      this.visibleColumns.forEach((col, index) => {
+        col.width = this.lastColumnWidths![index] || '';
+      });
+      this.columns = [...this.columns];
+      this.capturedWidths = true;
+      return;
+    }
+
     const widths = this._getColumnWidths();
     if (widths) {
       this.visibleColumns.forEach((col, index) => {
