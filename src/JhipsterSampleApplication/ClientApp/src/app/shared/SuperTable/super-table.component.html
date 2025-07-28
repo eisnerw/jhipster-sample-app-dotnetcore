@@ -46,7 +46,7 @@
           [style]="col.style"
         >
           <div class="header-cell">
-            <span *ngIf="col.filterType" class="header-text">{{ col.header }}</span>
+            <span class="header-text">{{ col.header }}</span>
             <ng-container [ngSwitch]="col.type">
               <ng-container *ngSwitchCase="'string'">
                 <p-sortIcon class="sort-icon" [field]="col.field"></p-sortIcon>
