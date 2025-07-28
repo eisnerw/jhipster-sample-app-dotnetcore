@@ -294,6 +294,8 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
             this.viewMode = 'group';
             if (restoreState) {
               setTimeout(() => this.restoreState());
+            } else {
+              setTimeout(() => this.superTable.applyCapturedHeaderState());
             }
           } else {
             this.groups = [];
@@ -306,9 +308,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
               filter,
             );
             this.viewMode = 'grid';
-            if (restoreState) {
-              setTimeout(() => this.superTable.applyCapturedHeaderState());
-            }
+            setTimeout(() => this.superTable.applyCapturedHeaderState());
           }
         });
     } else {
@@ -325,6 +325,8 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
             this.viewMode = 'group';
             if (restoreState) {
               setTimeout(() => this.restoreState());
+            } else {
+              setTimeout(() => this.superTable.applyCapturedHeaderState());
             }
           } else {
             this.groups = [];
@@ -336,9 +338,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
               filter,
             );
             this.viewMode = 'grid';
-            if (restoreState) {
-              setTimeout(() => this.superTable.applyCapturedHeaderState());
-            }
+            setTimeout(() => this.superTable.applyCapturedHeaderState());
           }
         });
     }
