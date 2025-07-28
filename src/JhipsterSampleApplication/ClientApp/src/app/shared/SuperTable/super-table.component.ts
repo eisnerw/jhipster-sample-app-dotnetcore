@@ -274,6 +274,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     const targetGroup = this.topGroupName;
     this.lastSortEvent = event;
     this.detailTables?.forEach(table => table.applySort(event));
+    this.onSort.emit(event);
     requestAnimationFrame(() => {
       if (targetGroup) {
         this.scrollToGroup(targetGroup);
@@ -286,6 +287,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     this.lastFilterEvent = event;
     this.detailTables?.forEach(table => table.applyFilter(event));
     this.pTable.filteredValue = null;
+    this.onFilter.emit(event);
     setTimeout(() => {
       if (targetGroup) {
         this.scrollToGroup(targetGroup);

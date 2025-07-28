@@ -223,6 +223,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   chipSelectedRows: IBirthday[] = [];
 
   private lastSortEvent: any = null;
+  private lastFilterEvent: any = null;
   private lastExpandedGroups: string[] = [];
 
   bDisplaySearchDialog = false;
@@ -398,6 +399,10 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     this.lastSortEvent = event;
   }
 
+  onFilter(event: any): void {
+    this.lastFilterEvent = event;
+  }
+
   refreshData(): void {
     console.log('refreshData called');
     
@@ -413,6 +418,9 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
         this.loadPage();
         if (this.lastSortEvent) {
           setTimeout(() => this.superTable.applySort(this.lastSortEvent));
+        }
+        if (this.lastFilterEvent) {
+          setTimeout(() => this.superTable.applyFilter(this.lastFilterEvent));
         }
       }
     } catch (error) {
@@ -515,6 +523,9 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     }
     if (this.lastSortEvent) {
       this.superTable.applySort(this.lastSortEvent);
+    }
+    if (this.lastFilterEvent) {
+      this.superTable.applyFilter(this.lastFilterEvent);
     }
   }
 
