@@ -425,7 +425,10 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
         this.loadRootGroups(true);
       } else {
         this.loadPage();
-        setTimeout(() => this.superTable.applyCapturedHeaderState());
+        setTimeout(() => {
+          this.superTable.applyCapturedHeaderState();
+          (this.superTable as any).applyStoredStateToDetails();
+        });
       }
     } catch (error) {
       console.error('Error in refreshData:', error);
@@ -466,6 +469,10 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       this.groups = [];
       this.viewMode = 'grid';
       this.loadPage();
+      setTimeout(() => {
+        this.superTable.applyCapturedHeaderState();
+        (this.superTable as any).applyStoredStateToDetails();
+      });
     }
   }
 
@@ -526,6 +533,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       }
     }
     this.superTable.applyCapturedHeaderState();
+    setTimeout(() => (this.superTable as any).applyStoredStateToDetails());
   }
 
   showMenu(event: MouseEvent): void {
