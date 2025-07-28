@@ -285,16 +285,27 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       this.lastColumnWidths = currentWidths;
     }
 
-    this.detailTables?.forEach(table => {
-      table.columns = [...this.columns];
-      if (this.lastSortEvent) {
-        table.applySort(this.lastSortEvent);
-      }
-      if (this.lastFilterEvent) {
-        table.applyFilter(this.lastFilterEvent);
-      }
-    });
+    const tables = this.detailTables?.toArray() ?? [];
+    if (tables.length === 0) {
+      // Child tables might not yet exist when a group is first expanded.
+      // Retry after change detection so the sort and filters can be applied.
+      setTimeout(() => this.applyStoredStateToDetails());
+      return;
+    }
 
+    tables.forEach(table => this.applyStateToChild(table));
+
+  }
+
+  private applyStateToChild(table: SuperTable): void {
+    table.columns = [...this.columns];
+    if (this.lastSortEvent) {
+      table.applySort(this.lastSortEvent);
+    }
+    if (this.lastFilterEvent) {
+      table.applyFilter(this.lastFilterEvent);
+    }
+    table.cdr.detectChanges();
   }
 
   applySort(event: any): void {
