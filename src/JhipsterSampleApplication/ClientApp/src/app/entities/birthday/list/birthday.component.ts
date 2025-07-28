@@ -255,12 +255,15 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   loadRootGroups(restoreState: boolean = false): void {
+    if (this.superTable) {
+      this.superTable.captureHeaderState();
+    }
     if (!this.viewName) {
       this.groups = [];
       this.loadPage();
       this.viewMode = 'grid';
-      if (restoreState && this.lastSortEvent) {
-        setTimeout(() => this.superTable.applySort(this.lastSortEvent));
+      if (restoreState) {
+        setTimeout(() => this.superTable.applyCapturedHeaderState());
       }
       return;
     }
@@ -293,8 +296,8 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
               filter,
             );
             this.viewMode = 'grid';
-            if (restoreState && this.lastSortEvent) {
-              setTimeout(() => this.superTable.applySort(this.lastSortEvent));
+            if (restoreState) {
+              setTimeout(() => this.superTable.applyCapturedHeaderState());
             }
           }
         });
@@ -323,8 +326,8 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
               filter,
             );
             this.viewMode = 'grid';
-            if (restoreState && this.lastSortEvent) {
-              setTimeout(() => this.superTable.applySort(this.lastSortEvent));
+            if (restoreState) {
+              setTimeout(() => this.superTable.applyCapturedHeaderState());
             }
           }
         });
@@ -402,18 +405,19 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     console.log('refreshData called');
     
     try {
+      if (this.superTable) {
+        this.superTable.captureHeaderState();
+      }
       if (this.viewMode === 'group') {
         this.lastExpandedGroups = Object.keys(
           this.superTable.expandedRowKeys,
-        ).filter((key) => this.groups.find((g) => g.name === key));
+        ).filter(key => this.groups.find(g => g.name === key));
       }
       if (this.viewName) {
         this.loadRootGroups(true);
       } else {
         this.loadPage();
-        if (this.lastSortEvent) {
-          setTimeout(() => this.superTable.applySort(this.lastSortEvent));
-        }
+        setTimeout(() => this.superTable.applyCapturedHeaderState());
       }
     } catch (error) {
       console.error('Error in refreshData:', error);
@@ -513,9 +517,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
         }
       }
     }
-    if (this.lastSortEvent) {
-      this.superTable.applySort(this.lastSortEvent);
-    }
+    this.superTable.applyCapturedHeaderState();
   }
 
   showMenu(event: MouseEvent): void {
@@ -580,6 +582,9 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   loadPage(): void {
+    if (this.superTable) {
+      this.superTable.captureHeaderState();
+    }
     const filter: any = {};
     if (this.currentQuery && this.currentQuery.trim().length > 0) {
       filter.bqlQuery = this.currentQuery.trim();
@@ -595,6 +600,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       this.ascending,
       filter,
     );
+    setTimeout(() => this.superTable.applyCapturedHeaderState());
   }
 
   protected sort(): string[] {
