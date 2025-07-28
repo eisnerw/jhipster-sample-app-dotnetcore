@@ -379,7 +379,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       this.rulesetJson = '';
     }
     if (this.viewName) {
-      this.loadRootGroups();
+      this.loadRootGroups(true);
     } else {
       this.loadPage();
     }
@@ -453,7 +453,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   onViewChange(view: string | null): void {
     this.viewName = view;
     if (this.viewName) {
-      this.loadRootGroups();
+      this.loadRootGroups(true);
     } else {
       this.groups = [];
       this.viewMode = 'grid';
