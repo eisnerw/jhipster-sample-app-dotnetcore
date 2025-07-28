@@ -180,7 +180,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       });
     }
     this.detailTables.changes.subscribe(() => {
-      setTimeout(() => this.applyStoredStateToDetails());
+      setTimeout(() => this.applyStoredStateToDetails(), 1000);
     });
   }
 
@@ -209,7 +209,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         this.groupLoaders[groupName] = this.groupQuery(group);
       }
       this.rowExpand.emit({ data: group });
-      setTimeout(() => this.applyStoredStateToDetails());
+      setTimeout(() => this.applyStoredStateToDetails(), 1000);
     }
   }
 
@@ -217,7 +217,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     console.log('Expanded:', event.data);
     this.expandedRowKeys[event.data.id] = true;
     this.rowExpand.emit(event);
-    setTimeout(() => this.applyStoredStateToDetails());
+    setTimeout(() => this.applyStoredStateToDetails(), 1000);
   }
 
   onRowCollapse(event: any) {
