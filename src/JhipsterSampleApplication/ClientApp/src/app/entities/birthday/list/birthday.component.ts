@@ -233,6 +233,18 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   showRowNumbers = false;
   private loadingSubscription?: Subscription;
 
+  private syncSortFilterFromHeader(): void {
+    if (this.superTable) {
+      this.superTable.captureHeaderState();
+      const sortEvent: any = (this.superTable as any).sortEvent;
+      if (sortEvent) {
+        this.predicate = sortEvent.field || sortEvent.sortField || this.predicate;
+        this.ascending = (sortEvent.order ?? sortEvent.sortOrder) === 1;
+      }
+      this.lastSortEvent = sortEvent;
+    }
+  }
+
   constructor(
     protected birthdayService: BirthdayService,
     protected activatedRoute: ActivatedRoute,
@@ -255,9 +267,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   loadRootGroups(restoreState: boolean = false): void {
-    if (this.superTable) {
-      this.superTable.captureHeaderState();
-    }
+    this.syncSortFilterFromHeader();
     if (!this.viewName) {
       this.groups = [];
       this.loadPage();
@@ -405,9 +415,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     console.log('refreshData called');
     
     try {
-      if (this.superTable) {
-        this.superTable.captureHeaderState();
-      }
+      this.syncSortFilterFromHeader();
       if (this.viewMode === 'group') {
         this.lastExpandedGroups = Object.keys(
           this.superTable.expandedRowKeys,
@@ -415,9 +423,16 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       }
       if (this.viewName) {
         this.loadRootGroups(true);
+        setTimeout(() => {
+          this.superTable.applyCapturedHeaderState();
+          (this.superTable as any).applyStoredStateToDetails();
+        },1000);
       } else {
         this.loadPage();
-        setTimeout(() => this.superTable.applyCapturedHeaderState());
+        setTimeout(() => {
+          this.superTable.applyCapturedHeaderState();
+          (this.superTable as any).applyStoredStateToDetails();
+        },1000);        
       }
     } catch (error) {
       console.error('Error in refreshData:', error);
@@ -458,6 +473,10 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       this.groups = [];
       this.viewMode = 'grid';
       this.loadPage();
+      setTimeout(() => {
+        this.superTable.applyCapturedHeaderState();
+        (this.superTable as any).applyStoredStateToDetails();
+      },1000);
     }
   }
 
@@ -518,6 +537,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       }
     }
     this.superTable.applyCapturedHeaderState();
+    setTimeout(() => (this.superTable as any).applyStoredStateToDetails(),1000);
   }
 
   showMenu(event: MouseEvent): void {
@@ -582,9 +602,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   loadPage(): void {
-    if (this.superTable) {
-      this.superTable.captureHeaderState();
-    }
+    this.syncSortFilterFromHeader();
     const filter: any = {};
     if (this.currentQuery && this.currentQuery.trim().length > 0) {
       filter.bqlQuery = this.currentQuery.trim();
@@ -647,6 +665,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   groupQuery(group: GroupDescriptor): GroupData {
+    this.syncSortFilterFromHeader();
     const path = group.categories
       ? [...group.categories, group.name]
       : [group.name];
