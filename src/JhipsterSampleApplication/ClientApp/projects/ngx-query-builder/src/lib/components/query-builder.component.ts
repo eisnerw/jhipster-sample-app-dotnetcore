@@ -760,10 +760,15 @@ export class QueryBuilderComponent
     if (this.disabled) {
       return;
     }
+    const wasSingleRule = this.data.rules && this.data.rules.length === 1;
 
     this.data.condition = value;
     this.handleTouched();
     this.handleDataChange();
+
+    if (wasSingleRule) {
+      this.addRule();
+    }
   }
 
   changeNot(value: boolean): void {
