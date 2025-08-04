@@ -189,7 +189,21 @@ export class QueryInputComponent implements OnInit {
     if (!trimmed) {
       const fields = Object.keys(this.queryBuilderConfig.fields);
       const attr = this.defaultRuleAttribute || fields[0];
-      const rule = attr ? ({ field: attr } as Rule) : undefined;
+      let operator: string | undefined;
+      if (attr) {
+        const fieldCfg = this.queryBuilderConfig.fields[attr];
+        if (fieldCfg) {
+          if (fieldCfg.defaultOperator !== undefined) {
+            operator =
+              typeof fieldCfg.defaultOperator === 'function'
+                ? fieldCfg.defaultOperator()
+                : fieldCfg.defaultOperator;
+          } else if (fieldCfg.operators && fieldCfg.operators.length) {
+            operator = fieldCfg.operators[0];
+          }
+        }
+      }
+      const rule = attr ? ({ field: attr, operator } as Rule) : undefined;
       return { condition: 'and', rules: rule ? [rule] : [] };
     }
 
