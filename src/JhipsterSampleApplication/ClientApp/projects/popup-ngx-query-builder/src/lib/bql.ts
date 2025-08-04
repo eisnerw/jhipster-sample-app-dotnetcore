@@ -386,6 +386,9 @@ export function rulesetToBql(rs: RuleSet, config: QueryBuilderConfig): string {
       rule.field === 'document' &&
       rule.operator.toLowerCase() === 'contains'
     ) {
+      if (typeof rule.value === 'string' && /^\/.*\/[gimsuy]*$/.test(rule.value)) {
+        return rule.value;
+      }
       return valueToString(rule.value);
     }
     const op = toOperatorToken(rule.operator);

@@ -120,6 +120,18 @@ describe('BQL named ruleset support', () => {
     expect(rulesetToBql(rs, cfg)).toBe('fname !CONTAINS bob');
   });
 
+  it('should parse and stringify CONTAINS regex without quotes', () => {
+    const cfg: QueryBuilderConfig = {
+      fields: { document: { type: 'string', operators: ['contains'] } },
+    } as any;
+    const rs = bqlToRuleset('/ani/', cfg);
+    const r = rs.rules[0] as Rule;
+    expect(r.field).toBe('document');
+    expect(r.operator).toBe('contains');
+    expect(r.value).toBe('/ani/');
+    expect(rulesetToBql(rs, cfg)).toBe('/ani/');
+  });
+
   it('should parse and stringify !LIKE operator', () => {
     const cfg: QueryBuilderConfig = {
       fields: { fname: { type: 'string', operators: ['like', '!like'] } },
