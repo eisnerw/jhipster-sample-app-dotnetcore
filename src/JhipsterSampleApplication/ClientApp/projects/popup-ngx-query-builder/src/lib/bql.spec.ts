@@ -132,6 +132,18 @@ describe('BQL named ruleset support', () => {
     expect(rulesetToBql(rs, cfg)).toBe('/ani/');
   });
 
+  it('should parse and stringify CONTAINS regex with flags without quotes', () => {
+    const cfg: QueryBuilderConfig = {
+      fields: { document: { type: 'string', operators: ['contains'] } },
+    } as any;
+    const rs = bqlToRuleset('/dani/i', cfg);
+    const r = rs.rules[0] as Rule;
+    expect(r.field).toBe('document');
+    expect(r.operator).toBe('contains');
+    expect(r.value).toBe('/dani/i');
+    expect(rulesetToBql(rs, cfg)).toBe('/dani/i');
+  });
+
   it('should parse and stringify !LIKE operator', () => {
     const cfg: QueryBuilderConfig = {
       fields: { fname: { type: 'string', operators: ['like', '!like'] } },

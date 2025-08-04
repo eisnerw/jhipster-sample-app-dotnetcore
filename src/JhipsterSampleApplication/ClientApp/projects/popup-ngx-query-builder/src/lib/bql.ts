@@ -374,6 +374,9 @@ function valueToString(value: any): string {
   if (Array.isArray(value)) {
     return '(' + value.map((v) => valueToString(v)).join(',') + ')';
   }
+  if (value instanceof RegExp) {
+    return value.toString();
+  }
   if (typeof value === 'string' && /^[A-Za-z0-9._-]+$/.test(value)) {
     return value;
   }
@@ -386,6 +389,9 @@ export function rulesetToBql(rs: RuleSet, config: QueryBuilderConfig): string {
       rule.field === 'document' &&
       rule.operator.toLowerCase() === 'contains'
     ) {
+      if (rule.value instanceof RegExp) {
+        return rule.value.toString();
+      }
       if (typeof rule.value === 'string' && /^\/.*\/[gimsuy]*$/.test(rule.value)) {
         return rule.value;
       }
