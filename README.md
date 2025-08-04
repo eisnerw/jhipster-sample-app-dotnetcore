@@ -48,6 +48,12 @@ auto-refreshes when files change on your hard drive.
     npm --prefix ./src/JhipsterSampleApplication/ClientApp start
     dotnet run --environment Development --no-build --project ./src/JhipsterSampleApplication/JhipsterSampleApplication.csproj 
 
+To run dotnet in the background.
+
+    dotnet run --environment Development --no-build --project ./src/JhipsterSampleApplication/JhipsterSampleApplication.csproj > server.log 2>&1 &
+
+    Kill it with: sudo kill -9 $(sudo lsof -t -i :5000)
+
 
 npm is also used to manage CSS and JavaScript dependencies used in this application. You can upgrade dependencies by
 specifying a newer version in [package.json](package.json). You can also run `npm update` and `npm install` to manage dependencies.
