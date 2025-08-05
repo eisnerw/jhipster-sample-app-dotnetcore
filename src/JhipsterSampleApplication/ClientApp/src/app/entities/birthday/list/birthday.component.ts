@@ -380,7 +380,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     this.onQueryChange(this.currentQuery);
   }
 
-  onQueryChange(query: string) {
+  onQueryChange(query: string, restoreState = false) {
     this.currentQuery = query;
     try {
       const rs = bqlToRuleset(query, this.queryInput.queryBuilderConfig);
@@ -389,7 +389,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       this.rulesetJson = '';
     }
     if (this.viewName) {
-      this.loadRootGroups();
+      this.loadRootGroups(restoreState);
     } else {
       this.loadPage();
     }
@@ -417,18 +417,14 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     try {
       this.syncSortFilterFromHeader();
       if (this.viewMode === 'group') {
+        (this.superTable as any).captureTopGroup?.();
         this.lastExpandedGroups = Object.keys(
           this.superTable.expandedRowKeys,
         ).filter(key => this.groups.find(g => g.name === key));
       }
 
       // Always re-issue the current query (BQL or lucene '*')
-      this.onQueryChange(this.currentQuery);
-
-      setTimeout(() => {
-        this.superTable.applyCapturedHeaderState();
-        (this.superTable as any).applyStoredStateToDetails();
-      }, 1000);
+      this.onQueryChange(this.currentQuery, true);
     } catch (error) {
       console.error('Error in refreshData:', error);
       this.forceResetLoading();
@@ -523,6 +519,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   private restoreState(): void {
+    const targetGroup = (this.superTable as any).topGroupName;
     if (this.viewMode === 'group') {
       for (const name of this.lastExpandedGroups) {
         const group = this.groups.find((g) => g.name === name);
@@ -532,7 +529,12 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       }
     }
     this.superTable.applyCapturedHeaderState();
-    setTimeout(() => (this.superTable as any).applyStoredStateToDetails(),500);
+    setTimeout(() => {
+      (this.superTable as any).applyStoredStateToDetails();
+      if (targetGroup) {
+        (this.superTable as any).scrollToGroup(targetGroup);
+      }
+    }, 500);
   }
 
   showMenu(event: MouseEvent): void {
