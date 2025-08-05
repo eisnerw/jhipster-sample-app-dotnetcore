@@ -413,7 +413,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
 
   refreshData(): void {
     console.log('refreshData called');
-    
+
     try {
       this.syncSortFilterFromHeader();
       if (this.viewMode === 'group') {
@@ -421,19 +421,14 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
           this.superTable.expandedRowKeys,
         ).filter(key => this.groups.find(g => g.name === key));
       }
-      if (this.viewName) {
-        this.loadRootGroups(true);
-        setTimeout(() => {
-          this.superTable.applyCapturedHeaderState();
-          (this.superTable as any).applyStoredStateToDetails();
-        },1000);
-      } else {
-        this.loadPage();
-        setTimeout(() => {
-          this.superTable.applyCapturedHeaderState();
-          (this.superTable as any).applyStoredStateToDetails();
-        },1000);        
-      }
+
+      // Always re-issue the current query (BQL or lucene '*')
+      this.onQueryChange(this.currentQuery);
+
+      setTimeout(() => {
+        this.superTable.applyCapturedHeaderState();
+        (this.superTable as any).applyStoredStateToDetails();
+      }, 1000);
     } catch (error) {
       console.error('Error in refreshData:', error);
       this.forceResetLoading();
