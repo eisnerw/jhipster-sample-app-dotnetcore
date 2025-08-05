@@ -169,6 +169,32 @@ describe('BQL named ruleset support', () => {
   });
 });
 
+describe('BQL regex support', () => {
+  const cfg: QueryBuilderConfig = {
+    fields: { document: { type: 'string', operators: ['contains'] } },
+  } as any;
+
+  it('should omit quotes for regex values', () => {
+    const rs: RuleSet = {
+      condition: 'and',
+      rules: [
+        { field: 'document', operator: 'contains', value: '/ani/' } as Rule,
+      ],
+    } as any;
+    expect(rulesetToBql(rs, cfg)).toBe('/ani/');
+  });
+
+  it('should handle regex flags', () => {
+    const rs: RuleSet = {
+      condition: 'and',
+      rules: [
+        { field: 'document', operator: 'contains', value: '/dani/i' } as Rule,
+      ],
+    } as any;
+    expect(rulesetToBql(rs, cfg)).toBe('/dani/i');
+  });
+});
+
 describe('validateBql', () => {
   const cfg: QueryBuilderConfig = {
     fields: {

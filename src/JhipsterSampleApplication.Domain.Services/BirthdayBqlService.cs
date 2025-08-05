@@ -476,7 +476,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 else if (r.field == "document" && r.value != null)
                 {
                     var valStr = r.value.ToString();
-                    if (valStr != null && Regex.IsMatch(valStr, "^/.*/"))
+                    if (valStr != null && Regex.IsMatch(valStr, @"^/.*/i?$", RegexOptions.IgnoreCase))
                     {
                         result.Append(valStr); // regex
                     }
@@ -509,7 +509,7 @@ namespace JhipsterSampleApplication.Domain.Services
                         if (r.value != null)
                         {
                             var valStr = r.value.ToString();
-                            if (valStr != null && valStr.StartsWith("/") && (valStr.EndsWith("/") || valStr.EndsWith("/i")))
+                            if (valStr != null && Regex.IsMatch(valStr, @"^/.*/i?$", RegexOptions.IgnoreCase))
                             {
                                 result.Append(valStr); // regex
                             }
