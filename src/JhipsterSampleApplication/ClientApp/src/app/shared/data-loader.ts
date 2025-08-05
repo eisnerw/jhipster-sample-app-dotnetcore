@@ -49,7 +49,7 @@ export class DataLoader<T> {
     filter?: any,
   ): void {
     this.loadingSubject.next(true);
-    this.loadingMessageSubject.next('loading...');
+    this.loadingMessageSubject.next('Loading... ');
 
     this.itemsPerPage = itemsPerPage;
     this.predicate = predicate;
@@ -126,6 +126,13 @@ export class DataLoader<T> {
 
     const currentLength = this.buffer.length;
     const totalItems = this.totalItemsSubject.getValue();
+
+    if (totalItems === 0) {
+      this.bufferSubject.next([...this.buffer]);
+      this.loadingMessageSubject.next('No hits');
+      this.loadingSubject.next(true);
+      return;
+    }
 
     if (currentLength >= this.dataLoadLimit) {
       if (totalItems > this.dataLoadLimit) {
