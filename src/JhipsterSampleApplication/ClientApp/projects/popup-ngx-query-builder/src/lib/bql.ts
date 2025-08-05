@@ -374,8 +374,13 @@ function valueToString(value: any): string {
   if (Array.isArray(value)) {
     return '(' + value.map((v) => valueToString(v)).join(',') + ')';
   }
-  if (typeof value === 'string' && /^[A-Za-z0-9._-]+$/.test(value)) {
-    return value;
+  if (typeof value === 'string') {
+    if (/^\/.*\/i?$/.test(value)) {
+      return value;
+    }
+    if (/^[A-Za-z0-9._-]+$/.test(value)) {
+      return value;
+    }
   }
   return JSON.stringify(value);
 }
