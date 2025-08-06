@@ -111,14 +111,12 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private lastColumnWidths: string[] | undefined;
 
   private scrollContainer?: HTMLElement;
-  private topGroupName?: string;
   private lastScrollTop = 0;
+  private desiredScrollTop: number | null = null;
+  private scrollRestoreHandle: any;
   private scrollListener = () => {
     if (this.scrollContainer) {
       this.lastScrollTop = this.scrollContainer.scrollTop;
-    }
-    if (this.mode === 'group') {
-      this.captureTopGroup();
     }
   };
   private capturedWidths = false;
@@ -316,6 +314,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         table.applyFilter(this.lastFilterEvent);
       }
     });
+    this.attemptScrollRestore();
   }
 
   applySort(event: any): void {
@@ -338,26 +337,16 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   onHeaderSort(event: any): void {
-    const targetGroup = this.topGroupName;
     this.lastSortEvent = event;
     this.detailTables?.forEach((table) => table.applySort(event));
-    requestAnimationFrame(() => {
-      if (targetGroup) {
-        this.scrollToGroup(targetGroup);
-      }
-    });
+    requestAnimationFrame(() => this.attemptScrollRestore());
   }
 
   onHeaderFilter(event: any): void {
-    const targetGroup = this.topGroupName;
     this.lastFilterEvent = event;
     this.detailTables?.forEach((table) => table.applyFilter(event));
     this.pTable.filteredValue = null;
-    setTimeout(() => {
-      if (targetGroup) {
-        this.scrollToGroup(targetGroup);
-      }
-    });
+    setTimeout(() => this.attemptScrollRestore());
   }
 
   private _getColumnWidths(): string[] | undefined {
@@ -402,60 +391,12 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     }
   }
 
-  private captureTopGroup(): void {
-    if (!this.scrollContainer || this.mode !== 'group') {
-      return;
-    }
-
-    const rows = Array.from(
-      this.scrollContainer.querySelectorAll('tbody > tr.p-row-odd'),
-    ) as HTMLElement[];
-    let topRow: HTMLElement | undefined;
-    let minDistance = Number.MAX_VALUE;
-
-    for (const row of rows) {
-      const distance = Math.abs(row.offsetTop - this.scrollContainer.scrollTop);
-      if (distance < minDistance) {
-        minDistance = distance;
-        topRow = row;
-      }
-    }
-
-    if (topRow) {
-      const nameEl = topRow.querySelector('span.group-name');
-      const groupName = nameEl?.textContent?.trim();
-      this.topGroupName = groupName;
-    }
-  }
-
-  private scrollToGroup(groupName: string): void {
-    if (!this.scrollContainer) {
-      return;
-    }
-
-    const rows = Array.from(
-      this.scrollContainer.querySelectorAll('tbody > tr.p-row-odd'),
-    ) as HTMLElement[];
-
-    for (const row of rows) {
-      const nameEl = row.querySelector('span.group-name');
-      const text = nameEl?.textContent?.trim();
-      if (text === groupName) {
-        this.scrollContainer.scrollTop = row.offsetTop;
-        return;
-      }
-    }
-  }
-
   captureState(): any {
     this.lastScrollTop = this.scrollContainer?.scrollTop || 0;
-    if (this.mode === 'group') {
-      this.captureTopGroup();
-    }
+    this.desiredScrollTop = this.lastScrollTop;
     const state: any = {
       expandedRowKeys: { ...this.expandedRowKeys },
       scrollTop: this.lastScrollTop,
-      topGroupName: this.topGroupName,
       children: {},
     };
     this.detailTables?.forEach((table) => {
@@ -483,6 +424,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       }
     }
     this.cdr.detectChanges();
+    this.desiredScrollTop = state.scrollTop || 0;
     setTimeout(() => {
       this.applyStoredStateToDetails();
       const children = state.children || {};
@@ -492,9 +434,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
           table.restoreState(children[key]);
         }
       });
-      if (this.scrollContainer) {
-        this.scrollContainer.scrollTop = state.scrollTop || 0;
-      }
+      this.attemptScrollRestore();
     }, 500);
   }
 
@@ -516,11 +456,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       }
     });
     this.onColResize.emit(event);
-    requestAnimationFrame(() => {
-      if (this.topGroupName) {
-        this.scrollToGroup(this.topGroupName);
-      }
-    });
+    requestAnimationFrame(() => this.attemptScrollRestore());
   }
 
   private initScroll(): void {
@@ -532,14 +468,42 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       this.scrollContainer = body;
       this.scrollContainer.addEventListener('scroll', this.scrollListener);
       this.lastScrollTop = this.scrollContainer.scrollTop;
-      if (this.mode === 'group') {
-        this.captureTopGroup();
-      }
+      this.desiredScrollTop = this.lastScrollTop;
+    }
+  }
+
+  private attemptScrollRestore(): void {
+    let top: SuperTable = this;
+    while (top.superTableParent) {
+      top = top.superTableParent;
+    }
+    top.scheduleScrollRestore();
+  }
+
+  private scheduleScrollRestore(): void {
+    if (!this.scrollContainer || this.desiredScrollTop === null) {
+      return;
+    }
+    if (this.scrollRestoreHandle) {
+      clearTimeout(this.scrollRestoreHandle);
+    }
+    this.scrollContainer.scrollTop = this.desiredScrollTop;
+    if (this.scrollContainer.scrollTop !== this.desiredScrollTop) {
+      this.scrollRestoreHandle = setTimeout(
+        () => this.scheduleScrollRestore(),
+        50,
+      );
+    } else {
+      this.scrollRestoreHandle = null;
     }
   }
 
   private destroyScroll(): void {
     this.scrollContainer?.removeEventListener('scroll', this.scrollListener);
     this.scrollContainer = undefined;
+    if (this.scrollRestoreHandle) {
+      clearTimeout(this.scrollRestoreHandle);
+      this.scrollRestoreHandle = null;
+    }
   }
 }
