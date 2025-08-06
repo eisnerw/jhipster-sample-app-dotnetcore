@@ -223,7 +223,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   chipSelectedRows: IBirthday[] = [];
 
   private lastSortEvent: any = null;
-  private lastExpandedGroups: string[] = [];
+  private lastTableState: any;
 
   bDisplaySearchDialog = false;
   bDisplayBirthday = false;
@@ -416,12 +416,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
 
     try {
       this.syncSortFilterFromHeader();
-      if (this.viewMode === 'group') {
-        (this.superTable as any).captureTopGroup?.();
-        this.lastExpandedGroups = Object.keys(
-          this.superTable.expandedRowKeys,
-        ).filter(key => this.groups.find(g => g.name === key));
-      }
+      this.lastTableState = this.superTable.captureState();
 
       // Always re-issue the current query (BQL or lucene '*')
       this.onQueryChange(this.currentQuery, true);
@@ -519,22 +514,8 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   private restoreState(): void {
-    const targetGroup = (this.superTable as any).topGroupName;
-    if (this.viewMode === 'group') {
-      for (const name of this.lastExpandedGroups) {
-        const group = this.groups.find((g) => g.name === name);
-        if (group) {
-          this.superTable.onGroupToggle(group);
-        }
-      }
-    }
+    this.superTable.restoreState(this.lastTableState);
     this.superTable.applyCapturedHeaderState();
-    setTimeout(() => {
-      (this.superTable as any).applyStoredStateToDetails();
-      if (targetGroup) {
-        (this.superTable as any).scrollToGroup(targetGroup);
-      }
-    }, 500);
   }
 
   showMenu(event: MouseEvent): void {
