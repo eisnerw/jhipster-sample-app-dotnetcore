@@ -117,6 +117,15 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private scrollListener = () => {
     if (this.scrollContainer) {
       this.lastScrollTop = this.scrollContainer.scrollTop;
+      if (this.desiredScrollTop !== null) {
+        // User interacted with the scroll while a restoration was pending.
+        // Cancel any further attempts to reposition.
+        this.desiredScrollTop = null;
+        if (this.scrollRestoreHandle) {
+          clearTimeout(this.scrollRestoreHandle);
+          this.scrollRestoreHandle = null;
+        }
+      }
     }
   };
   private capturedWidths = false;
@@ -468,7 +477,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       this.scrollContainer = body;
       this.scrollContainer.addEventListener('scroll', this.scrollListener);
       this.lastScrollTop = this.scrollContainer.scrollTop;
-      this.desiredScrollTop = this.lastScrollTop;
+      // Do not set desiredScrollTop on initialization. This prevents
+      // unintended scroll restoration on the initial load. The value will be
+      // explicitly set when the user requests a refresh and captureState is
+      // invoked.
     }
   }
 
@@ -494,7 +506,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         50,
       );
     } else {
+      // Scroll position has been successfully restored. Clear the handle and
+      // reset desiredScrollTop so no further repositioning occurs.
       this.scrollRestoreHandle = null;
+      this.desiredScrollTop = null;
     }
   }
 
