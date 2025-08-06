@@ -98,6 +98,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Input() expandedRowKeys: { [key: string]: boolean } = {};
   @Input() loadingMessage: string | undefined;
   @Input() superTableParent: SuperTable | null = null;
+  @Input() parentKey: string | undefined;
   @Input() expandedRowTemplate: TemplateRef<any> | undefined;
 
   @ViewChild('pTable') pTable!: Table;
@@ -111,7 +112,15 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   private scrollContainer?: HTMLElement;
   private topGroupName?: string;
-  private scrollListener = () => this.captureTopGroup();
+  private lastScrollTop = 0;
+  private scrollListener = () => {
+    if (this.scrollContainer) {
+      this.lastScrollTop = this.scrollContainer.scrollTop;
+    }
+    if (this.mode === 'group') {
+      this.captureTopGroup();
+    }
+  };
   private capturedWidths = false;
 
   get sortEvent(): any {
@@ -159,10 +168,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       if (changes['mode'].currentValue === 'group') {
         setTimeout(() => {
           this.captureColumnWidths();
-          this.initGroupScroll();
+          this.initScroll();
         });
       } else {
-        this.destroyGroupScroll();
+        this.initScroll();
       }
     }
     if (changes['groups'] && !changes['groups'].firstChange) {
@@ -173,19 +182,19 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   ngAfterViewInit(): void {
-    if (this.mode === 'group') {
-      setTimeout(() => {
+    setTimeout(() => {
+      if (this.mode === 'group') {
         this.captureColumnWidths();
-        this.initGroupScroll();
-      });
-    }
+      }
+      this.initScroll();
+    });
     this.detailTables.changes.subscribe(() => {
       setTimeout(() => this.applyStoredStateToDetails(), 500);
     });
   }
 
   ngOnDestroy(): void {
-    this.destroyGroupScroll();
+    this.destroyScroll();
   }
 
   isRowExpanded(row: any): boolean {
@@ -438,6 +447,57 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     }
   }
 
+  captureState(): any {
+    this.lastScrollTop = this.scrollContainer?.scrollTop || 0;
+    if (this.mode === 'group') {
+      this.captureTopGroup();
+    }
+    const state: any = {
+      expandedRowKeys: { ...this.expandedRowKeys },
+      scrollTop: this.lastScrollTop,
+      topGroupName: this.topGroupName,
+      children: {},
+    };
+    this.detailTables?.forEach((table) => {
+      if (table.parentKey) {
+        state.children[table.parentKey] = table.captureState();
+      }
+    });
+    return state;
+  }
+
+  restoreState(state: any): void {
+    if (!state) {
+      return;
+    }
+    const expanded = state.expandedRowKeys || {};
+    const groupNames = new Set(this.groups?.map((g) => g.name));
+    for (const key of Object.keys(expanded)) {
+      if (groupNames.has(key)) {
+        const group = this.groups.find((g) => g.name === key);
+        if (group && !this.isGroupExpanded(group)) {
+          this.onGroupToggle(group);
+        }
+      } else {
+        this.expandedRowKeys[key] = true;
+      }
+    }
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      this.applyStoredStateToDetails();
+      const children = state.children || {};
+      this.detailTables?.forEach((table) => {
+        const key = table.parentKey;
+        if (key && children[key]) {
+          table.restoreState(children[key]);
+        }
+      });
+      if (this.scrollContainer) {
+        this.scrollContainer.scrollTop = state.scrollTop || 0;
+      }
+    }, 500);
+  }
+
   onHeaderColResize(event: any): void {
     this.lastColumnWidths = this._getColumnWidths();
     if (this.lastColumnWidths) {
@@ -463,19 +523,22 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     });
   }
 
-  private initGroupScroll(): void {
+  private initScroll(): void {
     const body =
       (this.pTable?.scroller?.getElementRef()?.nativeElement as HTMLElement) ||
       (this.pTable?.wrapperViewChild?.nativeElement as HTMLElement);
     if (body) {
-      this.destroyGroupScroll();
+      this.destroyScroll();
       this.scrollContainer = body;
       this.scrollContainer.addEventListener('scroll', this.scrollListener);
-      this.captureTopGroup();
+      this.lastScrollTop = this.scrollContainer.scrollTop;
+      if (this.mode === 'group') {
+        this.captureTopGroup();
+      }
     }
   }
 
-  private destroyGroupScroll(): void {
+  private destroyScroll(): void {
     this.scrollContainer?.removeEventListener('scroll', this.scrollListener);
     this.scrollContainer = undefined;
   }
