@@ -116,6 +116,8 @@
     height: 32px !important;
     min-height: 32px !important;
     max-height: 32px !important;
+    display: flex !important;
+    align-items: center;
   }
   ::ng-deep .p-datatable .p-datatable-thead > tr.header-row > th:first-child {
     padding: 0 !important;
@@ -131,6 +133,7 @@
     line-height: 32px !important;
     padding: 0 !important;
     margin: 0 !important;
+    align-items: flex-end;
   }
   ::ng-deep .p-datatable .p-datatable-thead > tr.header-row > th:first-child .p-checkbox {
     width: 16px !important;
