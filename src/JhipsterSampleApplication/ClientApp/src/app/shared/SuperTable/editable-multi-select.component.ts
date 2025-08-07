@@ -35,7 +35,7 @@ export const MULTISELECT_VALUE_ACCESSOR: any = {
       [ngStyle]="style"
       [class]="styleClass"
       (click)="onMouseclick($event, in)"
-      >
+    >
       <div class="p-hidden-accessible">
         <input
           #in
@@ -53,7 +53,7 @@ export const MULTISELECT_VALUE_ACCESSOR: any = {
           [attr.aria-expanded]="overlayVisible"
           [attr.aria-labelledby]="ariaLabelledBy"
           role="listbox"
-          />
+        />
       </div>
       <div
         class="p-multiselect-label-container"
@@ -61,7 +61,7 @@ export const MULTISELECT_VALUE_ACCESSOR: any = {
         [tooltipPosition]="tooltipPosition"
         [positionStyle]="tooltipPositionStyle"
         [tooltipStyleClass]="tooltipStyleClass"
-        >
+      >
         <div
           class="p-multiselect-label"
           [ngClass]="{
@@ -70,19 +70,14 @@ export const MULTISELECT_VALUE_ACCESSOR: any = {
               (valuesAsString == null || valuesAsString.length === 0) &&
               (placeholder == null || placeholder.length === 0),
           }"
-          >
+        >
           @if (!selectedItemsTemplate) {
             @if (display === 'comma') {
-              {{
-              valuesAsString || 'empty'
-              }}
+              {{ valuesAsString || 'empty' }}
             }
             @if (display === 'chip') {
               @for (item of value; track item; let i = $index) {
-                <div
-                  #token
-                  class="p-multiselect-token"
-                  >
+                <div #token class="p-multiselect-token">
                   <span class="p-multiselect-token-label">{{
                     findLabelByValue(item)
                   }}</span>
@@ -95,9 +90,7 @@ export const MULTISELECT_VALUE_ACCESSOR: any = {
                 </div>
               }
               @if (!value || value.length === 0) {
-                {{
-                placeholder || defaultLabel || 'empty'
-                }}
+                {{ placeholder || defaultLabel || 'empty' }}
               }
             }
           }
@@ -133,33 +126,33 @@ export const MULTISELECT_VALUE_ACCESSOR: any = {
         [hideTransitionOptions]="hideTransitionOptions"
         (onAnimationStart)="onOverlayAnimationStart($event)"
         (onHide)="hide()"
-        >
+      >
         <ng-template pTemplate="content">
           <div
             [ngClass]="['p-multiselect-panel p-component']"
             [ngStyle]="panelStyle"
             [class]="panelStyleClass"
             (keydown)="onKeydown($event)"
-            >
+          >
             @if (showHeader) {
               <div class="p-multiselect-header">
                 <ng-content select="p-header"></ng-content>
                 <ng-container *ngTemplateOutlet="headerTemplate"></ng-container>
                 @if (filterTemplate) {
                   <ng-container
-                  *ngTemplateOutlet="
-                    filterTemplate;
-                    context: { options: filterOptions }
-                  "
+                    *ngTemplateOutlet="
+                      filterTemplate;
+                      context: { options: filterOptions }
+                    "
                   ></ng-container>
                 } @else {
                   @if (showToggleAll && !selectionLimit) {
                     <div
                       class="p-checkbox p-component"
-                  [ngClass]="{
-                    'p-checkbox-disabled': disabled || toggleAllDisabled,
-                  }"
-                      >
+                      [ngClass]="{
+                        'p-checkbox-disabled': disabled || toggleAllDisabled,
+                      }"
+                    >
                       <div class="p-hidden-accessible">
                         <input
                           type="checkbox"
@@ -169,19 +162,19 @@ export const MULTISELECT_VALUE_ACCESSOR: any = {
                           (blur)="onHeaderCheckboxBlur()"
                           (keydown.space)="toggleAll($event)"
                           [disabled]="disabled || toggleAllDisabled"
-                          />
+                        />
                       </div>
                       <div
                         class="p-checkbox-box"
                         role="checkbox"
                         [attr.aria-checked]="allChecked"
-                    [ngClass]="{
-                      'p-highlight': allChecked,
-                      'p-focus': headerCheckboxFocus,
-                      'p-disabled': disabled || toggleAllDisabled,
-                    }"
+                        [ngClass]="{
+                          'p-highlight': allChecked,
+                          'p-focus': headerCheckboxFocus,
+                          'p-disabled': disabled || toggleAllDisabled,
+                        }"
                         (click)="toggleAll($event)"
-                        >
+                      >
                         <span
                           class="p-checkbox-icon"
                           [ngClass]="{ 'pi pi-check': allChecked }"
@@ -202,8 +195,10 @@ export const MULTISELECT_VALUE_ACCESSOR: any = {
                         [disabled]="disabled"
                         [attr.placeholder]="filterPlaceHolder"
                         [attr.aria-label]="ariaFilterLabel"
-                        />
-                      <span class="p-multiselect-filter-icon pi pi-search"></span>
+                      />
+                      <span
+                        class="p-multiselect-filter-icon pi pi-search"
+                      ></span>
                     </div>
                   }
                   <button
@@ -211,7 +206,7 @@ export const MULTISELECT_VALUE_ACCESSOR: any = {
                     type="button"
                     (click)="close($event)"
                     pRipple
-                    >
+                  >
                     <span class="p-multiselect-close-icon pi pi-times"></span>
                   </button>
                 }
@@ -222,7 +217,7 @@ export const MULTISELECT_VALUE_ACCESSOR: any = {
               [style.max-height]="
                 virtualScroll ? 'auto' : scrollHeight || 'auto'
               "
-              >
+            >
               @if (virtualScroll) {
                 <p-scroller
                   #scroller
@@ -234,26 +229,29 @@ export const MULTISELECT_VALUE_ACCESSOR: any = {
                   [lazy]="lazy"
                   (onLazyLoad)="onLazyLoad.emit($event)"
                   [options]="virtualScrollOptions"
-                  >
+                >
                   <ng-template
                     pTemplate="content"
                     let-items
                     let-scrollerOptions="options"
-                    >
+                  >
                     <ng-container
-                    *ngTemplateOutlet="
-                      buildInItems;
-                      context: { $implicit: items, options: scrollerOptions }
-                    "
+                      *ngTemplateOutlet="
+                        buildInItems;
+                        context: { $implicit: items, options: scrollerOptions }
+                      "
                     ></ng-container>
                   </ng-template>
                   @if (loaderTemplate) {
-                    <ng-template pTemplate="loader" let-scrollerOptions="options">
+                    <ng-template
+                      pTemplate="loader"
+                      let-scrollerOptions="options"
+                    >
                       <ng-container
-                      *ngTemplateOutlet="
-                        loaderTemplate;
-                        context: { options: scrollerOptions }
-                      "
+                        *ngTemplateOutlet="
+                          loaderTemplate;
+                          context: { options: scrollerOptions }
+                        "
                       ></ng-container>
                     </ng-template>
                   }
@@ -267,12 +265,12 @@ export const MULTISELECT_VALUE_ACCESSOR: any = {
                   "
                 ></ng-container>
               }
-    
+
               <ng-template
                 #buildInItems
                 let-items
                 let-scrollerOptions="options"
-                >
+              >
                 <ul
                   #items
                   class="p-multiselect-items p-component"
@@ -280,13 +278,13 @@ export const MULTISELECT_VALUE_ACCESSOR: any = {
                   [style]="scrollerOptions.contentStyle"
                   role="listbox"
                   aria-multiselectable="true"
-                  >
+                >
                   @if (group) {
                     @for (optgroup of items; track optgroup) {
                       <li
                         class="p-multiselect-item-group"
                         [ngStyle]="{ height: scrollerOptions.itemSize + 'px' }"
-                        >
+                      >
                         @if (!groupTemplate) {
                           <span>{{
                             getOptionGroupLabel(optgroup) || 'empty'
@@ -306,71 +304,73 @@ export const MULTISELECT_VALUE_ACCESSOR: any = {
                             $implicit: getOptionGroupChildren(optgroup),
                           }
                         "
-                    ></ng-container>
+                      ></ng-container>
+                    }
                   }
-                }
-                @if (!group) {
-                  <ng-container
+                  @if (!group) {
+                    <ng-container
                       *ngTemplateOutlet="
                         itemslist;
                         context: { $implicit: items }
                       "
-                  ></ng-container>
-                }
-                <ng-template
-                  #itemslist
-                  let-optionsToDisplay
-                  let-selectedOption="selectedOption"
-                  >
-                  @for (option of optionsToDisplay; track option; let i = $index) {
-                    <jhi-editable-multiSelectItem
-                      [option]="option"
-                      [selected]="isSelected(option)"
-                      [label]="getOptionLabel(option)"
-                      [disabled]="isOptionDisabled(option)"
-                      (onClick)="onOptionClick($event)"
-                      (onKeydown)="onOptionKeydown($event)"
-                      [template]="itemTemplate"
-                      [itemSize]="scrollerOptions.itemSize"
-                    ></jhi-editable-multiSelectItem>
+                    ></ng-container>
                   }
-                </ng-template>
-                @if (hasFilter() && isEmpty()) {
-                  <li
-                    class="p-multiselect-empty-message"
-                    [ngStyle]="{ height: scrollerOptions.itemSize + 'px' }"
+                  <ng-template
+                    #itemslist
+                    let-optionsToDisplay
+                    let-selectedOption="selectedOption"
+                  >
+                    @for (
+                      option of optionsToDisplay;
+                      track option;
+                      let i = $index
+                    ) {
+                      <jhi-editable-multiSelectItem
+                        [option]="option"
+                        [selected]="isSelected(option)"
+                        [label]="getOptionLabel(option)"
+                        [disabled]="isOptionDisabled(option)"
+                        (onClick)="onOptionClick($event)"
+                        (onKeydown)="onOptionKeydown($event)"
+                        [template]="itemTemplate"
+                        [itemSize]="scrollerOptions.itemSize"
+                      ></jhi-editable-multiSelectItem>
+                    }
+                  </ng-template>
+                  @if (hasFilter() && isEmpty()) {
+                    <li
+                      class="p-multiselect-empty-message"
+                      [ngStyle]="{ height: scrollerOptions.itemSize + 'px' }"
                     >
-                    <ng-container>
-                      {{ emptyFilterMessageLabel }}
-                    </ng-container>
-                  </li>
-                }
-                @if (!hasFilter() && isEmpty()) {
-                  <li
-                    class="p-multiselect-empty-message"
-                    [ngStyle]="{ height: scrollerOptions.itemSize + 'px' }"
+                      <ng-container>
+                        {{ emptyFilterMessageLabel }}
+                      </ng-container>
+                    </li>
+                  }
+                  @if (!hasFilter() && isEmpty()) {
+                    <li
+                      class="p-multiselect-empty-message"
+                      [ngStyle]="{ height: scrollerOptions.itemSize + 'px' }"
                     >
-                    <ng-container>
-                      {{ emptyMessageLabel }}
-                    </ng-container>
-                  </li>
-                }
-              </ul>
-            </ng-template>
-          </div>
-          @if (footerFacet || footerTemplate) {
-            <div
-              class="p-multiselect-footer"
-              >
-              <ng-content select="p-footer"></ng-content>
-              <ng-container *ngTemplateOutlet="footerTemplate"></ng-container>
+                      <ng-container>
+                        {{ emptyMessageLabel }}
+                      </ng-container>
+                    </li>
+                  }
+                </ul>
+              </ng-template>
             </div>
-          }
-        </div>
-      </ng-template>
-    </p-overlay>
+            @if (footerFacet || footerTemplate) {
+              <div class="p-multiselect-footer">
+                <ng-content select="p-footer"></ng-content>
+                <ng-container *ngTemplateOutlet="footerTemplate"></ng-container>
+              </div>
+            }
+          </div>
+        </ng-template>
+      </p-overlay>
     </div>
-    `,
+  `,
   providers: [MULTISELECT_VALUE_ACCESSOR],
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
@@ -597,7 +597,7 @@ export class EditableMultiSelectComponent
       [ngStyle]="{ height: itemSize + 'px' }"
       [ngClass]="{ 'p-highlight': selected, 'p-disabled': disabled }"
       pRipple
-      >
+    >
       <div class="p-checkbox p-component">
         <div class="p-checkbox-box" [ngClass]="{ 'p-highlight': selected }">
           <span
@@ -613,7 +613,7 @@ export class EditableMultiSelectComponent
         *ngTemplateOutlet="template; context: { $implicit: option }"
       ></ng-container>
     </li>
-    `,
+  `,
   encapsulation: ViewEncapsulation.None,
 })
 export class MultiSelectItemComponent extends MultiSelectItem {

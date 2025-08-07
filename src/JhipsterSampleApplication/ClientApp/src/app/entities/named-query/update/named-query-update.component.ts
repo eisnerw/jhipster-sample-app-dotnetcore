@@ -20,12 +20,7 @@ import { AccountService } from 'app/core/auth/account.service';
   standalone: true,
   selector: 'jhi-named-query-update',
   templateUrl: './named-query-update.component.html',
-  imports: [
-    FormsModule,
-    ReactiveFormsModule,
-    FontAwesomeModule,
-    SharedModule
-],
+  imports: [FormsModule, ReactiveFormsModule, FontAwesomeModule, SharedModule],
 })
 export class NamedQueryUpdateComponent implements OnInit {
   isSaving = false;

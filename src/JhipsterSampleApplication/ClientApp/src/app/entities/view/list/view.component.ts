@@ -12,7 +12,6 @@ import { SortState } from 'app/shared/sort/sort-state';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 
-
 @Component({
   standalone: true,
   selector: 'jhi-view',
@@ -23,8 +22,8 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
     FormsModule,
     SortDirective,
     SortByDirective,
-    FontAwesomeModule
-],
+    FontAwesomeModule,
+  ],
 })
 export class ViewComponent implements OnInit {
   views: IView[] | null = null;

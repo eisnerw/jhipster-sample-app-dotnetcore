@@ -19,12 +19,7 @@ import { INamedQuery } from '../../named-query/named-query.model';
   standalone: true,
   selector: 'jhi-selector-update',
   templateUrl: './selector-update.component.html',
-  imports: [
-    RouterModule,
-    FontAwesomeModule,
-    ReactiveFormsModule,
-    SharedModule
-],
+  imports: [RouterModule, FontAwesomeModule, ReactiveFormsModule, SharedModule],
 })
 export class SelectorUpdateComponent implements OnInit {
   isSaving = false;

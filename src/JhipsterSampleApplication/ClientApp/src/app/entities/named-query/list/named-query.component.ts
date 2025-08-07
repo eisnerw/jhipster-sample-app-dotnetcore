@@ -43,8 +43,8 @@ import { AccountService } from 'app/core/auth/account.service';
     FontAwesomeModule,
     SharedModule,
     SortDirective,
-    SortByDirective
-],
+    SortByDirective,
+  ],
 })
 export class NamedQueryComponent implements OnInit {
   subscription: Subscription | null = null;
