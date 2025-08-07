@@ -16,10 +16,14 @@
             data-cy="name"
             [(ngModel)]="view.name"
             required
-          />
-          <div *ngIf="editForm.controls.name?.invalid && (editForm.controls.name?.dirty || editForm.controls.name?.touched)">
-            <small class="form-text text-danger" *ngIf="editForm.controls.name?.errors?.required"> This field is required. </small>
-          </div>
+            />
+          @if (editForm.controls.name?.invalid && (editForm.controls.name?.dirty || editForm.controls.name?.touched)) {
+            <div>
+              @if (editForm.controls.name?.errors?.required) {
+                <small class="form-text text-danger"> This field is required. </small>
+              }
+            </div>
+          }
         </div>
 
         <div class="form-group">
@@ -32,10 +36,14 @@
             data-cy="field"
             [(ngModel)]="view.field"
             required
-          />
-          <div *ngIf="editForm.controls.field?.invalid && (editForm.controls.field?.dirty || editForm.controls.field?.touched)">
-            <small class="form-text text-danger" *ngIf="editForm.controls.field?.errors?.required"> This field is required. </small>
-          </div>
+            />
+          @if (editForm.controls.field?.invalid && (editForm.controls.field?.dirty || editForm.controls.field?.touched)) {
+            <div>
+              @if (editForm.controls.field?.errors?.required) {
+                <small class="form-text text-danger"> This field is required. </small>
+              }
+            </div>
+          }
         </div>
 
         <div class="form-group">
@@ -47,7 +55,7 @@
             id="field_aggregation"
             data-cy="aggregation"
             [(ngModel)]="view.aggregation"
-          />
+            />
         </div>
 
         <div class="form-group">
@@ -59,7 +67,7 @@
             id="field_query"
             data-cy="query"
             [(ngModel)]="view.query"
-          />
+            />
         </div>
 
         <div class="form-group">
@@ -71,7 +79,7 @@
             id="field_categoryQuery"
             data-cy="categoryQuery"
             [(ngModel)]="view.categoryQuery"
-          />
+            />
         </div>
 
         <div class="form-group">
@@ -95,8 +103,10 @@
             data-cy="parentViewId"
             name="parentViewId"
             [(ngModel)]="view.parentViewId"
-          >
-            <option *ngFor="let viewOption of views" [ngValue]="viewOption.id">{{ viewOption.name }}</option>
+            >
+            @for (viewOption of views; track viewOption) {
+              <option [ngValue]="viewOption.id">{{ viewOption.name }}</option>
+            }
           </select>
         </div>
 
@@ -109,12 +119,16 @@
             name="domain"
             [(ngModel)]="view.domain"
             required
-          >
+            >
             <option value="birthdays">Birthdays</option>
           </select>
-          <div *ngIf="editForm.controls.domain?.invalid && (editForm.controls.domain?.dirty || editForm.controls.domain?.touched)">
-            <small class="form-text text-danger" *ngIf="editForm.controls.domain?.errors?.required">This field is required.</small>
-          </div>
+          @if (editForm.controls.domain?.invalid && (editForm.controls.domain?.dirty || editForm.controls.domain?.touched)) {
+            <div>
+              @if (editForm.controls.domain?.errors?.required) {
+                <small class="form-text text-danger">This field is required.</small>
+              }
+            </div>
+          }
         </div>
       </div>
 
@@ -131,4 +145,4 @@
       </div>
     </form>
   </div>
-</div> 
+</div>

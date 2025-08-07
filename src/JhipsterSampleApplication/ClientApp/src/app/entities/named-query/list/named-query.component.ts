@@ -8,7 +8,7 @@ import {
 } from '@angular/router';
 import { Observable, Subscription, combineLatest, filter, tap } from 'rxjs';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 
@@ -38,14 +38,13 @@ import { AccountService } from 'app/core/auth/account.service';
   selector: 'jhi-named-query',
   templateUrl: './named-query.component.html',
   imports: [
-    CommonModule,
     RouterModule,
     FormsModule,
     FontAwesomeModule,
     SharedModule,
     SortDirective,
-    SortByDirective,
-  ],
+    SortByDirective
+],
 })
 export class NamedQueryComponent implements OnInit {
   subscription: Subscription | null = null;

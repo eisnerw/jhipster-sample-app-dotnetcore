@@ -3,20 +3,20 @@
     id="page-heading"
     data-cy="BirthdayHeading"
     class="d-flex align-items-center gap-2"
-  >
+    >
     <span>Birthdays...</span>
     <lib-query-input
       [(query)]="currentQuery"
       (queryChange)="onQueryChange($event)"
       placeholder="click search icon for widget or click to edit"
-    >
+      >
     </lib-query-input>
     <div class="d-flex ms-auto">
       <button
         class="btn btn-info me-2"
         (click)="refreshData()"
         [title]="(dataLoader.loading$ | async) ? 'Refresh (cancel current and restart)' : 'Refresh List'"
-      >
+        >
         <fa-icon icon="sync" [spin]="dataLoader.loading$ | async"></fa-icon>
         <span>Refresh List</span>
       </button>
@@ -26,21 +26,24 @@
           class="form-select w-auto"
           [(ngModel)]="viewName"
           (ngModelChange)="onViewChange($event)"
-        >
+          >
           <option [ngValue]="null">Select a view</option>
-          <option *ngFor="let v of views" [ngValue]="v.value">
-            {{ v.label }}
-          </option>
+          @for (v of views; track v) {
+            <option [ngValue]="v.value">
+              {{ v.label }}
+            </option>
+          }
         </select>
-        <button
-          *ngIf="viewName"
-          type="button"
-          class="btn btn-link p-0 ms-1"
-          aria-label="Clear selected view"
-          (click)="onViewChange(null)"
-        >
-          <fa-icon icon="times"></fa-icon>
-        </button>
+        @if (viewName) {
+          <button
+            type="button"
+            class="btn btn-link p-0 ms-1"
+            aria-label="Clear selected view"
+            (click)="onViewChange(null)"
+            >
+            <fa-icon icon="times"></fa-icon>
+          </button>
+        }
       </div>
 
       <div
@@ -51,76 +54,76 @@
           align-items: center;
           font-weight: 400;
         "
-      >
+        >
         <input
           id="showRowNumbers"
           type="checkbox"
           class="form-check-input"
           [(ngModel)]="showRowNumbers"
-        />
+          />
         <label for="showRowNumbers" class="form-check-label"
           >&nbsp;Show row numbers</label
-        >
+          >
+        </div>
+
+        <button
+          id="jh-create-entity"
+          data-cy="entityCreateButton"
+          class="btn btn-primary jh-create-entity create-birthday ms-2"
+          [routerLink]="['/birthday/new']"
+          >
+          <fa-icon icon="plus"></fa-icon>
+          <span>Create a new Birthday</span>
+        </button>
       </div>
+    </h2>
 
-      <button
-        id="jh-create-entity"
-        data-cy="entityCreateButton"
-        class="btn btn-primary jh-create-entity create-birthday ms-2"
-        [routerLink]="['/birthday/new']"
-      >
-        <fa-icon icon="plus"></fa-icon>
-        <span>Create a new Birthday</span>
-      </button>
+    <jhi-alert-error></jhi-alert-error>
+    <jhi-alert></jhi-alert>
+
+    <div class="table-responsive" style="flex: 1; min-height: 0">
+      <super-table
+        #superTable
+        [dataLoader]="dataLoader"
+        [columns]="columns"
+        [mode]="viewMode"
+        [groups]="groups"
+        [groupQuery]="groupQuery.bind(this)"
+        [superTableParent]="null"
+        [resizableColumns]="true"
+        [scrollable]="true"
+        scrollHeight="flex"
+        [showRowNumbers]="showRowNumbers"
+        (selectionChange)="onCheckboxChange()"
+        (onContextMenuSelect)="setMenu($event.data)"
+        (contextMenuSelectionChange)="onContextMenuSelect($event)"
+        (onSort)="onSort($event)"
+        [expandedRowTemplate]="expandedRow"
+      ></super-table>
     </div>
-  </h2>
 
-  <jhi-alert-error></jhi-alert-error>
-  <jhi-alert></jhi-alert>
+    <ng-template #expandedRow let-rowData>
+      <tr>
+        <td [attr.colspan]="columns.length + 1">
+          <h5>Details for {{ rowData.lname }}, {{ rowData.fname }}</h5>
+          <!-- Add more details as needed -->
+          <p>Date of Birth: {{ rowData.dob | date: 'longDate' }}</p>
+          <p>Sign: {{ rowData.sign }}</p>
+        </td>
+      </tr>
+    </ng-template>
 
-  <div class="table-responsive" style="flex: 1; min-height: 0">
-    <super-table
-      #superTable
-      [dataLoader]="dataLoader"
-      [columns]="columns"
-      [mode]="viewMode"
-      [groups]="groups"
-      [groupQuery]="groupQuery.bind(this)"
-      [superTableParent]="null"
-      [resizableColumns]="true"
-      [scrollable]="true"
-      scrollHeight="flex"
-      [showRowNumbers]="showRowNumbers"
-      (selectionChange)="onCheckboxChange()"
-      (onContextMenuSelect)="setMenu($event.data)"
-      (contextMenuSelectionChange)="onContextMenuSelect($event)"
-      (onSort)="onSort($event)"
-      [expandedRowTemplate]="expandedRow"
-    ></super-table>
+    <p-contextMenu
+      #contextMenu
+      [model]="menuItems"
+      (onShow)="onMenuShow($event, 'context')"
+    ></p-contextMenu>
+
+    <p-dialog
+      [(visible)]="bDisplaySearchDialog"
+      [modal]="true"
+      header="Search Birthdays"
+      >
+      <!-- Search dialog content -->
+    </p-dialog>
   </div>
-
-  <ng-template #expandedRow let-rowData>
-    <tr>
-      <td [attr.colspan]="columns.length + 1">
-        <h5>Details for {{ rowData.lname }}, {{ rowData.fname }}</h5>
-        <!-- Add more details as needed -->
-        <p>Date of Birth: {{ rowData.dob | date: 'longDate' }}</p>
-        <p>Sign: {{ rowData.sign }}</p>
-      </td>
-    </tr>
-  </ng-template>
-
-  <p-contextMenu
-    #contextMenu
-    [model]="menuItems"
-    (onShow)="onMenuShow($event, 'context')"
-  ></p-contextMenu>
-
-  <p-dialog
-    [(visible)]="bDisplaySearchDialog"
-    [modal]="true"
-    header="Search Birthdays"
-  >
-    <!-- Search dialog content -->
-  </p-dialog>
-</div>

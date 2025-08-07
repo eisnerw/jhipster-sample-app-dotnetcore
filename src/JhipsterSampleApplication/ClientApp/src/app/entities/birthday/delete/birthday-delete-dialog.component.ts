@@ -1,7 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 
 import { IBirthday } from '../birthday.model';
@@ -11,7 +11,7 @@ import SharedModule from 'app/shared/shared.module';
 @Component({
   standalone: true,
   templateUrl: './birthday-delete-dialog.component.html',
-  imports: [CommonModule, FontAwesomeModule],
+  imports: [FontAwesomeModule],
   schemas: [NO_ERRORS_SCHEMA],
 })
 export class BirthdayDeleteDialogComponent {

@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, filter, map, switchMap, of } from 'rxjs';
 import { HttpResponse } from '@angular/common/http';
 import { finalize } from 'rxjs/operators';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import SharedModule from 'app/shared/shared.module';
@@ -21,12 +21,11 @@ import { AccountService } from 'app/core/auth/account.service';
   selector: 'jhi-named-query-update',
   templateUrl: './named-query-update.component.html',
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     FontAwesomeModule,
-    SharedModule,
-  ],
+    SharedModule
+],
 })
 export class NamedQueryUpdateComponent implements OnInit {
   isSaving = false;

@@ -25,25 +25,37 @@ export interface NamedRulesetDialogResult {
       <mat-form-field appearance="fill">
         <mat-label>{{data.rulesetName}} Name</mat-label>
         <input matInput [(ngModel)]="name" (input)="onInput($event)" />
-        <button mat-icon-button matSuffix *ngIf="name" (click)="name = ''" type="button">✕</button>
+        @if (name) {
+          <button mat-icon-button matSuffix (click)="name = ''" type="button">✕</button>
+        }
       </mat-form-field>
-      <div *ngIf="name.trim() === ''" class="q-modified-warning">
-        The name will be removed from the {{data.rulesetName}}
-      </div>
-      <div *ngIf="name.trim() !== '' && name.trim() !== data.name" class="q-modified-warning">
-        All instances of {{data.name}} will be renamed to {{name.trim()}}
-      </div>
-      <div *ngIf="data.modified" class="q-modified-warning">
-        Existing definition will be updated.
-      </div>
+      @if (name.trim() === '') {
+        <div class="q-modified-warning">
+          The name will be removed from the {{data.rulesetName}}
+        </div>
+      }
+      @if (name.trim() !== '' && name.trim() !== data.name) {
+        <div class="q-modified-warning">
+          All instances of {{data.name}} will be renamed to {{name.trim()}}
+        </div>
+      }
+      @if (data.modified) {
+        <div class="q-modified-warning">
+          Existing definition will be updated.
+        </div>
+      }
     </div>
     <div mat-dialog-actions>
       <button mat-button (click)="dialogRef.close({action: 'cancel'})">Cancel</button>
-      <button mat-button *ngIf="data.modified" (click)="dialogRef.close({action: 'undo'})">Undo</button>
-      <button mat-button *ngIf="data.allowEdit" (click)="dialogRef.close({action: 'edit'})">Edit</button>
+      @if (data.modified) {
+        <button mat-button (click)="dialogRef.close({action: 'undo'})">Undo</button>
+      }
+      @if (data.allowEdit) {
+        <button mat-button (click)="dialogRef.close({action: 'edit'})">Edit</button>
+      }
       <button mat-raised-button color="primary" [disabled]="isUpdateDisabled()" (click)="dialogRef.close({action: 'save', name})">Update</button>
     </div>
-  `
+    `
 })
 export class NamedRulesetDialogComponent {
   name: string;

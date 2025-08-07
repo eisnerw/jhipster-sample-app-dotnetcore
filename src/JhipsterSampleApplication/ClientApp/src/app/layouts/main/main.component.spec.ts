@@ -9,8 +9,8 @@ import {
 } from '@angular/core/testing';
 import { Router, TitleStrategy } from '@angular/router';
 import { Title } from '@angular/platform-browser';
-import { DOCUMENT } from '@angular/common';
-import { Component, NgZone } from '@angular/core';
+
+import { Component, NgZone, DOCUMENT } from '@angular/core';
 import { of } from 'rxjs';
 
 import { AccountService } from 'app/core/auth/account.service';

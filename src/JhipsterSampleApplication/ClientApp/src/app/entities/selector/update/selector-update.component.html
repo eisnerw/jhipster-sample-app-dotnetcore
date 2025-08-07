@@ -6,7 +6,7 @@
       novalidate
       (ngSubmit)="save()"
       [formGroup]="editForm"
-    >
+      >
       <h2 id="jhi-selector-heading" data-cy="SelectorCreateUpdateHeading">
         Create or edit a Selector
       </h2>
@@ -24,7 +24,7 @@
             data-cy="id"
             formControlName="id"
             [readonly]="true"
-          />
+            />
         </div>
 
         <div class="form-group">
@@ -36,13 +36,15 @@
             id="field_name"
             data-cy="name"
             formControlName="name"
-          />
+            />
         </div>
 
         <div class="form-group">
           <label class="form-control-label" for="field_rulesetName">Named Query</label>
           <select class="form-control" id="field_rulesetName" name="rulesetName" formControlName="rulesetName">
-            <option [ngValue]="namedQueryOption.name" *ngFor="let namedQueryOption of namedQueries">{{ namedQueryOption.name }}</option>
+            @for (namedQueryOption of namedQueries; track namedQueryOption) {
+              <option [ngValue]="namedQueryOption.name">{{ namedQueryOption.name }}</option>
+            }
           </select>
         </div>
         <div class="form-group">
@@ -54,7 +56,7 @@
             id="field_action"
             data-cy="action"
             formControlName="action"
-          />
+            />
         </div>
         <div class="form-group">
           <label class="form-control-label" for="field_actionParameter">Action Parameter</label>
@@ -65,7 +67,7 @@
             id="field_actionParameter"
             data-cy="actionParameter"
             formControlName="actionParameter"
-          />
+            />
         </div>
         <div class="form-group">
           <label class="form-control-label" for="field_rulesetName">Description</label>
@@ -76,7 +78,7 @@
             id="field_description"
             data-cy="description"
             formControlName="description"
-          />
+            />
         </div>
       </div>
 
@@ -87,7 +89,7 @@
           data-cy="entityCreateCancelButton"
           class="btn btn-secondary"
           (click)="previousState()"
-        >
+          >
           <fa-icon icon="ban"></fa-icon>&nbsp;<span>Cancel</span>
         </button>
 
@@ -97,7 +99,7 @@
           data-cy="entityCreateSaveButton"
           [disabled]="editForm.invalid || isSaving"
           class="btn btn-primary"
-        >
+          >
           <fa-icon icon="save"></fa-icon>&nbsp;<span>Save</span>
         </button>
       </div>

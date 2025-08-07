@@ -23,12 +23,16 @@
             data-cy="lname"
             formControlName="lname"
             [ngClass]="{ valid: !editForm.get('lname')!.invalid, invalid: editForm.get('lname')!.invalid }"
-          />
-          <div *ngIf="editForm.get('lname')!.invalid && (editForm.get('lname')!.dirty || editForm.get('lname')!.touched)">
-            <small class="form-text text-danger" *ngIf="editForm.get('lname')?.errors?.required" jhiTranslate="entity.validation.required">
-              This field is required.
-            </small>
-          </div>
+            />
+          @if (editForm.get('lname')!.invalid && (editForm.get('lname')!.dirty || editForm.get('lname')!.touched)) {
+            <div>
+              @if (editForm.get('lname')?.errors?.required) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.required">
+                  This field is required.
+                </small>
+              }
+            </div>
+          }
         </div>
 
         <div class="form-group">
@@ -41,12 +45,16 @@
             data-cy="fname"
             formControlName="fname"
             [ngClass]="{ valid: !editForm.get('fname')!.invalid, invalid: editForm.get('fname')!.invalid }"
-          />
-          <div *ngIf="editForm.get('fname')!.invalid && (editForm.get('fname')!.dirty || editForm.get('fname')!.touched)">
-            <small class="form-text text-danger" *ngIf="editForm.get('fname')?.errors?.required" jhiTranslate="entity.validation.required">
-              This field is required.
-            </small>
-          </div>
+            />
+          @if (editForm.get('fname')!.invalid && (editForm.get('fname')!.dirty || editForm.get('fname')!.touched)) {
+            <div>
+              @if (editForm.get('fname')?.errors?.required) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.required">
+                  This field is required.
+                </small>
+              }
+            </div>
+          }
         </div>
 
         <div class="form-group">
@@ -59,7 +67,7 @@
             data-cy="sign"
             formControlName="sign"
             [ngClass]="{ valid: !editForm.get('sign')!.invalid, invalid: editForm.get('sign')!.invalid }"
-          />
+            />
         </div>
 
         <div class="form-group">
@@ -73,13 +81,17 @@
               name="dob"
               formControlName="dob"
               [ngClass]="{ valid: !editForm.get('dob')!.invalid, invalid: editForm.get('dob')!.invalid }"
-            />
+              />
           </div>
-          <div *ngIf="editForm.get('dob')!.invalid && (editForm.get('dob')!.dirty || editForm.get('dob')!.touched)">
-            <small class="form-text text-danger" *ngIf="editForm.get('dob')?.errors?.required" jhiTranslate="entity.validation.required">
-              This field is required.
-            </small>
-          </div>
+          @if (editForm.get('dob')!.invalid && (editForm.get('dob')!.dirty || editForm.get('dob')!.touched)) {
+            <div>
+              @if (editForm.get('dob')?.errors?.required) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.required">
+                  This field is required.
+                </small>
+              }
+            </div>
+          }
         </div>
 
         <div class="form-group">
@@ -92,14 +104,18 @@
               name="isAlive"
               formControlName="isAlive"
               data-cy="isAlive"
-            />
+              />
             <label class="custom-control-label" for="field_isAlive">Yes</label>
           </div>
-          <div *ngIf="editForm.get('isAlive')!.invalid && (editForm.get('isAlive')!.dirty || editForm.get('isAlive')!.touched)">
-            <small class="form-text text-danger" *ngIf="editForm.get('isAlive')?.errors?.required" jhiTranslate="entity.validation.required">
-              This field is required.
-            </small>
-          </div>
+          @if (editForm.get('isAlive')!.invalid && (editForm.get('isAlive')!.dirty || editForm.get('isAlive')!.touched)) {
+            <div>
+              @if (editForm.get('isAlive')?.errors?.required) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.required">
+                  This field is required.
+                </small>
+              }
+            </div>
+          }
         </div>
       </div>
 
@@ -114,10 +130,10 @@
           data-cy="entityCreateSaveButton"
           [disabled]="editForm.invalid || isSaving"
           class="btn btn-primary"
-        >
+          >
           <fa-icon icon="save"></fa-icon>&nbsp;<span jhiTranslate="entity.action.save">Save</span>
         </button>
       </div>
     </form>
   </div>
-</div> 
+</div>

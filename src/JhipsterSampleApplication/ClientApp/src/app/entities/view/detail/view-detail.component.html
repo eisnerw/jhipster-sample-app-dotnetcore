@@ -44,9 +44,11 @@
 
           <dt><span>Parent  view</span></dt>
           <dd>
-            <div *ngIf="view.parentViewId">
-              <a [routerLink]="['/view', view.parentViewId, 'view']">{{ view.parentViewId }}</a>
-            </div>
+            @if (view.parentViewId) {
+              <div>
+                <a [routerLink]="['/view', view.parentViewId, 'view']">{{ view.parentViewId }}</a>
+              </div>
+            }
           </dd>
 
           <dt><span>Domain</span></dt>
@@ -59,4 +61,4 @@
       </div>
     </div>
   </div>
-</div> 
+</div>

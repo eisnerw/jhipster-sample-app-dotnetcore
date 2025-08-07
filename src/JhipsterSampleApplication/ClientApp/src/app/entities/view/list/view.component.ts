@@ -11,7 +11,7 @@ import { SortService } from 'app/shared/sort/sort.service';
 import { SortState } from 'app/shared/sort/sort-state';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { NgIf } from '@angular/common';
+
 
 @Component({
   standalone: true,
@@ -23,9 +23,8 @@ import { NgIf } from '@angular/common';
     FormsModule,
     SortDirective,
     SortByDirective,
-    FontAwesomeModule,
-    NgIf,
-  ],
+    FontAwesomeModule
+],
 })
 export class ViewComponent implements OnInit {
   views: IView[] | null = null;
