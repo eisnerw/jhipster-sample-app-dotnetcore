@@ -304,6 +304,31 @@ public class BirthdayService : IBirthdayService
                     }}
                 }};
             }
+            else if (rr.@operator == ">" || rr.@operator == "<" || rr.@operator == ">=" || rr.@operator == "<=")
+            {
+                var rangeOperator = rr.@operator switch
+                {
+                    ">" => "gt",
+                    ">=" => "gte",
+                    "<" => "lt",
+                    "<=" => "lte",
+                    _ => string.Empty
+                };
+
+                ret = new JObject
+                {
+                    {
+                        "range",
+                        new JObject
+                        {
+                            {
+                                rr.field!,
+                                new JObject { { rangeOperator, rr.value?.ToString() ?? string.Empty } }
+                            }
+                        }
+                    }
+                };
+            }
             else if (rr.@operator?.Contains("=") == true)
             {
                 var valueStr = rr.value as string ?? string.Empty;
