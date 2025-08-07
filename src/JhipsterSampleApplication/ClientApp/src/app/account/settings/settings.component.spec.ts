@@ -59,9 +59,7 @@ describe('SettingsComponent', () => {
     expect(mockAccountService.identity).toHaveBeenCalled();
     expect(mockAccountService.save).toHaveBeenCalledWith(account);
     expect(mockAccountService.authenticate).toHaveBeenCalledWith(account);
-    expect(comp.settingsForm.value).toMatchObject(
-      expect.objectContaining(settingsFormValues),
-    );
+    expect(comp.settingsForm.value).toMatchObject(expect.objectContaining(settingsFormValues));
   });
 
   it('should notify of success upon successful save', () => {

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -26,22 +26,13 @@ export type ViewArrayResponseType = HttpResponse<{
 
 @Injectable({ providedIn: 'root' })
 export class BirthdayService {
-  protected resourceUrl =
-    this.applicationConfigService.getEndpointFor('api/birthdays');
-  protected searchUrl = this.applicationConfigService.getEndpointFor(
-    'api/birthdays/search/lucene',
-  );
-  protected rulesetSearchUrl = this.applicationConfigService.getEndpointFor(
-    'api/birthdays/search/ruleset',
-  );
-  protected bqlSearchUrl = this.applicationConfigService.getEndpointFor(
-    'api/birthdays/search/bql',
-  );
+  protected http = inject(HttpClient);
+  protected applicationConfigService = inject(ApplicationConfigService);
 
-  constructor(
-    protected http: HttpClient,
-    protected applicationConfigService: ApplicationConfigService,
-  ) {}
+  protected resourceUrl = this.applicationConfigService.getEndpointFor('api/birthdays');
+  protected searchUrl = this.applicationConfigService.getEndpointFor('api/birthdays/search/lucene');
+  protected rulesetSearchUrl = this.applicationConfigService.getEndpointFor('api/birthdays/search/ruleset');
+  protected bqlSearchUrl = this.applicationConfigService.getEndpointFor('api/birthdays/search/bql');
 
   create(birthday: IBirthday): Observable<EntityResponseType> {
     return this.http.post<IBirthday>(this.resourceUrl, birthday, {
@@ -50,13 +41,9 @@ export class BirthdayService {
   }
 
   update(birthday: IBirthday): Observable<EntityResponseType> {
-    return this.http.put<IBirthday>(
-      `${this.resourceUrl}/${birthday.id}`,
-      birthday,
-      {
-        observe: 'response',
-      },
-    );
+    return this.http.put<IBirthday>(`${this.resourceUrl}/${birthday.id}`, birthday, {
+      observe: 'response',
+    });
   }
 
   find(id: string): Observable<EntityResponseType> {
@@ -100,10 +87,7 @@ export class BirthdayService {
     });
   }
 
-  searchWithBql(
-    bqlQuery: string,
-    req?: any,
-  ): Observable<EntityArrayResponseType> {
+  searchWithBql(bqlQuery: string, req?: any): Observable<EntityArrayResponseType> {
     const options = createRequestOption(req);
     return this.http.post<{
       hits: IBirthday[];
@@ -125,12 +109,9 @@ export class BirthdayService {
   }
 
   getUniqueValues(field: string): Observable<HttpResponse<string[]>> {
-    return this.http.get<string[]>(
-      `${this.resourceUrl}/unique-values/${field}`,
-      {
-        observe: 'response',
-      },
-    );
+    return this.http.get<string[]>(`${this.resourceUrl}/unique-values/${field}`, {
+      observe: 'response',
+    });
   }
 
   searchView(req: any): Observable<ViewArrayResponseType> {

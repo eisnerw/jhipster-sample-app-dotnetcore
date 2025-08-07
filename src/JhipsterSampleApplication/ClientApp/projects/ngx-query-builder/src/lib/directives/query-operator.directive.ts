@@ -1,6 +1,6 @@
-import { Directive, TemplateRef } from '@angular/core';
+import { Directive, TemplateRef, inject } from '@angular/core';
 
 @Directive({selector: '[queryOperator]', standalone: false})
 export class QueryOperatorDirective {
-  constructor(public template: TemplateRef<any>) {}
+  template = inject<TemplateRef<any>>(TemplateRef);
 }

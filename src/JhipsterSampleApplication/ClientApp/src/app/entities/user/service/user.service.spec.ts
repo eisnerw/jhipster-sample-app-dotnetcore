@@ -1,16 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 
 import { IUser } from '../user.model';
-import {
-  sampleWithFullData,
-  sampleWithPartialData,
-  sampleWithRequiredData,
-} from '../user.test-samples';
+import { sampleWithFullData, sampleWithPartialData, sampleWithRequiredData } from '../user.test-samples';
 
 import { UserService } from './user.service';
 
@@ -37,7 +30,7 @@ describe('User Service', () => {
       const returnedFromService = { ...requireRestSample };
       const expected = { ...sampleWithRequiredData };
 
-      service.find(123).subscribe((resp) => (expectedResult = resp.body));
+      service.find(123).subscribe(resp => (expectedResult = resp.body));
 
       const req = httpMock.expectOne({ method: 'GET' });
       req.flush(returnedFromService);
@@ -49,7 +42,7 @@ describe('User Service', () => {
 
       const expected = { ...sampleWithRequiredData };
 
-      service.query().subscribe((resp) => (expectedResult = resp.body));
+      service.query().subscribe(resp => (expectedResult = resp.body));
 
       const req = httpMock.expectOne({ method: 'GET' });
       req.flush([returnedFromService]);
@@ -73,35 +66,22 @@ describe('User Service', () => {
           },
           sampleWithPartialData,
         ];
-        expectedResult = service.addUserToCollectionIfMissing(
-          userCollection,
-          user,
-        );
+        expectedResult = service.addUserToCollectionIfMissing(userCollection, user);
         expect(expectedResult).toHaveLength(2);
       });
 
       it("should add a User to an array that doesn't contain it", () => {
         const user: IUser = sampleWithRequiredData;
         const userCollection: IUser[] = [sampleWithPartialData];
-        expectedResult = service.addUserToCollectionIfMissing(
-          userCollection,
-          user,
-        );
+        expectedResult = service.addUserToCollectionIfMissing(userCollection, user);
         expect(expectedResult).toHaveLength(2);
         expect(expectedResult).toContain(user);
       });
 
       it('should add only unique User to an array', () => {
-        const userArray: IUser[] = [
-          sampleWithRequiredData,
-          sampleWithPartialData,
-          sampleWithFullData,
-        ];
+        const userArray: IUser[] = [sampleWithRequiredData, sampleWithPartialData, sampleWithFullData];
         const userCollection: IUser[] = [sampleWithRequiredData];
-        expectedResult = service.addUserToCollectionIfMissing(
-          userCollection,
-          ...userArray,
-        );
+        expectedResult = service.addUserToCollectionIfMissing(userCollection, ...userArray);
         expect(expectedResult).toHaveLength(3);
       });
 
@@ -116,23 +96,14 @@ describe('User Service', () => {
 
       it('should accept null and undefined values', () => {
         const user: IUser = sampleWithRequiredData;
-        expectedResult = service.addUserToCollectionIfMissing(
-          [],
-          null,
-          user,
-          undefined,
-        );
+        expectedResult = service.addUserToCollectionIfMissing([], null, user, undefined);
         expect(expectedResult).toHaveLength(1);
         expect(expectedResult).toContain(user);
       });
 
       it('should return initial array if no User is added', () => {
         const userCollection: IUser[] = [sampleWithRequiredData];
-        expectedResult = service.addUserToCollectionIfMissing(
-          userCollection,
-          undefined,
-          null,
-        );
+        expectedResult = service.addUserToCollectionIfMissing(userCollection, undefined, null);
         expect(expectedResult).toEqual(userCollection);
       });
     });

@@ -127,9 +127,7 @@ describe('Alert Error Component', () => {
           status: 400,
           path: '/api/foos',
           message: 'error.validation',
-          fieldErrors: [
-            { objectName: 'foo', field: 'minField', message: 'Min' },
-          ],
+          fieldErrors: [{ objectName: 'foo', field: 'minField', message: 'Min' }],
         },
       });
       eventManager.broadcast({
@@ -145,9 +143,7 @@ describe('Alert Error Component', () => {
       // GIVEN
       const response = new HttpErrorResponse({
         url: 'http://localhost:8080/api/foos',
-        headers: new HttpHeaders()
-          .append('app-error', 'Error Message')
-          .append('app-params', 'foo'),
+        headers: new HttpHeaders().append('app-error', 'Error Message').append('app-params', 'foo'),
         status: 400,
         statusText: 'Bad Request',
         error: {

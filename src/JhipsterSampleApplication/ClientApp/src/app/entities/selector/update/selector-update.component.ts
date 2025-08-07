@@ -1,10 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { HttpResponse } from '@angular/common/http';
-import { UntypedFormBuilder } from '@angular/forms';
+import { UntypedFormBuilder, FormGroup } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
 import { finalize, map } from 'rxjs/operators';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -19,35 +19,28 @@ import { INamedQuery } from '../../named-query/named-query.model';
   standalone: true,
   selector: 'jhi-selector-update',
   templateUrl: './selector-update.component.html',
-  imports: [
-    CommonModule,
-    RouterModule,
-    FontAwesomeModule,
-    ReactiveFormsModule,
-    SharedModule,
-  ],
+  imports: [RouterModule, FontAwesomeModule, ReactiveFormsModule, SharedModule],
 })
 export class SelectorUpdateComponent implements OnInit {
   isSaving = false;
   namedQueries: INamedQuery[] = [];
 
-  editForm = this.fb.group({
-    id: [],
-    name: [],
-    rulesetName: [],
-    action: [],
-    actionParameter: [],
-    description: [],
-  });
+  editForm!: FormGroup;
 
-  constructor(
-    protected selectorService: SelectorService,
-    protected activatedRoute: ActivatedRoute,
-    protected namedQueryService: NamedQueryService,
-    protected fb: UntypedFormBuilder,
-  ) {}
+  protected selectorService = inject(SelectorService);
+  protected activatedRoute = inject(ActivatedRoute);
+  protected namedQueryService = inject(NamedQueryService);
+  protected fb = inject(UntypedFormBuilder);
 
   ngOnInit(): void {
+    this.editForm = this.fb.group({
+      id: [],
+      name: [],
+      rulesetName: [],
+      action: [],
+      actionParameter: [],
+      description: [],
+    });
     this.activatedRoute.data.subscribe({
       next: ({ selector }) => {
         if (selector) {
@@ -90,9 +83,7 @@ export class SelectorUpdateComponent implements OnInit {
     });
   }
 
-  protected subscribeToSaveResponse(
-    result: Observable<HttpResponse<ISelector>>,
-  ): void {
+  protected subscribeToSaveResponse(result: Observable<HttpResponse<ISelector>>): void {
     result.pipe(finalize(() => this.onSaveFinalize())).subscribe({
       next: () => this.onSaveSuccess(),
       error: () => this.onSaveError(),

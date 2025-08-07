@@ -7,7 +7,7 @@ Cypress.Commands.add('getAccount', () => {
       method: 'GET',
       url: '/api/account',
     })
-    .then((response) => response.body as Account);
+    .then(response => response.body as Account);
 });
 
 Cypress.Commands.add('saveAccount', (account: Account) => {
@@ -22,9 +22,7 @@ declare global {
   namespace Cypress {
     interface Chainable {
       getAccount(): Cypress.Chainable<Account>;
-      saveAccount(
-        account: Account,
-      ): Cypress.Chainable<Cypress.Response<Account>>;
+      saveAccount(account: Account): Cypress.Chainable<Cypress.Response<Account>>;
     }
   }
 }

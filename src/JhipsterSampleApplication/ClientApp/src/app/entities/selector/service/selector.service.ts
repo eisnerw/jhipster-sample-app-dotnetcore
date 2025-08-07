@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
@@ -11,13 +11,10 @@ type EntityArrayResponseType = HttpResponse<ISelector[]>;
 
 @Injectable({ providedIn: 'root' })
 export class SelectorService {
-  protected resourceUrl =
-    this.applicationConfigService.getEndpointFor('api/selectors');
+  protected http = inject(HttpClient);
+  protected applicationConfigService = inject(ApplicationConfigService);
 
-  constructor(
-    protected http: HttpClient,
-    protected applicationConfigService: ApplicationConfigService,
-  ) {}
+  protected resourceUrl = this.applicationConfigService.getEndpointFor('api/selectors');
 
   create(selector: ISelector): Observable<EntityResponseType> {
     return this.http.post<ISelector>(this.resourceUrl, selector, {
@@ -26,11 +23,7 @@ export class SelectorService {
   }
 
   update(selector: ISelector): Observable<EntityResponseType> {
-    return this.http.put<ISelector>(
-      `${this.resourceUrl}/${selector.id}`,
-      selector,
-      { observe: 'response' },
-    );
+    return this.http.put<ISelector>(`${this.resourceUrl}/${selector.id}`, selector, { observe: 'response' });
   }
 
   find(id: number): Observable<EntityResponseType> {

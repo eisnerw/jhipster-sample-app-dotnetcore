@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import SharedModule from 'app/shared/shared.module';
@@ -11,34 +11,23 @@ import { SortService } from 'app/shared/sort/sort.service';
 import { SortState } from 'app/shared/sort/sort-state';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { NgIf } from '@angular/common';
 
 @Component({
   standalone: true,
   selector: 'jhi-view',
   templateUrl: './view.component.html',
-  imports: [
-    SharedModule,
-    RouterModule,
-    FormsModule,
-    SortDirective,
-    SortByDirective,
-    FontAwesomeModule,
-    NgIf,
-  ],
+  imports: [SharedModule, RouterModule, FormsModule, SortDirective, SortByDirective, FontAwesomeModule],
 })
 export class ViewComponent implements OnInit {
   views: IView[] | null = null;
   isLoading = false;
   sortState: SortState = { predicate: '', order: 'asc' };
 
-  constructor(
-    protected viewService: ViewService,
-    protected sortService: SortService,
-    protected modalService: NgbModal,
-    protected router: Router,
-    protected activatedRoute: ActivatedRoute,
-  ) {}
+  protected viewService = inject(ViewService);
+  protected sortService = inject(SortService);
+  protected modalService = inject(NgbModal);
+  protected router = inject(Router);
+  protected activatedRoute = inject(ActivatedRoute);
 
   ngOnInit(): void {
     this.load();
@@ -75,9 +64,7 @@ export class ViewComponent implements OnInit {
   }
 
   protected sort(): string[] {
-    const result = [
-      (this.sortState.predicate ?? '') + ',' + (this.sortState.order ?? 'asc'),
-    ];
+    const result = [(this.sortState.predicate ?? '') + ',' + (this.sortState.order ?? 'asc')];
     if (this.sortState.predicate !== 'id') {
       result.push('id');
     }
@@ -85,15 +72,11 @@ export class ViewComponent implements OnInit {
   }
 
   protected onResponseSuccess(response: EntityArrayResponseType): void {
-    const dataFromBody = this.fillComponentAttributesFromResponseBody(
-      response.body,
-    );
+    const dataFromBody = this.fillComponentAttributesFromResponseBody(response.body);
     this.views = this.refill(dataFromBody);
   }
 
-  protected fillComponentAttributesFromResponseBody(
-    data: IView[] | null,
-  ): IView[] {
+  protected fillComponentAttributesFromResponseBody(data: IView[] | null): IView[] {
     return data ?? [];
   }
 

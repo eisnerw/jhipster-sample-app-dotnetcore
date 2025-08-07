@@ -1,22 +1,14 @@
 <div class="demo-container">
   <h1>Popup NGX Query Builder Demo</h1>
   <p>This is a demo of the popup query builder component. Click the search button to open the query builder.</p>
-  
+
   <div class="query-section">
     <h3>BQL</h3>
-    <lib-query-input
-      [(query)]="currentQuery"
-      (queryChange)="onQueryChange($event)"
-      placeholder="BQL">
-    </lib-query-input>
+    <lib-query-input [(query)]="currentQuery" (queryChange)="onQueryChange($event)" placeholder="BQL"> </lib-query-input>
   </div>
 
   <div class="result-section">
     <h3>Ruleset</h3>
-    <textarea
-      class="query-output"
-      [(ngModel)]="rulesetJson"
-      (ngModelChange)="onRulesetChange($event)">
-    </textarea>
+    <textarea class="query-output" [(ngModel)]="rulesetJson" (ngModelChange)="onRulesetChange($event)"> </textarea>
   </div>
 </div>

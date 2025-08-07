@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 
 export interface AddNamedRulesetDialogData {
@@ -15,7 +15,9 @@ export interface AddNamedRulesetDialogData {
       <mat-form-field appearance="fill">
         <mat-label>{{data.rulesetName}} Name</mat-label>
         <mat-select [(value)]="selected">
-          <mat-option *ngFor="let n of data.names" [value]="n">{{n}}</mat-option>
+          @for (n of data.names; track n) {
+            <mat-option [value]="n">{{n}}</mat-option>
+          }
         </mat-select>
       </mat-form-field>
     </div>
@@ -23,12 +25,11 @@ export interface AddNamedRulesetDialogData {
       <button mat-button (click)="dialogRef.close()">Cancel</button>
       <button mat-raised-button color="primary" [disabled]="!selected" (click)="dialogRef.close(selected)">Add</button>
     </div>
-  `
+    `
 })
 export class AddNamedRulesetDialogComponent {
+  dialogRef = inject<MatDialogRef<AddNamedRulesetDialogComponent>>(MatDialogRef);
+  data = inject<AddNamedRulesetDialogData>(MAT_DIALOG_DATA);
+
   selected: string | null = null;
-  constructor(
-    public dialogRef: MatDialogRef<AddNamedRulesetDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: AddNamedRulesetDialogData
-  ) {}
 }

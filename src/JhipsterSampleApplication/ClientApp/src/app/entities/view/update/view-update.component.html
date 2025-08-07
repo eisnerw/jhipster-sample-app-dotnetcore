@@ -8,34 +8,26 @@
       <div class="row-md jh-entity-details">
         <div class="form-group">
           <label class="form-control-label" for="field_name">Name</label>
-          <input
-            type="text"
-            class="form-control"
-            name="name"
-            id="field_name"
-            data-cy="name"
-            [(ngModel)]="view.name"
-            required
-          />
-          <div *ngIf="editForm.controls.name?.invalid && (editForm.controls.name?.dirty || editForm.controls.name?.touched)">
-            <small class="form-text text-danger" *ngIf="editForm.controls.name?.errors?.required"> This field is required. </small>
-          </div>
+          <input type="text" class="form-control" name="name" id="field_name" data-cy="name" [(ngModel)]="view.name" required />
+          @if (editForm.controls.name.invalid && (editForm.controls.name.dirty || editForm.controls.name.touched)) {
+            <div>
+              @if (editForm.controls.name.errors?.required) {
+                <small class="form-text text-danger"> This field is required. </small>
+              }
+            </div>
+          }
         </div>
 
         <div class="form-group">
           <label class="form-control-label" for="field_field">Field</label>
-          <input
-            type="text"
-            class="form-control"
-            name="field"
-            id="field_field"
-            data-cy="field"
-            [(ngModel)]="view.field"
-            required
-          />
-          <div *ngIf="editForm.controls.field?.invalid && (editForm.controls.field?.dirty || editForm.controls.field?.touched)">
-            <small class="form-text text-danger" *ngIf="editForm.controls.field?.errors?.required"> This field is required. </small>
-          </div>
+          <input type="text" class="form-control" name="field" id="field_field" data-cy="field" [(ngModel)]="view.field" required />
+          @if (editForm.controls.field.invalid && (editForm.controls.field.dirty || editForm.controls.field.touched)) {
+            <div>
+              @if (editForm.controls.field.errors?.required) {
+                <small class="form-text text-danger"> This field is required. </small>
+              }
+            </div>
+          }
         </div>
 
         <div class="form-group">
@@ -52,14 +44,7 @@
 
         <div class="form-group">
           <label class="form-control-label" for="field_query">Query</label>
-          <input
-            type="text"
-            class="form-control"
-            name="query"
-            id="field_query"
-            data-cy="query"
-            [(ngModel)]="view.query"
-          />
+          <input type="text" class="form-control" name="query" id="field_query" data-cy="query" [(ngModel)]="view.query" />
         </div>
 
         <div class="form-group">
@@ -83,38 +68,31 @@
             data-cy="script"
             [(ngModel)]="view.script"
             rows="10"
-            style="font-family: monospace; width: 100%; min-width: 600px;"
+            style="font-family: monospace; width: 100%; min-width: 600px"
           ></textarea>
         </div>
 
         <div class="form-group">
-          <label class="form-control-label" for="field_parentViewId">Parent  view</label>
-          <select
-            class="form-control"
-            id="field_parentViewId"
-            data-cy="parentViewId"
-            name="parentViewId"
-            [(ngModel)]="view.parentViewId"
-          >
-            <option *ngFor="let viewOption of views" [ngValue]="viewOption.id">{{ viewOption.name }}</option>
+          <label class="form-control-label" for="field_parentViewId">Parent view</label>
+          <select class="form-control" id="field_parentViewId" data-cy="parentViewId" name="parentViewId" [(ngModel)]="view.parentViewId">
+            @for (viewOption of views; track viewOption) {
+              <option [ngValue]="viewOption.id">{{ viewOption.name }}</option>
+            }
           </select>
         </div>
 
         <div class="form-group">
           <label class="form-control-label" for="field_domain">Domain</label>
-          <select
-            class="form-control"
-            id="field_domain"
-            data-cy="domain"
-            name="domain"
-            [(ngModel)]="view.domain"
-            required
-          >
+          <select class="form-control" id="field_domain" data-cy="domain" name="domain" [(ngModel)]="view.domain" required>
             <option value="birthdays">Birthdays</option>
           </select>
-          <div *ngIf="editForm.controls.domain?.invalid && (editForm.controls.domain?.dirty || editForm.controls.domain?.touched)">
-            <small class="form-text text-danger" *ngIf="editForm.controls.domain?.errors?.required">This field is required.</small>
-          </div>
+          @if (editForm.controls.domain.invalid && (editForm.controls.domain.dirty || editForm.controls.domain.touched)) {
+            <div>
+              @if (editForm.controls.domain.errors?.required) {
+                <small class="form-text text-danger">This field is required.</small>
+              }
+            </div>
+          }
         </div>
       </div>
 
@@ -124,11 +102,17 @@
           <span>Cancel</span>
         </button>
 
-        <button type="submit" id="save-entity" data-cy="entityCreateSaveButton" [disabled]="editForm.form.invalid || isSaving" class="btn btn-primary">
+        <button
+          type="submit"
+          id="save-entity"
+          data-cy="entityCreateSaveButton"
+          [disabled]="editForm.form.invalid || isSaving"
+          class="btn btn-primary"
+        >
           <fa-icon icon="save"></fa-icon>
           <span>Save</span>
         </button>
       </div>
     </form>
   </div>
-</div> 
+</div>

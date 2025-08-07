@@ -1,19 +1,9 @@
-import {
-  ComponentFixture,
-  TestBed,
-  fakeAsync,
-  inject,
-  tick,
-  waitForAsync,
-} from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, inject, tick, waitForAsync } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { FormBuilder } from '@angular/forms';
 import { of, throwError } from 'rxjs';
 
-import {
-  EMAIL_ALREADY_USED_TYPE,
-  LOGIN_ALREADY_USED_TYPE,
-} from 'app/config/error.constants';
+import { EMAIL_ALREADY_USED_TYPE, LOGIN_ALREADY_USED_TYPE } from 'app/config/error.constants';
 
 import { RegisterService } from './register.service';
 import RegisterComponent from './register.component';

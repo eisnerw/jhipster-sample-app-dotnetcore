@@ -14,8 +14,6 @@ describe('FormatMediumDatePipe', () => {
   });
 
   it('should format date like this D MMM YYYY', () => {
-    expect(
-      formatMediumDatePipe.transform(dayjs('2020-11-16').locale('fr')),
-    ).toBe('16 Nov 2020');
+    expect(formatMediumDatePipe.transform(dayjs('2020-11-16').locale('fr'))).toBe('16 Nov 2020');
   });
 });

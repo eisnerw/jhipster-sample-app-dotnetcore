@@ -1,31 +1,54 @@
 <div class="query-input" [class.editing]="editing">
   <button pButton icon="pi pi-search" class="search-btn" (click)="clickSearch()"></button>
 
-  <div class="text" *ngIf="!editing" (click)="startEdit()">
-    <span [ngClass]="{'placeholder': !query}">{{ query || placeholder }}</span>
-    <i class="pi pi-times clear-icon" *ngIf="query" (click)="clearQuery($event)"></i>
-  </div>
-  <input pInputText *ngIf="editing" [(ngModel)]="query" (ngModelChange)="onQueryChange()" (keyup.enter)="acceptEdit()" [ngClass]="{'invalid': !validQuery}" />
+  @if (!editing) {
+    <div class="text" (click)="startEdit()">
+      <span [ngClass]="{ placeholder: !query }">{{ query || placeholder }}</span>
+      @if (query) {
+        <i class="pi pi-times clear-icon" (click)="clearQuery($event)"></i>
+      }
+    </div>
+  }
+  @if (editing) {
+    <input
+      pInputText
+      [(ngModel)]="query"
+      (ngModelChange)="onQueryChange()"
+      (keyup.enter)="acceptEdit()"
+      [ngClass]="{ invalid: !validQuery }"
+    />
+  }
 
-  <div class="btn-group" *ngIf="editing">
-    <i class="pi pi-times action-icon" (click)="cancelEdit()"></i>
-    <i class="pi pi-check action-icon" (click)="acceptEdit()" [ngClass]="{'disabled': !validQuery}"></i>
-  </div>
+  @if (editing) {
+    <div class="btn-group">
+      <i class="pi pi-times action-icon" (click)="cancelEdit()"></i>
+      <i class="pi pi-check action-icon" (click)="acceptEdit()" [ngClass]="{ disabled: !validQuery }"></i>
+    </div>
+  }
 </div>
 
-<p-dialog 
-  [(visible)]="showBuilder" 
-  [modal]="true" 
+<p-dialog
+  [(visible)]="showBuilder"
+  [modal]="true"
   [closable]="true"
   [draggable]="true"
   [resizable]="true"
   [maximizable]="true"
-  header="Query Builder" 
-  [style]="{width: '800px', height: '600px', minWidth: '600px', minHeight: '400px'}"
-  [contentStyle]="{height: 'calc(100% - 120px)', overflow: 'auto', padding: '0'}"
+  header="Query Builder"
+  [style]="{
+    width: '800px',
+    height: '600px',
+    minWidth: '600px',
+    minHeight: '400px',
+  }"
+  [contentStyle]="{
+    height: 'calc(100% - 120px)',
+    overflow: 'auto',
+    padding: '0',
+  }"
   styleClass="query-builder-dialog"
-  [baseZIndex]="10000">
-  
+  [baseZIndex]="10000"
+>
   <ngx-query-builder
     [(ngModel)]="builderQuery"
     [config]="queryBuilderConfig"
@@ -33,10 +56,11 @@
     [allowConvertToRuleset]="allowConvertToRuleset"
     [allowRuleUpDown]="allowRuleUpDown"
     [ruleName]="ruleName"
-    [rulesetName]="rulesetName">
     [rulesetName]="rulesetName"
-    [defaultRuleAttribute]="defaultRuleAttribute"></ngx-query-builder>  
-  
+  >
+    [rulesetName]="rulesetName" [defaultRuleAttribute]="defaultRuleAttribute"></ngx-query-builder
+  >
+
   <ng-template pTemplate="footer">
     <div class="dialog-footer">
       <button pButton label="Cancel" (click)="cancelQuery()" class="p-button-secondary"></button>

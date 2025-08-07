@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -32,14 +32,16 @@ export interface EditRulesetDialogData {
   ]
 })
 export class EditRulesetDialogComponent {
+  dialogRef = inject<MatDialogRef<EditRulesetDialogComponent, RuleSet | null>>(MatDialogRef);
+  data = inject<EditRulesetDialogData>(MAT_DIALOG_DATA);
+
   text: string;
   state: 'valid' | 'invalid-bql' | 'invalid-query' = 'valid';
   private readonly originalName?: string;
 
-  constructor(
-    public dialogRef: MatDialogRef<EditRulesetDialogComponent, RuleSet | null>,
-    @Inject(MAT_DIALOG_DATA) public data: EditRulesetDialogData
-  ) {
+  constructor() {
+    const data = this.data;
+
     const copy = JSON.parse(JSON.stringify(data.ruleset));
     this.originalName = (copy as any).name;
     delete (copy as any).name;

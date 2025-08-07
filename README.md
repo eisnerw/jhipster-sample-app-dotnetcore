@@ -34,6 +34,12 @@ In ./src/JhipsterSampleApplication/ClientApp run
 
     npm install
 
+For angular 20, we currently need to run
+
+    npm install --legacy-peer-deps
+    npm install --save-dev webpack
+    npm install --save-dev webpack-cli
+
 We use npm scripts and [Webpack][] as our build system.
 
 A development index.html needs to be in the ClientApp/dist directory.  This can be accompished by doing a dotnet build and then deleting everything except index.html from the dist directory

@@ -1,9 +1,4 @@
-import {
-  emailSettingsSelector,
-  firstNameSettingsSelector,
-  lastNameSettingsSelector,
-  submitSettingsSelector,
-} from '../../support/commands';
+import { emailSettingsSelector, firstNameSettingsSelector, lastNameSettingsSelector, submitSettingsSelector } from '../../support/commands';
 import type { Account } from '../../support/account';
 
 describe('/account/settings', () => {
@@ -19,7 +14,7 @@ describe('/account/settings', () => {
   before(() => {
     cy.login(username, password);
 
-    cy.getAccount().then((account) => {
+    cy.getAccount().then(account => {
       originalUserAccount = account;
       testUserAccount = { ...account, email: testUserEmail };
 
@@ -56,9 +51,7 @@ describe('/account/settings', () => {
     cy.get(firstNameSettingsSelector).clear();
     cy.get(firstNameSettingsSelector).type('jhipster');
     cy.get(submitSettingsSelector).click();
-    cy.wait('@settingsSave').then(({ response }) =>
-      expect(response?.statusCode).to.equal(200),
-    );
+    cy.wait('@settingsSave').then(({ response }) => expect(response?.statusCode).to.equal(200));
   });
 
   it.skip("should be able to change 'user' lastname settings", () => {
@@ -66,9 +59,7 @@ describe('/account/settings', () => {
     cy.get(firstNameSettingsSelector).type('jhipster');
     cy.get(lastNameSettingsSelector).type('retspihj');
     cy.get(submitSettingsSelector).click();
-    cy.wait('@settingsSave').then(({ response }) =>
-      expect(response?.statusCode).to.equal(200),
-    );
+    cy.wait('@settingsSave').then(({ response }) => expect(response?.statusCode).to.equal(200));
   });
 
   it.skip("should be able to change 'user' email settings", () => {
@@ -76,9 +67,7 @@ describe('/account/settings', () => {
     cy.get(firstNameSettingsSelector).type('jhipster');
     cy.get(emailSettingsSelector).type('user@localhost.fr');
     cy.get(submitSettingsSelector).click();
-    cy.wait('@settingsSave').then(({ response }) =>
-      expect(response?.statusCode).to.equal(200),
-    );
+    cy.wait('@settingsSave').then(({ response }) => expect(response?.statusCode).to.equal(200));
   });
 
   describe('if there is another user with an email', () => {
@@ -87,7 +76,7 @@ describe('/account/settings', () => {
 
     before(() => {
       cy.login(adminUsername, adminPassword);
-      cy.getAccount().then((account) => {
+      cy.getAccount().then(account => {
         originalAdminAccount = account;
 
         // need to modify email because default email does not match regex in some frameworks
@@ -107,9 +96,7 @@ describe('/account/settings', () => {
       cy.get(firstNameSettingsSelector).type('jhipster');
       cy.get(emailSettingsSelector).type(testAdminEmail);
       cy.get(submitSettingsSelector).click();
-      cy.wait('@settingsSave').then(({ response }) =>
-        expect(response?.statusCode).to.equal(400),
-      );
+      cy.wait('@settingsSave').then(({ response }) => expect(response?.statusCode).to.equal(400));
     });
   });
 });

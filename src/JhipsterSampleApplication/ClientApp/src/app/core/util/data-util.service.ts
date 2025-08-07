@@ -58,15 +58,9 @@ export class DataUtils {
    * @returns an observable that loads file to form field and completes if successful
    *      or returns error as FileLoadError on failure
    */
-  loadFileToForm(
-    event: Event,
-    editForm: FormGroup,
-    field: string,
-    isImage: boolean,
-  ): Observable<void> {
+  loadFileToForm(event: Event, editForm: FormGroup, field: string, isImage: boolean): Observable<void> {
     return new Observable((observer: Observer<void>) => {
-      const eventTarget: HTMLInputElement | null =
-        event.target as HTMLInputElement | null;
+      const eventTarget: HTMLInputElement | null = event.target as HTMLInputElement | null;
       if (eventTarget?.files?.[0]) {
         const file: File = eventTarget.files[0];
         if (isImage && !file.type.startsWith('image/')) {
@@ -105,9 +99,7 @@ export class DataUtils {
     const fileReader: FileReader = new FileReader();
     fileReader.onload = (e: ProgressEvent<FileReader>) => {
       if (typeof e.target?.result === 'string') {
-        const base64Data: string = e.target.result.substring(
-          e.target.result.indexOf('base64,') + 'base64,'.length,
-        );
+        const base64Data: string = e.target.result.substring(e.target.result.indexOf('base64,') + 'base64,'.length);
         callback(base64Data);
       }
     };

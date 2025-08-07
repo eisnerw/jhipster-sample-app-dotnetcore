@@ -1,19 +1,5 @@
-import {
-  AfterViewInit,
-  Component,
-  ElementRef,
-  OnInit,
-  inject,
-  signal,
-  viewChild,
-} from '@angular/core';
-import {
-  FormControl,
-  FormGroup,
-  FormsModule,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { AfterViewInit, Component, ElementRef, OnInit, inject, signal, viewChild } from '@angular/core';
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import PasswordStrengthBarComponent from 'app/account/password/password-strength-bar/password-strength-bar.component';
 import SharedModule from 'app/shared/shared.module';
@@ -22,18 +8,10 @@ import { PasswordResetFinishService } from './password-reset-finish.service';
 
 @Component({
   selector: 'jhi-password-reset-finish',
-  imports: [
-    SharedModule,
-    RouterModule,
-    FormsModule,
-    ReactiveFormsModule,
-    PasswordStrengthBarComponent,
-  ],
+  imports: [SharedModule, RouterModule, FormsModule, ReactiveFormsModule, PasswordStrengthBarComponent],
   templateUrl: './password-reset-finish.component.html',
 })
-export default class PasswordResetFinishComponent
-  implements OnInit, AfterViewInit
-{
+export default class PasswordResetFinishComponent implements OnInit, AfterViewInit {
   newPassword = viewChild.required<ElementRef>('newPassword');
 
   initialized = signal(false);
@@ -45,29 +23,19 @@ export default class PasswordResetFinishComponent
   passwordForm = new FormGroup({
     newPassword: new FormControl('', {
       nonNullable: true,
-      validators: [
-        Validators.required,
-        Validators.minLength(4),
-        Validators.maxLength(50),
-      ],
+      validators: [Validators.required, Validators.minLength(4), Validators.maxLength(50)],
     }),
     confirmPassword: new FormControl('', {
       nonNullable: true,
-      validators: [
-        Validators.required,
-        Validators.minLength(4),
-        Validators.maxLength(50),
-      ],
+      validators: [Validators.required, Validators.minLength(4), Validators.maxLength(50)],
     }),
   });
 
-  private readonly passwordResetFinishService = inject(
-    PasswordResetFinishService,
-  );
+  private readonly passwordResetFinishService = inject(PasswordResetFinishService);
   private readonly route = inject(ActivatedRoute);
 
   ngOnInit(): void {
-    this.route.queryParams.subscribe((params) => {
+    this.route.queryParams.subscribe(params => {
       if (params.key) {
         this.key.set(params.key);
       }

@@ -29,51 +29,59 @@
             <th jhiSortBy="query"><span>Query</span> <fa-icon icon="sort"></fa-icon></th>
             <th jhiSortBy="categoryQuery"><span>Category Query</span> <fa-icon icon="sort"></fa-icon></th>
             <th jhiSortBy="script"><span>Script</span> <fa-icon icon="sort"></fa-icon></th>
-            <th jhiSortBy="parentViewId"><span>Parent  view</span> <fa-icon icon="sort"></fa-icon></th>
+            <th jhiSortBy="parentViewId"><span>Parent view</span> <fa-icon icon="sort"></fa-icon></th>
             <th jhiSortBy="domain"><span>Domain</span> <fa-icon icon="sort"></fa-icon></th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let view of views; trackBy: trackId">
-            <td><a [routerLink]="['/view', view.id, 'view']">{{ view.id }}</a></td>
-            <td>{{ view.name }}</td>
-            <td>{{ view.field }}</td>
-            <td>{{ view.aggregation }}</td>
-            <td>{{ view.query }}</td>
-            <td>{{ view.categoryQuery }}</td>
-            <td>{{ view.script }}</td>
-            <td>
-              <div *ngIf="view.parentViewId">
-                <a [routerLink]="['/view', view.parentViewId, 'view']">{{ view.parentViewId }}</a>
-              </div>
-            </td>
-            <td>{{ view.domain }}</td>
-            <td class="text-end">
-              <div class="btn-group">
-                <button type="button" [routerLink]="['/view', view.id, 'view']" class="btn btn-info btn-sm">
-                  <fa-icon icon="eye"></fa-icon>
-                  <span class="d-none d-md-inline">View</span>
-                </button>
-                <button type="button" [routerLink]="['/view', view.id, 'edit']" class="btn btn-primary btn-sm">
-                  <fa-icon icon="pencil-alt"></fa-icon>
-                  <span class="d-none d-md-inline">Edit</span>
-                </button>
-                <button type="button" (click)="delete(view)" class="btn btn-danger btn-sm">
-                  <fa-icon icon="times"></fa-icon>
-                  <span class="d-none d-md-inline">Delete</span>
-                </button>
-              </div>
-            </td>
-          </tr>
+          @for (view of views; track trackId($index, view)) {
+            <tr>
+              <td>
+                <a [routerLink]="['/view', view.id, 'view']">{{ view.id }}</a>
+              </td>
+              <td>{{ view.name }}</td>
+              <td>{{ view.field }}</td>
+              <td>{{ view.aggregation }}</td>
+              <td>{{ view.query }}</td>
+              <td>{{ view.categoryQuery }}</td>
+              <td>{{ view.script }}</td>
+              <td>
+                @if (view.parentViewId) {
+                  <div>
+                    <a [routerLink]="['/view', view.parentViewId, 'view']">{{ view.parentViewId }}</a>
+                  </div>
+                }
+              </td>
+              <td>{{ view.domain }}</td>
+              <td class="text-end">
+                <div class="btn-group">
+                  <button type="button" [routerLink]="['/view', view.id, 'view']" class="btn btn-info btn-sm">
+                    <fa-icon icon="eye"></fa-icon>
+                    <span class="d-none d-md-inline">View</span>
+                  </button>
+                  <button type="button" [routerLink]="['/view', view.id, 'edit']" class="btn btn-primary btn-sm">
+                    <fa-icon icon="pencil-alt"></fa-icon>
+                    <span class="d-none d-md-inline">Edit</span>
+                  </button>
+                  <button type="button" (click)="delete(view)" class="btn btn-danger btn-sm">
+                    <fa-icon icon="times"></fa-icon>
+                    <span class="d-none d-md-inline">Delete</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
         </tbody>
       </table>
     </div>
 
-    <div *ngIf="views?.length === 0">
-      <div class="alert alert-warning">
-        <span>No views found</span>
+    @if (views?.length === 0) {
+      <div>
+        <div class="alert alert-warning">
+          <span>No views found</span>
+        </div>
       </div>
-    </div>
+    }
   </div>
-</div> 
+</div>

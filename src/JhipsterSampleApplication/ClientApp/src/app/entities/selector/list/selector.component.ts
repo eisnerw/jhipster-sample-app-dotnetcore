@@ -1,7 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { HttpResponse } from '@angular/common/http';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import SharedModule from 'app/shared/shared.module';
@@ -14,16 +14,14 @@ import { SelectorDeleteDialogComponent } from '../delete/selector-delete-dialog.
   standalone: true,
   selector: 'jhi-selector',
   templateUrl: './selector.component.html',
-  imports: [CommonModule, RouterModule, FontAwesomeModule, SharedModule],
+  imports: [RouterModule, FontAwesomeModule, SharedModule],
 })
 export class SelectorComponent implements OnInit {
   selectors?: ISelector[];
   isLoading = false;
 
-  constructor(
-    protected selectorService: SelectorService,
-    protected modalService: NgbModal,
-  ) {}
+  protected selectorService = inject(SelectorService);
+  protected modalService = inject(NgbModal);
 
   loadAll(): void {
     this.isLoading = true;
@@ -54,7 +52,7 @@ export class SelectorComponent implements OnInit {
     });
     modalRef.componentInstance.selector = selector;
     // unsubscribe not needed because closed completes on modal close
-    modalRef.closed.subscribe((reason) => {
+    modalRef.closed.subscribe(reason => {
       if (reason === 'deleted') {
         this.loadAll();
       }

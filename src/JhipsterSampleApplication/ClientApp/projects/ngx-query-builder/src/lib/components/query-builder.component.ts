@@ -39,21 +39,7 @@ import {
   RulesetAddRulesetButtonContext,
   RulesetAddRuleButtonContext,
 } from '../models/query-builder.interfaces';
-import {
-  ChangeDetectorRef,
-  Component,
-  ContentChild,
-  ContentChildren,
-  forwardRef,
-  Input,
-  OnChanges,
-  QueryList,
-  SimpleChanges,
-  TemplateRef,
-  ViewChild,
-  ElementRef,
-  booleanAttribute,
-} from '@angular/core';
+import { ChangeDetectorRef, Component, ContentChild, ContentChildren, forwardRef, Input, OnChanges, QueryList, SimpleChanges, TemplateRef, ViewChild, ElementRef, booleanAttribute, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { AddNamedRulesetDialogComponent } from './add-named-ruleset-dialog.component';
 import {
@@ -84,6 +70,9 @@ export const VALIDATOR: any = {
 export class QueryBuilderComponent
   implements OnChanges, ControlValueAccessor, Validator
 {
+  private changeDetectorRef = inject(ChangeDetectorRef);
+  private dialog = inject(MatDialog);
+
   private static parentMap = new WeakMap<RuleSet, RuleSet | null>();
   public fields!: Field[];
   public entities!: Entity[];
@@ -245,11 +234,6 @@ export class QueryBuilderComponent
   private buttonGroupContext!: ButtonGroupContext;
   public namingRuleset: RuleSet | null = null;
   public namingRulesetName = '';
-
-  constructor(
-    private changeDetectorRef: ChangeDetectorRef,
-    private dialog: MatDialog,
-  ) {}
 
   // ----------OnChanges Implementation----------
 

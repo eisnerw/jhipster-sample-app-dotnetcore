@@ -198,7 +198,7 @@
       font-size: 1.1rem;
     }
     
-    .p-dropdown {
+    .p-select {
       min-width: 120px;
     }
   }
@@ -276,7 +276,7 @@
         transform: translateY(-1px);
       }
       
-      .p-dropdown {
+      .p-select {
         min-width: 140px;
         flex: 1;
       }
@@ -364,7 +364,7 @@
       align-items: flex-start;
       gap: 0.5rem;
       
-      .p-dropdown {
+      .p-select {
         width: 100%;
       }
     }
@@ -374,7 +374,7 @@
       align-items: stretch;
       gap: 0.5rem;
       
-      .p-dropdown, .p-inputtext {
+      .p-select, .p-inputtext {
         width: 100%;
         min-width: auto;
       }
@@ -488,6 +488,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    height: 38px;
 
     &:hover {
       background: #0056b3;

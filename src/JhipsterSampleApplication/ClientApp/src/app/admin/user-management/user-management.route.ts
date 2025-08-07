@@ -5,9 +5,7 @@ import { of } from 'rxjs';
 import { IUser } from './user-management.model';
 import { UserManagementService } from './service/user-management.service';
 
-export const userManagementResolve: ResolveFn<IUser | null> = (
-  route: ActivatedRouteSnapshot,
-) => {
+export const userManagementResolve: ResolveFn<IUser | null> = (route: ActivatedRouteSnapshot) => {
   const login = route.paramMap.get('login');
   if (login) {
     return inject(UserManagementService).find(login);

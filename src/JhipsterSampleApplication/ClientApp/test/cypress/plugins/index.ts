@@ -13,10 +13,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { lighthouse, pa11y, prepareAudit } from 'cypress-audit';
 
-export default (
-  on: Cypress.PluginEvents,
-  config: Cypress.PluginConfigOptions,
-) => {
+export default (on: Cypress.PluginEvents, config: Cypress.PluginConfigOptions) => {
   on('before:browser:launch', (browser, launchOptions) => {
     prepareAudit(launchOptions);
     if (browser.name === 'chrome' && browser.isHeadless) {
@@ -38,17 +35,12 @@ export default (
   });
 
   on('task', {
-    lighthouse: lighthouse(async (lighthouseReport) => {
-      const { default: ReportGenerator } = await import(
-        'lighthouse/report/generator/report-generator'
-      );
+    lighthouse: lighthouse(async lighthouseReport => {
+      const { default: ReportGenerator } = await import('lighthouse/report/generator/report-generator');
       if (!existsSync('tmp/cypress/')) {
         mkdirSync('tmp/cypress/', { recursive: true });
       }
-      writeFileSync(
-        'tmp/cypress/lhreport.html',
-        ReportGenerator.generateReport(lighthouseReport.lhr, 'html'),
-      );
+      writeFileSync('tmp/cypress/lhreport.html', ReportGenerator.generateReport(lighthouseReport.lhr, 'html'));
     }),
     pa11y: pa11y(),
   });

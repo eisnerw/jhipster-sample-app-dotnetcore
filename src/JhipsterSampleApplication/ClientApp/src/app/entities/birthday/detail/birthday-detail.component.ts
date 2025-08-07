@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
@@ -14,7 +14,7 @@ import SharedModule from 'app/shared/shared.module';
 export class BirthdayDetailComponent implements OnInit {
   birthday: IBirthday | null = null;
 
-  constructor(protected activatedRoute: ActivatedRoute) {}
+  protected activatedRoute = inject(ActivatedRoute);
 
   ngOnInit(): void {
     this.activatedRoute.data.subscribe(({ birthday }) => {

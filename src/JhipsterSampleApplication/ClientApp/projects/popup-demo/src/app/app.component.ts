@@ -1,12 +1,12 @@
 import { Component, ViewChild, AfterViewInit } from '@angular/core';
 import { QueryInputComponent, bqlToRuleset, rulesetToBql } from 'popup-ngx-query-builder';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [QueryInputComponent, CommonModule, FormsModule],
+  imports: [QueryInputComponent, FormsModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })

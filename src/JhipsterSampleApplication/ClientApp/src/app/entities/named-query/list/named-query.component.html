@@ -14,51 +14,69 @@
     </div>
   </h2>
 
-  <div class="table-responsive" id="entities" *ngIf="namedQueries() as namedQueries">
-    <table class="table table-striped" aria-describedby="page-heading">
-      <thead>
-        <tr jhiSort [(sortState)]="sortState" (sortChange)="navigateToWithComponentValues($event)">
-          <th jhiSortBy="id"><span jhiTranslate="global.field.id">ID</span> <fa-icon icon="sort"></fa-icon></th>
-          <th jhiSortBy="name"><span jhiTranslate="jhipsterSampleApplicationApp.namedQuery.name">Name</span> <fa-icon icon="sort"></fa-icon></th>
-          <th jhiSortBy="text"><span jhiTranslate="jhipsterSampleApplicationApp.namedQuery.text">Text</span> <fa-icon icon="sort"></fa-icon></th>
-          <th jhiSortBy="owner"><span jhiTranslate="jhipsterSampleApplicationApp.namedQuery.owner">Owner</span> <fa-icon icon="sort"></fa-icon></th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let namedQuery of namedQueries; trackBy: trackId">
-          <td>
-            <a [routerLink]="['/named-query', namedQuery.id, 'view']">{{ namedQuery.id }}</a>
-          </td>
-          <td>{{ namedQuery.name }}</td>
-          <td>{{ namedQuery.text }}</td>
-          <td>{{ namedQuery.owner }}</td>
-          <td class="text-end">
-            <div class="btn-group flex-btn-group-container">
-              <a [routerLink]="['/named-query', namedQuery.id, 'view']" class="btn btn-info btn-sm" data-cy="entityDetailsButton">
-                <fa-icon icon="eye"></fa-icon>
-                <span class="d-none d-md-inline" jhiTranslate="entity.action.view">View</span>
-              </a>
-
-              <a [routerLink]="['/named-query', namedQuery.id, 'edit']" class="btn btn-primary btn-sm" data-cy="entityEditButton">
-                <fa-icon icon="pencil-alt"></fa-icon>
-                <span class="d-none d-md-inline" jhiTranslate="entity.action.edit">Edit</span>
-              </a>
-
-              <button *ngIf="canDelete(namedQuery)" type="submit" class="btn btn-danger btn-sm" data-cy="entityDeleteButton" (click)="delete(namedQuery)">
-                <fa-icon icon="times"></fa-icon>
-                <span class="d-none d-md-inline" jhiTranslate="entity.action.delete">Delete</span>
-              </button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div *ngIf="namedQueries()?.length === 0">
-    <div class="alert alert-warning">
-      <span jhiTranslate="jhipsterSampleApplicationApp.namedQuery.home.notFound">No named queries found</span>
+  @if (namedQueries(); as namedQueries) {
+    <div class="table-responsive" id="entities">
+      <table class="table table-striped" aria-describedby="page-heading">
+        <thead>
+          <tr jhiSort [(sortState)]="sortState" (sortChange)="navigateToWithComponentValues($event)">
+            <th jhiSortBy="id">
+              <span jhiTranslate="global.field.id">ID</span>
+              <fa-icon icon="sort"></fa-icon>
+            </th>
+            <th jhiSortBy="name">
+              <span jhiTranslate="jhipsterSampleApplicationApp.namedQuery.name">Name</span>
+              <fa-icon icon="sort"></fa-icon>
+            </th>
+            <th jhiSortBy="text">
+              <span jhiTranslate="jhipsterSampleApplicationApp.namedQuery.text">Text</span>
+              <fa-icon icon="sort"></fa-icon>
+            </th>
+            <th jhiSortBy="owner">
+              <span jhiTranslate="jhipsterSampleApplicationApp.namedQuery.owner">Owner</span>
+              <fa-icon icon="sort"></fa-icon>
+            </th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (namedQuery of namedQueries; track trackId($index, namedQuery)) {
+            <tr>
+              <td>
+                <a [routerLink]="['/named-query', namedQuery.id, 'view']">{{ namedQuery.id }}</a>
+              </td>
+              <td>{{ namedQuery.name }}</td>
+              <td>{{ namedQuery.text }}</td>
+              <td>{{ namedQuery.owner }}</td>
+              <td class="text-end">
+                <div class="btn-group flex-btn-group-container">
+                  <a [routerLink]="['/named-query', namedQuery.id, 'view']" class="btn btn-info btn-sm" data-cy="entityDetailsButton">
+                    <fa-icon icon="eye"></fa-icon>
+                    <span class="d-none d-md-inline" jhiTranslate="entity.action.view">View</span>
+                  </a>
+                  <a [routerLink]="['/named-query', namedQuery.id, 'edit']" class="btn btn-primary btn-sm" data-cy="entityEditButton">
+                    <fa-icon icon="pencil-alt"></fa-icon>
+                    <span class="d-none d-md-inline" jhiTranslate="entity.action.edit">Edit</span>
+                  </a>
+                  @if (canDelete(namedQuery)) {
+                    <button type="submit" class="btn btn-danger btn-sm" data-cy="entityDeleteButton" (click)="delete(namedQuery)">
+                      <fa-icon icon="times"></fa-icon>
+                      <span class="d-none d-md-inline" jhiTranslate="entity.action.delete">Delete</span>
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </div>
-  </div>
-</div> 
+  }
+
+  @if (namedQueries().length === 0) {
+    <div>
+      <div class="alert alert-warning">
+        <span jhiTranslate="jhipsterSampleApplicationApp.namedQuery.home.notFound">No named queries found</span>
+      </div>
+    </div>
+  }
+</div>

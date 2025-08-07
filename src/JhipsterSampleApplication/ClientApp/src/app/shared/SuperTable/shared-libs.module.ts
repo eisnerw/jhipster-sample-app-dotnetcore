@@ -6,21 +6,7 @@ import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 
 @NgModule({
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    NgbModule,
-    FontAwesomeModule,
-    InfiniteScrollDirective,
-  ],
-  exports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    NgbModule,
-    FontAwesomeModule,
-    InfiniteScrollDirective,
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, NgbModule, FontAwesomeModule, InfiniteScrollDirective],
+  exports: [CommonModule, FormsModule, ReactiveFormsModule, NgbModule, FontAwesomeModule, InfiniteScrollDirective],
 })
 export class SharedLibsModule {}

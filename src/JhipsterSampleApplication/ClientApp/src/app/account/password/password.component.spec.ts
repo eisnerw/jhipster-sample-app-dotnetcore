@@ -51,9 +51,7 @@ describe('PasswordComponent', () => {
       newPassword: 'myPassword',
     };
 
-    jest
-      .spyOn(service, 'save')
-      .mockReturnValue(of(new HttpResponse({ body: true })));
+    jest.spyOn(service, 'save').mockReturnValue(of(new HttpResponse({ body: true })));
 
     comp.passwordForm.patchValue({
       currentPassword: passwordValues.currentPassword,
@@ -65,17 +63,12 @@ describe('PasswordComponent', () => {
     comp.changePassword();
 
     // THEN
-    expect(service.save).toHaveBeenCalledWith(
-      passwordValues.newPassword,
-      passwordValues.currentPassword,
-    );
+    expect(service.save).toHaveBeenCalledWith(passwordValues.newPassword, passwordValues.currentPassword);
   });
 
   it('should set success to true upon success', () => {
     // GIVEN
-    jest
-      .spyOn(service, 'save')
-      .mockReturnValue(of(new HttpResponse({ body: true })));
+    jest.spyOn(service, 'save').mockReturnValue(of(new HttpResponse({ body: true })));
     comp.passwordForm.patchValue({
       newPassword: 'myPassword',
       confirmPassword: 'myPassword',

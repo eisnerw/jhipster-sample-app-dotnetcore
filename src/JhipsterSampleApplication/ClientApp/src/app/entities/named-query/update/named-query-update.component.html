@@ -15,85 +15,46 @@
 
           <div class="mb-3">
             <label class="form-label" for="field_id" jhiTranslate="global.field.id">ID</label>
-            <input
-              type="number"
-              class="form-control"
-              name="id"
-              id="field_id"
-              data-cy="id"
-              formControlName="id"
-              [readonly]="true"
-            />
+            <input type="number" class="form-control" name="id" id="field_id" data-cy="id" formControlName="id" [readonly]="true" />
           </div>
 
           <div class="mb-3">
             <label class="form-label" for="field_name" jhiTranslate="jhipsterSampleApplicationApp.namedQuery.name">Name</label>
-            <input
-              type="text"
-              class="form-control"
-              name="name"
-              id="field_name"
-              data-cy="name"
-              formControlName="name"
-            />
-            <div
-              *ngIf="editForm.get('name')!.invalid && (editForm.get('name')!.dirty || editForm.get('name')!.touched)"
-            >
-              <small
-                class="form-text text-danger"
-                *ngIf="editForm.get('name')?.errors?.required"
-                jhiTranslate="entity.validation.required"
-              >
-                This field is required.
-              </small>
-            </div>
+            <input type="text" class="form-control" name="name" id="field_name" data-cy="name" formControlName="name" />
+            @if (editForm.get('name')!.invalid && (editForm.get('name')!.dirty || editForm.get('name')!.touched)) {
+              <div>
+                @if (editForm.get('name')?.errors?.required) {
+                  <small class="form-text text-danger" jhiTranslate="entity.validation.required"> This field is required. </small>
+                }
+              </div>
+            }
           </div>
 
           <div class="mb-3">
             <label class="form-label" for="field_text" jhiTranslate="jhipsterSampleApplicationApp.namedQuery.text">Text</label>
-            <input
-              type="text"
-              class="form-control"
-              name="text"
-              id="field_text"
-              data-cy="text"
-              formControlName="text"
-            />
-            <div
-              *ngIf="editForm.get('text')!.invalid && (editForm.get('text')!.dirty || editForm.get('text')!.touched)"
-            >
-              <small
-                class="form-text text-danger"
-                *ngIf="editForm.get('text')?.errors?.required"
-                jhiTranslate="entity.validation.required"
-              >
-                This field is required.
-              </small>
-            </div>
+            <input type="text" class="form-control" name="text" id="field_text" data-cy="text" formControlName="text" />
+            @if (editForm.get('text')!.invalid && (editForm.get('text')!.dirty || editForm.get('text')!.touched)) {
+              <div>
+                @if (editForm.get('text')?.errors?.required) {
+                  <small class="form-text text-danger" jhiTranslate="entity.validation.required"> This field is required. </small>
+                }
+              </div>
+            }
           </div>
 
-          <div class="mb-3" *ngIf="isAdmin">
-            <label class="form-label" for="field_owner" jhiTranslate="jhipsterSampleApplicationApp.namedQuery.owner">Owner</label>
-            <input
-              type="text"
-              class="form-control"
-              name="owner"
-              id="field_owner"
-              data-cy="owner"
-              formControlName="owner"
-            />
-            <div
-              *ngIf="editForm.get('owner')!.invalid && (editForm.get('owner')!.dirty || editForm.get('owner')!.touched)"
-            >
-              <small
-                class="form-text text-danger"
-                *ngIf="editForm.get('owner')?.errors?.required"
-                jhiTranslate="entity.validation.required"
-              >
-                This field is required.
-              </small>
+          @if (isAdmin) {
+            <div class="mb-3">
+              <label class="form-label" for="field_owner" jhiTranslate="jhipsterSampleApplicationApp.namedQuery.owner">Owner</label>
+              <input type="text" class="form-control" name="owner" id="field_owner" data-cy="owner" formControlName="owner" />
+              @if (editForm.get('owner')!.invalid && (editForm.get('owner')!.dirty || editForm.get('owner')!.touched)) {
+                <div>
+                  @if (editForm.get('owner')?.errors?.required) {
+                    <small class="form-text text-danger" jhiTranslate="entity.validation.required"> This field is required. </small>
+                  }
+                </div>
+              }
             </div>
-          </div>
+          }
         </div>
 
         <div>
@@ -114,4 +75,4 @@
       </form>
     </div>
   </div>
-</div> 
+</div>

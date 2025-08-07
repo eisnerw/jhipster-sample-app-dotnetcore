@@ -1,8 +1,7 @@
 /* eslint-disable */ 
 
-import { NgModule, Component, HostListener, OnInit, OnDestroy, AfterViewInit, Directive, Optional, AfterContentInit,
-    Input, Output, EventEmitter, ElementRef, NgZone, ChangeDetectorRef, OnChanges, ChangeDetectionStrategy, ViewEncapsulation, Renderer2, Inject, PLATFORM_ID} from '@angular/core';
-import { CommonModule, DOCUMENT } from '@angular/common';
+import { NgModule, Component, HostListener, OnInit, OnDestroy, AfterViewInit, Directive, AfterContentInit, Input, Output, EventEmitter, ElementRef, NgZone, ChangeDetectorRef, OnChanges, ChangeDetectionStrategy, ViewEncapsulation, Renderer2, PLATFORM_ID, DOCUMENT, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FilterService, OverlayService } from 'primeng/api';
 import { PaginatorModule } from 'primeng/paginator';
@@ -47,59 +46,81 @@ import { TableState } from 'primeng/api';
             'p-datatable-hoverable-rows': (rowHover||selectionMode),
             'p-datatable-scrollable': scrollable,
             'p-datatable-flex-scrollable': (scrollable && scrollHeight === 'flex')}" [attr.id]="id">
-        <div class="p-datatable-loading-overlay p-component-overlay" *ngIf="loading && showLoader">
-            <i [class]="'p-datatable-loading-icon pi-spin ' + loadingIcon"></i>
+      @if (loading && showLoader) {
+        <div class="p-datatable-loading-overlay p-component-overlay">
+          <i [class]="'p-datatable-loading-icon pi-spin ' + loadingIcon"></i>
         </div>
-        <div *ngIf="captionTemplate" class="p-datatable-header">
-            <ng-container *ngTemplateOutlet="captionTemplate"></ng-container>
+      }
+      @if (captionTemplate) {
+        <div class="p-datatable-header">
+          <ng-container *ngTemplateOutlet="captionTemplate"></ng-container>
         </div>
+      }
+      @if (paginator && (paginatorPosition === 'top' || paginatorPosition ==='both')) {
         <p-paginator [rows]="rows" [first]="first" [totalRecords]="totalRecords" [pageLinkSize]="pageLinks" styleClass="p-paginator-top" [alwaysShow]="alwaysShowPaginator"
-            (onPageChange)="onPageChange($event)" [rowsPerPageOptions]="rowsPerPageOptions" *ngIf="paginator && (paginatorPosition === 'top' || paginatorPosition =='both')"
-            [templateLeft]="paginatorLeftTemplate" [templateRight]="paginatorRightTemplate" [dropdownAppendTo]="paginatorDropdownAppendTo" [dropdownScrollHeight]="paginatorDropdownScrollHeight"
-            [currentPageReportTemplate]="currentPageReportTemplate" [showFirstLastIcon]="showFirstLastIcon" [dropdownItemTemplate]="paginatorDropdownItemTemplate" [showCurrentPageReport]="showCurrentPageReport" [showJumpToPageDropdown]="showJumpToPageDropdown" [showJumpToPageInput]="showJumpToPageInput" [showPageLinks]="showPageLinks"></p-paginator>
-
-        <div #wrapper class="p-datatable-wrapper" [ngStyle]="{maxHeight: virtualScroll ? '' : scrollHeight}">
-            <p-scroller #scroller *ngIf="virtualScroll" [items]="processedData" [columns]="columns" [style]="{'height': scrollHeight !== 'flex' ? scrollHeight : ''}" [scrollHeight]="scrollHeight !== 'flex' ? '' : '100%'" [itemSize]="virtualScrollItemSize||_virtualRowHeight" [delay]="lazy ? virtualScrollDelay : 0"
-                [lazy]="lazy" (onLazyLoad)="onLazyItemLoad($event)" [loaderDisabled]="true" [showSpacer]="false" [showLoader]="!!loadingBodyTemplate" [options]="virtualScrollOptions">
-                <ng-template pTemplate="content" let-items let-scrollerOptions="options">
-                    <ng-container *ngTemplateOutlet="buildInTable; context: {$implicit: items, options: scrollerOptions}"></ng-container>
-                </ng-template>
-            </p-scroller>
-            <ng-container *ngIf="!virtualScroll">
-                <ng-container *ngTemplateOutlet="buildInTable; context: {$implicit: processedData, options: { columns }}"></ng-container>
-            </ng-container>
-
-            <ng-template #buildInTable let-items let-scrollerOptions="options">
+          (onPageChange)="onPageChange($event)" [rowsPerPageOptions]="rowsPerPageOptions"
+          [templateLeft]="paginatorLeftTemplate" [templateRight]="paginatorRightTemplate" [dropdownAppendTo]="paginatorDropdownAppendTo" [dropdownScrollHeight]="paginatorDropdownScrollHeight"
+        [currentPageReportTemplate]="currentPageReportTemplate" [showFirstLastIcon]="showFirstLastIcon" [dropdownItemTemplate]="paginatorDropdownItemTemplate" [showCurrentPageReport]="showCurrentPageReport" [showJumpToPageDropdown]="showJumpToPageDropdown" [showJumpToPageInput]="showJumpToPageInput" [showPageLinks]="showPageLinks"></p-paginator>
+      }
+    
+      <div #wrapper class="p-datatable-wrapper" [ngStyle]="{maxHeight: virtualScroll ? '' : scrollHeight}">
+        @if (virtualScroll) {
+          <p-scroller #scroller [items]="processedData" [columns]="columns" [style]="{'height': scrollHeight !== 'flex' ? scrollHeight : ''}" [scrollHeight]="scrollHeight !== 'flex' ? '' : '100%'" [itemSize]="virtualScrollItemSize||_virtualRowHeight" [delay]="lazy ? virtualScrollDelay : 0"
+            [lazy]="lazy" (onLazyLoad)="onLazyItemLoad($event)" [loaderDisabled]="true" [showSpacer]="false" [showLoader]="!!loadingBodyTemplate" [options]="virtualScrollOptions">
+            <ng-template pTemplate="content" let-items let-scrollerOptions="options">
+              <ng-container *ngTemplateOutlet="buildInTable; context: {$implicit: items, options: scrollerOptions}"></ng-container>
+            </ng-template>
+          </p-scroller>
+        }
+        @if (!virtualScroll) {
+          <ng-container *ngTemplateOutlet="buildInTable; context: {$implicit: processedData, options: { columns }}"></ng-container>
+        }
+    
+        <ng-template #buildInTable let-items let-scrollerOptions="options">
                 <table #table role="table" [ngClass]="{'p-datatable-table': true, 
                                                     'p-datatable-scrollable-table': scrollable,
                                                     'p-datatable-resizable-table': resizableColumns,
                                                     'p-datatable-resizable-table-fit': (resizableColumns && columnResizeMode === 'fit')}" 
-                    [class]="tableStyleClass" [ngStyle]="tableStyle" [style]="scrollerOptions.spacerStyle" [attr.id]="id+'-table'">
-                    <ng-container *ngTemplateOutlet="colGroupTemplate; context: {$implicit: scrollerOptions.columns}"></ng-container>
-                    <thead #thead class="p-datatable-thead">
-                        <ng-container *ngTemplateOutlet="headerGroupedTemplate||headerTemplate; context: {$implicit: scrollerOptions.columns}"></ng-container>
-                    </thead>
-                    <tbody class="p-datatable-tbody p-datatable-frozen-tbody" *ngIf="frozenValue||frozenBodyTemplate" [value]="frozenValue" [frozenRows]="true" [super-table-body]="scrollerOptions.columns" [pTableBodyTemplate]="frozenBodyTemplate" [frozen]="true"></tbody>
-                    <tbody class="p-datatable-tbody" [ngClass]="scrollerOptions.contentStyleClass" [style]="scrollerOptions.contentStyle" [value]="dataToRender(scrollerOptions.rows)" [super-table-body]="scrollerOptions.columns" [pTableBodyTemplate]="bodyTemplate" [scrollerOptions]="scrollerOptions"></tbody>
-                    <tfoot *ngIf="footerGroupedTemplate||footerTemplate" #tfoot class="p-datatable-tfoot">
-                        <ng-container *ngTemplateOutlet="footerGroupedTemplate||footerTemplate; context: {$implicit: scrollerOptions.columns}"></ng-container>
-                    </tfoot>
-                </table>
-            </ng-template>
-        </div>
-
+            [class]="tableStyleClass" [ngStyle]="tableStyle" [style]="scrollerOptions.spacerStyle" [attr.id]="id+'-table'">
+            <ng-container *ngTemplateOutlet="colGroupTemplate; context: {$implicit: scrollerOptions.columns}"></ng-container>
+            <thead #thead class="p-datatable-thead">
+              <ng-container *ngTemplateOutlet="headerGroupedTemplate||headerTemplate; context: {$implicit: scrollerOptions.columns}"></ng-container>
+            </thead>
+            @if (frozenValue||frozenBodyTemplate) {
+              <tbody class="p-datatable-tbody p-datatable-frozen-tbody" [value]="frozenValue" [frozenRows]="true" [super-table-body]="scrollerOptions.columns" [pTableBodyTemplate]="frozenBodyTemplate" [frozen]="true"></tbody>
+            }
+            <tbody class="p-datatable-tbody" [ngClass]="scrollerOptions.contentStyleClass" [style]="scrollerOptions.contentStyle" [value]="dataToRender(scrollerOptions.rows)" [super-table-body]="scrollerOptions.columns" [pTableBodyTemplate]="bodyTemplate" [scrollerOptions]="scrollerOptions"></tbody>
+            @if (footerGroupedTemplate||footerTemplate) {
+              <tfoot #tfoot class="p-datatable-tfoot">
+                <ng-container *ngTemplateOutlet="footerGroupedTemplate||footerTemplate; context: {$implicit: scrollerOptions.columns}"></ng-container>
+              </tfoot>
+            }
+          </table>
+        </ng-template>
+      </div>
+    
+      @if (paginator && (paginatorPosition === 'bottom' || paginatorPosition ==='both')) {
         <p-paginator [rows]="rows" [first]="first" [totalRecords]="totalRecords" [pageLinkSize]="pageLinks" styleClass="p-paginator-bottom" [alwaysShow]="alwaysShowPaginator"
-            (onPageChange)="onPageChange($event)" [rowsPerPageOptions]="rowsPerPageOptions" *ngIf="paginator && (paginatorPosition === 'bottom' || paginatorPosition =='both')"
-            [templateLeft]="paginatorLeftTemplate" [templateRight]="paginatorRightTemplate" [dropdownAppendTo]="paginatorDropdownAppendTo" [dropdownScrollHeight]="paginatorDropdownScrollHeight"
-            [currentPageReportTemplate]="currentPageReportTemplate" [showFirstLastIcon]="showFirstLastIcon" [dropdownItemTemplate]="paginatorDropdownItemTemplate" [showCurrentPageReport]="showCurrentPageReport" [showJumpToPageDropdown]="showJumpToPageDropdown" [showJumpToPageInput]="showJumpToPageInput" [showPageLinks]="showPageLinks"></p-paginator>
-
-        <div *ngIf="summaryTemplate" class="p-datatable-footer">
-            <ng-container *ngTemplateOutlet="summaryTemplate"></ng-container>
+          (onPageChange)="onPageChange($event)" [rowsPerPageOptions]="rowsPerPageOptions"
+          [templateLeft]="paginatorLeftTemplate" [templateRight]="paginatorRightTemplate" [dropdownAppendTo]="paginatorDropdownAppendTo" [dropdownScrollHeight]="paginatorDropdownScrollHeight"
+        [currentPageReportTemplate]="currentPageReportTemplate" [showFirstLastIcon]="showFirstLastIcon" [dropdownItemTemplate]="paginatorDropdownItemTemplate" [showCurrentPageReport]="showCurrentPageReport" [showJumpToPageDropdown]="showJumpToPageDropdown" [showJumpToPageInput]="showJumpToPageInput" [showPageLinks]="showPageLinks"></p-paginator>
+      }
+    
+      @if (summaryTemplate) {
+        <div class="p-datatable-footer">
+          <ng-container *ngTemplateOutlet="summaryTemplate"></ng-container>
         </div>
-
-        <div #resizeHelper class="p-column-resizer-helper" style="display:none" *ngIf="resizableColumns"></div>
-        <span #reorderIndicatorUp class="pi pi-arrow-down p-datatable-reorder-indicator-up" style="display:none" *ngIf="reorderableColumns"></span>
-        <span #reorderIndicatorDown class="pi pi-arrow-up p-datatable-reorder-indicator-down" style="display:none" *ngIf="reorderableColumns"></span>
+      }
+    
+      @if (resizableColumns) {
+        <div #resizeHelper class="p-column-resizer-helper" style="display:none"></div>
+      }
+      @if (reorderableColumns) {
+        <span #reorderIndicatorUp class="pi pi-arrow-down p-datatable-reorder-indicator-up" style="display:none"></span>
+      }
+      @if (reorderableColumns) {
+        <span #reorderIndicatorDown class="pi pi-arrow-up p-datatable-reorder-indicator-down" style="display:none"></span>
+      }
     </div>
     `,
     providers: [TableService],
@@ -463,10 +484,6 @@ export class SuperTable extends Table implements OnInit, AfterViewInit, AfterCon
     children: SuperTable[] = [];
 
     filteringGlobal = false;
-    
-    constructor (@Inject(DOCUMENT) document: Document, @Inject(PLATFORM_ID) platformId: any, renderer: Renderer2, el: ElementRef, zone: NgZone, tableService: TableService, cd: ChangeDetectorRef, filterService: FilterService, overlayService: OverlayService){
-        super();
-    }
 
     @Input() get value(): any[] {
         return this._value;
@@ -630,62 +647,74 @@ export class SuperTable extends Table implements OnInit, AfterViewInit, AfterCon
 @Component({
     selector: '[super-table-body]',
     template: `
-        <ng-container *ngIf="!dt.expandedRowTemplate && !dt.virtualScroll">
-        <ng-template ngFor let-rowData let-rowIndex="index" [ngForOf]="value" [ngForTrackBy]="dt.rowTrackBy">
-            <ng-container *ngIf="dt.groupHeaderTemplate && dt.rowGroupMode === 'subheader' && shouldRenderRowGroupHeader(value, rowData, getRowIndex(rowIndex))" role="row">
+        @if (!dt.expandedRowTemplate && !dt.virtualScroll) {
+          @for (rowData of value; track dt.rowTrackBy(rowIndex, rowData); let rowIndex = $index) {
+            @if (dt.groupHeaderTemplate && dt.rowGroupMode === 'subheader' && shouldRenderRowGroupHeader(value, rowData, getRowIndex(rowIndex))) {
+              <ng-container role="row">
                 <ng-container *ngTemplateOutlet="dt.groupHeaderTemplate; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, editing: (dt.editMode === 'row' && dt.isRowEditing(rowData)), frozen: frozen}"></ng-container>
-            </ng-container>
-            <ng-container *ngIf="dt.rowGroupMode !== 'rowspan'">
-                <ng-container *ngTemplateOutlet="template; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, editing: (dt.editMode === 'row' && dt.isRowEditing(rowData)), frozen: frozen}"></ng-container>
-            </ng-container>
-            <ng-container *ngIf="dt.rowGroupMode === 'rowspan'">
-                <ng-container *ngTemplateOutlet="template; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, editing: (dt.editMode === 'row' && dt.isRowEditing(rowData)), frozen: frozen, rowgroup: shouldRenderRowspan(value, rowData, getRowIndex(rowIndex)), rowspan: calculateRowGroupSize(value, rowData, getRowIndex(rowIndex))}"></ng-container>
-            </ng-container>
-            <ng-container *ngIf="dt.groupFooterTemplate && dt.rowGroupMode === 'subheader' && shouldRenderRowGroupFooter(value, rowData, getRowIndex(rowIndex))" role="row">
+              </ng-container>
+            }
+            @if (dt.rowGroupMode !== 'rowspan') {
+              <ng-container *ngTemplateOutlet="template; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, editing: (dt.editMode === 'row' && dt.isRowEditing(rowData)), frozen: frozen}"></ng-container>
+            }
+            @if (dt.rowGroupMode === 'rowspan') {
+              <ng-container *ngTemplateOutlet="template; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, editing: (dt.editMode === 'row' && dt.isRowEditing(rowData)), frozen: frozen, rowgroup: shouldRenderRowspan(value, rowData, getRowIndex(rowIndex)), rowspan: calculateRowGroupSize(value, rowData, getRowIndex(rowIndex))}"></ng-container>
+            }
+            @if (dt.groupFooterTemplate && dt.rowGroupMode === 'subheader' && shouldRenderRowGroupFooter(value, rowData, getRowIndex(rowIndex))) {
+              <ng-container role="row">
                 <ng-container *ngTemplateOutlet="dt.groupFooterTemplate; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, editing: (dt.editMode === 'row' && dt.isRowEditing(rowData)), frozen: frozen}"></ng-container>
-            </ng-container>
-        </ng-template>
-    </ng-container>
-    <ng-container *ngIf="!dt.expandedRowTemplate && dt.virtualScroll">
-        <ng-template ngFor let-rowData let-rowIndex="index" [ngForOf]="dt.filteredValue||dt.value" [ngForTrackBy]="dt.rowTrackBy">
+              </ng-container>
+            }
+          }
+        }
+        @if (!dt.expandedRowTemplate && dt.virtualScroll) {
+          @for (rowData of dt.filteredValue||dt.value; track dt.rowTrackBy(rowIndex, rowData); let rowIndex = $index) {
             <ng-container *ngTemplateOutlet="rowData ? template: dt.loadingBodyTemplate; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, editing: (dt.editMode === 'row' && dt.isRowEditing(rowData)), frozen: frozen}"></ng-container>
-        </ng-template>
-    </ng-container>
-    <ng-container *ngIf="dt.expandedRowTemplate && !(frozen && dt.frozenExpandedRowTemplate)">
-        <ng-template ngFor let-rowData let-rowIndex="index" [ngForOf]="value" [ngForTrackBy]="dt.rowTrackBy">
-            <ng-container *ngIf="!dt.groupHeaderTemplate">
-                <ng-container *ngTemplateOutlet="template; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, expanded: dt.isRowExpanded(rowData), editing: (dt.editMode === 'row' && dt.isRowEditing(rowData)), frozen: frozen}"></ng-container>
-            </ng-container>
-            <ng-container *ngIf="dt.groupHeaderTemplate && dt.rowGroupMode === 'subheader' && shouldRenderRowGroupHeader(value, rowData, getRowIndex(rowIndex))" role="row">
+          }
+        }
+        @if (dt.expandedRowTemplate && !(frozen && dt.frozenExpandedRowTemplate)) {
+          @for (rowData of value; track dt.rowTrackBy(rowIndex, rowData); let rowIndex = $index) {
+            @if (!dt.groupHeaderTemplate) {
+              <ng-container *ngTemplateOutlet="template; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, expanded: dt.isRowExpanded(rowData), editing: (dt.editMode === 'row' && dt.isRowEditing(rowData)), frozen: frozen}"></ng-container>
+            }
+            @if (dt.groupHeaderTemplate && dt.rowGroupMode === 'subheader' && shouldRenderRowGroupHeader(value, rowData, getRowIndex(rowIndex))) {
+              <ng-container role="row">
                 <ng-container *ngTemplateOutlet="dt.groupHeaderTemplate; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, expanded: dt.isRowExpanded(rowData), editing: (dt.editMode === 'row' && dt.isRowEditing(rowData)), frozen: frozen}"></ng-container>
-            </ng-container>
-            <ng-container *ngIf="dt.isRowExpanded(rowData)">
-                <ng-container *ngTemplateOutlet="dt.expandedRowTemplate; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, frozen: frozen}"></ng-container>
-                <ng-container *ngIf="dt.groupFooterTemplate && dt.rowGroupMode === 'subheader' && shouldRenderRowGroupFooter(value, rowData, getRowIndex(rowIndex))" role="row">
-                    <ng-container *ngTemplateOutlet="dt.groupFooterTemplate; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, expanded: dt.isRowExpanded(rowData), editing: (dt.editMode === 'row' && dt.isRowEditing(rowData)), frozen: frozen}"></ng-container>
+              </ng-container>
+            }
+            @if (dt.isRowExpanded(rowData)) {
+              <ng-container *ngTemplateOutlet="dt.expandedRowTemplate; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, frozen: frozen}"></ng-container>
+              @if (dt.groupFooterTemplate && dt.rowGroupMode === 'subheader' && shouldRenderRowGroupFooter(value, rowData, getRowIndex(rowIndex))) {
+                <ng-container role="row">
+                  <ng-container *ngTemplateOutlet="dt.groupFooterTemplate; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, expanded: dt.isRowExpanded(rowData), editing: (dt.editMode === 'row' && dt.isRowEditing(rowData)), frozen: frozen}"></ng-container>
                 </ng-container>
-            </ng-container>
-        </ng-template>
-    </ng-container>
-    <ng-container *ngIf="dt.frozenExpandedRowTemplate && frozen">
-        <ng-template ngFor let-rowData let-rowIndex="index" [ngForOf]="value" [ngForTrackBy]="dt.rowTrackBy">
+              }
+            }
+          }
+        }
+        @if (dt.frozenExpandedRowTemplate && frozen) {
+          @for (rowData of value; track dt.rowTrackBy(rowIndex, rowData); let rowIndex = $index) {
             <ng-container *ngTemplateOutlet="template; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, expanded: dt.isRowExpanded(rowData), editing: (dt.editMode === 'row' && dt.isRowEditing(rowData)), frozen: frozen}"></ng-container>
-            <ng-container *ngIf="dt.isRowExpanded(rowData)">
-                <ng-container *ngTemplateOutlet="dt.frozenExpandedRowTemplate; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, frozen: frozen}"></ng-container>
-            </ng-container>
-        </ng-template>
-    </ng-container>
-    <ng-container *ngIf="dt.loading">
-        <ng-container *ngTemplateOutlet="dt.loadingBodyTemplate; context: {$implicit: columns, frozen: frozen}"></ng-container>
-    </ng-container>
-    <ng-container *ngIf="dt.isEmpty() && !dt.loading">
-        <ng-container *ngTemplateOutlet="dt.emptyMessageTemplate; context: {$implicit: columns, frozen: frozen}"></ng-container>
-    </ng-container>
-    `,
+            @if (dt.isRowExpanded(rowData)) {
+              <ng-container *ngTemplateOutlet="dt.frozenExpandedRowTemplate; context: {$implicit: rowData, rowIndex: getRowIndex(rowIndex), columns: columns, frozen: frozen}"></ng-container>
+            }
+          }
+        }
+        @if (dt.loading) {
+          <ng-container *ngTemplateOutlet="dt.loadingBodyTemplate; context: {$implicit: columns, frozen: frozen}"></ng-container>
+        }
+        @if (dt.isEmpty() && !dt.loading) {
+          <ng-container *ngTemplateOutlet="dt.emptyMessageTemplate; context: {$implicit: columns, frozen: frozen}"></ng-container>
+        }
+        `,
     changeDetection: ChangeDetectionStrategy.Default,
     encapsulation: ViewEncapsulation.None
 })
 export class SuperTableBody extends TableBody implements OnDestroy {
+    dt: SuperTable;
+    tableService: TableService;
+    cd: ChangeDetectorRef;
+
     @Input("super-table-body") columns= [];
 
     @Input("pTableBodyTemplate") template: any;
@@ -707,8 +736,17 @@ export class SuperTableBody extends TableBody implements OnDestroy {
 
     @Input() frozenRows: boolean = false;  
       
-    constructor(public dt: SuperTable, public tableService: TableService, public cd: ChangeDetectorRef, el: ElementRef) {
+    constructor() {
+        const dt = inject(SuperTable);
+        const tableService = inject(TableService);
+        const cd = inject(ChangeDetectorRef);
+        const el = inject(ElementRef);
+
         super(dt, tableService, cd, el);
+    
+        this.dt = dt;
+        this.tableService = tableService;
+        this.cd = cd;
     }
 }
 
@@ -723,9 +761,15 @@ export class SuperTableBody extends TableBody implements OnDestroy {
     }
 })
 export class SuperSortableColumn extends SortableColumn implements OnInit, OnDestroy {
+    dt: SuperTable;
+
     @Input("super-SortableColumn") field= "";
-    constructor(public dt: SuperTable) {
+    constructor() {
+        const dt = inject(SuperTable);
+
         super(dt);
+    
+        this.dt = dt;
     }
 
     ngOnInit() {
@@ -742,15 +786,26 @@ export class SuperSortableColumn extends SortableColumn implements OnInit, OnDes
     selector: 'super-sortIcon',
     template: `
         <i class="p-sortable-column-icon pi pi-fw" [ngClass]="{'pi-sort-amount-up-alt': sortOrder === 1, 'pi-sort-amount-down': sortOrder === -1, 'pi-sort-alt': sortOrder === 0}"></i>
-        <span *ngIf="isMultiSorted()" class="p-sortable-column-badge">{{getBadgeValue()}}</span>
-    `,
+        @if (isMultiSorted()) {
+          <span class="p-sortable-column-badge">{{getBadgeValue()}}</span>
+        }
+        `,
     changeDetection: ChangeDetectionStrategy.OnPush,
     encapsulation: ViewEncapsulation.None
 })
 export class SuperSortIcon extends SortIcon implements OnInit, OnDestroy {
+    dt: SuperTable;
+    cd: ChangeDetectorRef;
 
-    constructor(public dt: SuperTable, public cd: ChangeDetectorRef) {
+
+    constructor() {
+        const dt = inject(SuperTable);
+        const cd = inject(ChangeDetectorRef);
+
         super(dt, cd);
+    
+        this.dt = dt;
+        this.cd = cd;
     }
 
     ngOnInit() {
@@ -771,10 +826,22 @@ export class SuperSortIcon extends SortIcon implements OnInit, OnDestroy {
     }
 })
 export class SuperSelectableRow extends SelectableRow implements OnInit, OnDestroy {
+    dt: SuperTable;
+    tableService: TableService;
+    el: ElementRef;
+
     @Input("super-selectable-row") data: any;
 
-    constructor(public dt: SuperTable, public tableService: TableService, public el: ElementRef) {
+    constructor() {
+        const dt = inject(SuperTable);
+        const tableService = inject(TableService);
+        const el = inject(ElementRef);
+
         super(dt, tableService, el);
+    
+        this.dt = dt;
+        this.tableService = tableService;
+        this.el = el;
     }
 
     ngOnInit() {
@@ -795,9 +862,19 @@ export class SuperSelectableRow extends SelectableRow implements OnInit, OnDestr
     }
 })
 export class SuperContextMenuRow extends ContextMenuRow {
+    dt: SuperTable;
+    tableService: TableService;
+
     @Input("super-ContextMenuRow") data: any;
-    constructor(public dt: SuperTable, public tableService: TableService, el: ElementRef) {
+    constructor() {
+        const dt = inject(SuperTable);
+        const tableService = inject(TableService);
+        const el = inject(ElementRef);
+
         super(dt, tableService, el);
+    
+        this.dt = dt;
+        this.tableService = tableService;
     }
 }
 
@@ -805,11 +882,17 @@ export class SuperContextMenuRow extends ContextMenuRow {
     selector: '[super-RowToggler]'
 })
 export class SuperRowToggler extends RowToggler {
+    dt: SuperTable;
+
 
     @Input('super-RowToggler') data: any;
 
-    constructor(public dt: SuperTable) { 
+    constructor() {
+        const dt = inject(SuperTable);
+ 
         super(dt);
+    
+        this.dt = dt;
     }
 }
 
@@ -818,7 +901,14 @@ export class SuperRowToggler extends RowToggler {
 })
 export class SuperResizableColumn extends ResizableColumn implements AfterViewInit, OnDestroy {
 
-    constructor(@Inject(DOCUMENT) document: Document, @Inject(PLATFORM_ID) platformId: any, renderer: Renderer2, dt: SuperTable, el: ElementRef, zone: NgZone) { 
+    constructor() {
+        const document = inject<Document>(DOCUMENT);
+        const platformId = inject(PLATFORM_ID);
+        const renderer = inject(Renderer2);
+        const dt = inject(SuperTable);
+        const el = inject(ElementRef);
+        const zone = inject(NgZone);
+ 
         super(document, platformId, renderer, dt, el, zone);
     }
 
@@ -835,7 +925,13 @@ export class SuperResizableColumn extends ResizableColumn implements AfterViewIn
     selector: '[super-ReorderableColumn]'
 })
 export class SuperReorderableColumn extends ReorderableColumn implements AfterViewInit, OnDestroy {
-    constructor(@Inject(PLATFORM_ID) platformId: any, renderer: Renderer2, dt: SuperTable, el: ElementRef, zone: NgZone) { 
+    constructor() {
+        const platformId = inject(PLATFORM_ID);
+        const renderer = inject(Renderer2);
+        const dt = inject(SuperTable);
+        const el = inject(ElementRef);
+        const zone = inject(NgZone);
+ 
         super(platformId, renderer, dt, el, zone);
     }
 
@@ -853,9 +949,21 @@ export class SuperReorderableColumn extends ReorderableColumn implements AfterVi
     selector: '[super-EditableColumn]'
 })
 export class SuperEditableColumn extends EditableColumn implements AfterViewInit {
+    dt: SuperTable;
+    el: ElementRef;
+    zone: NgZone;
 
-    constructor(public dt: SuperTable, public el: ElementRef, public zone: NgZone) {
+
+    constructor() {
+        const dt = inject(SuperTable);
+        const el = inject(ElementRef);
+        const zone = inject(NgZone);
+
         super(dt, el, zone);
+    
+        this.dt = dt;
+        this.el = el;
+        this.zone = zone;
     }
 
     ngAfterViewInit() {
@@ -867,8 +975,9 @@ export class SuperEditableColumn extends EditableColumn implements AfterViewInit
     selector: '[pInitEditableRow]'
 })
 export class InitEditableRow {
+    dt = inject(SuperTable);
+    editableRow = inject(EditableRow);
 
-    constructor(public dt: SuperTable, public editableRow: EditableRow) {}
 
     @HostListener('click', ['$event'])
     onClick(event: Event) {
@@ -882,8 +991,9 @@ export class InitEditableRow {
     selector: '[pSaveEditableRow]'
 })
 export class SaveEditableRow {
+    dt = inject(SuperTable);
+    editableRow = inject(EditableRow);
 
-    constructor(public dt: SuperTable, public editableRow: EditableRow) {}
 
     @HostListener('click', ['$event'])
     onClick(event: Event) {
@@ -896,8 +1006,9 @@ export class SaveEditableRow {
     selector: '[pCancelEditableRow]'
 })
 export class CancelEditableRow {
+    dt = inject(SuperTable);
+    editableRow = inject(EditableRow);
 
-    constructor(public dt: SuperTable, public editableRow: EditableRow) {}
 
     @HostListener('click', ['$event'])
     onClick(event: Event) {
@@ -909,20 +1020,32 @@ export class CancelEditableRow {
 @Component({
     selector: 'p-cellEditor',
     template: `
-        <ng-container *ngIf="editing">
-            <ng-container *ngTemplateOutlet="inputTemplate"></ng-container>
-        </ng-container>
-        <ng-container *ngIf="!editing">
-            <ng-container *ngTemplateOutlet="outputTemplate"></ng-container>
-        </ng-container>
-    `,
+        @if (editing) {
+          <ng-container *ngTemplateOutlet="inputTemplate"></ng-container>
+        }
+        @if (!editing) {
+          <ng-container *ngTemplateOutlet="outputTemplate"></ng-container>
+        }
+        `,
     encapsulation: ViewEncapsulation.None
 })
 export class SuperCellEditor extends CellEditor implements AfterContentInit {
+    dt: SuperTable;
+    editableColumn: SuperEditableColumn;
+    editableRow: EditableRow;
 
 
-    constructor(public dt: SuperTable, @Optional() public editableColumn: SuperEditableColumn, @Optional() public editableRow: EditableRow) {
+
+    constructor() {
+        const dt = inject(SuperTable);
+        const editableColumn = inject(SuperEditableColumn, { optional: true });
+        const editableRow = inject(EditableRow, { optional: true });
+
         super(dt, editableColumn, editableRow);
+    
+        this.dt = dt;
+        this.editableColumn = editableColumn;
+        this.editableRow = editableRow;
     }
 
     ngAfterContentInit() {
@@ -947,9 +1070,18 @@ export class SuperCellEditor extends CellEditor implements AfterContentInit {
     encapsulation: ViewEncapsulation.None
 })
 export class SuperTableRadioButton extends TableRadioButton  {
+    dt: SuperTable;
+    cd: ChangeDetectorRef;
+
     
-    constructor(public dt: SuperTable, public cd: ChangeDetectorRef) {
+    constructor() {
+        const dt = inject(SuperTable);
+        const cd = inject(ChangeDetectorRef);
+
         super(dt, cd);
+    
+        this.dt = dt;
+        this.cd = cd;
     }
 
     ngOnInit() {
@@ -976,9 +1108,21 @@ export class SuperTableRadioButton extends TableRadioButton  {
     encapsulation: ViewEncapsulation.None
 })
 export class SuperTableCheckbox extends TableCheckbox  {
+    dt: SuperTable;
+    tableService: TableService;
+    cd: ChangeDetectorRef;
 
-    constructor(public dt: SuperTable, public tableService: TableService, public cd: ChangeDetectorRef) {
+
+    constructor() {
+        const dt = inject(SuperTable);
+        const tableService = inject(TableService);
+        const cd = inject(ChangeDetectorRef);
+
         super(dt, tableService, cd);
+    
+        this.dt = dt;
+        this.tableService = tableService;
+        this.cd = cd;
     }
 
     onClick(event: Event) {
@@ -1028,8 +1172,20 @@ export class SuperTableCheckbox extends TableCheckbox  {
     encapsulation: ViewEncapsulation.None
 })
 export class SuperTableHeaderCheckbox extends TableHeaderCheckbox  {
-    constructor(public dt: SuperTable, public tableService: TableService, public cd: ChangeDetectorRef) {
+    dt: SuperTable;
+    tableService: TableService;
+    cd: ChangeDetectorRef;
+
+    constructor() {
+        const dt = inject(SuperTable);
+        const tableService = inject(TableService);
+        const cd = inject(ChangeDetectorRef);
+
         super(dt, tableService, cd);
+    
+        this.dt = dt;
+        this.tableService = tableService;
+        this.cd = cd;
     }
 }
 
@@ -1037,10 +1193,10 @@ export class SuperTableHeaderCheckbox extends TableHeaderCheckbox  {
     selector: '[pReorderableRowHandle]'
 })
 export class ReorderableRowHandle implements AfterViewInit {
+    el = inject(ElementRef);
+
 
     @Input("pReorderableRowHandle") index= 0;
-
-    constructor(public el: ElementRef) {}
 
     ngAfterViewInit() {
         DomHandler.addClass(this.el.nativeElement, 'p-datatable-reorderablerow-handle');
@@ -1054,7 +1210,12 @@ export class SuperReorderableRow extends ReorderableRow implements AfterViewInit
 
     @Input("super-reorderable-row") index= 0;
 
-    constructor(renderer: Renderer2, dt: SuperTable, el: ElementRef, zone: NgZone) {
+    constructor() {
+        const renderer = inject(Renderer2);
+        const dt = inject(SuperTable);
+        const el = inject(ElementRef);
+        const zone = inject(NgZone);
+
         super (renderer, dt, el, zone);
     }
 
@@ -1066,27 +1227,41 @@ export class SuperReorderableRow extends ReorderableRow implements AfterViewInit
 @Component({
     selector: 'super-columnFilterFormElement',
     template: `
-        <ng-container *ngIf="filterTemplate; else builtInElement">
-            <ng-container *ngTemplateOutlet="filterTemplate; context: {$implicit: filterConstraint.value, filterCallback: filterCallback}"></ng-container>
-        </ng-container>
-        <ng-template #builtInElement>
-            <ng-container [ngSwitch]="type">
-                <!--input *ngSwitchCase="'text'" type="text" pInputText [value]="filterConstraint?.value" (input)="onModelChange($event.target.value)"
-                    (keydown.enter)="onTextInputEnterKeyDown($event)" [attr.placeholder]="placeholder"-->
-                <p-inputNumber *ngSwitchCase="'numeric'" [ngModel]="filterConstraint?.value" (ngModelChange)="onModelChange($event)" (onKeyDown)="onNumericInputKeyDown($event)" [showButtons]="true"
-                    [minFractionDigits]="minFractionDigits" [maxFractionDigits]="maxFractionDigits" [prefix]="prefix" [suffix]="suffix" [placeholder]="placeholder"
-                    [mode]="currency ? 'currency' : 'decimal'" [locale]="locale" [localeMatcher]="localeMatcher" [currency]="currency" [currencyDisplay]="currencyDisplay" [useGrouping]="useGrouping"></p-inputNumber>
-                <p-checkbox *ngSwitchCase="'boolean'" [ngModel]="filterConstraint?.value" (ngModelChange)="onModelChange($event)" [binary]="false"></p-checkbox>
-                <p-calendar *ngSwitchCase="'date'" [placeholder]="placeholder" [ngModel]="filterConstraint?.value" (ngModelChange)="onModelChange($event)"></p-calendar>
-            </ng-container>
-        </ng-template>
-    `,
+        @if (filterTemplate) {
+          <ng-container *ngTemplateOutlet="filterTemplate; context: {$implicit: filterConstraint.value, filterCallback: filterCallback}"></ng-container>
+        } @else {
+          @switch (type) {
+            <!--input *ngSwitchCase="'text'" type="text" pInputText [value]="filterConstraint?.value" (input)="onModelChange($event.target.value)"
+            (keydown.enter)="onTextInputEnterKeyDown($event)" [attr.placeholder]="placeholder"-->
+            @case ('numeric') {
+              <p-inputNumber [ngModel]="filterConstraint?.value" (ngModelChange)="onModelChange($event)" (onKeyDown)="onNumericInputKeyDown($event)" [showButtons]="true"
+                [minFractionDigits]="minFractionDigits" [maxFractionDigits]="maxFractionDigits" [prefix]="prefix" [suffix]="suffix" [placeholder]="placeholder"
+              [mode]="currency ? 'currency' : 'decimal'" [locale]="locale" [localeMatcher]="localeMatcher" [currency]="currency" [currencyDisplay]="currencyDisplay" [useGrouping]="useGrouping"></p-inputNumber>
+            }
+            @case ('boolean') {
+              <p-checkbox [ngModel]="filterConstraint?.value" (ngModelChange)="onModelChange($event)" [binary]="false"></p-checkbox>
+            }
+            @case ('date') {
+              <p-calendar [placeholder]="placeholder" [ngModel]="filterConstraint?.value" (ngModelChange)="onModelChange($event)"></p-calendar>
+            }
+          }
+        }
+        `,
     encapsulation: ViewEncapsulation.None
 })
 export class SuperColumnFilterFormElement extends ColumnFilterFormElement implements OnInit {
+    dt: SuperTable;
+    private cf: ColumnFilter;
+
     @Input() filterConstraint: any;    
-    constructor(public dt: SuperTable, private cf: ColumnFilter) {
+    constructor() {
+        const dt = inject(SuperTable);
+        const cf = inject(ColumnFilter);
+
         super(dt, cf);
+    
+        this.dt = dt;
+        this.cf = cf;
     }
 
     get showButtons(): boolean {
@@ -1113,48 +1288,73 @@ export class SuperColumnFilterFormElement extends ColumnFilterFormElement implem
     selector: 'super-columnFilter',
     template: `
         <div class="p-column-filter" [ngClass]="{'p-column-filter-row': display === 'row', 'p-column-filter-menu': display === 'menu'}">
-            <super-columnFilterFormElement *ngIf="display === 'row'" class="p-fluid" [type]="type" [field]="field" [filterConstraint]="dt.filters[field]" [filterTemplate]="filterTemplate" [placeholder]="placeholder" [minFractionDigits]="minFractionDigits" [maxFractionDigits]="maxFractionDigits" [prefix]="prefix" [suffix]="suffix"
-                                    [locale]="locale"  [localeMatcher]="localeMatcher" [currency]="currency" [currencyDisplay]="currencyDisplay" [useGrouping]="useGrouping"></super-columnFilterFormElement>
-            <button #icon *ngIf="showMenuButton" type="button" class="p-column-filter-menu-button p-link" aria-haspopup="true" [attr.aria-expanded]="overlayVisible"
-                [ngClass]="{'p-column-filter-menu-button-open': overlayVisible, 'p-column-filter-menu-button-active': hasFilter()}"
-                (click)="toggleMenu()" (keydown)="onToggleButtonKeyDown($event)"><span class="pi pi-filter-icon pi-filter"></span></button>
-            <button #icon *ngIf="showClearButton && display === 'row'" [ngClass]="{'p-hidden-space': !hasRowFilter()}" type="button" class="p-column-filter-clear-button p-link" (click)="clearFilter()"><span class="pi pi-filter-slash"></span></button>
-            <div *ngIf="showMenu && overlayVisible" [ngClass]="{'p-column-filter-overlay p-component p-fluid': true, 'p-column-filter-overlay-menu': display === 'menu'}" (click)="onContentClick()"
+          @if (display === 'row') {
+            <super-columnFilterFormElement class="p-fluid" [type]="type" [field]="field" [filterConstraint]="dt.filters[field]" [filterTemplate]="filterTemplate" [placeholder]="placeholder" [minFractionDigits]="minFractionDigits" [maxFractionDigits]="maxFractionDigits" [prefix]="prefix" [suffix]="suffix"
+            [locale]="locale"  [localeMatcher]="localeMatcher" [currency]="currency" [currencyDisplay]="currencyDisplay" [useGrouping]="useGrouping"></super-columnFilterFormElement>
+          }
+          @if (showMenuButton) {
+            <button #icon type="button" class="p-column-filter-menu-button p-link" aria-haspopup="true" [attr.aria-expanded]="overlayVisible"
+              [ngClass]="{'p-column-filter-menu-button-open': overlayVisible, 'p-column-filter-menu-button-active': hasFilter()}"
+              (click)="toggleMenu()" (keydown)="onToggleButtonKeyDown($event)"><span class="pi pi-filter-icon pi-filter"></span></button>
+            }
+            @if (showClearButton && display === 'row') {
+              <button #icon [ngClass]="{'p-hidden-space': !hasRowFilter()}" type="button" class="p-column-filter-clear-button p-link" (click)="clearFilter()"><span class="pi pi-filter-slash"></span></button>
+            }
+            @if (showMenu && overlayVisible) {
+              <div [ngClass]="{'p-column-filter-overlay p-component p-fluid': true, 'p-column-filter-overlay-menu': display === 'menu'}" (click)="onContentClick()"
                 [@overlayAnimation]="'visible'" (@overlayAnimation.start)="onOverlayAnimationStart($event)" (@overlayAnimation.done)="onOverlayAnimationEnd($event)" (keydown.escape)="onEscape()">
                 <ng-container *ngTemplateOutlet="headerTemplate; context: {$implicit: field}"></ng-container>
-                <ul *ngIf="display === 'row'; else menu" class="p-column-filter-row-items">
-                    <li class="p-column-filter-row-item" *ngFor="let matchMode of matchModes; let i = index;" (click)="onRowMatchModeChange(matchMode.value)" (keydown)="onRowMatchModeKeyDown($event)" (keydown.enter)="this.onRowMatchModeChange(matchMode.value)"
-                        [ngClass]="{'p-highlight': isRowMatchModeSelected(matchMode.value)}" [attr.tabindex]="i === 0 ? '0' : null">{{matchMode.label}}</li>
+                @if (display === 'row') {
+                  <ul class="p-column-filter-row-items">
+                    @for (matchMode of matchModes; track matchMode; let i = $index) {
+                      <li class="p-column-filter-row-item" (click)="onRowMatchModeChange(matchMode.value)" (keydown)="onRowMatchModeKeyDown($event)" (keydown.enter)="this.onRowMatchModeChange(matchMode.value)"
+                      [ngClass]="{'p-highlight': isRowMatchModeSelected(matchMode.value)}" [attr.tabindex]="i === 0 ? '0' : null">{{matchMode.label}}</li>
+                    }
                     <li class="p-column-filter-separator"></li>
                     <li class="p-column-filter-row-item" (click)="onRowClearItemClick()" (keydown)="onRowMatchModeKeyDown($event)" (keydown.enter)="onRowClearItemClick()">{{noFilterLabel}}</li>
-                </ul>
-                <ng-template #menu>
-                    <div class="p-column-filter-operator" *ngIf="isShowOperator">
-                        <p-dropdown [options]="operatorOptions" [ngModel]="operator" (ngModelChange)="onOperatorChange($event)" styleClass="p-column-filter-operator-dropdown"></p-dropdown>
+                  </ul>
+                } @else {
+                  @if (isShowOperator) {
+                    <div class="p-column-filter-operator">
+                      <p-dropdown [options]="operatorOptions" [ngModel]="operator" (ngModelChange)="onOperatorChange($event)" styleClass="p-column-filter-operator-dropdown"></p-dropdown>
                     </div>
-                    <div class="p-column-filter-constraints">
-                        <div *ngFor="let fieldConstraint of fieldConstraints; let i = index" class="p-column-filter-constraint">
-                            <p-dropdown  *ngIf="showMatchModes && matchModes" [options]="matchModes" [ngModel]="fieldConstraint.matchMode" (ngModelChange)="onMenuMatchModeChange($event, fieldConstraint)" styleClass="p-column-filter-matchmode-dropdown"></p-dropdown>
-                            <super-columnFilterFormElement [type]="type" [field]="field" [filterConstraint]="fieldConstraint" [filterTemplate]="filterTemplate" [placeholder]="placeholder"
-                            [minFractionDigits]="minFractionDigits" [maxFractionDigits]="maxFractionDigits" [prefix]="prefix" [suffix]="suffix"
-                            [locale]="locale"  [localeMatcher]="localeMatcher" [currency]="currency" [currencyDisplay]="currencyDisplay" [useGrouping]="useGrouping"></super-columnFilterFormElement>
-                            <div>
-                                <button *ngIf="showRemoveIcon" type="button" pButton icon="pi pi-trash" class="p-column-filter-remove-button p-button-text p-button-danger p-button-sm" (click)="removeConstraint(fieldConstraint)" pRipple [label]="removeRuleButtonLabel"></button>
-                            </div>
+                  }
+                  <div class="p-column-filter-constraints">
+                    @for (fieldConstraint of fieldConstraints; track fieldConstraint; let i = $index) {
+                      <div class="p-column-filter-constraint">
+                        @if (showMatchModes && matchModes) {
+                          <p-dropdown  [options]="matchModes" [ngModel]="fieldConstraint.matchMode" (ngModelChange)="onMenuMatchModeChange($event, fieldConstraint)" styleClass="p-column-filter-matchmode-dropdown"></p-dropdown>
+                        }
+                        <super-columnFilterFormElement [type]="type" [field]="field" [filterConstraint]="fieldConstraint" [filterTemplate]="filterTemplate" [placeholder]="placeholder"
+                          [minFractionDigits]="minFractionDigits" [maxFractionDigits]="maxFractionDigits" [prefix]="prefix" [suffix]="suffix"
+                        [locale]="locale"  [localeMatcher]="localeMatcher" [currency]="currency" [currencyDisplay]="currencyDisplay" [useGrouping]="useGrouping"></super-columnFilterFormElement>
+                        <div>
+                          @if (showRemoveIcon) {
+                            <button type="button" pButton icon="pi pi-trash" class="p-column-filter-remove-button p-button-text p-button-danger p-button-sm" (click)="removeConstraint(fieldConstraint)" pRipple [label]="removeRuleButtonLabel"></button>
+                          }
                         </div>
+                      </div>
+                    }
+                  </div>
+                  @if (isShowAddConstraint) {
+                    <div class="p-column-filter-add-rule">
+                      <button type="button" pButton [label]="addRuleButtonLabel" icon="pi pi-plus" class="p-column-filter-add-button p-button-text p-button-sm" (click)="addConstraint()" pRipple></button>
                     </div>
-                    <div class="p-column-filter-add-rule" *ngIf="isShowAddConstraint">
-                        <button type="button" pButton [label]="addRuleButtonLabel" icon="pi pi-plus" class="p-column-filter-add-button p-button-text p-button-sm" (click)="addConstraint()" pRipple></button>
-                    </div>
-                    <div class="p-column-filter-buttonbar">
-                        <button *ngIf="showClearButton" type="button" pButton class="p-button-outlined p-button-sm" (click)="clearFilter()" [label]="clearButtonLabel" pRipple></button>
-                        <button *ngIf="showApplyButton" type="button" pButton (click)="applyFilter()" class="p-button-sm" [label]="applyButtonLabel" pRipple></button>
-                    </div>
-                </ng-template>
+                  }
+                  <div class="p-column-filter-buttonbar">
+                    @if (showClearButton) {
+                      <button type="button" pButton class="p-button-outlined p-button-sm" (click)="clearFilter()" [label]="clearButtonLabel" pRipple></button>
+                    }
+                    @if (showApplyButton) {
+                      <button type="button" pButton (click)="applyFilter()" class="p-button-sm" [label]="applyButtonLabel" pRipple></button>
+                    }
+                  </div>
+                }
                 <ng-container *ngTemplateOutlet="footerTemplate; context: {$implicit: field}"></ng-container>
-            </div>
-        </div>
-    `,
+              </div>
+            }
+          </div>
+        `,
     animations: [
         trigger('overlayAnimation', [
             transition(':enter', [
@@ -1169,9 +1369,6 @@ export class SuperColumnFilterFormElement extends ColumnFilterFormElement implem
     encapsulation: ViewEncapsulation.None
 })
 export class SuperColumnFilter extends ColumnFilter implements AfterContentInit {
-    constructor(@Inject(DOCUMENT) document: Document, el: ElementRef, dt: SuperTable, renderer: Renderer2, overlayService: OverlayService) {
-        super();
-    }
 
     ngAfterContentInit() {
         super.ngAfterContentInit();

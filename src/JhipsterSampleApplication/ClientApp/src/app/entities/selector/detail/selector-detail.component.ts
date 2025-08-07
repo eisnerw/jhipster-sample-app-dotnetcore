@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import SharedModule from 'app/shared/shared.module';
@@ -11,12 +11,12 @@ import { ISelector } from '../selector.model';
   standalone: true,
   selector: 'jhi-selector-detail',
   templateUrl: './selector-detail.component.html',
-  imports: [CommonModule, RouterModule, FontAwesomeModule, SharedModule],
+  imports: [RouterModule, FontAwesomeModule, SharedModule],
 })
 export class SelectorDetailComponent implements OnInit {
   selector: ISelector | null = null;
 
-  constructor(protected activatedRoute: ActivatedRoute) {}
+  protected activatedRoute = inject(ActivatedRoute);
 
   ngOnInit(): void {
     this.activatedRoute.data.subscribe(({ selector }) => {

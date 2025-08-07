@@ -167,10 +167,7 @@ describe('Employee e2e test', () => {
       cy.get(`[data-cy="lastName"]`).should('have.value', 'Franey');
 
       cy.get(`[data-cy="email"]`).type('Corene.Stracke@hotmail.com');
-      cy.get(`[data-cy="email"]`).should(
-        'have.value',
-        'Corene.Stracke@hotmail.com',
-      );
+      cy.get(`[data-cy="email"]`).should('have.value', 'Corene.Stracke@hotmail.com');
 
       cy.get(`[data-cy="phoneNumber"]`).type('abnegate');
       cy.get(`[data-cy="phoneNumber"]`).should('have.value', 'abnegate');

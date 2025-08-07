@@ -1,16 +1,10 @@
 jest.mock('app/core/auth/account.service');
 
-import {
-  ComponentFixture,
-  TestBed,
-  fakeAsync,
-  tick,
-  waitForAsync,
-} from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick, waitForAsync } from '@angular/core/testing';
 import { Router, TitleStrategy } from '@angular/router';
 import { Title } from '@angular/platform-browser';
-import { DOCUMENT } from '@angular/common';
-import { Component, NgZone } from '@angular/core';
+
+import { Component, NgZone, DOCUMENT } from '@angular/core';
 import { of } from 'rxjs';
 
 import { AccountService } from 'app/core/auth/account.service';
@@ -33,11 +27,7 @@ describe('MainComponent', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [MainComponent],
-      providers: [
-        Title,
-        AccountService,
-        { provide: TitleStrategy, useClass: AppPageTitleStrategy },
-      ],
+      providers: [Title, AccountService, { provide: TitleStrategy, useClass: AppPageTitleStrategy }],
     })
       .overrideTemplate(MainComponent, '')
       .compileComponents();
@@ -78,9 +68,7 @@ describe('MainComponent', () => {
 
       it('should set page title to root route pageTitle if there is no child routes', fakeAsync(() => {
         // GIVEN
-        router.resetConfig([
-          { path: '', title: parentRoutePageTitle, component: BlankComponent },
-        ]);
+        router.resetConfig([{ path: '', title: parentRoutePageTitle, component: BlankComponent }]);
 
         // WHEN
         ngZone.run(navigateByUrlFn(''));

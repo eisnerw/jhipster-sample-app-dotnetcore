@@ -1,6 +1,6 @@
-import { Directive, TemplateRef } from '@angular/core';
+import { Directive, TemplateRef, inject } from '@angular/core';
 
 @Directive({selector: '[queryButtonGroup]', standalone: false})
 export class QueryButtonGroupDirective {
-  constructor(public template: TemplateRef<any>) {}
+  template = inject<TemplateRef<any>>(TemplateRef);
 }
