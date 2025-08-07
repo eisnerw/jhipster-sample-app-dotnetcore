@@ -4,7 +4,13 @@
   </h2>
 
   <div class="row-md jh-entity-details">
-    <form name="editForm" role="form" novalidate (ngSubmit)="save()" #editForm="ngForm">
+    <form
+      name="editForm"
+      role="form"
+      novalidate
+      (ngSubmit)="save()"
+      #editForm="ngForm"
+    >
       <div class="row-md jh-entity-details">
         <div class="form-group">
           <label class="form-control-label" for="field_name">Name</label>
@@ -16,11 +22,16 @@
             data-cy="name"
             [(ngModel)]="view.name"
             required
-            />
-          @if (editForm.controls.name?.invalid && (editForm.controls.name?.dirty || editForm.controls.name?.touched)) {
+          />
+          @if (
+            editForm.controls.name.invalid &&
+            (editForm.controls.name.dirty || editForm.controls.name.touched)
+          ) {
             <div>
-              @if (editForm.controls.name?.errors?.required) {
-                <small class="form-text text-danger"> This field is required. </small>
+              @if (editForm.controls.name.errors?.required) {
+                <small class="form-text text-danger">
+                  This field is required.
+                </small>
               }
             </div>
           }
@@ -36,18 +47,25 @@
             data-cy="field"
             [(ngModel)]="view.field"
             required
-            />
-          @if (editForm.controls.field?.invalid && (editForm.controls.field?.dirty || editForm.controls.field?.touched)) {
+          />
+          @if (
+            editForm.controls.field.invalid &&
+            (editForm.controls.field.dirty || editForm.controls.field.touched)
+          ) {
             <div>
-              @if (editForm.controls.field?.errors?.required) {
-                <small class="form-text text-danger"> This field is required. </small>
+              @if (editForm.controls.field.errors?.required) {
+                <small class="form-text text-danger">
+                  This field is required.
+                </small>
               }
             </div>
           }
         </div>
 
         <div class="form-group">
-          <label class="form-control-label" for="field_aggregation">Aggregation</label>
+          <label class="form-control-label" for="field_aggregation"
+            >Aggregation</label
+          >
           <input
             type="text"
             class="form-control"
@@ -55,7 +73,7 @@
             id="field_aggregation"
             data-cy="aggregation"
             [(ngModel)]="view.aggregation"
-            />
+          />
         </div>
 
         <div class="form-group">
@@ -67,11 +85,13 @@
             id="field_query"
             data-cy="query"
             [(ngModel)]="view.query"
-            />
+          />
         </div>
 
         <div class="form-group">
-          <label class="form-control-label" for="field_categoryQuery">Category Query</label>
+          <label class="form-control-label" for="field_categoryQuery"
+            >Category Query</label
+          >
           <input
             type="text"
             class="form-control"
@@ -79,7 +99,7 @@
             id="field_categoryQuery"
             data-cy="categoryQuery"
             [(ngModel)]="view.categoryQuery"
-            />
+          />
         </div>
 
         <div class="form-group">
@@ -91,19 +111,21 @@
             data-cy="script"
             [(ngModel)]="view.script"
             rows="10"
-            style="font-family: monospace; width: 100%; min-width: 600px;"
+            style="font-family: monospace; width: 100%; min-width: 600px"
           ></textarea>
         </div>
 
         <div class="form-group">
-          <label class="form-control-label" for="field_parentViewId">Parent  view</label>
+          <label class="form-control-label" for="field_parentViewId"
+            >Parent view</label
+          >
           <select
             class="form-control"
             id="field_parentViewId"
             data-cy="parentViewId"
             name="parentViewId"
             [(ngModel)]="view.parentViewId"
-            >
+          >
             @for (viewOption of views; track viewOption) {
               <option [ngValue]="viewOption.id">{{ viewOption.name }}</option>
             }
@@ -119,13 +141,18 @@
             name="domain"
             [(ngModel)]="view.domain"
             required
-            >
+          >
             <option value="birthdays">Birthdays</option>
           </select>
-          @if (editForm.controls.domain?.invalid && (editForm.controls.domain?.dirty || editForm.controls.domain?.touched)) {
+          @if (
+            editForm.controls.domain.invalid &&
+            (editForm.controls.domain.dirty || editForm.controls.domain.touched)
+          ) {
             <div>
-              @if (editForm.controls.domain?.errors?.required) {
-                <small class="form-text text-danger">This field is required.</small>
+              @if (editForm.controls.domain.errors?.required) {
+                <small class="form-text text-danger"
+                  >This field is required.</small
+                >
               }
             </div>
           }
@@ -133,12 +160,23 @@
       </div>
 
       <div>
-        <button type="button" id="cancel-save" class="btn btn-secondary" (click)="previousState()">
+        <button
+          type="button"
+          id="cancel-save"
+          class="btn btn-secondary"
+          (click)="previousState()"
+        >
           <fa-icon icon="ban"></fa-icon>
           <span>Cancel</span>
         </button>
 
-        <button type="submit" id="save-entity" data-cy="entityCreateSaveButton" [disabled]="editForm.form.invalid || isSaving" class="btn btn-primary">
+        <button
+          type="submit"
+          id="save-entity"
+          data-cy="entityCreateSaveButton"
+          [disabled]="editForm.form.invalid || isSaving"
+          class="btn btn-primary"
+        >
           <fa-icon icon="save"></fa-icon>
           <span>Save</span>
         </button>
