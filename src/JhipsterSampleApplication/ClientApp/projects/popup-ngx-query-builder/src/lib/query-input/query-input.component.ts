@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { TreeModule } from 'primeng/tree';
 import {
   QueryBuilderModule,
@@ -31,7 +31,7 @@ import { EditRulesetDialogComponent } from './edit-ruleset-dialog.component';
     DialogModule,
     ButtonModule,
     InputTextModule,
-    DropdownModule,
+    SelectModule,
     TreeModule,
     QueryBuilderModule,
   ],
