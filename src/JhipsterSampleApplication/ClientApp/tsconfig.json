@@ -16,6 +16,7 @@
     "useDefineForClassFields": false,
     "target": "es2022",
     "module": "es2020",
+    "skipLibCheck": true,
     "types": [],
     "lib": [
       "es2018",
