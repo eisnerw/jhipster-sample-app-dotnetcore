@@ -1,7 +1,9 @@
-import { Directive, Input, TemplateRef } from '@angular/core';
+import { Directive, Input, TemplateRef, inject } from '@angular/core';
 
 @Directive({selector: '[queryInput]', standalone: false})
 export class QueryInputDirective {
+  template = inject<TemplateRef<any>>(TemplateRef);
+
   /** Unique name for query input type. */
   @Input()
   get queryInputType(): string { return this._type; }
@@ -12,6 +14,4 @@ export class QueryInputDirective {
     this._type = value;
   }
   private _type!: string;
-
-  constructor(public template: TemplateRef<any>) {}
 }

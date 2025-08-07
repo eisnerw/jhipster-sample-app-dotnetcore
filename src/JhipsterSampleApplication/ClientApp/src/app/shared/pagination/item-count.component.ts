@@ -5,9 +5,7 @@ import { Component, Input } from '@angular/core';
  */
 @Component({
   selector: 'jhi-item-count',
-  template: `
-    <div>Showing {{ first }} - {{ second }} of {{ total }} items.</div>
-  `,
+  template: ` <div>Showing {{ first }} - {{ second }} of {{ total }} items.</div> `,
 })
 export default class ItemCountComponent {
   /**
@@ -16,17 +14,10 @@ export default class ItemCountComponent {
    *                    totalItems    Total number of items
    *                    itemsPerPage  Number of items per page
    */
-  @Input() set params(params: {
-    page?: number;
-    totalItems?: number;
-    itemsPerPage?: number;
-  }) {
+  @Input() set params(params: { page?: number; totalItems?: number; itemsPerPage?: number }) {
     if (params.page && params.totalItems !== undefined && params.itemsPerPage) {
       this.first = (params.page - 1) * params.itemsPerPage + 1;
-      this.second =
-        params.page * params.itemsPerPage < params.totalItems
-          ? params.page * params.itemsPerPage
-          : params.totalItems;
+      this.second = params.page * params.itemsPerPage < params.totalItems ? params.page * params.itemsPerPage : params.totalItems;
     } else {
       this.first = undefined;
       this.second = undefined;

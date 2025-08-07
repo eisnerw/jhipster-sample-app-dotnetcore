@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
@@ -39,6 +39,8 @@ import { EditRulesetDialogComponent } from './edit-ruleset-dialog.component';
   templateUrl: './query-input.component.html',
 })
 export class QueryInputComponent implements OnInit {
+  private dialog = inject(MatDialog);
+
   @Input() placeholder = 'BQL';
   @Input() query = '';
   @Input() config?: QueryBuilderConfig;
@@ -56,8 +58,6 @@ export class QueryInputComponent implements OnInit {
   namedRulesets: Record<string, RuleSet> = {};
   validQuery = true;
   private previousQuery = '';
-
-  constructor(private dialog: MatDialog) {}
 
   ngOnInit(): void {
     this.onQueryChange();

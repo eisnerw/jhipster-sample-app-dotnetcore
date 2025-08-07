@@ -3,11 +3,7 @@
     <span>Selectors</span>
 
     <div class="d-flex justify-content-end">
-      <button
-        class="btn btn-info mr-2"
-        (click)="loadAll()"
-        [disabled]="isLoading"
-        >
+      <button class="btn btn-info mr-2" (click)="loadAll()" [disabled]="isLoading">
         <span>Refresh List</span>
       </button>
 
@@ -16,7 +12,7 @@
         data-cy="entityCreateButton"
         class="btn btn-primary jh-create-entity create-selector"
         [routerLink]="['/selector/new']"
-        >
+      >
         <fa-icon icon="plus"></fa-icon>
         <span> Create a new Selector </span>
       </button>
@@ -28,40 +24,30 @@
   <jhi-alert></jhi-alert>
 
   @if (selectors?.length === 0) {
-    <div
-      class="alert alert-warning"
-      id="no-result"
-      >
+    <div class="alert alert-warning" id="no-result">
       <span>No selectors found</span>
     </div>
   }
 
   @if (selectors && selectors.length > 0) {
-    <div
-      class="table-responsive"
-      id="entities"
-      >
+    <div class="table-responsive" id="entities">
       <table class="table table-striped" aria-describedby="page-heading">
         <thead>
           <tr>
             <th scope="col"><span>Id</span></th>
             <th scope="col"><span>Name</span></th>
-            <th scope="col" ><span>Named Query</span></th>
-            <th scope="col" ><span>Action</span></th>
-            <th scope="col" ><span>Action Parameter</span></th>
-            <th scope="col" ><span>Country</span></th>
+            <th scope="col"><span>Named Query</span></th>
+            <th scope="col"><span>Action</span></th>
+            <th scope="col"><span>Action Parameter</span></th>
+            <th scope="col"><span>Country</span></th>
             <th scope="col"></th>
           </tr>
         </thead>
         <tbody>
           @for (selector of selectors; track trackId($index, selector)) {
-            <tr
-              data-cy="entityTable"
-              >
+            <tr data-cy="entityTable">
               <td>
-                <a [routerLink]="['/selector', selector.id, 'view']">{{
-                  selector.id
-                }}</a>
+                <a [routerLink]="['/selector', selector.id, 'view']">{{ selector.id }}</a>
               </td>
               <td>{{ selector.name }}</td>
               <td>{{ selector.rulesetName }}</td>
@@ -75,7 +61,7 @@
                     [routerLink]="['/selector', selector.id, 'view']"
                     class="btn btn-info btn-sm"
                     data-cy="entityDetailsButton"
-                    >
+                  >
                     <fa-icon icon="eye"></fa-icon>
                     <span class="d-none d-md-inline">View</span>
                   </button>
@@ -84,16 +70,11 @@
                     [routerLink]="['/selector', selector.id, 'edit']"
                     class="btn btn-primary btn-sm"
                     data-cy="entityEditButton"
-                    >
+                  >
                     <fa-icon icon="pencil-alt"></fa-icon>
                     <span class="d-none d-md-inline">Edit</span>
                   </button>
-                  <button
-                    type="submit"
-                    (click)="delete(selector)"
-                    class="btn btn-danger btn-sm"
-                    data-cy="entityDeleteButton"
-                    >
+                  <button type="submit" (click)="delete(selector)" class="btn btn-danger btn-sm" data-cy="entityDeleteButton">
                     <fa-icon icon="times"></fa-icon>
                     <span class="d-none d-md-inline">Delete</span>
                   </button>

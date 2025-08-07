@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { HttpResponse } from '@angular/common/http';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 
@@ -20,10 +20,8 @@ export class SelectorComponent implements OnInit {
   selectors?: ISelector[];
   isLoading = false;
 
-  constructor(
-    protected selectorService: SelectorService,
-    protected modalService: NgbModal,
-  ) {}
+  protected selectorService = inject(SelectorService);
+  protected modalService = inject(NgbModal);
 
   loadAll(): void {
     this.isLoading = true;
@@ -54,7 +52,7 @@ export class SelectorComponent implements OnInit {
     });
     modalRef.componentInstance.selector = selector;
     // unsubscribe not needed because closed completes on modal close
-    modalRef.closed.subscribe((reason) => {
+    modalRef.closed.subscribe(reason => {
       if (reason === 'deleted') {
         this.loadAll();
       }

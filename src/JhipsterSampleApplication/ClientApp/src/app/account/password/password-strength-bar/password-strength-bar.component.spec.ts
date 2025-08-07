@@ -29,18 +29,10 @@ describe('PasswordStrengthBarComponent', () => {
 
     it('should increase strength upon password value change', () => {
       expect(comp.measureStrength('')).toBe(0);
-      expect(comp.measureStrength('aa')).toBeGreaterThanOrEqual(
-        comp.measureStrength(''),
-      );
-      expect(comp.measureStrength('aa^6')).toBeGreaterThanOrEqual(
-        comp.measureStrength('aa'),
-      );
-      expect(comp.measureStrength('Aa090(**)')).toBeGreaterThanOrEqual(
-        comp.measureStrength('aa^6'),
-      );
-      expect(comp.measureStrength('Aa090(**)+-07365')).toBeGreaterThanOrEqual(
-        comp.measureStrength('Aa090(**)'),
-      );
+      expect(comp.measureStrength('aa')).toBeGreaterThanOrEqual(comp.measureStrength(''));
+      expect(comp.measureStrength('aa^6')).toBeGreaterThanOrEqual(comp.measureStrength('aa'));
+      expect(comp.measureStrength('Aa090(**)')).toBeGreaterThanOrEqual(comp.measureStrength('aa^6'));
+      expect(comp.measureStrength('Aa090(**)+-07365')).toBeGreaterThanOrEqual(comp.measureStrength('Aa090(**)'));
     });
 
     it('should change the color based on strength', () => {

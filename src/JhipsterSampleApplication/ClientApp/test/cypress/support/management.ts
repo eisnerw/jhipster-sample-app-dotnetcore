@@ -1,12 +1,10 @@
 /* eslint-disable @typescript-eslint/no-namespace */
 
-const getManagementInfo = (cy: Cypress.cy, selector: string): any =>
-  cy.get(selector);
+const getManagementInfo = (cy: Cypress.cy, selector: string): any => cy.get(selector);
 
 const getPageTestId = (selector: string): string => `[data-cy="${selector}"]`;
 
-const getSelector = (selector: string, testId?: string): any =>
-  cy.get(testId ? getPageTestId(testId) : selector);
+const getSelector = (selector: string, testId?: string): any => cy.get(testId ? getPageTestId(testId) : selector);
 
 export const managementInfo = {
   getManagementInfo,

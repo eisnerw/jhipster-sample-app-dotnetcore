@@ -45,13 +45,11 @@ export class AlertService {
   addAlert(alertToAdd: Omit<Alert, 'id'>, extAlerts?: Alert[]): Alert {
     const alert: Alert = { ...alertToAdd, id: this.alertId++ };
 
-    alert.message =
-      this.sanitizer.sanitize(SecurityContext.HTML, alert.message ?? '') ?? '';
+    alert.message = this.sanitizer.sanitize(SecurityContext.HTML, alert.message ?? '') ?? '';
     alert.timeout = alert.timeout ?? this.timeout;
     alert.toast = alert.toast ?? this.toast;
     alert.position = alert.position ?? this.position;
-    alert.close = (alertsArray: Alert[]) =>
-      this.closeAlert(alert.id, alertsArray);
+    alert.close = (alertsArray: Alert[]) => this.closeAlert(alert.id, alertsArray);
 
     (extAlerts ?? this.alerts).push(alert);
 
@@ -66,7 +64,7 @@ export class AlertService {
 
   private closeAlert(alertId: number, extAlerts?: Alert[]): void {
     const alerts = extAlerts ?? this.alerts;
-    const alertIndex = alerts.map((alert) => alert.id).indexOf(alertId);
+    const alertIndex = alerts.map(alert => alert.id).indexOf(alertId);
     // if found alert then remove
     if (alertIndex >= 0) {
       alerts.splice(alertIndex, 1);

@@ -1,8 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { AuthServerProvider } from 'app/core/auth/auth-jwt.service';
 import { StateStorageService } from './state-storage.service';
@@ -29,19 +26,13 @@ describe('Auth JWT', () => {
     });
 
     it('should return token from session storage if local storage is empty', () => {
-      sessionStorage.setItem(
-        'jhi-authenticationToken',
-        JSON.stringify('sessionStorageToken'),
-      );
+      sessionStorage.setItem('jhi-authenticationToken', JSON.stringify('sessionStorageToken'));
       const result = service.getToken();
       expect(result).toEqual('sessionStorageToken');
     });
 
     it('should return token from localstorage storage', () => {
-      localStorage.setItem(
-        'jhi-authenticationToken',
-        JSON.stringify('localStorageToken'),
-      );
+      localStorage.setItem('jhi-authenticationToken', JSON.stringify('localStorageToken'));
       const result = service.getToken();
       expect(result).toEqual('localStorageToken');
     });
@@ -53,17 +44,12 @@ describe('Auth JWT', () => {
       mockStorageService.storeAuthenticationToken = jest.fn();
 
       // WHEN
-      service
-        .login({ username: 'John', password: '123', rememberMe: true })
-        .subscribe();
+      service.login({ username: 'John', password: '123', rememberMe: true }).subscribe();
       httpMock.expectOne('api/authenticate').flush({ id_token: '1' });
 
       // THEN
       httpMock.verify();
-      expect(mockStorageService.storeAuthenticationToken).toHaveBeenCalledWith(
-        '1',
-        true,
-      );
+      expect(mockStorageService.storeAuthenticationToken).toHaveBeenCalledWith('1', true);
     });
 
     it('should clear local storage and save in session storage when rememberMe is false', () => {
@@ -71,17 +57,12 @@ describe('Auth JWT', () => {
       mockStorageService.storeAuthenticationToken = jest.fn();
 
       // WHEN
-      service
-        .login({ username: 'John', password: '123', rememberMe: false })
-        .subscribe();
+      service.login({ username: 'John', password: '123', rememberMe: false }).subscribe();
       httpMock.expectOne('api/authenticate').flush({ id_token: '1' });
 
       // THEN
       httpMock.verify();
-      expect(mockStorageService.storeAuthenticationToken).toHaveBeenCalledWith(
-        '1',
-        false,
-      );
+      expect(mockStorageService.storeAuthenticationToken).toHaveBeenCalledWith('1', false);
     });
   });
 

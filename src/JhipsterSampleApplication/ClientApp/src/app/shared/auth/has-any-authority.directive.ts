@@ -1,12 +1,4 @@
-import {
-  Directive,
-  TemplateRef,
-  ViewContainerRef,
-  computed,
-  effect,
-  inject,
-  input,
-} from '@angular/core';
+import { Directive, TemplateRef, ViewContainerRef, computed, effect, inject, input } from '@angular/core';
 
 import { AccountService } from 'app/core/auth/account.service';
 
@@ -35,11 +27,7 @@ export default class HasAnyAuthorityDirective {
   constructor() {
     const accountService = inject(AccountService);
     const currentAccount = accountService.trackCurrentAccount();
-    const hasPermission = computed(
-      () =>
-        currentAccount()?.authorities &&
-        accountService.hasAnyAuthority(this.authorities()),
-    );
+    const hasPermission = computed(() => currentAccount()?.authorities && accountService.hasAnyAuthority(this.authorities()));
 
     effect(() => {
       if (hasPermission()) {

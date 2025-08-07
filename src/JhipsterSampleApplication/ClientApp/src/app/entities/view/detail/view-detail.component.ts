@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 
 import SharedModule from 'app/shared/shared.module';
@@ -21,7 +21,7 @@ export class ViewDetailComponent implements OnInit {
     domain: 'birthdays',
   };
 
-  constructor(protected activatedRoute: ActivatedRoute) {}
+  protected activatedRoute = inject(ActivatedRoute);
 
   ngOnInit(): void {
     this.activatedRoute.data.subscribe(({ view }) => {

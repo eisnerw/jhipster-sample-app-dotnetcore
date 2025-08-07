@@ -1,13 +1,6 @@
 /* eslint-disable */
 
-import {
-  Component,
-  OnInit,
-  ViewChild,
-  ElementRef,
-  TemplateRef,
-  AfterViewInit,
-} from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, TemplateRef, AfterViewInit, inject } from '@angular/core';
 import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { combineLatest, Subscription } from 'rxjs';
@@ -80,6 +73,15 @@ import {
   standalone: true,
 })
 export class BirthdayComponent implements OnInit, AfterViewInit {
+  protected birthdayService = inject(BirthdayService);
+  protected activatedRoute = inject(ActivatedRoute);
+  protected router = inject(Router);
+  protected modalService = inject(NgbModal);
+  protected messageService = inject(MessageService);
+  sanitizer = inject(DomSanitizer);
+  private confirmationService = inject(ConfirmationService);
+  protected viewService = inject(ViewService);
+
   @ViewChild('contextMenu') contextMenu!: ContextMenu;
   @ViewChild('superTable') superTable!: SuperTable;
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
@@ -245,16 +247,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     }
   }
 
-  constructor(
-    protected birthdayService: BirthdayService,
-    protected activatedRoute: ActivatedRoute,
-    protected router: Router,
-    protected modalService: NgbModal,
-    protected messageService: MessageService,
-    public sanitizer: DomSanitizer,
-    private confirmationService: ConfirmationService,
-    protected viewService: ViewService,
-  ) {
+  constructor() {
     const fetchFunction: FetchFunction<IBirthday> = (queryParams: any) => {
       if (queryParams.bqlQuery) {
         const bql = queryParams.bqlQuery;

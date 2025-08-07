@@ -9,9 +9,7 @@ export type SearchResponseData<T> = {
   pitId: string | null;
 } | null;
 
-export type FetchFunction<T> = (
-  queryParams: any,
-) => Observable<HttpResponse<SearchResponseData<T>>>;
+export type FetchFunction<T> = (queryParams: any) => Observable<HttpResponse<SearchResponseData<T>>>;
 
 export class DataLoader<T> {
   public data$: BehaviorSubject<T[]>;
@@ -42,12 +40,7 @@ export class DataLoader<T> {
     this.loadingMessage$ = this.loadingMessageSubject.asObservable();
   }
 
-  load(
-    itemsPerPage: number,
-    predicate: string,
-    ascending: boolean,
-    filter?: any,
-  ): void {
+  load(itemsPerPage: number, predicate: string, ascending: boolean, filter?: any): void {
     this.loadingSubject.next(true);
     this.loadingMessageSubject.next('Loading... ');
 
@@ -68,8 +61,7 @@ export class DataLoader<T> {
     };
 
     this.fetchFunction(queryParams).subscribe({
-      next: (response: HttpResponse<any>) =>
-        this.onSuccess(response.body, response.headers, true),
+      next: (response: HttpResponse<any>) => this.onSuccess(response.body, response.headers, true),
       error: () => this.onError(),
     });
   }
@@ -89,17 +81,12 @@ export class DataLoader<T> {
     };
 
     this.fetchFunction(queryParams).subscribe({
-      next: (response: HttpResponse<any>) =>
-        this.onSuccess(response.body, response.headers, false),
+      next: (response: HttpResponse<any>) => this.onSuccess(response.body, response.headers, false),
       error: () => this.onError(),
     });
   }
 
-  private onSuccess(
-    data: SearchResponseData<T>,
-    headers: HttpHeaders,
-    isInitialLoad: boolean,
-  ): void {
+  private onSuccess(data: SearchResponseData<T>, headers: HttpHeaders, isInitialLoad: boolean): void {
     const newHits = data?.hits ?? [];
     if (isInitialLoad) {
       this.totalItemsSubject.next(data?.totalHits ?? 0);
@@ -112,9 +99,7 @@ export class DataLoader<T> {
       this.buffer.push(...toAdd);
 
       // PERFORMANCE: Batch DOM updates - only emit every 100 items to reduce rendering
-      const shouldEmitUpdate =
-        this.buffer.length % 100 === 0 ||
-        this.buffer.length >= this.dataLoadLimit;
+      const shouldEmitUpdate = this.buffer.length % 100 === 0 || this.buffer.length >= this.dataLoadLimit;
 
       if (shouldEmitUpdate) {
         this.bufferSubject.next([...this.buffer]); // New array reference for change detection
@@ -136,8 +121,7 @@ export class DataLoader<T> {
 
     if (currentLength >= this.dataLoadLimit) {
       if (totalItems > this.dataLoadLimit) {
-        const hitLabel =
-          totalItems >= 10000 ? 'Over 10000' : totalItems.toString();
+        const hitLabel = totalItems >= 10000 ? 'Over 10000' : totalItems.toString();
         const message = `${hitLabel} hits (too many to display, showing the first ${this.dataLoadLimit})`;
         this.loadingMessageSubject.next(message);
         this.loadingSubject.next(true);
@@ -148,11 +132,7 @@ export class DataLoader<T> {
       return;
     }
 
-    if (
-      this.pitId &&
-      this.searchAfter.length > 0 &&
-      currentLength < totalItems
-    ) {
+    if (this.pitId && this.searchAfter.length > 0 && currentLength < totalItems) {
       const message = `loading ${currentLength}...`;
       this.loadingMessageSubject.next(message);
       // Keep loading state as true since we're going to load more data

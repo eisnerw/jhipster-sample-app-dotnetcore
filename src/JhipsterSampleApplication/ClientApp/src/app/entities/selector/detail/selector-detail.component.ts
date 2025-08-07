@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { RouterModule } from '@angular/router';
@@ -16,7 +16,7 @@ import { ISelector } from '../selector.model';
 export class SelectorDetailComponent implements OnInit {
   selector: ISelector | null = null;
 
-  constructor(protected activatedRoute: ActivatedRoute) {}
+  protected activatedRoute = inject(ActivatedRoute);
 
   ngOnInit(): void {
     this.activatedRoute.data.subscribe(({ selector }) => {

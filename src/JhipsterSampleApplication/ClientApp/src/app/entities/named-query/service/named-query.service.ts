@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
@@ -12,13 +12,10 @@ export type EntityArrayResponseType = HttpResponse<INamedQuery[]>;
 
 @Injectable({ providedIn: 'root' })
 export class NamedQueryService {
-  protected resourceUrl =
-    this.applicationConfigService.getEndpointFor('api/NamedQueries');
+  protected http = inject(HttpClient);
+  protected applicationConfigService = inject(ApplicationConfigService);
 
-  constructor(
-    protected http: HttpClient,
-    protected applicationConfigService: ApplicationConfigService,
-  ) {}
+  protected resourceUrl = this.applicationConfigService.getEndpointFor('api/NamedQueries');
 
   create(namedQuery: NewNamedQuery): Observable<EntityResponseType> {
     return this.http.post<INamedQuery>(this.resourceUrl, namedQuery, {
@@ -27,23 +24,15 @@ export class NamedQueryService {
   }
 
   update(namedQuery: INamedQuery): Observable<EntityResponseType> {
-    return this.http.put<INamedQuery>(
-      `${this.resourceUrl}/${this.getNamedQueryIdentifier(namedQuery)}`,
-      namedQuery,
-      {
-        observe: 'response',
-      },
-    );
+    return this.http.put<INamedQuery>(`${this.resourceUrl}/${this.getNamedQueryIdentifier(namedQuery)}`, namedQuery, {
+      observe: 'response',
+    });
   }
 
   partialUpdate(namedQuery: INamedQuery): Observable<EntityResponseType> {
-    return this.http.patch<INamedQuery>(
-      `${this.resourceUrl}/${this.getNamedQueryIdentifier(namedQuery)}`,
-      namedQuery,
-      {
-        observe: 'response',
-      },
-    );
+    return this.http.patch<INamedQuery>(`${this.resourceUrl}/${this.getNamedQueryIdentifier(namedQuery)}`, namedQuery, {
+      observe: 'response',
+    });
   }
 
   find(id: number): Observable<EntityResponseType> {
@@ -52,10 +41,7 @@ export class NamedQueryService {
     });
   }
 
-  query(req?: {
-    name?: string;
-    owner?: string;
-  }): Observable<EntityArrayResponseType> {
+  query(req?: { name?: string; owner?: string }): Observable<EntityArrayResponseType> {
     const options = createRequestOption(req);
     return this.http.get<INamedQuery[]>(this.resourceUrl, {
       params: options,
@@ -73,10 +59,7 @@ export class NamedQueryService {
     return namedQuery.id;
   }
 
-  compareNamedQuery(
-    o1: Pick<INamedQuery, 'id'> | null,
-    o2: Pick<INamedQuery, 'id'> | null,
-  ): boolean {
+  compareNamedQuery(o1: Pick<INamedQuery, 'id'> | null, o2: Pick<INamedQuery, 'id'> | null): boolean {
     return o1 === o2;
   }
 
@@ -86,12 +69,9 @@ export class NamedQueryService {
   ): T[] {
     const namedQueries: T[] = namedQueriesToCheck.filter(isPresent);
     if (namedQueries.length > 0) {
-      const namedQueryCollectionIdentifiers = namedQueryCollection.map(
-        (namedQueryItem) => this.getNamedQueryIdentifier(namedQueryItem),
-      );
-      const namedQueriesToAdd = namedQueries.filter((namedQueryItem) => {
-        const namedQueryIdentifier =
-          this.getNamedQueryIdentifier(namedQueryItem);
+      const namedQueryCollectionIdentifiers = namedQueryCollection.map(namedQueryItem => this.getNamedQueryIdentifier(namedQueryItem));
+      const namedQueriesToAdd = namedQueries.filter(namedQueryItem => {
+        const namedQueryIdentifier = this.getNamedQueryIdentifier(namedQueryItem);
         if (namedQueryCollectionIdentifiers.includes(namedQueryIdentifier)) {
           return false;
         }

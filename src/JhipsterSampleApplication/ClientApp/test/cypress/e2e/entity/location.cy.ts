@@ -161,10 +161,7 @@ describe('Location e2e test', () => {
       cy.get(`[data-cy="streetAddress"]`).should('have.value', 'over of');
 
       cy.get(`[data-cy="postalCode"]`).type('however elegantly');
-      cy.get(`[data-cy="postalCode"]`).should(
-        'have.value',
-        'however elegantly',
-      );
+      cy.get(`[data-cy="postalCode"]`).should('have.value', 'however elegantly');
 
       cy.get(`[data-cy="city"]`).type('East Millercester');
       cy.get(`[data-cy="city"]`).should('have.value', 'East Millercester');

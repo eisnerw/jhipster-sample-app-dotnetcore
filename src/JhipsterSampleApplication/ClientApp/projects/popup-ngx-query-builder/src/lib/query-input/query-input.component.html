@@ -3,20 +3,26 @@
 
   @if (!editing) {
     <div class="text" (click)="startEdit()">
-      <span [ngClass]="{'placeholder': !query}">{{ query || placeholder }}</span>
+      <span [ngClass]="{ placeholder: !query }">{{ query || placeholder }}</span>
       @if (query) {
         <i class="pi pi-times clear-icon" (click)="clearQuery($event)"></i>
       }
     </div>
   }
   @if (editing) {
-    <input pInputText [(ngModel)]="query" (ngModelChange)="onQueryChange()" (keyup.enter)="acceptEdit()" [ngClass]="{'invalid': !validQuery}" />
+    <input
+      pInputText
+      [(ngModel)]="query"
+      (ngModelChange)="onQueryChange()"
+      (keyup.enter)="acceptEdit()"
+      [ngClass]="{ invalid: !validQuery }"
+    />
   }
 
   @if (editing) {
     <div class="btn-group">
       <i class="pi pi-times action-icon" (click)="cancelEdit()"></i>
-      <i class="pi pi-check action-icon" (click)="acceptEdit()" [ngClass]="{'disabled': !validQuery}"></i>
+      <i class="pi pi-check action-icon" (click)="acceptEdit()" [ngClass]="{ disabled: !validQuery }"></i>
     </div>
   }
 </div>
@@ -29,11 +35,20 @@
   [resizable]="true"
   [maximizable]="true"
   header="Query Builder"
-  [style]="{width: '800px', height: '600px', minWidth: '600px', minHeight: '400px'}"
-  [contentStyle]="{height: 'calc(100% - 120px)', overflow: 'auto', padding: '0'}"
+  [style]="{
+    width: '800px',
+    height: '600px',
+    minWidth: '600px',
+    minHeight: '400px',
+  }"
+  [contentStyle]="{
+    height: 'calc(100% - 120px)',
+    overflow: 'auto',
+    padding: '0',
+  }"
   styleClass="query-builder-dialog"
-  [baseZIndex]="10000">
-
+  [baseZIndex]="10000"
+>
   <ngx-query-builder
     [(ngModel)]="builderQuery"
     [config]="queryBuilderConfig"
@@ -41,9 +56,10 @@
     [allowConvertToRuleset]="allowConvertToRuleset"
     [allowRuleUpDown]="allowRuleUpDown"
     [ruleName]="ruleName"
-    [rulesetName]="rulesetName">
     [rulesetName]="rulesetName"
-  [defaultRuleAttribute]="defaultRuleAttribute"></ngx-query-builder>
+  >
+    [rulesetName]="rulesetName" [defaultRuleAttribute]="defaultRuleAttribute"></ngx-query-builder
+  >
 
   <ng-template pTemplate="footer">
     <div class="dialog-footer">

@@ -29,7 +29,7 @@
             <th jhiSortBy="query"><span>Query</span> <fa-icon icon="sort"></fa-icon></th>
             <th jhiSortBy="categoryQuery"><span>Category Query</span> <fa-icon icon="sort"></fa-icon></th>
             <th jhiSortBy="script"><span>Script</span> <fa-icon icon="sort"></fa-icon></th>
-            <th jhiSortBy="parentViewId"><span>Parent  view</span> <fa-icon icon="sort"></fa-icon></th>
+            <th jhiSortBy="parentViewId"><span>Parent view</span> <fa-icon icon="sort"></fa-icon></th>
             <th jhiSortBy="domain"><span>Domain</span> <fa-icon icon="sort"></fa-icon></th>
             <th></th>
           </tr>
@@ -37,7 +37,9 @@
         <tbody>
           @for (view of views; track trackId($index, view)) {
             <tr>
-              <td><a [routerLink]="['/view', view.id, 'view']">{{ view.id }}</a></td>
+              <td>
+                <a [routerLink]="['/view', view.id, 'view']">{{ view.id }}</a>
+              </td>
               <td>{{ view.name }}</td>
               <td>{{ view.field }}</td>
               <td>{{ view.aggregation }}</td>

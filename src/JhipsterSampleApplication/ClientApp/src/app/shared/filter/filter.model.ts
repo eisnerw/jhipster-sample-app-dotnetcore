@@ -34,9 +34,7 @@ export class FilterOption implements IFilterOption {
   }
 
   addValue(...values: string[]): boolean {
-    const missingValues = values.filter(
-      (value) => value && !this.values.includes(value),
-    );
+    const missingValues = values.filter(value => value && !this.values.includes(value));
     if (missingValues.length > 0) {
       this.values.push(...missingValues);
       return true;
@@ -62,8 +60,8 @@ export class FilterOption implements IFilterOption {
     return (
       this.name === other.name &&
       this.values.length === other.values.length &&
-      this.values.every((thisValue) => other.values.includes(thisValue)) &&
-      other.values.every((otherValue) => this.values.includes(otherValue))
+      this.values.every(thisValue => other.values.includes(thisValue)) &&
+      other.values.every(otherValue => this.values.includes(otherValue))
     );
   }
 }
@@ -77,11 +75,11 @@ export class FilterOptions implements IFilterOptions {
   }
 
   get filterOptions(): FilterOption[] {
-    return this._filterOptions.filter((option) => option.isSet());
+    return this._filterOptions.filter(option => option.isSet());
   }
 
   hasAnyFilterSet(): boolean {
-    return this._filterOptions.some((e) => e.isSet());
+    return this._filterOptions.some(e => e.isSet());
   }
 
   clear(): boolean {
@@ -100,13 +98,11 @@ export class FilterOptions implements IFilterOptions {
 
     const filterRegex = /filter\[(.+)\]/;
     params.keys
-      .filter((paramKey) => filterRegex.test(paramKey))
-      .forEach((matchingParam) => {
+      .filter(paramKey => filterRegex.test(paramKey))
+      .forEach(matchingParam => {
         const matches = filterRegex.exec(matchingParam);
         if (matches && matches.length > 1) {
-          this.getFilterOptionByName(matches[1], true).addValue(
-            ...params.getAll(matchingParam),
-          );
+          this.getFilterOptionByName(matches[1], true).addValue(...params.getAll(matchingParam));
         }
       });
 
@@ -133,7 +129,7 @@ export class FilterOptions implements IFilterOptions {
   }
 
   protected changed(): void {
-    this.filterChanges.next(this.filterOptions.map((option) => option.clone()));
+    this.filterChanges.next(this.filterOptions.map(option => option.clone()));
   }
 
   protected equals(other: FilterOptions): boolean {
@@ -142,36 +138,21 @@ export class FilterOptions implements IFilterOptions {
     if (thisFilters.length !== otherFilters.length) {
       return false;
     }
-    return thisFilters.every((option) =>
-      other.getFilterOptionByName(option.name)?.equals(option),
-    );
+    return thisFilters.every(option => other.getFilterOptionByName(option.name)?.equals(option));
   }
 
   protected clone(): FilterOptions {
-    return new FilterOptions(
-      this.filterOptions.map(
-        (option) => new FilterOption(option.name, option.values.concat()),
-      ),
-    );
+    return new FilterOptions(this.filterOptions.map(option => new FilterOption(option.name, option.values.concat())));
   }
 
   protected getFilterOptionByName(name: string, add: true): FilterOption;
-  protected getFilterOptionByName(
-    name: string,
-    add?: false,
-  ): FilterOption | null;
-  protected getFilterOptionByName(
-    name: string,
-    add = false,
-  ): FilterOption | null {
+  protected getFilterOptionByName(name: string, add?: false): FilterOption | null;
+  protected getFilterOptionByName(name: string, add = false): FilterOption | null {
     const addOption = (option: FilterOption): FilterOption => {
       this._filterOptions.push(option);
       return option;
     };
 
-    return (
-      this._filterOptions.find((thisOption) => thisOption.name === name) ??
-      (add ? addOption(new FilterOption(name)) : null)
-    );
+    return this._filterOptions.find(thisOption => thisOption.name === name) ?? (add ? addOption(new FilterOption(name)) : null);
   }
 }

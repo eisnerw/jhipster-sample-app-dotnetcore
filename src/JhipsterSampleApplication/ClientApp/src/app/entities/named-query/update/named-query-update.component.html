@@ -15,37 +15,16 @@
 
           <div class="mb-3">
             <label class="form-label" for="field_id" jhiTranslate="global.field.id">ID</label>
-            <input
-              type="number"
-              class="form-control"
-              name="id"
-              id="field_id"
-              data-cy="id"
-              formControlName="id"
-              [readonly]="true"
-              />
+            <input type="number" class="form-control" name="id" id="field_id" data-cy="id" formControlName="id" [readonly]="true" />
           </div>
 
           <div class="mb-3">
             <label class="form-label" for="field_name" jhiTranslate="jhipsterSampleApplicationApp.namedQuery.name">Name</label>
-            <input
-              type="text"
-              class="form-control"
-              name="name"
-              id="field_name"
-              data-cy="name"
-              formControlName="name"
-              />
+            <input type="text" class="form-control" name="name" id="field_name" data-cy="name" formControlName="name" />
             @if (editForm.get('name')!.invalid && (editForm.get('name')!.dirty || editForm.get('name')!.touched)) {
-              <div
-                >
+              <div>
                 @if (editForm.get('name')?.errors?.required) {
-                  <small
-                    class="form-text text-danger"
-                    jhiTranslate="entity.validation.required"
-                    >
-                    This field is required.
-                  </small>
+                  <small class="form-text text-danger" jhiTranslate="entity.validation.required"> This field is required. </small>
                 }
               </div>
             }
@@ -53,24 +32,11 @@
 
           <div class="mb-3">
             <label class="form-label" for="field_text" jhiTranslate="jhipsterSampleApplicationApp.namedQuery.text">Text</label>
-            <input
-              type="text"
-              class="form-control"
-              name="text"
-              id="field_text"
-              data-cy="text"
-              formControlName="text"
-              />
+            <input type="text" class="form-control" name="text" id="field_text" data-cy="text" formControlName="text" />
             @if (editForm.get('text')!.invalid && (editForm.get('text')!.dirty || editForm.get('text')!.touched)) {
-              <div
-                >
+              <div>
                 @if (editForm.get('text')?.errors?.required) {
-                  <small
-                    class="form-text text-danger"
-                    jhiTranslate="entity.validation.required"
-                    >
-                    This field is required.
-                  </small>
+                  <small class="form-text text-danger" jhiTranslate="entity.validation.required"> This field is required. </small>
                 }
               </div>
             }
@@ -79,24 +45,11 @@
           @if (isAdmin) {
             <div class="mb-3">
               <label class="form-label" for="field_owner" jhiTranslate="jhipsterSampleApplicationApp.namedQuery.owner">Owner</label>
-              <input
-                type="text"
-                class="form-control"
-                name="owner"
-                id="field_owner"
-                data-cy="owner"
-                formControlName="owner"
-                />
+              <input type="text" class="form-control" name="owner" id="field_owner" data-cy="owner" formControlName="owner" />
               @if (editForm.get('owner')!.invalid && (editForm.get('owner')!.dirty || editForm.get('owner')!.touched)) {
-                <div
-                  >
+                <div>
                   @if (editForm.get('owner')?.errors?.required) {
-                    <small
-                      class="form-text text-danger"
-                      jhiTranslate="entity.validation.required"
-                      >
-                      This field is required.
-                    </small>
+                    <small class="form-text text-danger" jhiTranslate="entity.validation.required"> This field is required. </small>
                   }
                 </div>
               }
@@ -115,7 +68,7 @@
             data-cy="entityCreateSaveButton"
             [disabled]="editForm.invalid || isSaving"
             class="btn btn-primary"
-            >
+          >
             <fa-icon icon="save"></fa-icon>&nbsp;<span jhiTranslate="entity.action.save">Save</span>
           </button>
         </div>

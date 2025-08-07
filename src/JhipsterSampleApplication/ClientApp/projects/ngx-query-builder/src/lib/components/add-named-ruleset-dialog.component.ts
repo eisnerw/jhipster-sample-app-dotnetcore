@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 
 export interface AddNamedRulesetDialogData {
@@ -28,9 +28,8 @@ export interface AddNamedRulesetDialogData {
     `
 })
 export class AddNamedRulesetDialogComponent {
+  dialogRef = inject<MatDialogRef<AddNamedRulesetDialogComponent>>(MatDialogRef);
+  data = inject<AddNamedRulesetDialogData>(MAT_DIALOG_DATA);
+
   selected: string | null = null;
-  constructor(
-    public dialogRef: MatDialogRef<AddNamedRulesetDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: AddNamedRulesetDialogData
-  ) {}
 }

@@ -7,8 +7,7 @@ import { BirthdayResolve } from './route/birthday-routing-resolve.service';
 const birthdayRoute: Routes = [
   {
     path: '',
-    loadComponent: () =>
-      import('./list/birthday.component').then((m) => m.BirthdayComponent),
+    loadComponent: () => import('./list/birthday.component').then(m => m.BirthdayComponent),
     data: {
       defaultSort: `id,${ASC}`,
     },
@@ -16,10 +15,7 @@ const birthdayRoute: Routes = [
   },
   {
     path: ':id/view',
-    loadComponent: () =>
-      import('./detail/birthday-detail.component').then(
-        (m) => m.BirthdayDetailComponent,
-      ),
+    loadComponent: () => import('./detail/birthday-detail.component').then(m => m.BirthdayDetailComponent),
     resolve: {
       birthday: BirthdayResolve,
     },
@@ -27,10 +23,7 @@ const birthdayRoute: Routes = [
   },
   {
     path: 'new',
-    loadComponent: () =>
-      import('./update/birthday-update.component').then(
-        (m) => m.BirthdayUpdateComponent,
-      ),
+    loadComponent: () => import('./update/birthday-update.component').then(m => m.BirthdayUpdateComponent),
     resolve: {
       birthday: BirthdayResolve,
     },
@@ -38,10 +31,7 @@ const birthdayRoute: Routes = [
   },
   {
     path: ':id/edit',
-    loadComponent: () =>
-      import('./update/birthday-update.component').then(
-        (m) => m.BirthdayUpdateComponent,
-      ),
+    loadComponent: () => import('./update/birthday-update.component').then(m => m.BirthdayUpdateComponent),
     resolve: {
       birthday: BirthdayResolve,
     },

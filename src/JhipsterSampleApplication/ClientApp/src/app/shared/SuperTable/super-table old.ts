@@ -1,10 +1,6 @@
 /* eslint-disable */ 
 
-import {
-  NgModule, Component, HostListener, OnInit, OnDestroy, AfterViewInit, Directive, Optional, AfterContentInit,
-  Input, Output, EventEmitter, ElementRef, NgZone, ChangeDetectorRef, OnChanges, ChangeDetectionStrategy, ViewEncapsulation, Renderer2, Inject, PLATFORM_ID,
-  DOCUMENT
-} from '@angular/core';
+import { NgModule, Component, HostListener, OnInit, OnDestroy, AfterViewInit, Directive, AfterContentInit, Input, Output, EventEmitter, ElementRef, NgZone, ChangeDetectorRef, OnChanges, ChangeDetectionStrategy, ViewEncapsulation, Renderer2, PLATFORM_ID, DOCUMENT, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FilterService, OverlayService } from 'primeng/api';
@@ -60,7 +56,7 @@ import { TableState } from 'primeng/api';
           <ng-container *ngTemplateOutlet="captionTemplate"></ng-container>
         </div>
       }
-      @if (paginator && (paginatorPosition === 'top' || paginatorPosition =='both')) {
+      @if (paginator && (paginatorPosition === 'top' || paginatorPosition ==='both')) {
         <p-paginator [rows]="rows" [first]="first" [totalRecords]="totalRecords" [pageLinkSize]="pageLinks" styleClass="p-paginator-top" [alwaysShow]="alwaysShowPaginator"
           (onPageChange)="onPageChange($event)" [rowsPerPageOptions]="rowsPerPageOptions"
           [templateLeft]="paginatorLeftTemplate" [templateRight]="paginatorRightTemplate" [dropdownAppendTo]="paginatorDropdownAppendTo" [dropdownScrollHeight]="paginatorDropdownScrollHeight"
@@ -103,7 +99,7 @@ import { TableState } from 'primeng/api';
         </ng-template>
       </div>
     
-      @if (paginator && (paginatorPosition === 'bottom' || paginatorPosition =='both')) {
+      @if (paginator && (paginatorPosition === 'bottom' || paginatorPosition ==='both')) {
         <p-paginator [rows]="rows" [first]="first" [totalRecords]="totalRecords" [pageLinkSize]="pageLinks" styleClass="p-paginator-bottom" [alwaysShow]="alwaysShowPaginator"
           (onPageChange)="onPageChange($event)" [rowsPerPageOptions]="rowsPerPageOptions"
           [templateLeft]="paginatorLeftTemplate" [templateRight]="paginatorRightTemplate" [dropdownAppendTo]="paginatorDropdownAppendTo" [dropdownScrollHeight]="paginatorDropdownScrollHeight"
@@ -488,10 +484,6 @@ export class SuperTable extends Table implements OnInit, AfterViewInit, AfterCon
     children: SuperTable[] = [];
 
     filteringGlobal = false;
-    
-    constructor (@Inject(DOCUMENT) document: Document, @Inject(PLATFORM_ID) platformId: any, renderer: Renderer2, el: ElementRef, zone: NgZone, tableService: TableService, cd: ChangeDetectorRef, filterService: FilterService, overlayService: OverlayService){
-        super();
-    }
 
     @Input() get value(): any[] {
         return this._value;
@@ -719,6 +711,10 @@ export class SuperTable extends Table implements OnInit, AfterViewInit, AfterCon
     encapsulation: ViewEncapsulation.None
 })
 export class SuperTableBody extends TableBody implements OnDestroy {
+    dt: SuperTable;
+    tableService: TableService;
+    cd: ChangeDetectorRef;
+
     @Input("super-table-body") columns= [];
 
     @Input("pTableBodyTemplate") template: any;
@@ -740,8 +736,17 @@ export class SuperTableBody extends TableBody implements OnDestroy {
 
     @Input() frozenRows: boolean = false;  
       
-    constructor(public dt: SuperTable, public tableService: TableService, public cd: ChangeDetectorRef, el: ElementRef) {
+    constructor() {
+        const dt = inject(SuperTable);
+        const tableService = inject(TableService);
+        const cd = inject(ChangeDetectorRef);
+        const el = inject(ElementRef);
+
         super(dt, tableService, cd, el);
+    
+        this.dt = dt;
+        this.tableService = tableService;
+        this.cd = cd;
     }
 }
 
@@ -756,9 +761,15 @@ export class SuperTableBody extends TableBody implements OnDestroy {
     }
 })
 export class SuperSortableColumn extends SortableColumn implements OnInit, OnDestroy {
+    dt: SuperTable;
+
     @Input("super-SortableColumn") field= "";
-    constructor(public dt: SuperTable) {
+    constructor() {
+        const dt = inject(SuperTable);
+
         super(dt);
+    
+        this.dt = dt;
     }
 
     ngOnInit() {
@@ -783,9 +794,18 @@ export class SuperSortableColumn extends SortableColumn implements OnInit, OnDes
     encapsulation: ViewEncapsulation.None
 })
 export class SuperSortIcon extends SortIcon implements OnInit, OnDestroy {
+    dt: SuperTable;
+    cd: ChangeDetectorRef;
 
-    constructor(public dt: SuperTable, public cd: ChangeDetectorRef) {
+
+    constructor() {
+        const dt = inject(SuperTable);
+        const cd = inject(ChangeDetectorRef);
+
         super(dt, cd);
+    
+        this.dt = dt;
+        this.cd = cd;
     }
 
     ngOnInit() {
@@ -806,10 +826,22 @@ export class SuperSortIcon extends SortIcon implements OnInit, OnDestroy {
     }
 })
 export class SuperSelectableRow extends SelectableRow implements OnInit, OnDestroy {
+    dt: SuperTable;
+    tableService: TableService;
+    el: ElementRef;
+
     @Input("super-selectable-row") data: any;
 
-    constructor(public dt: SuperTable, public tableService: TableService, public el: ElementRef) {
+    constructor() {
+        const dt = inject(SuperTable);
+        const tableService = inject(TableService);
+        const el = inject(ElementRef);
+
         super(dt, tableService, el);
+    
+        this.dt = dt;
+        this.tableService = tableService;
+        this.el = el;
     }
 
     ngOnInit() {
@@ -830,9 +862,19 @@ export class SuperSelectableRow extends SelectableRow implements OnInit, OnDestr
     }
 })
 export class SuperContextMenuRow extends ContextMenuRow {
+    dt: SuperTable;
+    tableService: TableService;
+
     @Input("super-ContextMenuRow") data: any;
-    constructor(public dt: SuperTable, public tableService: TableService, el: ElementRef) {
+    constructor() {
+        const dt = inject(SuperTable);
+        const tableService = inject(TableService);
+        const el = inject(ElementRef);
+
         super(dt, tableService, el);
+    
+        this.dt = dt;
+        this.tableService = tableService;
     }
 }
 
@@ -840,11 +882,17 @@ export class SuperContextMenuRow extends ContextMenuRow {
     selector: '[super-RowToggler]'
 })
 export class SuperRowToggler extends RowToggler {
+    dt: SuperTable;
+
 
     @Input('super-RowToggler') data: any;
 
-    constructor(public dt: SuperTable) { 
+    constructor() {
+        const dt = inject(SuperTable);
+ 
         super(dt);
+    
+        this.dt = dt;
     }
 }
 
@@ -853,7 +901,14 @@ export class SuperRowToggler extends RowToggler {
 })
 export class SuperResizableColumn extends ResizableColumn implements AfterViewInit, OnDestroy {
 
-    constructor(@Inject(DOCUMENT) document: Document, @Inject(PLATFORM_ID) platformId: any, renderer: Renderer2, dt: SuperTable, el: ElementRef, zone: NgZone) { 
+    constructor() {
+        const document = inject<Document>(DOCUMENT);
+        const platformId = inject(PLATFORM_ID);
+        const renderer = inject(Renderer2);
+        const dt = inject(SuperTable);
+        const el = inject(ElementRef);
+        const zone = inject(NgZone);
+ 
         super(document, platformId, renderer, dt, el, zone);
     }
 
@@ -870,7 +925,13 @@ export class SuperResizableColumn extends ResizableColumn implements AfterViewIn
     selector: '[super-ReorderableColumn]'
 })
 export class SuperReorderableColumn extends ReorderableColumn implements AfterViewInit, OnDestroy {
-    constructor(@Inject(PLATFORM_ID) platformId: any, renderer: Renderer2, dt: SuperTable, el: ElementRef, zone: NgZone) { 
+    constructor() {
+        const platformId = inject(PLATFORM_ID);
+        const renderer = inject(Renderer2);
+        const dt = inject(SuperTable);
+        const el = inject(ElementRef);
+        const zone = inject(NgZone);
+ 
         super(platformId, renderer, dt, el, zone);
     }
 
@@ -888,9 +949,21 @@ export class SuperReorderableColumn extends ReorderableColumn implements AfterVi
     selector: '[super-EditableColumn]'
 })
 export class SuperEditableColumn extends EditableColumn implements AfterViewInit {
+    dt: SuperTable;
+    el: ElementRef;
+    zone: NgZone;
 
-    constructor(public dt: SuperTable, public el: ElementRef, public zone: NgZone) {
+
+    constructor() {
+        const dt = inject(SuperTable);
+        const el = inject(ElementRef);
+        const zone = inject(NgZone);
+
         super(dt, el, zone);
+    
+        this.dt = dt;
+        this.el = el;
+        this.zone = zone;
     }
 
     ngAfterViewInit() {
@@ -902,8 +975,9 @@ export class SuperEditableColumn extends EditableColumn implements AfterViewInit
     selector: '[pInitEditableRow]'
 })
 export class InitEditableRow {
+    dt = inject(SuperTable);
+    editableRow = inject(EditableRow);
 
-    constructor(public dt: SuperTable, public editableRow: EditableRow) {}
 
     @HostListener('click', ['$event'])
     onClick(event: Event) {
@@ -917,8 +991,9 @@ export class InitEditableRow {
     selector: '[pSaveEditableRow]'
 })
 export class SaveEditableRow {
+    dt = inject(SuperTable);
+    editableRow = inject(EditableRow);
 
-    constructor(public dt: SuperTable, public editableRow: EditableRow) {}
 
     @HostListener('click', ['$event'])
     onClick(event: Event) {
@@ -931,8 +1006,9 @@ export class SaveEditableRow {
     selector: '[pCancelEditableRow]'
 })
 export class CancelEditableRow {
+    dt = inject(SuperTable);
+    editableRow = inject(EditableRow);
 
-    constructor(public dt: SuperTable, public editableRow: EditableRow) {}
 
     @HostListener('click', ['$event'])
     onClick(event: Event) {
@@ -954,10 +1030,22 @@ export class CancelEditableRow {
     encapsulation: ViewEncapsulation.None
 })
 export class SuperCellEditor extends CellEditor implements AfterContentInit {
+    dt: SuperTable;
+    editableColumn: SuperEditableColumn;
+    editableRow: EditableRow;
 
 
-    constructor(public dt: SuperTable, @Optional() public editableColumn: SuperEditableColumn, @Optional() public editableRow: EditableRow) {
+
+    constructor() {
+        const dt = inject(SuperTable);
+        const editableColumn = inject(SuperEditableColumn, { optional: true });
+        const editableRow = inject(EditableRow, { optional: true });
+
         super(dt, editableColumn, editableRow);
+    
+        this.dt = dt;
+        this.editableColumn = editableColumn;
+        this.editableRow = editableRow;
     }
 
     ngAfterContentInit() {
@@ -982,9 +1070,18 @@ export class SuperCellEditor extends CellEditor implements AfterContentInit {
     encapsulation: ViewEncapsulation.None
 })
 export class SuperTableRadioButton extends TableRadioButton  {
+    dt: SuperTable;
+    cd: ChangeDetectorRef;
+
     
-    constructor(public dt: SuperTable, public cd: ChangeDetectorRef) {
+    constructor() {
+        const dt = inject(SuperTable);
+        const cd = inject(ChangeDetectorRef);
+
         super(dt, cd);
+    
+        this.dt = dt;
+        this.cd = cd;
     }
 
     ngOnInit() {
@@ -1011,9 +1108,21 @@ export class SuperTableRadioButton extends TableRadioButton  {
     encapsulation: ViewEncapsulation.None
 })
 export class SuperTableCheckbox extends TableCheckbox  {
+    dt: SuperTable;
+    tableService: TableService;
+    cd: ChangeDetectorRef;
 
-    constructor(public dt: SuperTable, public tableService: TableService, public cd: ChangeDetectorRef) {
+
+    constructor() {
+        const dt = inject(SuperTable);
+        const tableService = inject(TableService);
+        const cd = inject(ChangeDetectorRef);
+
         super(dt, tableService, cd);
+    
+        this.dt = dt;
+        this.tableService = tableService;
+        this.cd = cd;
     }
 
     onClick(event: Event) {
@@ -1063,8 +1172,20 @@ export class SuperTableCheckbox extends TableCheckbox  {
     encapsulation: ViewEncapsulation.None
 })
 export class SuperTableHeaderCheckbox extends TableHeaderCheckbox  {
-    constructor(public dt: SuperTable, public tableService: TableService, public cd: ChangeDetectorRef) {
+    dt: SuperTable;
+    tableService: TableService;
+    cd: ChangeDetectorRef;
+
+    constructor() {
+        const dt = inject(SuperTable);
+        const tableService = inject(TableService);
+        const cd = inject(ChangeDetectorRef);
+
         super(dt, tableService, cd);
+    
+        this.dt = dt;
+        this.tableService = tableService;
+        this.cd = cd;
     }
 }
 
@@ -1072,10 +1193,10 @@ export class SuperTableHeaderCheckbox extends TableHeaderCheckbox  {
     selector: '[pReorderableRowHandle]'
 })
 export class ReorderableRowHandle implements AfterViewInit {
+    el = inject(ElementRef);
+
 
     @Input("pReorderableRowHandle") index= 0;
-
-    constructor(public el: ElementRef) {}
 
     ngAfterViewInit() {
         DomHandler.addClass(this.el.nativeElement, 'p-datatable-reorderablerow-handle');
@@ -1089,7 +1210,12 @@ export class SuperReorderableRow extends ReorderableRow implements AfterViewInit
 
     @Input("super-reorderable-row") index= 0;
 
-    constructor(renderer: Renderer2, dt: SuperTable, el: ElementRef, zone: NgZone) {
+    constructor() {
+        const renderer = inject(Renderer2);
+        const dt = inject(SuperTable);
+        const el = inject(ElementRef);
+        const zone = inject(NgZone);
+
         super (renderer, dt, el, zone);
     }
 
@@ -1124,9 +1250,18 @@ export class SuperReorderableRow extends ReorderableRow implements AfterViewInit
     encapsulation: ViewEncapsulation.None
 })
 export class SuperColumnFilterFormElement extends ColumnFilterFormElement implements OnInit {
+    dt: SuperTable;
+    private cf: ColumnFilter;
+
     @Input() filterConstraint: any;    
-    constructor(public dt: SuperTable, private cf: ColumnFilter) {
+    constructor() {
+        const dt = inject(SuperTable);
+        const cf = inject(ColumnFilter);
+
         super(dt, cf);
+    
+        this.dt = dt;
+        this.cf = cf;
     }
 
     get showButtons(): boolean {
@@ -1234,9 +1369,6 @@ export class SuperColumnFilterFormElement extends ColumnFilterFormElement implem
     encapsulation: ViewEncapsulation.None
 })
 export class SuperColumnFilter extends ColumnFilter implements AfterContentInit {
-    constructor(@Inject(DOCUMENT) document: Document, el: ElementRef, dt: SuperTable, renderer: Renderer2, overlayService: OverlayService) {
-        super();
-    }
 
     ngAfterContentInit() {
         super.ngAfterContentInit();

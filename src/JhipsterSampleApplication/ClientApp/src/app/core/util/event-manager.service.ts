@@ -20,11 +20,9 @@ export class EventManager {
   observer?: Observer<EventWithContent<unknown> | string>;
 
   constructor() {
-    this.observable = new Observable(
-      (observer: Observer<EventWithContent<unknown> | string>) => {
-        this.observer = observer;
-      },
-    ).pipe(share());
+    this.observable = new Observable((observer: Observer<EventWithContent<unknown> | string>) => {
+      this.observer = observer;
+    }).pipe(share());
   }
 
   /**
@@ -41,10 +39,7 @@ export class EventManager {
    * @param eventNames  Single event name or array of event names to what subscribe
    * @param callback    Callback to run when the event occurs
    */
-  subscribe(
-    eventNames: string | string[],
-    callback: (event: EventWithContent<unknown> | string) => void,
-  ): Subscription {
+  subscribe(eventNames: string | string[], callback: (event: EventWithContent<unknown> | string) => void): Subscription {
     if (typeof eventNames === 'string') {
       eventNames = [eventNames];
     }
@@ -52,10 +47,7 @@ export class EventManager {
       .pipe(
         filter((event: EventWithContent<unknown> | string) => {
           for (const eventName of eventNames) {
-            if (
-              (typeof event === 'string' && event === eventName) ||
-              (typeof event !== 'string' && event.name === eventName)
-            ) {
+            if ((typeof event === 'string' && event === eventName) || (typeof event !== 'string' && event.name === eventName)) {
               return true;
             }
           }

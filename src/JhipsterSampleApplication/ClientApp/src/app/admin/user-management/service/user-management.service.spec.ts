@@ -1,9 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { Authority } from 'app/config/authority.constants';
 import { User } from '../user-management.model';
@@ -31,7 +28,7 @@ describe('User Service', () => {
     it('should return User', () => {
       let expectedResult: string | undefined;
 
-      service.find('user').subscribe((received) => {
+      service.find('user').subscribe(received => {
         expectedResult = received.login;
       });
 
@@ -43,7 +40,7 @@ describe('User Service', () => {
     it('should return Authorities', () => {
       let expectedResult: string[] = [];
 
-      service.authorities().subscribe((authorities) => {
+      service.authorities().subscribe(authorities => {
         expectedResult = authorities;
       });
       const req = httpMock.expectOne({ method: 'GET' });

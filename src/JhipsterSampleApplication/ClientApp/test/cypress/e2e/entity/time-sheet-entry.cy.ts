@@ -26,9 +26,7 @@ describe('TimeSheetEntry e2e test', () => {
   beforeEach(() => {
     cy.intercept('GET', '/api/time-sheet-entries+(?*|)').as('entitiesRequest');
     cy.intercept('POST', '/api/time-sheet-entries').as('postEntityRequest');
-    cy.intercept('DELETE', '/api/time-sheet-entries/*').as(
-      'deleteEntityRequest',
-    );
+    cy.intercept('DELETE', '/api/time-sheet-entries/*').as('deleteEntityRequest');
   });
 
   afterEach(() => {
@@ -160,10 +158,7 @@ describe('TimeSheetEntry e2e test', () => {
 
     it('should create an instance of TimeSheetEntry', () => {
       cy.get(`[data-cy="activityName"]`).type('convoke willing reprove');
-      cy.get(`[data-cy="activityName"]`).should(
-        'have.value',
-        'convoke willing reprove',
-      );
+      cy.get(`[data-cy="activityName"]`).should('have.value', 'convoke willing reprove');
 
       cy.get(`[data-cy="startTimeMilitary"]`).type('1056');
       cy.get(`[data-cy="startTimeMilitary"]`).should('have.value', '1056');

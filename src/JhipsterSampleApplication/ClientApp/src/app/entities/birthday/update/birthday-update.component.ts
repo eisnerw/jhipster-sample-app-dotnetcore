@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { HttpResponse } from '@angular/common/http';
-import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, Validators, ReactiveFormsModule, FormGroup } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { Observable } from 'rxjs';
 import { finalize } from 'rxjs/operators';
@@ -19,22 +19,21 @@ import SharedModule from 'app/shared/shared.module';
 export class BirthdayUpdateComponent implements OnInit {
   isSaving = false;
 
-  editForm = this.fb.group({
-    id: [undefined as string | null | undefined],
-    lname: [undefined as string | null | undefined, [Validators.required]],
-    fname: [undefined as string | null | undefined, [Validators.required]],
-    sign: [undefined as string | null | undefined],
-    dob: [undefined as Date | null | undefined, [Validators.required]],
-    isAlive: [undefined as boolean | null | undefined, [Validators.required]],
-  });
+  editForm!: FormGroup;
 
-  constructor(
-    protected birthdayService: BirthdayService,
-    protected activatedRoute: ActivatedRoute,
-    protected fb: FormBuilder,
-  ) {}
+  protected birthdayService = inject(BirthdayService);
+  protected activatedRoute = inject(ActivatedRoute);
+  protected fb = inject(FormBuilder);
 
   ngOnInit(): void {
+    this.editForm = this.fb.group({
+      id: [undefined as string | null | undefined],
+      lname: [undefined as string | null | undefined, [Validators.required]],
+      fname: [undefined as string | null | undefined, [Validators.required]],
+      sign: [undefined as string | null | undefined],
+      dob: [undefined as Date | null | undefined, [Validators.required]],
+      isAlive: [undefined as boolean | null | undefined, [Validators.required]],
+    });
     this.activatedRoute.data.subscribe(({ birthday }) => {
       this.updateForm(birthday);
     });
@@ -54,9 +53,7 @@ export class BirthdayUpdateComponent implements OnInit {
     }
   }
 
-  protected subscribeToSaveResponse(
-    result: Observable<HttpResponse<IBirthday>>,
-  ): void {
+  protected subscribeToSaveResponse(result: Observable<HttpResponse<IBirthday>>): void {
     result.pipe(finalize(() => this.onSaveFinalize())).subscribe({
       next: () => this.onSaveSuccess(),
       error: () => this.onSaveError(),

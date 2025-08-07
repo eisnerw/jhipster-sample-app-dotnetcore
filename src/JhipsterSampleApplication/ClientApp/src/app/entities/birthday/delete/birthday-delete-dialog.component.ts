@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 
@@ -17,7 +17,7 @@ import SharedModule from 'app/shared/shared.module';
 export class BirthdayDeleteDialogComponent {
   @Input() birthday?: IBirthday;
 
-  constructor(protected activeModal: NgbActiveModal) {}
+  protected activeModal = inject(NgbActiveModal);
 
   cancel(): void {
     this.activeModal.dismiss();

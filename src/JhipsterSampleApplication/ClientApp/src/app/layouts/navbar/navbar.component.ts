@@ -31,15 +31,13 @@ export default class NavbarComponent implements OnInit {
   constructor() {
     const { VERSION } = environment;
     if (VERSION) {
-      this.version = VERSION.toLowerCase().startsWith('v')
-        ? VERSION
-        : `v${VERSION}`;
+      this.version = VERSION.toLowerCase().startsWith('v') ? VERSION : `v${VERSION}`;
     }
   }
 
   ngOnInit(): void {
     this.entitiesNavbarItems = ENTITY_NAV_ITEMS;
-    this.profileService.getProfileInfo().subscribe((profileInfo) => {
+    this.profileService.getProfileInfo().subscribe(profileInfo => {
       this.inProduction = profileInfo.inProduction;
       this.openAPIEnabled = profileInfo.openAPIEnabled;
     });
@@ -60,6 +58,6 @@ export default class NavbarComponent implements OnInit {
   }
 
   toggleNavbar(): void {
-    this.isNavbarCollapsed.update((isNavbarCollapsed) => !isNavbarCollapsed);
+    this.isNavbarCollapsed.update(isNavbarCollapsed => !isNavbarCollapsed);
   }
 }

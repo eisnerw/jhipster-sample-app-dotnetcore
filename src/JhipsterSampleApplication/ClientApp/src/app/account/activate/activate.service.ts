@@ -10,11 +10,8 @@ export class ActivateService {
   private readonly applicationConfigService = inject(ApplicationConfigService);
 
   get(key: string): Observable<{}> {
-    return this.http.get(
-      this.applicationConfigService.getEndpointFor('api/activate'),
-      {
-        params: new HttpParams().set('key', key),
-      },
-    );
+    return this.http.get(this.applicationConfigService.getEndpointFor('api/activate'), {
+      params: new HttpParams().set('key', key),
+    });
   }
 }

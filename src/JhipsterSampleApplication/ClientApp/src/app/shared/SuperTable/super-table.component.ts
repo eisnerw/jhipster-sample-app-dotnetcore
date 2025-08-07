@@ -1,22 +1,6 @@
 /* eslint-disable */
 
-import {
-  Component,
-  OnInit,
-  AfterViewInit,
-  OnDestroy,
-  OnChanges,
-  SimpleChanges,
-  Input,
-  Output,
-  EventEmitter,
-  ViewChild,
-  ViewChildren,
-  QueryList,
-  TemplateRef,
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-} from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, OnChanges, SimpleChanges, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, TemplateRef, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -76,6 +60,8 @@ export interface GroupData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
+  private cdr = inject(ChangeDetectorRef);
+
   @Input() dataLoader: DataLoader<any> | undefined;
   @Input() columns: ColumnConfig[] = [];
   @Input() groups: GroupDescriptor[] = [];
@@ -154,8 +140,6 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Output() onColResize = new EventEmitter<any>();
   @Output() onSort = new EventEmitter<any>();
   @Output() onFilter = new EventEmitter<any>();
-
-  constructor(private cdr: ChangeDetectorRef) {}
 
   trackByFn(index: number, item: any): any {
     return item?.id || index;

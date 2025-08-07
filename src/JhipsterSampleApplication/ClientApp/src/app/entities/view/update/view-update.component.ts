@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import SharedModule from 'app/shared/shared.module';
@@ -26,11 +26,9 @@ export class ViewUpdateComponent implements OnInit {
   isSaving = false;
   views: IView[] = [];
 
-  constructor(
-    protected viewService: ViewService,
-    protected activatedRoute: ActivatedRoute,
-    protected router: Router,
-  ) {}
+  protected viewService = inject(ViewService);
+  protected activatedRoute = inject(ActivatedRoute);
+  protected router = inject(Router);
 
   ngOnInit(): void {
     this.activatedRoute.data.subscribe(({ view }) => {
