@@ -12,7 +12,8 @@ Highlight search terms
 Chip bar
 Right click menus
 Save named rulesets in elasticsearch
-CONTAINS regex
-No hits
+*CONTAINS regex
+*No hits
 
 Bugs:
+Still not positioning scrollbar in grid mode
