@@ -413,7 +413,7 @@ namespace JhipsterSampleApplication.Domain.Services
             {
                 "isAlive" => value == "true" || value == "false",
                 "sign" => ValidSigns.Contains(value.ToLower()),
-                "dob" => Regex.IsMatch(value, @"^\d{4}-\d{2}-\d{2}$"),
+                "dob" => Regex.IsMatch(value, @"^\d{4}(-\d{2}(-\d{2}(T\d{2}:\d{2}:\d{2})?)?)?$"),
                 "lname" => !string.IsNullOrWhiteSpace(value),
                 "fname" => !string.IsNullOrWhiteSpace(value),
                 "document" => !string.IsNullOrWhiteSpace(value),
