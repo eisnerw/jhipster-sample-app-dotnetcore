@@ -45,7 +45,36 @@ public class BirthdayServiceRangeQueryTest
                 {
                     {
                         "dob",
-                        new JObject { { expected, "1990-01-01" } }
+                        new JObject { { expected, "1990-01-01T00:00:00" } }
+                    }
+                }
+            }
+        };
+
+        Assert.True(JToken.DeepEquals(expectedObject, result));
+    }
+
+    [Fact]
+    public async Task ConvertRulesetToElasticSearch_PreservesDateTimeValues()
+    {
+        var ruleset = new Ruleset
+        {
+            field = "dob",
+            @operator = ">",
+            value = "1990-01-01T12:34:56"
+        };
+
+        var result = await _service.ConvertRulesetToElasticSearch(ruleset);
+
+        var expectedObject = new JObject
+        {
+            {
+                "range",
+                new JObject
+                {
+                    {
+                        "dob",
+                        new JObject { { "gt", "1990-01-01T12:34:56" } }
                     }
                 }
             }
