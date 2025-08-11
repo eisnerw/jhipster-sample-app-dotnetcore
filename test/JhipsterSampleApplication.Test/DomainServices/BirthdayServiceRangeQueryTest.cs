@@ -22,11 +22,11 @@ public class BirthdayServiceRangeQueryTest
     }
 
     [Theory]
-    [InlineData(">", "gt")]
-    [InlineData(">=", "gte")]
-    [InlineData("<", "lt")]
-    [InlineData("<=", "lte")]
-    public async Task ConvertRulesetToElasticSearch_HandlesRangeOperators(string op, string expected)
+    [InlineData(">", "gte", "1990-01-02T00:00:00")]
+    [InlineData(">=", "gte", "1990-01-01T00:00:00")]
+    [InlineData("<", "lt", "1990-01-01T00:00:00")]
+    [InlineData("<=", "lt", "1990-01-02T00:00:00")]
+    public async Task ConvertRulesetToElasticSearch_HandlesRangeOperators(string op, string expected, string value)
     {
         var ruleset = new Ruleset
         {
@@ -45,7 +45,7 @@ public class BirthdayServiceRangeQueryTest
                 {
                     {
                         "dob",
-                        new JObject { { expected, "1990-01-01T00:00:00" } }
+                        new JObject { { expected, value } }
                     }
                 }
             }
@@ -75,6 +75,71 @@ public class BirthdayServiceRangeQueryTest
                     {
                         "dob",
                         new JObject { { "gt", "1990-01-01T12:34:56" } }
+                    }
+                }
+            }
+        };
+
+        Assert.True(JToken.DeepEquals(expectedObject, result));
+    }
+
+    [Theory]
+    [InlineData("1990", "1990-01-01T00:00:00", "1991-01-01T00:00:00")]
+    [InlineData("1990-02", "1990-02-01T00:00:00", "1990-03-01T00:00:00")]
+    [InlineData("1990-03-03", "1990-03-03T00:00:00", "1990-03-04T00:00:00")]
+    public async Task ConvertRulesetToElasticSearch_HandlesDateEqualityRanges(string value, string gte, string lt)
+    {
+        var ruleset = new Ruleset
+        {
+            field = "dob",
+            @operator = "=",
+            value = value,
+        };
+
+        var result = await _service.ConvertRulesetToElasticSearch(ruleset);
+
+        var expectedObject = new JObject
+        {
+            {
+                "range",
+                new JObject
+                {
+                    {
+                        "dob",
+                        new JObject { { "gte", gte }, { "lt", lt } }
+                    }
+                }
+            }
+        };
+
+        Assert.True(JToken.DeepEquals(expectedObject, result));
+    }
+
+    [Theory]
+    [InlineData(">=", "1990", "gte", "1990-01-01T00:00:00")]
+    [InlineData("<=", "1990", "lt", "1991-01-01T00:00:00")]
+    [InlineData(">", "1990-03-03", "gte", "1990-03-04T00:00:00")]
+    [InlineData("<", "1990-03-03", "lt", "1990-03-03T00:00:00")]
+    public async Task ConvertRulesetToElasticSearch_HandlesPartialDateInequalities(string op, string value, string expectedOp, string expectedValue)
+    {
+        var ruleset = new Ruleset
+        {
+            field = "dob",
+            @operator = op,
+            value = value,
+        };
+
+        var result = await _service.ConvertRulesetToElasticSearch(ruleset);
+
+        var expectedObject = new JObject
+        {
+            {
+                "range",
+                new JObject
+                {
+                    {
+                        "dob",
+                        new JObject { { expectedOp, expectedValue } }
                     }
                 }
             }

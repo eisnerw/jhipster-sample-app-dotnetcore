@@ -304,6 +304,10 @@ public class BirthdayService : IBirthdayService
                     }}
                 }};
             }
+            else if (rr.field == "dob")
+            {
+                ret = BuildDobQuery(rr);
+            }
             else if (rr.@operator == ">" || rr.@operator == "<" || rr.@operator == ">=" || rr.@operator == "<=")
             {
                 var rangeOperator = rr.@operator switch
@@ -453,6 +457,83 @@ public class BirthdayService : IBirthdayService
             }
             return ret;
         }
+    }
+    private static (DateTime start, DateTime? endExclusive) ParseDateValue(string value)
+    {
+        if (Regex.IsMatch(value, @"^\d{4}$"))
+        {
+            var year = int.Parse(value);
+            var start = new DateTime(year, 1, 1, 0, 0, 0);
+            return (start, start.AddYears(1));
+        }
+        if (Regex.IsMatch(value, @"^\d{4}-\d{2}$"))
+        {
+            var year = int.Parse(value.Substring(0, 4));
+            var month = int.Parse(value.Substring(5, 2));
+            var start = new DateTime(year, month, 1, 0, 0, 0);
+            return (start, start.AddMonths(1));
+        }
+        if (Regex.IsMatch(value, @"^\d{4}-\d{2}-\d{2}$"))
+        {
+            var year = int.Parse(value.Substring(0, 4));
+            var month = int.Parse(value.Substring(5, 2));
+            var day = int.Parse(value.Substring(8, 2));
+            var start = new DateTime(year, month, day, 0, 0, 0);
+            return (start, start.AddDays(1));
+        }
+        if (DateTime.TryParse(value, out var dt))
+        {
+            return (dt, null);
+        }
+        return (DateTime.MinValue, null);
+    }
+
+    private static JObject BuildDobQuery(Ruleset rr)
+    {
+        var valueString = rr.value?.ToString() ?? string.Empty;
+        var (start, endExclusive) = ParseDateValue(valueString);
+        var startStr = start.ToString("yyyy-MM-dd'T'HH:mm:ss");
+        JObject rangeBody = new JObject();
+
+        switch (rr.@operator)
+        {
+            case ">":
+                if (endExclusive.HasValue)
+                    rangeBody.Add("gte", endExclusive.Value.ToString("yyyy-MM-dd'T'HH:mm:ss"));
+                else
+                    rangeBody.Add("gt", startStr);
+                break;
+            case ">=":
+                rangeBody.Add("gte", startStr);
+                break;
+            case "<":
+                rangeBody.Add("lt", startStr);
+                break;
+            case "<=":
+                if (endExclusive.HasValue)
+                    rangeBody.Add("lt", endExclusive.Value.ToString("yyyy-MM-dd'T'HH:mm:ss"));
+                else
+                    rangeBody.Add("lte", startStr);
+                break;
+            case "=":
+            case "!=":
+                if (endExclusive.HasValue)
+                {
+                    rangeBody.Add("gte", startStr);
+                    rangeBody.Add("lt", endExclusive.Value.ToString("yyyy-MM-dd'T'HH:mm:ss"));
+                }
+                else
+                {
+                    rangeBody.Add("gte", startStr);
+                    rangeBody.Add("lte", startStr);
+                }
+                break;
+        }
+
+        return new JObject
+        {
+            { "range", new JObject { { rr.field!, rangeBody } } }
+        };
     }
     private string ToElasticRegEx(string pattern, Boolean bCaseInsensitive)
     {
