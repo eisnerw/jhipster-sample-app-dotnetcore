@@ -315,6 +315,12 @@ public class BirthdayService : IBirthdayService
                     _ => string.Empty
                 };
 
+                var valueString = rr.value?.ToString() ?? string.Empty;
+                if (DateTime.TryParse(valueString, out var dateValue))
+                {
+                    valueString = dateValue.ToString("yyyy-MM-dd'T'HH:mm:ss");
+                }
+
                 ret = new JObject
                 {
                     {
@@ -323,7 +329,7 @@ public class BirthdayService : IBirthdayService
                         {
                             {
                                 rr.field!,
-                                new JObject { { rangeOperator, rr.value?.ToString() ?? string.Empty } }
+                                new JObject { { rangeOperator, valueString } }
                             }
                         }
                     }
