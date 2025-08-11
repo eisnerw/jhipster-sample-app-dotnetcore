@@ -126,6 +126,21 @@ function toOperatorToken(op: string): string {
   return op;
 }
 
+function isValidPartialDate(v: string): boolean {
+  if (/^\d{4}$/.test(v)) return true;
+  if (/^\d{4}-(0[1-9]|1[0-2])$/.test(v)) return true;
+  if (/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(v)) {
+    const [y, m, d] = v.split('-').map(Number);
+    const date = new Date(Date.UTC(y, m - 1, d));
+    return (
+      date.getUTCFullYear() === y &&
+      date.getUTCMonth() === m - 1 &&
+      date.getUTCDate() === d
+    );
+  }
+  return false;
+}
+
 function parseValue(
   token: Token,
   field: string,
@@ -137,7 +152,12 @@ function parseValue(
   const v = token.value;
   if (type === 'number') return Number(v);
   if (type === 'boolean') return v === 'true';
-  if (type === 'date') return new Date(v);
+  if (type === 'date') {
+    if (!isValidPartialDate(v)) {
+      throw new Error('Invalid date');
+    }
+    return new Date(v);
+  }
   return v;
 }
 

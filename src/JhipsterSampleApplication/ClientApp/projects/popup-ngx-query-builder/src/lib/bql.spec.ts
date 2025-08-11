@@ -343,6 +343,20 @@ describe('validateBql', () => {
     expect(validateBql('sign IN (aries,taurus)', cfg5)).toBeFalse();
   });
 
+  it('should validate partial dates', () => {
+    const cfgDate: QueryBuilderConfig = {
+      fields: { dob: { name: 'Birthday', type: 'date', operators: ['='] } },
+    } as any;
+    expect(validateBql('dob=1992', cfgDate)).toBeTrue();
+    expect(validateBql('dob=1992-01', cfgDate)).toBeTrue();
+    expect(validateBql('dob=1992-01-03', cfgDate)).toBeTrue();
+    expect(validateBql('dob=1992-', cfgDate)).toBeFalse();
+    expect(validateBql('dob=1992-0', cfgDate)).toBeFalse();
+    expect(validateBql('dob=1992-01-', cfgDate)).toBeFalse();
+    expect(validateBql('dob=1992-01-0', cfgDate)).toBeFalse();
+    expect(validateBql('dob=1993-02-29', cfgDate)).toBeFalse();
+  });
+
   it('should reject named ruleset loops', () => {
     const cfgLoop: QueryBuilderConfig = {
       fields: {},
