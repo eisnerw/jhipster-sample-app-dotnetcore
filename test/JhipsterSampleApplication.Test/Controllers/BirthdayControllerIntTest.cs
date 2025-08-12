@@ -442,12 +442,60 @@ namespace JhipsterSampleApplication.Test.Controllers
             _elasticClient.Indices.Refresh("birthdays");
             Console.WriteLine($"<><><><><>Deleted {deleteResponse.Deleted} documents.  Done with test.");
         }
+        [Fact]
+        public async Task TestUncategorizedFirstNameView()
+        {
+            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>(d => d
+                .Index("birthdays")
+                .Query(q => q.Term(t => t.Field("sign.keyword").Value("uncatsign"))));
+            _elasticClient.Indices.Refresh("birthdays");
+
+            var noFname = new BirthdayDto
+            {
+                Id = Guid.NewGuid().ToString(),
+                Lname = "nofname",
+                Sign = "uncatsign"
+            };
+            var withFname = new BirthdayDto
+            {
+                Id = Guid.NewGuid().ToString(),
+                Fname = "alpha",
+                Lname = "withfname",
+                Sign = "uncatsign"
+            };
+
+            await _client.PostAsync("/api/Birthdays", TestUtil.ToJsonContent(noFname));
+            await _client.PostAsync("/api/Birthdays", TestUtil.ToJsonContent(withFname));
+            _elasticClient.Indices.Refresh("birthdays");
+
+            var bqlQuery = "sign = uncatsign";
+            var viewResponse = await _client.PostAsync(
+                "/api/Birthdays/search/bql?view=First%20Name",
+                TestUtil.ToTextContent(bqlQuery));
+            viewResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var viewContent = await viewResponse.Content.ReadAsStringAsync();
+            var viewResult = JsonConvert.DeserializeObject<SearchResultDto<ViewResultDto>>(viewContent);
+            viewResult.Hits.Should().Contain(r => r.CategoryName == "(Uncategorized)" && r.Count == 1);
+
+            var categoryResponse = await _client.PostAsync(
+                "/api/Birthdays/search/bql?view=First%20Name&category=(Uncategorized)",
+                TestUtil.ToTextContent(bqlQuery));
+            categoryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var categoryContent = await categoryResponse.Content.ReadAsStringAsync();
+            var categoryResult = JsonConvert.DeserializeObject<SearchResultDto<BirthdayDto>>(categoryContent);
+            categoryResult.Hits.Should().HaveCount(1);
+            categoryResult.Hits.First().Lname.Should().Be("nofname");
+
+            await _client.DeleteAsync($"/api/Birthdays/{noFname.Id}");
+            await _client.DeleteAsync($"/api/Birthdays/{withFname.Id}");
+            _elasticClient.Indices.Refresh("birthdays");
+        }
 
         private class BirthdayDto
         {
             public string Id { get; set; }
             public string Lname { get; set; }
-            public string Fname { get; set; }
+            public string? Fname { get; set; }
             public string Sign { get; set; }
             public DateTime? Dob { get; set; }
             public bool? IsAlive { get; set; }
