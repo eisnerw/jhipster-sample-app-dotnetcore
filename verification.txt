@@ -16,8 +16,8 @@ Save named rulesets in elasticsearch
 *No hits
 *V20
 Make category case-insensitive
-Support (uncategorized)
-Support dob >= 1990
+*Support (uncategorized)
+*Support dob >= 1990
 
 Bugs:
 Still not positioning scrollbar in grid mode
