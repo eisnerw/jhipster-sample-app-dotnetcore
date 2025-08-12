@@ -10,7 +10,7 @@ Retains last column repositions from grid to group mode
 *Global filtering
 Highlight search terms
 Chip bar
-Right click menus
+*Right click menus
 Save named rulesets in elasticsearch
 *CONTAINS regex
 *No hits
