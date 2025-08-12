@@ -33,6 +33,9 @@ export class DataLoader<T> {
   private filter: any;
   private readonly dataLoadLimit = 1000;
 
+  // Load generation guard: ignores responses from older loads to prevent duplicates
+  private activeLoadId = 0;
+
   constructor(private fetchFunction: FetchFunction<T>) {
     this.data$ = this.bufferSubject;
     this.totalItems$ = this.totalItemsSubject.asObservable();
@@ -48,8 +51,11 @@ export class DataLoader<T> {
     this.predicate = predicate;
     this.ascending = ascending;
     this.filter = filter;
-    this.buffer = []; // Reset buffer on new load
-    // Reset pagination state to ensure a fresh search
+
+    // Increment generation and reset pagination state to ensure a fresh search
+    const loadId = ++this.activeLoadId;
+    this.buffer = [];
+    this.bufferSubject.next([]);
     this.pitId = null;
     this.searchAfter = [];
 
@@ -61,12 +67,18 @@ export class DataLoader<T> {
     };
 
     this.fetchFunction(queryParams).subscribe({
-      next: (response: HttpResponse<any>) => this.onSuccess(response.body, response.headers, true),
-      error: () => this.onError(),
+      next: (response: HttpResponse<any>) => this.onSuccess(response.body, response.headers, true, loadId),
+      error: () => this.onError(loadId),
     });
   }
 
-  private loadMore(): void {
+  private loadMore(loadId: number): void {
+    // Ignore if a newer load has started
+    if (loadId !== this.activeLoadId) {
+      this.loadingSubject.next(false);
+      return;
+    }
+
     if (!this.pitId || this.searchAfter.length === 0) {
       this.loadingSubject.next(false);
       return;
@@ -81,12 +93,17 @@ export class DataLoader<T> {
     };
 
     this.fetchFunction(queryParams).subscribe({
-      next: (response: HttpResponse<any>) => this.onSuccess(response.body, response.headers, false),
-      error: () => this.onError(),
+      next: (response: HttpResponse<any>) => this.onSuccess(response.body, response.headers, false, loadId),
+      error: () => this.onError(loadId),
     });
   }
 
-  private onSuccess(data: SearchResponseData<T>, headers: HttpHeaders, isInitialLoad: boolean): void {
+  private onSuccess(data: SearchResponseData<T>, headers: HttpHeaders, isInitialLoad: boolean, loadId: number): void {
+    // Ignore stale responses from a previous load
+    if (loadId !== this.activeLoadId) {
+      return;
+    }
+
     const newHits = data?.hits ?? [];
     if (isInitialLoad) {
       this.totalItemsSubject.next(data?.totalHits ?? 0);
@@ -137,7 +154,7 @@ export class DataLoader<T> {
       this.loadingMessageSubject.next(message);
       // Keep loading state as true since we're going to load more data
       this.loadingSubject.next(true);
-      setTimeout(() => this.loadMore(), 10);
+      setTimeout(() => this.loadMore(loadId), 10);
     } else {
       this.loadingMessageSubject.next('');
       this.loadingSubject.next(false);
@@ -146,7 +163,11 @@ export class DataLoader<T> {
     }
   }
 
-  private onError(): void {
+  private onError(loadId: number): void {
+    // Ignore errors from stale loads
+    if (loadId !== this.activeLoadId) {
+      return;
+    }
     this.loadingMessageSubject.next('Error loading data.');
     this.loadingSubject.next(false);
   }

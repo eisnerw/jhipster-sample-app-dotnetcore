@@ -238,4 +238,27 @@ a:hover {
   }
 }
 
+/* Normalize PrimeNG checkbox highlight styling app-wide */
+:root {
+}
+
+/* Force white background for checked state in all contexts */
+:root .p-checkbox.p-highlight .p-checkbox-box,
+:root .p-checkbox .p-checkbox-box.p-highlight,
+:root .p-datatable .p-checkbox .p-checkbox-box.p-highlight,
+:root .p-checkbox .p-checkbox-box.p-highlight:hover,
+:root .p-checkbox .p-checkbox-box.p-highlight.p-focus,
+:root .p-datatable .p-checkbox .p-checkbox-box.p-highlight:hover,
+:root .p-datatable .p-checkbox .p-checkbox-box.p-highlight.p-focus {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: var(--surface-border, #ced4da) !important;
+  box-shadow: none !important;
+}
+
+:root .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
+:root .p-checkbox .p-checkbox-icon {
+  color: var(--text-color, #212529) !important; /* dark check */
+}
+
 /* jhipster-needle-scss-add-main */

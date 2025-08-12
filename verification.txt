@@ -7,7 +7,7 @@ Scroll position  remembered
 
 Future:
 Retains last column repositions from grid to group mode
-Global filtering
+*Global filtering
 Highlight search terms
 Chip bar
 Right click menus
