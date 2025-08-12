@@ -116,6 +116,21 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   };
   private capturedWidths = false;
 
+  // Holds the current global filter text for group mode
+  private groupFilterValue: string = '';
+
+  // Returns groups filtered by groupFilterValue (group mode only)
+  get displayGroups(): GroupDescriptor[] {
+    if (!this.groups) {
+      return [];
+    }
+    const query = (this.groupFilterValue || '').trim().toLowerCase();
+    if (!query) {
+      return this.groups;
+    }
+    return this.groups.filter(g => (g.name || '').toLowerCase().includes(query));
+  }
+
   get sortEvent(): any {
     return this.lastSortEvent;
   }
@@ -330,6 +345,11 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   filterGlobal(value: string): void {
+    if (this.mode === 'group') {
+      this.groupFilterValue = value || '';
+      this.cdr.markForCheck();
+      return;
+    }
     if (this.pTable) {
       this.pTable.filterGlobal(value, 'contains');
     }
@@ -342,6 +362,14 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   onHeaderFilter(event: any): void {
+    // In group mode, all header/global filters apply only to the top-level groups (e.g., by name).
+    // Do not propagate any of them to child tables and do not clear the parent's filteredValue.
+    if (this.mode === 'group') {
+      setTimeout(() => this.attemptScrollRestore());
+      return;
+    }
+
+    // In grid mode, propagate column/global filters to any visible child tables.
     this.lastFilterEvent = event;
     this.detailTables?.forEach((table) => table.applyFilter(event));
     this.pTable.filteredValue = null;

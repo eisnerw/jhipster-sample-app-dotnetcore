@@ -179,7 +179,7 @@
     (onSort)="onHeaderSort($event)"
     (onFilter)="onHeaderFilter($event)"
     (onColResize)="onHeaderColResize($event)"
-    [value]="groups"
+    [value]="displayGroups"
   >
     @if (showHeader && !superTableParent) {
       <ng-template pTemplate="header" let-columns>
