@@ -247,7 +247,12 @@
                     </p-columnFilter>
                   }
                   @case ('checkbox') {
-                    <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
+                    <p-checkbox
+                      [binary]="true"
+                      [ngModel]="isAllVisibleSelected()"
+                      aria-label="Select all visible detail rows"
+                      (onChange)="onGroupHeaderSelectAll($event.checked)"
+                    ></p-checkbox>
                   }
                   @case ('expander') {
                     <span></span>

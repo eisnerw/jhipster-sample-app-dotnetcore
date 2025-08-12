@@ -251,6 +251,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   categoryState: Record<string, 'checked' | 'indeterminate' | 'unchecked'> = {};
   newCategoryText = '';
   newCategoryChecked = false;
+  rowsToCategorizeCount = 0;
 
   private lastSortEvent: any = null;
   private lastTableState: any;
@@ -448,6 +449,13 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   refreshData(): void {
     console.log('refreshData called');
 
+    // Ensure group-mode list isn't filtered to a subset of groups
+    try {
+      if (this.superTable) {
+        this.superTable.filterGlobal('');
+      }
+    } catch {}
+
     try {
       this.syncSortFilterFromHeader();
       this.lastTableState = this.superTable.captureState();
@@ -488,6 +496,8 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   onViewChange(view: string | null): void {
     this.viewName = view;
     if (this.viewName) {
+      // Clear any previous group filter text when entering a grouped view
+      try { this.superTable?.filterGlobal(''); } catch {}
       this.loadRootGroups();
     } else {
       this.groups = [];
@@ -754,6 +764,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       this.messageService.add({ severity: 'warn', summary: 'No rows selected', detail: 'Select rows or right-click a row to categorize.' });
       return;
     }
+    this.rowsToCategorizeCount = rows.length;
     // Initialize tri-state map per category
     const lower = (s: string) => (s||'').toLowerCase();
     const rowsCats = rows.map(r => (r.categories || []).map(lower));
@@ -853,5 +864,14 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
 
   cancelCategorize(): void {
     this.showCategorizeDialog = false;
+  }
+
+  hasCategorizeChanges(): boolean {
+    // New category will only count if text is present and checkbox is checked
+    const hasNewCat = (this.newCategoryText || '').trim().length > 0 && this.newCategoryChecked;
+    if (hasNewCat) return true;
+    // Any existing category that is not indeterminate implies a definite change
+    // 'checked' -> ensure present for all; 'unchecked' -> remove from rows that have it
+    return Object.values(this.categoryState).some(st => st === 'checked' || st === 'unchecked');
   }
 }

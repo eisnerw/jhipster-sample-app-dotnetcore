@@ -539,4 +539,68 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       this.scrollRestoreHandle = null;
     }
   }
+
+  // === Group header select-all helpers ===
+  isAllVisibleSelected(): boolean {
+    if (this.mode !== 'group') return false;
+    // If any expanded detail table has any unselected visible row, return false
+    const anyDetail = this.detailTables && this.detailTables.length > 0;
+    if (!anyDetail) return false;
+    for (const table of this.detailTables.toArray()) {
+      // Only consider grid-mode detail tables with data
+      const dl = table.dataLoader;
+      const list: any[] = (dl && (dl as any).data$?.getValue && (dl as any).data$?.getValue()) || [];
+      if (!list || list.length === 0) continue;
+      for (const row of list) {
+        if (!this.isRowSelected(row)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private isRowSelected(row: any): boolean {
+    if (!this.selection || !Array.isArray(this.selection)) return false;
+    const rowId = row?.id;
+    return this.selection.some((r: any) => (r?.id ?? r) === rowId);
+  }
+
+  onGroupHeaderSelectAll(checked: boolean): void {
+    if (this.mode !== 'group') return;
+
+    // When unchecking in group mode, clear ALL selections globally per requirement
+    if (!checked) {
+      this.selection = [];
+      this.selectionChange.emit([]);
+      this.cdr.markForCheck();
+      return;
+    }
+
+    // Checking: add all currently exposed detail rows to the selection
+    const selectionSet = new Map<string, any>();
+    if (Array.isArray(this.selection)) {
+      for (const s of this.selection) {
+        const id = (s && s.id) ? s.id : s;
+        if (id) selectionSet.set(id, s);
+      }
+    }
+
+    for (const table of this.detailTables.toArray()) {
+      const dl = table.dataLoader;
+      const list: any[] = (dl && (dl as any).data$?.getValue && (dl as any).data$?.getValue()) || [];
+      if (!list || list.length === 0) continue;
+      for (const row of list) {
+        const id = row?.id;
+        if (id && !selectionSet.has(id)) {
+          selectionSet.set(id, row);
+        }
+      }
+    }
+
+    const newSelection = Array.from(selectionSet.values());
+    this.selection = newSelection;
+    this.selectionChange.emit(newSelection);
+    this.cdr.markForCheck();
+  }
 }

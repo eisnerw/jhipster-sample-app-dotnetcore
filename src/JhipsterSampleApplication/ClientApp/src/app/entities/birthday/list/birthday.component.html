@@ -100,7 +100,7 @@
 
   <p-contextMenu #contextMenu [model]="menuItems" (onShow)="onMenuShow()"></p-contextMenu>
 
-  <p-dialog [(visible)]="showCategorizeDialog" [modal]="true" header="Categorize" [style]="{width: '32rem'}">
+  <p-dialog [(visible)]="showCategorizeDialog" [modal]="true" [header]="'Categorize (' + rowsToCategorizeCount + ')'" [style]="{width: '32rem'}">
     <div class="mb-2">
       <label class="form-label">New category</label>
       <div class="input-group">
@@ -122,7 +122,7 @@
     </div>
     <ng-template pTemplate="footer">
       <button type="button" pButton class="p-button-text" (click)="cancelCategorize()">Cancel</button>
-      <button type="button" pButton label="Apply" (click)="applyCategorize()"></button>
+      <button type="button" pButton label="Apply" (click)="applyCategorize()" [disabled]="!hasCategorizeChanges()"></button>
     </ng-template>
   </p-dialog>
 
