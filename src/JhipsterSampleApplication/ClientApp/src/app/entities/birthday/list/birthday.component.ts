@@ -813,8 +813,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       const st = this.categoryState[cat];
       if (st === 'checked') adds.push(cat);
       if (st === 'unchecked') {
-        // unchecked by itself may mean no-op; we only remove if some rows had it originally
-        // Determine if any selected row had this category
+        // only remove if some rows had it originally
         const anyHad = rows.some(r => (r.categories || []).some(c => lower(c) === lower(cat)));
         if (anyHad) removes.push(cat);
       }
@@ -823,27 +822,33 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     // Handle new category
     let newCat = (this.newCategoryText || '').trim();
     if (newCat) {
-      // enforce case-insensitive uniqueness by matching against existing list
       const existing = this.allCategories.find(c => c.toLowerCase() === newCat.toLowerCase());
       if (existing) newCat = existing; // normalize casing
       if (this.newCategoryChecked) {
         if (!adds.some(a => a.toLowerCase() === newCat.toLowerCase())) {
           adds.push(newCat);
         }
-      } else {
-        // If user typed but did not check, treat as filter only; no-op
       }
     }
 
     const rowIds = rows.map(r => r.id).filter(Boolean) as string[];
-    const summary = {
-      rows: rowIds,
-      add: adds,
-      remove: removes,
-    };
-    // Log to console instead of showing a message
-    console.log('Categorize preview', summary);
-    this.showCategorizeDialog = false;
+    const payload = { rows: rowIds, add: adds, remove: removes };
+    this.messageService.clear();
+    this.messageService.add({ severity: 'info', summary: 'Categorizing...', detail: `Updating ${rowIds.length} item(s)` });
+    this.birthdayService.categorizeMultiple(payload).subscribe({
+      next: (res) => {
+        const ok = res.body?.success;
+        const msg = res.body?.message || 'Completed';
+        this.messageService.add({ severity: ok ? 'success' : 'warn', summary: 'Categorize', detail: msg });
+        this.showCategorizeDialog = false;
+        // Refresh data preserving header state and row expansions/scroll
+        this.refreshData();
+      },
+      error: (err) => {
+        this.messageService.add({ severity: 'error', summary: 'Categorize failed', detail: (err?.message || 'Error') });
+        this.showCategorizeDialog = false;
+      }
+    });
   }
 
   cancelCategorize(): void {

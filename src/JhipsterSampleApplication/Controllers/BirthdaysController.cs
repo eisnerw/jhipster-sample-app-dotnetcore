@@ -79,6 +79,13 @@ namespace JhipsterSampleApplication.Controllers
             public bool RemoveCategory { get; set; }
         }
 
+        public class CategorizeMultipleRequestDto
+        {
+            public List<string> Rows { get; set; } = new List<string>();
+            public List<string> Add { get; set; } = new List<string>();
+            public List<string> Remove { get; set; } = new List<string>();
+        }
+
         /// <summary>
         /// Search birthdays using a Lucene query
         /// </summary>
@@ -666,6 +673,106 @@ namespace JhipsterSampleApplication.Controllers
             }
 
             var message = $"Processed {request.Ids.Count} birthdays. Success: {successCount}, Errors: {errorCount}";
+            if (errorMessages.Any())
+            {
+                message += $". Error details: {string.Join("; ", errorMessages)}";
+            }
+
+            return Ok(new SimpleApiResponse
+            {
+                Success = errorCount == 0,
+                Message = message
+            });
+        }
+
+        /// <summary>
+        /// Add and/or remove multiple categories across multiple birthdays
+        /// </summary>
+        [HttpPost("categorize-multiple")]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> CategorizeMultiple([FromBody] CategorizeMultipleRequestDto request)
+        {
+            if (request.Rows == null || !request.Rows.Any())
+            {
+                return BadRequest("At least one row ID must be provided");
+            }
+
+            // Normalize categories: trim and dedupe case-insensitively
+            var toAdd = (request.Add ?? new List<string>())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => s.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var toRemove = (request.Remove ?? new List<string>())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => s.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (!toAdd.Any() && !toRemove.Any())
+            {
+                return BadRequest("Nothing to add or remove");
+            }
+
+            var searchRequest = new SearchRequest<Birthday>
+            {
+                Query = new QueryContainerDescriptor<Birthday>().Terms(t => t.Field("_id").Terms(request.Rows))
+            };
+
+            var response = await _birthdayService.SearchAsync(searchRequest, "");
+            if (!response.IsValid)
+            {
+                return BadRequest("Failed to search for birthdays");
+            }
+
+            var successCount = 0;
+            var errorCount = 0;
+            var errorMessages = new List<string>();
+
+            foreach (var birthday in response.Documents)
+            {
+                try
+                {
+                    var current = birthday.Categories ?? new List<string>();
+
+                    // Remove (case-insensitive)
+                    if (toRemove.Any() && current.Any())
+                    {
+                        current = current
+                            .Where(c => !toRemove.Any(r => string.Equals(c, r, StringComparison.OrdinalIgnoreCase)))
+                            .ToList();
+                    }
+
+                    // Add (skip if already present case-insensitively)
+                    foreach (var add in toAdd)
+                    {
+                        if (!current.Any(c => string.Equals(c, add, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            current.Add(add);
+                        }
+                    }
+
+                    birthday.Categories = current;
+                    var updateResponse = await _birthdayService.UpdateAsync(birthday.Id!, birthday);
+                    if (updateResponse.IsValid)
+                    {
+                        successCount++;
+                    }
+                    else
+                    {
+                        errorCount++;
+                        errorMessages.Add($"Failed to update birthday {birthday.Id}: {updateResponse.DebugInformation}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errorCount++;
+                    errorMessages.Add($"Error processing birthday {birthday.Id}: {ex.Message}");
+                }
+            }
+
+            var message = $"Processed {request.Rows.Count} birthdays. Success: {successCount}, Errors: {errorCount}";
             if (errorMessages.Any())
             {
                 message += $". Error details: {string.Join("; ", errorMessages)}";

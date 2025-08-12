@@ -24,6 +24,17 @@ export type ViewArrayResponseType = HttpResponse<{
   totalHits: number;
 }>;
 
+export interface ISimpleApiResponse {
+  success: boolean;
+  message?: string;
+}
+
+export interface ICategorizeMultipleRequest {
+  rows: string[];
+  add: string[];
+  remove: string[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class BirthdayService {
   protected http = inject(HttpClient);
@@ -133,6 +144,12 @@ export class BirthdayService {
       totalHits: number;
     }>(`${this.searchUrl}?${queryString}`, {
       params: options,
+      observe: 'response',
+    });
+  }
+
+  categorizeMultiple(payload: ICategorizeMultipleRequest): Observable<HttpResponse<ISimpleApiResponse>> {
+    return this.http.post<ISimpleApiResponse>(`${this.resourceUrl}/categorize-multiple`, payload, {
       observe: 'response',
     });
   }

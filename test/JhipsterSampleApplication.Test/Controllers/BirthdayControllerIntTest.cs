@@ -491,6 +491,68 @@ namespace JhipsterSampleApplication.Test.Controllers
             _elasticClient.Indices.Refresh("birthdays");
         }
 
+        [Fact]
+        public async Task TestCategorizeMultiple()
+        {
+            var id1 = Guid.NewGuid().ToString();
+            var id2 = Guid.NewGuid().ToString();
+            var b1 = new BirthdayDto { Id = id1, Lname = "CatMulti", Fname = "One", Sign = "aries" };
+            var b2 = new BirthdayDto { Id = id2, Lname = "CatMulti", Fname = "Two", Sign = "taurus" };
+
+            // Cleanup any pre-existing
+            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>(d => d
+                .Index("birthdays")
+                .Query(q => q.Terms(t => t.Field("_id").Terms(new[] { id1, id2 }))));
+            _elasticClient.Indices.Refresh("birthdays");
+
+            // Create
+            (await _client.PostAsync("/api/Birthdays", TestUtil.ToJsonContent(b1))).StatusCode.Should().Be(HttpStatusCode.OK);
+            (await _client.PostAsync("/api/Birthdays", TestUtil.ToJsonContent(b2))).StatusCode.Should().Be(HttpStatusCode.OK);
+            _elasticClient.Indices.Refresh("birthdays");
+
+            // Add categories: add ["A","B"] to both
+            var addReq = new {
+                rows = new[] { id1, id2 },
+                add = new[] { "A", "B" },
+                remove = Array.Empty<string>()
+            };
+            var addResp = await _client.PostAsync("/api/Birthdays/categorize-multiple", TestUtil.ToJsonContent(addReq));
+            addResp.StatusCode.Should().Be(HttpStatusCode.OK);
+            _elasticClient.Indices.Refresh("birthdays");
+
+            // Verify both have A and B
+            var verifyQuery = new { term = new Dictionary<string, object> { { "lname.keyword", "CatMulti" } } };
+            var verifyResp = await _client.PostAsync("/api/Birthdays/search/elasticsearch", TestUtil.ToJsonContent(verifyQuery));
+            verifyResp.StatusCode.Should().Be(HttpStatusCode.OK);
+            var verifyContent = await verifyResp.Content.ReadAsStringAsync();
+            var result = JsonConvert.DeserializeObject<SearchResultDto<JhipsterSampleApplication.Dto.BirthdayDto>>(verifyContent);
+            result.Hits.Should().HaveCount(2);
+            result.Hits.All(h => h.Categories != null && h.Categories.Contains("A") && h.Categories.Contains("B")).Should().BeTrue();
+
+            // Remove B and add C (case-insensitive remove)
+            var updateReq = new {
+                rows = new[] { id1, id2 },
+                add = new[] { "c" },
+                remove = new[] { "b" }
+            };
+            var updateResp = await _client.PostAsync("/api/Birthdays/categorize-multiple", TestUtil.ToJsonContent(updateReq));
+            updateResp.StatusCode.Should().Be(HttpStatusCode.OK);
+            _elasticClient.Indices.Refresh("birthdays");
+
+            // Verify: A and C present, B removed
+            var verifyResp2 = await _client.PostAsync("/api/Birthdays/search/elasticsearch", TestUtil.ToJsonContent(verifyQuery));
+            verifyResp2.StatusCode.Should().Be(HttpStatusCode.OK);
+            var verifyContent2 = await verifyResp2.Content.ReadAsStringAsync();
+            var result2 = JsonConvert.DeserializeObject<SearchResultDto<JhipsterSampleApplication.Dto.BirthdayDto>>(verifyContent2);
+            result2.Hits.Should().HaveCount(2);
+            result2.Hits.All(h => h.Categories != null && h.Categories.Contains("A") && h.Categories.Contains("C") && !h.Categories.Contains("B")).Should().BeTrue();
+
+            // Cleanup
+            (await _client.DeleteAsync($"/api/Birthdays/{id1}")).StatusCode.Should().Be(HttpStatusCode.OK);
+            (await _client.DeleteAsync($"/api/Birthdays/{id2}")).StatusCode.Should().Be(HttpStatusCode.OK);
+            _elasticClient.Indices.Refresh("birthdays");
+        }
+
         private class BirthdayDto
         {
             public string Id { get; set; }
