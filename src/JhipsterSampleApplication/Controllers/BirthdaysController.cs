@@ -165,19 +165,56 @@ namespace JhipsterSampleApplication.Controllers
                     var viewResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, from, pageSize);
                     return Ok(new SearchResultDto<ViewResultDto> { Hits = viewResult, HitType = "view", ViewName = view });
                 }
-                string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);                   
-                elasticsearchQuery = new JObject(
-                    new JProperty("bool", new JObject(
-                        new JProperty("must", new JArray(
-                            new JObject(
-                                new JProperty("query_string", new JObject(
-                                    new JProperty("query", categoryQuery)
-                                ))
-                            ),
-                            elasticsearchQuery
+                if (category == "(Uncategorized)")
+                {
+                    var missingFilter = new JObject(
+                        new JProperty("bool", new JObject(
+                            new JProperty("should", new JArray(
+                                new JObject(
+                                    new JProperty("bool", new JObject(
+                                        new JProperty("must_not", new JArray(
+                                            new JObject(
+                                                new JProperty("exists", new JObject(
+                                                    new JProperty("field", viewDto.Aggregation)
+                                                ))
+                                            )
+                                        ))
+                                    ))
+                                ),
+                                new JObject(
+                                    new JProperty("term", new JObject(
+                                        new JProperty(viewDto.Aggregation, "")
+                                    ))
+                                )
+                            )),
+                            new JProperty("minimum_should_match", 1)
                         ))
-                    ))
-                );
+                    );
+                    elasticsearchQuery = new JObject(
+                        new JProperty("bool", new JObject(
+                            new JProperty("must", new JArray(
+                                missingFilter,
+                                elasticsearchQuery
+                            ))
+                        ))
+                    );
+                }
+                else
+                {
+                    string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\\\"{category}\\\"" : viewDto.CategoryQuery.Replace("{}", category);
+                    elasticsearchQuery = new JObject(
+                        new JProperty("bool", new JObject(
+                            new JProperty("must", new JArray(
+                                new JObject(
+                                    new JProperty("query_string", new JObject(
+                                        new JProperty("query", categoryQuery)
+                                    ))
+                                ),
+                                elasticsearchQuery
+                            ))
+                        ))
+                    );
+                }
                 var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);                   
                 if (secondaryViewDto != null)
                 {
@@ -186,19 +223,56 @@ namespace JhipsterSampleApplication.Controllers
                         var viewSecondaryResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, from, pageSize);
                         return Ok(new SearchResultDto<ViewResultDto> { Hits = viewSecondaryResult, HitType = "view", ViewName = view, viewCategory = category });
                     }
-                    string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
-                    elasticsearchQuery = new JObject(
-                        new JProperty("bool", new JObject(
-                            new JProperty("must", new JArray(
-                                new JObject(
-                                    new JProperty("query_string", new JObject(
-                                        new JProperty("query", secondaryCategoryQuery)
-                                    ))
-                                ),
-                                elasticsearchQuery
+                    if (secondaryCategory == "(Uncategorized)")
+                    {
+                        var secondaryMissing = new JObject(
+                            new JProperty("bool", new JObject(
+                                new JProperty("should", new JArray(
+                                    new JObject(
+                                        new JProperty("bool", new JObject(
+                                            new JProperty("must_not", new JArray(
+                                                new JObject(
+                                                    new JProperty("exists", new JObject(
+                                                        new JProperty("field", secondaryViewDto.Aggregation)
+                                                    ))
+                                                )
+                                            ))
+                                        ))
+                                    ),
+                                    new JObject(
+                                        new JProperty("term", new JObject(
+                                            new JProperty(secondaryViewDto.Aggregation, "")
+                                        ))
+                                    )
+                                )),
+                                new JProperty("minimum_should_match", 1)
                             ))
-                        ))
-                    );
+                        );
+                        elasticsearchQuery = new JObject(
+                            new JProperty("bool", new JObject(
+                                new JProperty("must", new JArray(
+                                    secondaryMissing,
+                                    elasticsearchQuery
+                                ))
+                            ))
+                        );
+                    }
+                    else
+                    {
+                        string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\\\"{secondaryCategory}\\\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
+                        elasticsearchQuery = new JObject(
+                            new JProperty("bool", new JObject(
+                                new JProperty("must", new JArray(
+                                    new JObject(
+                                        new JProperty("query_string", new JObject(
+                                            new JProperty("query", secondaryCategoryQuery)
+                                        ))
+                                    ),
+                                    elasticsearchQuery
+                                ))
+                            ))
+                        );
+                    }
                 }
             }
             var searchRequest = new SearchRequest<Birthday>

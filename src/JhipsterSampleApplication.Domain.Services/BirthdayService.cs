@@ -93,16 +93,23 @@ public class BirthdayService : IBirthdayService
         var result = await _elasticClient.SearchAsync<Aggregation>(request);
         ((BucketAggregate)result.Aggregations.ToList()[0].Value).Items.ToList().ForEach(it =>
         {
-            KeyedBucket<Object> kb = (KeyedBucket<Object>)it;
+            KeyedBucket<object> kb = (KeyedBucket<object>)it;
             string categoryName = kb.KeyAsString != null ? kb.KeyAsString : (string)kb.Key;
+            bool notCategorized = false;
             if (Regex.IsMatch(categoryName, @"\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z"))
             {
                 categoryName = Regex.Replace(categoryName, @"(\d{4,4})-(\d{2,2})-(\d{2,2})T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z", "$1-$2-$3");
             }
+            if (string.IsNullOrEmpty(categoryName))
+            {
+                categoryName = "(Uncategorized)";
+                notCategorized = true;
+            }
             content.Add(new ViewResultDto
             {
                 CategoryName = categoryName,
-                Count = kb.DocCount
+                Count = kb.DocCount,
+                NotCategorized = notCategorized
             });
 
         });
@@ -111,13 +118,21 @@ public class BirthdayService : IBirthdayService
         var uncatetgorizedCount = uncategorizedResponse.Aggregations.Filter("uncategorized").DocCount;
         if (uncatetgorizedCount > 0)
         {
-            content.Add(new ViewResultDto
+            var existingUncategorized = content.FirstOrDefault(c => c.NotCategorized == true);
+            if (existingUncategorized != null)
             {
-                CategoryName = "(Uncategorized)",
-                Selected = false,
-                NotCategorized = true,
-                Count = uncatetgorizedCount
-            });
+                existingUncategorized.Count = (existingUncategorized.Count ?? 0) + uncatetgorizedCount;
+            }
+            else
+            {
+                content.Add(new ViewResultDto
+                {
+                    CategoryName = "(Uncategorized)",
+                    Selected = false,
+                    NotCategorized = true,
+                    Count = uncatetgorizedCount
+                });
+            }
         }
         return content;
     }
@@ -625,18 +640,29 @@ public class BirthdayService : IBirthdayService
             Query = new QueryContainerDescriptor<Birthday>().Raw(query),
             Aggregations = new AggregationDictionary{
                 {
-
                     "uncategorized", new FilterAggregation("uncategorized")
                     {
                         Filter = new BoolQuery
                         {
-                            MustNot = new List<QueryContainer>
+                            Should = new List<QueryContainer>
                             {
-                                new ExistsQuery
+                                new BoolQuery
                                 {
-                                    Field = viewDto.Aggregation
+                                    MustNot = new List<QueryContainer>
+                                    {
+                                        new ExistsQuery
+                                        {
+                                            Field = viewDto.Aggregation
+                                        }
+                                    }
+                                },
+                                new TermQuery
+                                {
+                                    Field = viewDto.Aggregation,
+                                    Value = string.Empty
                                 }
-                            }
+                            },
+                            MinimumShouldMatch = 1
                         }
                     }
 
