@@ -33,6 +33,15 @@
         }
       </div>
 
+      <input
+        #globalFilterInput
+        pInputText
+        type="text"
+        class="p-inputtext-sm ms-2 global-filter-input"
+        placeholder="filter"
+        (input)="superTable.filterGlobal(globalFilterInput.value)"
+      />
+
       <div class="form-check ms-2" style="font-size: 1rem; display: flex; align-items: center; font-weight: 400">
         <input id="showRowNumbers" type="checkbox" class="form-check-input" [(ngModel)]="showRowNumbers" />
         <label for="showRowNumbers" class="form-check-label">&nbsp;Show row numbers</label>
@@ -66,6 +75,7 @@
       [scrollable]="true"
       scrollHeight="flex"
       [showRowNumbers]="showRowNumbers"
+      [globalFilterFields]="globalFilterFields"
       (selectionChange)="onCheckboxChange()"
       (onContextMenuSelect)="setMenu($event.data)"
       (contextMenuSelectionChange)="onContextMenuSelect($event)"
