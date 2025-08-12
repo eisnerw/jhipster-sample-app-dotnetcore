@@ -5,6 +5,7 @@ export interface IBirthday {
   sign?: string;
   dob?: Date;
   isAlive?: boolean;
+  categories?: string[];
 }
 
 export class Birthday implements IBirthday {
@@ -15,6 +16,7 @@ export class Birthday implements IBirthday {
     public sign?: string,
     public dob?: Date,
     public isAlive?: boolean,
+    public categories?: string[],
   ) {}
 }
 

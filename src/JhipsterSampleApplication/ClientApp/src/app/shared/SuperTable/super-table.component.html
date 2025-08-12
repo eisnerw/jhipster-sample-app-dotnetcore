@@ -23,6 +23,13 @@
     [expandedRowKeys]="expandedRowKeys"
     (onRowExpand)="onRowExpand($event)"
     (onRowCollapse)="onRowCollapse($event)"
+    [selectionMode]="selectionMode"
+    [(selection)]="selection"
+    (selectionChange)="selectionChange.emit($event)"
+    [contextMenu]="contextMenu"
+    [(contextMenuSelection)]="contextMenuSelection"
+    (onContextMenuSelect)="onContextMenuSelect.emit($event)"
+    (contextMenuSelectionChange)="contextMenuSelectionChange.emit($event)"
   >
     <ng-template pTemplate="colgroup" let-columns>
       <colgroup>
@@ -114,7 +121,7 @@
       </ng-template>
     }
     <ng-template pTemplate="body" let-rowData let-columns="columns" let-rowIndex="rowIndex">
-      <tr>
+      <tr [pContextMenuRow]="rowData">
         @for (col of columns; track col) {
           <td>
             @switch (col.type) {
@@ -286,6 +293,13 @@
               [resizableColumns]="resizableColumns"
               [scrollable]="scrollable"
               [scrollHeight]="scrollHeight"
+              [selectionMode]="selectionMode"
+              [selection]="selection"
+              (selectionChange)="selectionChange.emit($event)"
+              [contextMenu]="contextMenu"
+              [contextMenuSelection]="contextMenuSelection"
+              (onContextMenuSelect)="onContextMenuSelect.emit($event)"
+              (contextMenuSelectionChange)="contextMenuSelectionChange.emit($event)"
             ></super-table>
           </td>
         </tr>

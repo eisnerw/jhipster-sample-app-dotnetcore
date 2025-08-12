@@ -76,8 +76,11 @@
       scrollHeight="flex"
       [showRowNumbers]="showRowNumbers"
       [globalFilterFields]="globalFilterFields"
+      [selectionMode]="selectionMode"
+      [(selection)]="selection"
       (selectionChange)="onCheckboxChange()"
-      (onContextMenuSelect)="setMenu($event.data)"
+      [contextMenu]="contextMenu"
+      (onContextMenuSelect)="onContextMenuSelect($event)"
       (contextMenuSelectionChange)="onContextMenuSelect($event)"
       (onSort)="onSort($event)"
       [expandedRowTemplate]="expandedRow"
@@ -95,7 +98,33 @@
     </tr>
   </ng-template>
 
-  <p-contextMenu #contextMenu [model]="menuItems" (onShow)="onMenuShow($event, 'context')"></p-contextMenu>
+  <p-contextMenu #contextMenu [model]="menuItems" (onShow)="onMenuShow()"></p-contextMenu>
+
+  <p-dialog [(visible)]="showCategorizeDialog" [modal]="true" header="Categorize" [style]="{width: '32rem'}">
+    <div class="mb-2">
+      <label class="form-label">New category</label>
+      <div class="input-group">
+        <input pInputText type="text" [(ngModel)]="newCategoryText" (input)="filterCategoriesList()" placeholder="Type to filter or add" />
+        <span class="input-group-text">
+          <p-checkbox [(ngModel)]="newCategoryChecked" binary="true"></p-checkbox>
+        </span>
+      </div>
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Existing categories</label>
+      <div style="max-height: 16rem; overflow: auto">
+        <div class="form-check" *ngFor="let cat of filteredCategories">
+          <p-checkbox [binary]="true" [ngModel]="categoryState[cat] !== 'unchecked'" (onChange)="toggleCategory(cat)"></p-checkbox>
+          <span class="ms-2">{{ cat }}</span>
+          <span *ngIf="categoryState[cat] === 'indeterminate'" class="text-muted ms-1">(some)</span>
+        </div>
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <button type="button" pButton class="p-button-text" (click)="cancelCategorize()">Cancel</button>
+      <button type="button" pButton label="Apply" (click)="applyCategorize()"></button>
+    </ng-template>
+  </p-dialog>
 
   <p-dialog [(visible)]="bDisplaySearchDialog" [modal]="true" header="Search Birthdays">
     <!-- Search dialog content -->

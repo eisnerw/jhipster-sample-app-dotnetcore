@@ -20,6 +20,9 @@ import { Menu } from 'primeng/menu';
 import { TableModule } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
 import { tap, switchMap, map } from 'rxjs/operators';
+import { DialogModule } from 'primeng/dialog';
+import { CheckboxModule } from 'primeng/checkbox';
+import { ButtonModule } from 'primeng/button';
 
 import {
   BirthdayService,
@@ -71,6 +74,10 @@ import {
     TableModule,
     QueryInputComponent,
     InputTextModule,
+    DialogModule,
+    CheckboxModule,
+    ContextMenuModule,
+    ButtonModule,
   ],
   standalone: true,
 })
@@ -184,6 +191,11 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   // New properties for super-table
   menuItems: MenuItem[] = [
     {
+      label: 'Categorize',
+      icon: 'pi pi-tags',
+      command: () => this.openCategorizeDialog(),
+    },
+    {
       label: 'Select action',
       items: [
         {
@@ -225,6 +237,20 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   contextSelectedRow: IBirthday | null = null;
   checkboxSelectedRows: IBirthday[] = [];
   chipSelectedRows: IBirthday[] = [];
+
+  // Selection and context menu state
+  selectionMode: 'single' | 'multiple' | null | undefined = 'multiple';
+  selection: IBirthday[] = [];
+
+  // Categorize dialog state
+  showCategorizeDialog = false;
+  allCategories: string[] = [];
+  filteredCategories: string[] = [];
+  categoryFilterText = '';
+  // category selection map: key -> 'checked' (all), 'indeterminate' (some), 'unchecked' (none)
+  categoryState: Record<string, 'checked' | 'indeterminate' | 'unchecked'> = {};
+  newCategoryText = '';
+  newCategoryChecked = false;
 
   private lastSortEvent: any = null;
   private lastTableState: any;
@@ -368,6 +394,19 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
         this.forceResetLoading();
       }
     }, 5000);
+
+    // Preload categories for dialog filtering; backend enforces keyword search
+    this.birthdayService.getUniqueValues('categories').subscribe(res => {
+      const values = res.body || [];
+      // Deduplicate case-insensitively
+      const uniq: Record<string, string> = {};
+      values.forEach(v => {
+        const k = (v || '').trim().toLowerCase();
+        if (k && !uniq[k]) uniq[k] = v;
+      });
+      this.allCategories = Object.values(uniq).sort((a,b)=>a.localeCompare(b));
+      this.filteredCategories = [...this.allCategories];
+    });
   }
 
   ngAfterViewInit(): void {
@@ -476,13 +515,10 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     // Handle row expansion
   }
 
+  // Update chips when selection changes across nested tables
   onCheckboxChange(): void {
-    this.chipSelectedRows = [];
-    if (this.checkboxSelectedRows.length < 3) {
-      this.checkboxSelectedRows.forEach((row) => {
-        this.chipSelectedRows.push(row);
-      });
-    }
+    this.checkboxSelectedRows = this.selection || [];
+    this.chipSelectedRows = this.checkboxSelectedRows.slice(0, 2);
   }
 
   setMenu(birthday: IBirthday | null): void {
@@ -517,37 +553,21 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     this.menu.show(event);
   }
 
-  onMenuShow(event: any, chips: any): void {
-    const menuEl = event.target;
-    const chipsEl = chips.el.nativeElement.parentElement;
-    let mouseOver: any = null;
-    let chipsMouseOut: any = null;
-    let bMouseOnMenu = false;
-    const hideMenu = (): void => {
-      this.menu.hide();
-      chipsEl.removeEventListener('mouseout', chipsMouseOut);
-      menuEl.removeEventListener('mouseleave', hideMenu);
-      menuEl.removeEventListener('mouseover', mouseOver);
-    };
-    mouseOver = (): void => {
-      bMouseOnMenu = true;
-    };
-    chipsMouseOut = (): void => {
-      setTimeout(function (): void {
-        if (!bMouseOnMenu) {
-          hideMenu();
-        }
-      }, 0);
-    };
-    menuEl.addEventListener('mouseover', mouseOver);
-    menuEl.addEventListener('mouseleave', hideMenu);
-    chipsEl.addEventListener('mouseout', chipsMouseOut);
+  onMenuShow(): void {
+    // Using PrimeNG context menu; no custom hover/leave logic needed.
   }
 
   onChipClick(event: any): void {}
 
-  onContextMenuSelect(data: any): void {
-    this.contextSelectedRow = data;
+  // Right-click handling: only on grid/detail rows; accept both event or raw data
+  onContextMenuSelect(dataOrEvent: any): void {
+    const row: IBirthday | undefined = dataOrEvent && dataOrEvent.data ? dataOrEvent.data : dataOrEvent;
+    if (!row) return;
+    this.contextSelectedRow = row;
+    // If no selection, act on the row under the cursor; else act on selection
+    if (!this.selection || this.selection.length === 0) {
+      this.selection = [row];
+    }
   }
 
   onContextMenuMouseLeave(): void {
@@ -727,4 +747,107 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     return groupData;
   }
 
+  // Open categorize dialog from context menu
+  openCategorizeDialog(): void {
+    const rows = this.selection && this.selection.length > 0 ? this.selection : (this.contextSelectedRow ? [this.contextSelectedRow] : []);
+    if (rows.length === 0) {
+      this.messageService.add({ severity: 'warn', summary: 'No rows selected', detail: 'Select rows or right-click a row to categorize.' });
+      return;
+    }
+    // Initialize tri-state map per category
+    const lower = (s: string) => (s||'').toLowerCase();
+    const rowsCats = rows.map(r => (r.categories || []).map(lower));
+    const allLowerCats = new Set<string>(rowsCats.flat());
+    const catInAll: Record<string, boolean> = {};
+    this.allCategories.forEach(cat => {
+      const lc = lower(cat);
+      catInAll[lc] = rowsCats.every(cats => cats.includes(lc));
+    });
+    this.categoryState = {};
+    this.allCategories.forEach(cat => {
+      const lc = lower(cat);
+      if (catInAll[lc]) this.categoryState[cat] = 'checked';
+      else if (allLowerCats.has(lc)) this.categoryState[cat] = 'indeterminate';
+      else this.categoryState[cat] = 'unchecked';
+    });
+    // Handle new category row
+    this.newCategoryText = '';
+    this.newCategoryChecked = false;
+    this.categoryFilterText = '';
+    this.filteredCategories = [...this.allCategories];
+    this.showCategorizeDialog = true;
+  }
+
+  filterCategoriesList(): void {
+    const q = (this.newCategoryText || '').trim().toLowerCase();
+    if (!q) {
+      this.filteredCategories = [...this.allCategories];
+      return;
+    }
+    this.filteredCategories = this.allCategories.filter(c => c.toLowerCase().includes(q));
+  }
+
+  toggleCategory(cat: string): void {
+    const state = this.categoryState[cat] || 'unchecked';
+    // Both checked and indeterminate -> clicking removes category from any selected rows that have it
+    if (state === 'checked' || state === 'indeterminate') {
+      this.categoryState[cat] = 'unchecked';
+    } else {
+      // unchecked -> checked (assign to all rows)
+      this.categoryState[cat] = 'checked';
+    }
+  }
+
+  applyCategorize(): void {
+    const rows = this.selection && this.selection.length > 0 ? this.selection : (this.contextSelectedRow ? [this.contextSelectedRow] : []);
+    if (rows.length === 0) {
+      this.showCategorizeDialog = false;
+      return;
+    }
+    const lower = (s: string) => (s||'').toLowerCase();
+
+    // Build adds/removes for existing categories
+    const adds: string[] = [];
+    const removes: string[] = [];
+    Object.keys(this.categoryState).forEach(cat => {
+      const st = this.categoryState[cat];
+      if (st === 'checked') adds.push(cat);
+      if (st === 'unchecked') {
+        // unchecked by itself may mean no-op; we only remove if some rows had it originally
+        // Determine if any selected row had this category
+        const anyHad = rows.some(r => (r.categories || []).some(c => lower(c) === lower(cat)));
+        if (anyHad) removes.push(cat);
+      }
+    });
+
+    // Handle new category
+    let newCat = (this.newCategoryText || '').trim();
+    if (newCat) {
+      // enforce case-insensitive uniqueness by matching against existing list
+      const existing = this.allCategories.find(c => c.toLowerCase() === newCat.toLowerCase());
+      if (existing) newCat = existing; // normalize casing
+      if (this.newCategoryChecked) {
+        if (!adds.some(a => a.toLowerCase() === newCat.toLowerCase())) {
+          adds.push(newCat);
+        }
+      } else {
+        // If user typed but did not check, treat as filter only; no-op
+      }
+    }
+
+    const rowIds = rows.map(r => r.id).filter(Boolean) as string[];
+    const summary = {
+      rows: rowIds,
+      add: adds,
+      remove: removes,
+    };
+    // Log to console instead of showing a message
+    // eslint-disable-next-line no-console
+    console.log('Categorize preview', summary);
+    this.showCategorizeDialog = false;
+  }
+
+  cancelCategorize(): void {
+    this.showCategorizeDialog = false;
+  }
 }
