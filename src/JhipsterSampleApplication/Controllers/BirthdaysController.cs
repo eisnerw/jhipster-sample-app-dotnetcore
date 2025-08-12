@@ -201,7 +201,7 @@ namespace JhipsterSampleApplication.Controllers
                 }
                 else
                 {
-                    string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\\\"{category}\\\"" : viewDto.CategoryQuery.Replace("{}", category);
+                    string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);
                     elasticsearchQuery = new JObject(
                         new JProperty("bool", new JObject(
                             new JProperty("must", new JArray(
@@ -259,7 +259,7 @@ namespace JhipsterSampleApplication.Controllers
                     }
                     else
                     {
-                        string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\\\"{secondaryCategory}\\\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
+                        string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
                         elasticsearchQuery = new JObject(
                             new JProperty("bool", new JObject(
                                 new JProperty("must", new JArray(
