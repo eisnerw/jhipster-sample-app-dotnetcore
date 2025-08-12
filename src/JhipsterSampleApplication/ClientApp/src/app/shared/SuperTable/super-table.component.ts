@@ -329,6 +329,12 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     }
   }
 
+  filterGlobal(value: string): void {
+    if (this.pTable) {
+      this.pTable.filterGlobal(value, 'contains');
+    }
+  }
+
   onHeaderSort(event: any): void {
     this.lastSortEvent = event;
     this.detailTables?.forEach((table) => table.applySort(event));

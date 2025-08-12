@@ -18,6 +18,7 @@ import { ContextMenu, ContextMenuModule } from 'primeng/contextmenu';
 import { Table } from 'primeng/table';
 import { Menu } from 'primeng/menu';
 import { TableModule } from 'primeng/table';
+import { InputTextModule } from 'primeng/inputtext';
 import { tap, switchMap, map } from 'rxjs/operators';
 
 import {
@@ -69,6 +70,7 @@ import {
     SuperTable,
     TableModule,
     QueryInputComponent,
+    InputTextModule,
   ],
   standalone: true,
 })
@@ -84,7 +86,6 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
 
   @ViewChild('contextMenu') contextMenu!: ContextMenu;
   @ViewChild('superTable') superTable!: SuperTable;
-  @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
   @ViewChild('menu') menu!: Menu;
   @ViewChild('expandedRow', { static: true }) expandedRowTemplate:
     | TemplateRef<any>
@@ -97,6 +98,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   groups: GroupDescriptor[] = [];
   viewName: string | null = null;
   views: { label: string; value: string }[] = [];
+  globalFilterFields: string[] = ['lname', 'fname', 'dob', 'sign'];
   itemsPerPage = 50;
   page = 1;
   predicate!: string;
