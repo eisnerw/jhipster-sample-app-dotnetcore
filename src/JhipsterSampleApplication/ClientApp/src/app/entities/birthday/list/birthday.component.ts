@@ -842,7 +842,6 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       remove: removes,
     };
     // Log to console instead of showing a message
-    // eslint-disable-next-line no-console
     console.log('Categorize preview', summary);
     this.showCategorizeDialog = false;
   }
