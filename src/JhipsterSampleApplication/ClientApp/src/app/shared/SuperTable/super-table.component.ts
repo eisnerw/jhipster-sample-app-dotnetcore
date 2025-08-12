@@ -304,7 +304,11 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         table.applySort(this.lastSortEvent);
       }
       if (this.lastFilterEvent) {
-        table.applyFilter(this.lastFilterEvent);
+        const { filters, ...rest } = this.lastFilterEvent;
+        const { global, ...otherFilters } = filters || {};
+        if (Object.keys(otherFilters).length > 0) {
+          table.applyFilter({ ...rest, filters: otherFilters });
+        }
       }
     });
     this.attemptScrollRestore();
@@ -343,7 +347,11 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   onHeaderFilter(event: any): void {
     this.lastFilterEvent = event;
-    this.detailTables?.forEach((table) => table.applyFilter(event));
+    const { global, ...otherFilters } = event?.filters || {};
+    if (Object.keys(otherFilters).length > 0) {
+      const filteredEvent = { ...event, filters: otherFilters };
+      this.detailTables?.forEach((table) => table.applyFilter(filteredEvent));
+    }
     this.pTable.filteredValue = null;
     setTimeout(() => this.attemptScrollRestore());
   }
