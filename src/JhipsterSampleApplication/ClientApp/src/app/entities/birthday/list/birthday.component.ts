@@ -23,6 +23,8 @@ import { tap, switchMap, map } from 'rxjs/operators';
 import { DialogModule } from 'primeng/dialog';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ButtonModule } from 'primeng/button';
+import { MenuModule } from 'primeng/menu';
+import { ChipModule } from 'primeng/chip';
 
 import {
   BirthdayService,
@@ -78,6 +80,8 @@ import {
     CheckboxModule,
     ContextMenuModule,
     ButtonModule,
+    MenuModule,
+    ChipModule,
   ],
   standalone: true,
 })
@@ -94,6 +98,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   @ViewChild('contextMenu') contextMenu!: ContextMenu;
   @ViewChild('superTable') superTable!: SuperTable;
   @ViewChild('menu') menu!: Menu;
+  @ViewChild('chipMenu') chipMenu!: Menu;
   @ViewChild('expandedRow', { static: true }) expandedRowTemplate:
     | TemplateRef<any>
     | undefined;
@@ -237,6 +242,21 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   contextSelectedRow: IBirthday | null = null;
   checkboxSelectedRows: IBirthday[] = [];
   chipSelectedRows: IBirthday[] = [];
+  chipMenuRow: IBirthday | null = null;
+  chipMenuIsCount: boolean = false;
+
+  chipMenuModel: MenuItem[] = [
+    {
+      label: 'Categorize',
+      icon: 'pi pi-tags',
+      command: () => this.openCategorizeDialog(),
+    },
+    {
+      label: 'Delete',
+      icon: 'pi pi-trash',
+      command: () => this.deleteFromChipMenu(),
+    },
+  ];
 
   // Selection and context menu state
   selectionMode: 'single' | 'multiple' | null | undefined = 'multiple';
@@ -531,17 +551,45 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     this.chipSelectedRows = this.checkboxSelectedRows.slice(0, 2);
   }
 
-  setMenu(birthday: IBirthday | null): void {
-    if (birthday != null && this.menuItems[0]?.items) {
-      const firstName = birthday.fname ?? '';
-      const lastName = birthday.lname ?? '';
-      this.menuItems[0].label = `Select action for ${firstName} ${lastName}`;
+  onChipMouseEnter(event: MouseEvent, row: IBirthday): void {
+    this.chipMenuIsCount = false;
+    this.chipMenuRow = row;
+    this.setMenu(row);
+    if (this.chipMenu) {
+      this.chipMenu.show(event);
     }
+  }
+
+  onCountChipMouseEnter(event: MouseEvent): void {
+    this.chipMenuIsCount = true;
+    this.chipMenuRow = null;
+    // Ensure menu text is generic for multi-categorize
+    this.setMenu(null);
+    if (this.chipMenu) {
+      this.chipMenu.show(event);
+    }
+  }
+
+  onChipMouseLeave(): void {
+    if (this.chipMenu) {
+      this.chipMenu.hide();
+    }
+  }
+
+  trackById(index: number, row: IBirthday): any {
+    return row?.id ?? index;
+  }
+
+  setMenu(birthday: IBirthday | null): void {
+    // First menu item is Categorize; we keep its label constant
+    // Second grouped item starts with 'Select action' and we can keep it generic; we only adjust the relate item label
     let alternate: IBirthday | null = null;
-    for (const selectedRow of this.chipSelectedRows) {
-      if (birthday != null && selectedRow.id !== birthday.id) {
-        alternate = selectedRow;
-        break;
+    if (birthday) {
+      for (const selectedRow of this.chipSelectedRows) {
+        if (selectedRow.id !== birthday.id) {
+          alternate = selectedRow;
+          break;
+        }
       }
     }
     if (alternate) {
@@ -584,10 +632,24 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     this.contextMenu.hide();
   }
 
-  onRemoveChip(event: any): void {
+  onRemoveChipLegacy(event: any): void {
     this.chipSelectedRows = this.chipSelectedRows.filter(
       (row) => row.id !== event.id,
     );
+  }
+
+  onRemoveChip(row: IBirthday): void {
+    const id = row?.id;
+    if (!id) return;
+    // Remove from selection array and notify table
+    this.selection = (this.selection || []).filter(r => (r?.id ?? r) !== id);
+    this.onCheckboxChange();
+  }
+
+  // Remove the count chip: clear all selections
+  onRemoveCountChip(): void {
+    this.selection = [];
+    this.onCheckboxChange();
   }
 
   delete(birthday: IBirthday): void {
@@ -759,7 +821,18 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
 
   // Open categorize dialog from context menu
   openCategorizeDialog(): void {
-    const rows = this.selection && this.selection.length > 0 ? this.selection : (this.contextSelectedRow ? [this.contextSelectedRow] : []);
+    const rows = this.chipMenuIsCount
+      ? (this.selection || [])
+      : this.chipMenuRow
+      ? [this.chipMenuRow]
+      : this.selection && this.selection.length > 0
+      ? this.selection
+      : this.contextSelectedRow
+      ? [this.contextSelectedRow]
+      : [];
+    // reset chip override flags after use
+    this.chipMenuRow = null;
+    this.chipMenuIsCount = false;
     if (rows.length === 0) {
       this.messageService.add({ severity: 'warn', summary: 'No rows selected', detail: 'Select rows or right-click a row to categorize.' });
       return;
@@ -873,5 +946,37 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     // Any existing category that is not indeterminate implies a definite change
     // 'checked' -> ensure present for all; 'unchecked' -> remove from rows that have it
     return Object.values(this.categoryState).some(st => st === 'checked' || st === 'unchecked');
+  }
+
+  // Delete handler invoked from chip hover menu
+  deleteFromChipMenu(): void {
+    // If count chip, delete all selected; else delete the single chip row
+    const rowsToDelete: IBirthday[] = this.chipMenuIsCount
+      ? (this.selection || [])
+      : this.chipMenuRow
+      ? [this.chipMenuRow]
+      : [];
+    this.chipMenuRow = null;
+    this.chipMenuIsCount = false;
+    if (!rowsToDelete || rowsToDelete.length === 0) return;
+
+    // For now, delete one-by-one sequentially
+    const ids = rowsToDelete.map(r => r.id).filter(Boolean) as string[];
+    if (ids.length === 0) return;
+    this.messageService.add({ severity: 'info', summary: 'Delete', detail: `Deleting ${ids.length} item(s)...` });
+
+    const deleteNext = (remaining: string[]) => {
+      if (remaining.length === 0) {
+        this.refreshData();
+        return;
+      }
+      const id = remaining.shift()!;
+      this.birthdayService.delete(id).subscribe({
+        next: () => deleteNext(remaining),
+        error: () => deleteNext(remaining),
+      });
+    };
+
+    deleteNext([...ids]);
   }
 }

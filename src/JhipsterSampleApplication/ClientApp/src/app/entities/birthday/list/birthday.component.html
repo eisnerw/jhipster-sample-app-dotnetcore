@@ -62,6 +62,35 @@
   <jhi-alert-error></jhi-alert-error>
   <jhi-alert></jhi-alert>
 
+  <!-- Chip Bar: visible only when any rows are selected via checkboxes -->
+  @if (checkboxSelectedRows.length > 0) {
+    <div class="chip-bar d-flex align-items-center gap-2 mb-2">
+      <!-- 1-2 selections: render individual chips with names -->
+      @if (checkboxSelectedRows.length <= 2) {
+        <ng-container *ngFor="let row of chipSelectedRows; trackBy: trackById">
+          <p-chip
+            [label]="(row.fname || '') + ' ' + (row.lname || '')"
+            [removable]="true"
+            (onRemove)="onRemoveChip(row)"
+            (mouseenter)="onChipMouseEnter($event, row)"
+          ></p-chip>
+        </ng-container>
+      }
+      <!-- 3+ selections: render a single chip with count -->
+      @if (checkboxSelectedRows.length >= 3) {
+        <p-chip
+          [label]="checkboxSelectedRows.length + ' selected'"
+          [removable]="true"
+          (onRemove)="onRemoveCountChip()"
+          (mouseenter)="onCountChipMouseEnter($event)"
+        ></p-chip>
+      }
+    </div>
+  }
+
+  <!-- Hover menu used for chip actions -->
+  <p-menu #chipMenu [popup]="true" [model]="chipMenuModel"></p-menu>
+
   <div class="table-responsive" style="flex: 1; min-height: 0">
     <super-table
       #superTable

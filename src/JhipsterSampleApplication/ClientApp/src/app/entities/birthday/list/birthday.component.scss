@@ -251,3 +251,10 @@
     }
   }
 }
+.chip-bar {
+  padding: 0.25rem 0;
+}
+
+:host ::ng-deep .chip-bar .p-chip {
+  cursor: default;
+}
