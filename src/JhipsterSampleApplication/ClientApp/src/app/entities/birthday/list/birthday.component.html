@@ -113,16 +113,23 @@
       (onContextMenuSelect)="onContextMenuSelect($event)"
       (contextMenuSelectionChange)="onContextMenuSelect($event)"
       (onSort)="onSort($event)"
+      (rowExpand)="onRowExpand($event)"
+      (rowCollapse)="onRowCollapse($event)"
       [expandedRowTemplate]="expandedRow"
     ></super-table>
   </div>
 
   <ng-template #expandedRow let-rowData>
-    <iframe
-      [src]="sanitizer.bypassSecurityTrustResourceUrl('/api/birthdays/html/' + rowData.id)"
-      style="width: 100%; height: 288px; border: 0"
-      loading="lazy"
-    ></iframe>
+    <ng-container *ngIf="iframeSafeSrcById[rowData.id]; else waiting">
+      <iframe
+        [src]="iframeSafeSrcById[rowData.id]"
+        style="width: 100%; height: 288px; border: 0"
+        loading="lazy"
+      ></iframe>
+    </ng-container>
+    <ng-template #waiting>
+      <div class="text-muted" style="padding: 0.5rem 0">Loading…</div>
+    </ng-template>
   </ng-template>
 
   <p-contextMenu #contextMenu [model]="menuItems" (onShow)="onMenuShow()"></p-contextMenu>
@@ -167,13 +174,20 @@
     [style]="{ width: '60vw' }"
     [contentStyle]="{ height: '70vh', padding: '0' }"
     [header]="birthdayDialogTitle"
+    (onShow)="onBirthdayDialogShow()"
+    (onHide)="onBirthdayDialogHide()"
   >
     <div style="height: 100%; width: 100%">
-      <iframe
-        [src]="sanitizer.bypassSecurityTrustResourceUrl('/api/birthdays/html/' + birthdayDialogId)"
-        style="width: 100%; height: 100%; border: 0"
-        loading="lazy"
-      ></iframe>
+      <ng-container *ngIf="dialogSafeSrc; else dialogWaiting">
+        <iframe
+          [src]="dialogSafeSrc"
+          style="width: 100%; height: 100%; border: 0"
+          loading="lazy"
+        ></iframe>
+      </ng-container>
+      <ng-template #dialogWaiting>
+        <div class="text-muted" style="padding: 0.5rem">Loading…</div>
+      </ng-template>
     </div>
   </p-dialog>
 </div>

@@ -191,13 +191,26 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   ];
 
   expandedRowKeys: { [key: string]: boolean } = {};
+  iframeSafeSrcById: Record<string, any> = {};
 
   onRowExpand(event: { originalEvent: Event; data: any }): void {
-    this.expandedRowKeys[event.data] = true;
+    const row = event.data as IBirthday;
+    const key = row?.id || JSON.stringify(row);
+    this.expandedRowKeys[key] = true;
+    // Delay iframe source assignment to avoid flicker during DOM expansion
+    setTimeout(() => {
+      const url = '/api/birthdays/html/' + row.id;
+      this.iframeSafeSrcById[row.id!] = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+    }, 50);
   }
 
   onRowCollapse(event: any): void {
-    delete this.expandedRowKeys[event.data];
+    const row = event.data as IBirthday;
+    const key = row?.id || JSON.stringify(row);
+    delete this.expandedRowKeys[key];
+    if (row?.id) {
+      delete this.iframeSafeSrcById[row.id];
+    }
   }
 
   // New properties for super-table
@@ -232,6 +245,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   bDisplayBirthday = false;
   birthdayDialogTitle = '';
   birthdayDialogId: any = '';
+  dialogSafeSrc: any = null;
   viewMode: 'grid' | 'group' = 'grid';
   showRowNumbers = false;
   private loadingSubscription?: Subscription;
@@ -587,6 +601,20 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     this.birthdayDialogId = id;
     this.birthdayDialogTitle = fullName || 'Details';
     this.bDisplayBirthday = true;
+  }
+
+  onBirthdayDialogShow(): void {
+    // Delay iframe src to avoid flicker on dialog show
+    const id = this.birthdayDialogId;
+    this.dialogSafeSrc = null;
+    setTimeout(() => {
+      const url = '/api/birthdays/html/' + id;
+      this.dialogSafeSrc = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+    }, 50);
+  }
+
+  onBirthdayDialogHide(): void {
+    this.dialogSafeSrc = null;
   }
 
   editFromContext(): void {
