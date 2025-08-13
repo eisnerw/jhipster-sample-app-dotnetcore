@@ -118,15 +118,11 @@
   </div>
 
   <ng-template #expandedRow let-rowData>
-    <tr>
-      <td [attr.colspan]="columns.length + 1">
-        <iframe
-          [src]="sanitizer.bypassSecurityTrustResourceUrl('/api/birthdays/html/' + rowData.id)"
-          style="width: 100%; height: 288px; border: 0"
-          loading="lazy"
-        ></iframe>
-      </td>
-    </tr>
+    <iframe
+      [src]="sanitizer.bypassSecurityTrustResourceUrl('/api/birthdays/html/' + rowData.id)"
+      style="width: 100%; height: 288px; border: 0"
+      loading="lazy"
+    ></iframe>
   </ng-template>
 
   <p-contextMenu #contextMenu [model]="menuItems" (onShow)="onMenuShow()"></p-contextMenu>
@@ -161,5 +157,23 @@
 
   <p-dialog [(visible)]="bDisplaySearchDialog" [modal]="true" header="Search Birthdays">
     <!-- Search dialog content -->
+  </p-dialog>
+
+  <p-dialog
+    [(visible)]="bDisplayBirthday"
+    [modal]="true"
+    [resizable]="true"
+    [draggable]="true"
+    [style]="{ width: '60vw' }"
+    [contentStyle]="{ height: '70vh', padding: '0' }"
+    [header]="birthdayDialogTitle"
+  >
+    <div style="height: 100%; width: 100%">
+      <iframe
+        [src]="sanitizer.bypassSecurityTrustResourceUrl('/api/birthdays/html/' + birthdayDialogId)"
+        style="width: 100%; height: 100%; border: 0"
+        loading="lazy"
+      ></iframe>
+    </div>
   </p-dialog>
 </div>

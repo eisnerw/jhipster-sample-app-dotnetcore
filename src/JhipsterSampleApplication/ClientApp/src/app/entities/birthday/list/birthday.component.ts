@@ -533,7 +533,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
         items.push({ label: `Relate to ${relateTo}`, icon: 'pi pi-link', command: () => this.relateFromContext() });
       }
     }
-    items.push({ label: 'View', icon: 'pi pi-search', command: () => this.viewFromContext() });
+    items.push({ label: 'View', icon: 'pi pi-search', command: () => this.viewIframeFromContext() });
     items.push({ label: 'Edit', icon: 'pi pi-pencil', command: () => this.editFromContext() });
     items.push({ label: 'Delete', icon: 'pi pi-trash', command: () => this.deleteFromContext() });
     return items;
@@ -559,7 +559,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       // Add Both actions
       model.push({ label: 'Categorize Both', icon: 'pi pi-tags', command: () => this.openCategorizeBoth() });
     }
-    model.push({ label: 'View', icon: 'pi pi-search', command: () => this.viewFromContext() });
+    model.push({ label: 'View', icon: 'pi pi-search', command: () => this.viewIframeFromContext() });
     model.push({ label: 'Edit', icon: 'pi pi-pencil', command: () => this.editFromContext() });
     model.push({ label: 'Delete', icon: 'pi pi-trash', command: () => this.deleteFromChipMenu() });
     if (twoSelected && hovered) {
@@ -574,6 +574,19 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     const id = row?.id;
     if (!id) return;
     this.router.navigate(['/birthday', id, 'view']);
+  }
+
+  // New: open resizable dialog with iframe for the selected row
+  viewIframeFromContext(): void {
+    const row = (this.contextSelectedRow || (this.selection && this.selection[0])) as IBirthday | undefined;
+    const id = row?.id;
+    if (!id) return;
+    const firstName = row?.fname || '';
+    const lastName = row?.lname || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+    this.birthdayDialogId = id;
+    this.birthdayDialogTitle = fullName || 'Details';
+    this.bDisplayBirthday = true;
   }
 
   editFromContext(): void {
