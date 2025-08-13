@@ -8,7 +8,7 @@ Scroll position  remembered
 Future:
 Retains last column repositions from grid to group mode
 *Global filtering
-Highlight search terms
+*Highlight search terms
 *Chip bar
 *Right click menus
 Save named rulesets in elasticsearch

@@ -61,6 +61,9 @@ import {
   bqlToRuleset,
   rulesetToBql,
 } from 'popup-ngx-query-builder';
+// Local minimal types to avoid cross-project import issues
+type LocalRuleSet = { condition: string; rules: Array<LocalRuleSet | LocalRule>; name?: string; not?: boolean; isChild?: boolean };
+type LocalRule = { field: string; operator: string; value?: any };
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { QueryLanguageSpec } from 'ngx-query-builder';
 
@@ -211,6 +214,96 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     if (row?.id) {
       delete this.iframeSafeSrcById[row.id];
     }
+  }
+
+  // Highlighting support for expanded Wikipedia iframe only
+  private getHighlightTermsFromBql(bql: string): string[] {
+    const terms: string[] = [];
+    if (!bql || !bql.trim()) return terms;
+    try {
+      const rs = bqlToRuleset(bql, this.queryInput.queryBuilderConfig) as LocalRuleSet;
+      const visit = (node: LocalRuleSet | LocalRule) => {
+        const asRule = node as LocalRule;
+        if ((asRule as any).field !== undefined) {
+          const field = (asRule.field || '').toLowerCase();
+          const operator = (asRule.operator || '').toLowerCase();
+          const value: any = (asRule as any).value;
+          const pushVal = (v: any) => {
+            if (v === null || v === undefined) return;
+            const s = String(v).trim();
+            if (s) terms.push(s);
+          };
+          // document contains "x" or generic value searches should highlight value
+          if (operator && (operator.includes('contains') || operator === '=' || operator === '==' || operator === 'in' || operator === 'not in')) {
+            if (Array.isArray(value)) value.forEach(pushVal);
+            else pushVal(value);
+          } else if (field === 'document') {
+            if (Array.isArray(value)) value.forEach(pushVal);
+            else pushVal(value);
+          }
+        } else {
+          const asSet = node as LocalRuleSet;
+          if (asSet && Array.isArray(asSet.rules)) asSet.rules.forEach(visit);
+        }
+      };
+      visit(rs);
+    } catch {}
+    // Deduplicate and limit to reasonable length
+    const dedup = Array.from(new Set(terms.map(t => t))).filter(t => t.length <= 64).slice(0, 20);
+    return dedup;
+  }
+
+  onExpandedIframeLoad(id: string, ev: Event): void {
+    try {
+      const iframe = ev.target as HTMLIFrameElement;
+      if (!iframe || !iframe.contentDocument) return;
+      const doc = iframe.contentDocument;
+      const terms = this.getHighlightTermsFromBql(this.currentQuery);
+      if (!terms.length) return;
+      // Inject simple CSS for highlight
+      const style = doc.createElement('style');
+      style.textContent = '.__bql-hl{background:yellow; color:#111;}';
+      doc.head?.appendChild(style);
+      // Build regex to find terms (escape regex), case-insensitive
+      const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = terms.map(esc).join('|');
+      if (!pattern) return;
+      const re = new RegExp(`(${pattern})`, 'gi');
+      const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {
+        acceptNode: (node: any) => {
+          if (!node.nodeValue) return NodeFilter.FILTER_REJECT;
+          if (!re.test(node.nodeValue)) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      } as any);
+      const textNodes: Text[] = [];
+      let n: any;
+      while ((n = walker.nextNode())) {
+        textNodes.push(n as Text);
+      }
+      textNodes.forEach(tn => {
+        const parent = tn.parentNode as HTMLElement | null;
+        if (!parent) return;
+        const html = tn.nodeValue || '';
+        // Reset regex for each node
+        const localRe = new RegExp(`(${pattern})`, 'gi');
+        const parts = html.split(localRe);
+        if (parts.length <= 1) return;
+        const frag = doc.createDocumentFragment();
+        for (let i = 0; i < parts.length; i++) {
+          const part = parts[i];
+          if (i % 2 === 1) {
+            const mark = doc.createElement('mark');
+            mark.className = '__bql-hl';
+            mark.textContent = part;
+            frag.appendChild(mark);
+          } else if (part) {
+            frag.appendChild(doc.createTextNode(part));
+          }
+        }
+        parent.replaceChild(frag, tn);
+      });
+    } catch {}
   }
 
   // New properties for super-table

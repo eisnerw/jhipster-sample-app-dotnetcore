@@ -124,6 +124,7 @@
       <iframe
         [src]="iframeSafeSrcById[rowData.id]"
         style="width: 100%; height: 288px; border: 0"
+        (load)="onExpandedIframeLoad(rowData.id, $event)"
         loading="lazy"
       ></iframe>
     </ng-container>
