@@ -186,6 +186,29 @@
     height: 100%;
   }
 }
+.birthday-view-dialog {
+  ::ng-deep .p-dialog-content {
+    overflow: hidden !important;
+  }
+  ::ng-deep .p-dialog-resizable-handle {
+    width: 16px;
+    height: 16px;
+    right: 2px;
+    bottom: 2px;
+    background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.2) 50%),
+                linear-gradient(45deg, transparent 50%, rgba(0,0,0,0.2) 50%);
+    background-repeat: no-repeat;
+    background-position: right bottom, right bottom;
+    background-size: 8px 8px, 8px 8px;
+    cursor: se-resize;
+  }
+  ::ng-deep iframe {
+    display: block;
+  }
+  ::ng-deep .p-dialog-header {
+    user-select: none;
+  }
+}
 .group-header {
   display: flex;
   align-items: center;
