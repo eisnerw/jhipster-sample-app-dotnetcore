@@ -52,14 +52,14 @@
   <ngx-query-builder
     [(ngModel)]="builderQuery"
     [config]="queryBuilderConfig"
+    [spec]="spec"
     [allowNot]="allowNot"
     [allowConvertToRuleset]="allowConvertToRuleset"
     [allowRuleUpDown]="allowRuleUpDown"
     [ruleName]="ruleName"
     [rulesetName]="rulesetName"
-  >
-    [rulesetName]="rulesetName" [defaultRuleAttribute]="defaultRuleAttribute"></ngx-query-builder
-  >
+    [defaultRuleAttribute]="defaultRuleAttribute"
+  ></ngx-query-builder>
 
   <ng-template pTemplate="footer">
     <div class="dialog-footer">

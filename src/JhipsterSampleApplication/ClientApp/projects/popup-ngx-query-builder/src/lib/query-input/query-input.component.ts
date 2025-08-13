@@ -11,6 +11,7 @@ import {
   QueryBuilderConfig,
   RuleSet,
   Rule,
+  QueryLanguageSpec,
 } from 'ngx-query-builder';
 import {
   bqlToRuleset,
@@ -44,6 +45,8 @@ export class QueryInputComponent implements OnInit {
   @Input() placeholder = 'BQL';
   @Input() query = '';
   @Input() config?: QueryBuilderConfig;
+  // Optional JSON-driven language spec
+  @Input() spec?: QueryLanguageSpec | string;
   @Input() allowNot = true;
   @Input() allowConvertToRuleset = true;
   @Input() allowRuleUpDown = true;
@@ -82,61 +85,14 @@ export class QueryInputComponent implements OnInit {
     this.validQuery = validateBql(this.query, this.queryBuilderConfig);
   }
 
-  // Default configuration for the query builder
+  // Minimal fallback so the builder works before a spec/config is provided
   defaultConfig: QueryBuilderConfig = {
     fields: {
       document: {
         name: 'Document',
         type: 'string',
         operators: ['contains', '!contains'],
-      },
-      // lname: { name: 'Last Name', type: 'string', operators: ['=', '!=', 'contains', 'like', 'exists'] },
-      lname: {
-        name: 'Last Name',
-        type: 'category',
-      },
-      fname: {
-        name: 'First Name',
-        type: 'string',
-        operators: [
-          '=',
-          '!=',
-          'contains',
-          '!contains',
-          'like',
-          '!like',
-          'exists',
-        ],
-      },
-      isAlive: { name: 'Alive?', type: 'boolean' },
-      categories: {
-        name: 'Category',
-        type: 'string',
-        operators: ['contains', '!contains', 'exists'],
-      },
-      dob: {
-        name: 'Birthday',
-        type: 'date',
-        operators: ['=', '<=', '>', '<', '>='],
-        defaultValue: () => new Date(),
-      },
-      sign: {
-        name: 'Astrological Sign',
-        type: 'category',
-        options: [
-          { name: 'Aries', value: 'aries' },
-          { name: 'Taurus', value: 'taurus' },
-          { name: 'Gemini', value: 'gemini' },
-          { name: 'Cancer', value: 'cancer' },
-          { name: 'Leo', value: 'leo' },
-          { name: 'Virgo', value: 'virgo' },
-          { name: 'Libra', value: 'libra' },
-          { name: 'Scorpio', value: 'scorpio' },
-          { name: 'Sagittarius', value: 'sagittarius' },
-          { name: 'Capricorn', value: 'capricorn' },
-          { name: 'Aquarius', value: 'aquarius' },
-          { name: 'Pisces    ', value: 'pisces' },
-        ],
+        defaultOperator: 'contains',
       },
     },
   };

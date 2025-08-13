@@ -61,6 +61,8 @@ import {
   bqlToRuleset,
   rulesetToBql,
 } from 'popup-ngx-query-builder';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { QueryLanguageSpec } from 'ngx-query-builder';
 
 @Component({
   selector: 'jhi-birthday',
@@ -71,6 +73,7 @@ import {
   imports: [
     CommonModule,
     FormsModule,
+    HttpClientModule,
     RouterModule,
     SharedModule,
     SuperTable,
@@ -96,6 +99,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   sanitizer = inject(DomSanitizer);
   private confirmationService = inject(ConfirmationService);
   protected viewService = inject(ViewService);
+  private http = inject(HttpClient);
 
   @ViewChild('contextMenu') contextMenu!: ContextMenu;
   @ViewChild('superTable') superTable!: SuperTable;
@@ -108,6 +112,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
 
   currentQuery = '';
   rulesetJson = '';
+  spec: QueryLanguageSpec | undefined;
   dataLoader: DataLoader<IBirthday>;
   groups: GroupDescriptor[] = [];
   viewName: string | null = null;
@@ -343,38 +348,16 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   @ViewChild(QueryInputComponent) queryInput!: QueryInputComponent;
 
   ngOnInit(): void {
-    console.log('BirthdayComponent ngOnInit called');
-    console.log('dataLoader:', this.dataLoader);
-    console.log('dataLoader.loading$ initial:', this.dataLoader.loading$);
-    
+    // Load JSON spec from assets
+    this.http
+      .get<QueryLanguageSpec>('content/specs/birthday-qb-spec.json')
+      .subscribe({
+        next: spec => (this.spec = spec),
+        error: () => (this.spec = undefined),
+      });
+    // Restore views and initial navigation-driven state
     this.loadViews();
     this.handleNavigation();
-    
-    // Subscribe to loading state changes for debugging
-    this.dataLoader.loading$.subscribe(loading => {
-      console.log('Loading state changed to:', loading);
-    });
-    
-    // Auto-reset stuck loading state after 5 seconds
-    setTimeout(() => {
-      if (this.dataLoader['loadingSubject']?.getValue() === true) {
-        console.warn('Loading state was stuck at true, auto-resetting...');
-        this.forceResetLoading();
-      }
-    }, 5000);
-
-    // Preload categories for dialog filtering; backend enforces keyword search
-    this.birthdayService.getUniqueValues('categories').subscribe(res => {
-      const values = res.body || [];
-      // Deduplicate case-insensitively
-      const uniq: Record<string, string> = {};
-      values.forEach(v => {
-        const k = (v || '').trim().toLowerCase();
-        if (k && !uniq[k]) uniq[k] = v;
-      });
-      this.allCategories = Object.values(uniq).sort((a,b)=>a.localeCompare(b));
-      this.filteredCategories = [...this.allCategories];
-    });
   }
 
   ngAfterViewInit(): void {

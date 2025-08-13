@@ -38,6 +38,7 @@ import {
   RulesetRemoveButtonContext,
   RulesetAddRulesetButtonContext,
   RulesetAddRuleButtonContext,
+  QueryLanguageSpec,
 } from '../models/query-builder.interfaces';
 import { ChangeDetectorRef, Component, ContentChild, ContentChildren, forwardRef, Input, OnChanges, QueryList, SimpleChanges, TemplateRef, ViewChild, ElementRef, booleanAttribute, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
@@ -116,14 +117,6 @@ export class QueryBuilderComponent
     searchIcon: 'q-icon q-search-icon',
     saveIcon: 'q-icon q-save-icon',
   };
-  public defaultOperatorMap: Record<string, string[]> = {
-    string: ['=', '!=', 'contains', '!contains', 'like', '!like'],
-    number: ['=', '!=', '>', '>=', '<', '<='],
-    time: ['=', '!=', '>', '>=', '<', '<='],
-    date: ['=', '!=', '>', '>=', '<', '<='],
-    category: ['=', '!=', 'in', 'not in'],
-    boolean: ['='],
-  };
 
   // For ControlValueAccessor interface
   public onChangeCallback!: () => void;
@@ -146,6 +139,8 @@ export class QueryBuilderComponent
   @Input() operatorMap!: Record<string, string[]>;
   @Input() parentValue!: RuleSet;
   @Input() config: QueryBuilderConfig = { fields: {} };
+  // Optional JSON-based language spec; can be an object or JSON string
+  @Input() spec?: QueryLanguageSpec | string;
   @Input() parentArrowIconTemplate!: QueryArrowIconDirective;
   @Input() parentInputTemplates!: QueryList<QueryInputDirective>;
   @Input() parentOperatorTemplate!: QueryOperatorDirective;
@@ -238,6 +233,30 @@ export class QueryBuilderComponent
   // ----------OnChanges Implementation----------
 
   ngOnChanges(changes: SimpleChanges) {
+    // Apply JSON spec if provided
+    if (this.spec !== undefined && this.spec !== null) {
+      let parsed: QueryLanguageSpec | null = null;
+      if (typeof this.spec === 'string') {
+        try {
+          parsed = JSON.parse(this.spec) as QueryLanguageSpec;
+        } catch (e) {
+          console.warn('Invalid JSON provided to spec input:', e);
+        }
+      } else {
+        parsed = this.spec as QueryLanguageSpec;
+      }
+      if (parsed && parsed.fields) {
+        // Merge into config; preserve other config callbacks/limits
+        this.config = {
+          ...this.config,
+          fields: parsed.fields,
+          entities: parsed.entities,
+        };
+        if (parsed.operatorMap) {
+          this.operatorMap = parsed.operatorMap;
+        }
+      }
+    }
     const config = this.config;
     const type = typeof config;
     if (type === 'object') {
@@ -260,6 +279,27 @@ export class QueryBuilderComponent
         this.entities = [];
       }
       this.operatorsCache = {};
+      // If there are no rules yet, seed a default rule based on defaultRuleAttribute or first field
+      if (this.data && Array.isArray(this.data.rules) && this.data.rules.length === 0) {
+        const fields = Object.keys(this.config.fields);
+        const attr = this.defaultRuleAttribute || fields[0];
+        if (attr) {
+          const fieldCfg = this.config.fields[attr];
+          let operator: string | undefined;
+          if (fieldCfg) {
+            if (fieldCfg.defaultOperator !== undefined) {
+              operator =
+                typeof fieldCfg.defaultOperator === 'function'
+                  ? fieldCfg.defaultOperator()
+                  : fieldCfg.defaultOperator;
+            } else if (fieldCfg.operators && fieldCfg.operators.length) {
+              operator = fieldCfg.operators[0];
+            }
+          }
+          const rule: Rule = { field: attr, operator: operator || 'contains' } as Rule;
+          this.data.rules = [rule];
+        }
+      }
       this.registerParentRefs(this.data, this.parentValue || null);
     } else {
       throw new Error(
@@ -389,7 +429,6 @@ export class QueryBuilderComponent
     } else if (type) {
       operators =
         (this.operatorMap && this.operatorMap[type]) ||
-        this.defaultOperatorMap[type] ||
         this.defaultEmptyList;
       if (operators.length === 0) {
         console.warn(

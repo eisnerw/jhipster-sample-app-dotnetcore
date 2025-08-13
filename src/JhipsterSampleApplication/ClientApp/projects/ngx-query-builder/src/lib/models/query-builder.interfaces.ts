@@ -203,3 +203,10 @@ export interface RuleRemoveButtonContext {
   getDisabledState: () => boolean;
   $implicit: Rule;
 }
+
+// JSON-driven language specification for fields, optional entities, and operator mapping
+export interface QueryLanguageSpec {
+  fields: FieldMap;
+  entities?: EntityMap;
+  operatorMap?: Record<string, string[]>;
+}

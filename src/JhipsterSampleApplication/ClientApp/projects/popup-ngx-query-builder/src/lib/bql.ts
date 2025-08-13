@@ -4,15 +4,7 @@ export interface BqlParseOptions {
 
 import { RuleSet, Rule, QueryBuilderConfig } from 'ngx-query-builder';
 
-// Default operator map mirroring the query builder component
-const DEFAULT_OPERATOR_MAP: Record<string, string[]> = {
-  string: ['=', '!=', 'contains', '!contains', 'like', '!like'],
-  number: ['=', '!=', '>', '>=', '<', '<='],
-  time: ['=', '!=', '>', '>=', '<', '<='],
-  date: ['=', '!=', '>', '>=', '<', '<='],
-  category: ['=', '!=', 'in', 'not in'],
-  boolean: ['='],
-};
+// No internal defaults; rely on field.operators or config.getOperators
 
 function getAllowedOperators(
   fieldName: string,
@@ -29,7 +21,7 @@ function getAllowedOperators(
     }
   }
   if (!operators || operators.length === 0) {
-    operators = DEFAULT_OPERATOR_MAP[fieldConf.type] || [];
+    operators = [];
   }
   if (fieldConf.nullable) {
     operators = operators.concat(['is null', 'is not null']);
