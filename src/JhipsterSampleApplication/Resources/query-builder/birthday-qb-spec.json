@@ -1,0 +1,60 @@
+{
+  "fields": {
+    "document": {
+      "name": "Document",
+      "type": "string",
+      "operators": ["contains", "!contains"]
+    },
+    "lname": {
+      "name": "Last Name",
+      "type": "string",
+      "operators": ["=", "!=", "contains", "!contains", "like", "!like"]
+    },
+    "fname": {
+      "name": "First Name",
+      "type": "string",
+      "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+    },
+    "isAlive": {
+      "name": "Alive?",
+      "type": "boolean"
+    },
+    "categories": {
+      "name": "Category",
+      "type": "string",
+      "operators": ["contains", "!contains", "exists"]
+    },
+    "dob": {
+      "name": "Birthday",
+      "type": "date",
+      "operators": ["=", "<=", ">", "<", ">="]
+    },
+    "sign": {
+      "name": "Astrological Sign",
+      "type": "category",
+      "options": [
+        { "name": "Aries", "value": "aries" },
+        { "name": "Taurus", "value": "taurus" },
+        { "name": "Gemini", "value": "gemini" },
+        { "name": "Cancer", "value": "cancer" },
+        { "name": "Leo", "value": "leo" },
+        { "name": "Virgo", "value": "virgo" },
+        { "name": "Libra", "value": "libra" },
+        { "name": "Scorpio", "value": "scorpio" },
+        { "name": "Sagittarius", "value": "sagittarius" },
+        { "name": "Capricorn", "value": "capricorn" },
+        { "name": "Aquarius", "value": "aquarius" },
+        { "name": "Pisces", "value": "pisces" }
+      ]
+    }
+  },
+  "operatorMap": {
+    "string": ["=", "!=", "contains", "!contains", "like", "!like"],
+    "number": ["=", "!=", ">", ">=", "<", "<="],
+    "time": ["=", "!=", ">", ">=", "<", "<="],
+    "date": ["=", "!=", ">", ">=", "<", "<="],
+    "category": ["=", "!=", "in", "not in"],
+    "boolean": ["="]
+  }
+}
+

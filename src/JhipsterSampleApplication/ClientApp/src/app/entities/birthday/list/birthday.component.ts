@@ -348,13 +348,11 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   @ViewChild(QueryInputComponent) queryInput!: QueryInputComponent;
 
   ngOnInit(): void {
-    // Load JSON spec from assets
-    this.http
-      .get<QueryLanguageSpec>('content/specs/birthday-qb-spec.json')
-      .subscribe({
-        next: spec => (this.spec = spec),
-        error: () => (this.spec = undefined),
-      });
+    // Load query builder spec from server
+    this.birthdayService.getQueryBuilderSpec().subscribe({
+      next: (spec: any) => (this.spec = spec),
+      error: () => (this.spec = undefined),
+    });
     // Restore views and initial navigation-driven state
     this.loadViews();
     this.handleNavigation();

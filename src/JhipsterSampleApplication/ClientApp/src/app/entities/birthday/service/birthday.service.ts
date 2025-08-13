@@ -44,6 +44,7 @@ export class BirthdayService {
   protected searchUrl = this.applicationConfigService.getEndpointFor('api/birthdays/search/lucene');
   protected rulesetSearchUrl = this.applicationConfigService.getEndpointFor('api/birthdays/search/ruleset');
   protected bqlSearchUrl = this.applicationConfigService.getEndpointFor('api/birthdays/search/bql');
+  protected qbSpecUrl = this.applicationConfigService.getEndpointFor('api/birthdays/query-builder-spec');
 
   create(birthday: IBirthday): Observable<EntityResponseType> {
     return this.http.post<IBirthday>(this.resourceUrl, birthday, {
@@ -152,5 +153,9 @@ export class BirthdayService {
     return this.http.post<ISimpleApiResponse>(`${this.resourceUrl}/categorize-multiple`, payload, {
       observe: 'response',
     });
+  }
+
+  getQueryBuilderSpec(): Observable<any> {
+    return this.http.get<any>(this.qbSpecUrl);
   }
 }

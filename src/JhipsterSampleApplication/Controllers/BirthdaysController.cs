@@ -87,6 +87,22 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         /// <summary>
+        /// Returns the Query Builder specification for Birthdays
+        /// </summary>
+        [HttpGet("query-builder-spec")]
+        [Produces("application/json")]
+        public IActionResult GetQueryBuilderSpec()
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "Resources", "query-builder", "birthday-qb-spec.json");
+            if (!System.IO.File.Exists(path))
+            {
+                return NotFound("Spec file not found");
+            }
+            var json = System.IO.File.ReadAllText(path);
+            return Content(json, "application/json");
+        }
+
+        /// <summary>
         /// Search birthdays using a Lucene query
         /// </summary>
         [HttpGet("search/lucene")]

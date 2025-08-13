@@ -96,4 +96,10 @@
         </ItemGroup>
     </Target>
 
+    <ItemGroup>
+        <Content Update="Resources/**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
 </Project>
