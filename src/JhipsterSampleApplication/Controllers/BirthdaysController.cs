@@ -15,6 +15,7 @@ using JhipsterSampleApplication.Dto;
 using Microsoft.Extensions.Logging;
 using AutoMapper;
 using System.Collections.ObjectModel;
+using System.Net;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -84,6 +85,46 @@ namespace JhipsterSampleApplication.Controllers
             public List<string> Rows { get; set; } = new List<string>();
             public List<string> Add { get; set; } = new List<string>();
             public List<string> Remove { get; set; } = new List<string>();
+        }
+
+        /// <summary>
+        /// Returns an HTML page constructed from the Wikipedia attribute for a given Birthday document
+        /// </summary>
+        [HttpGet("html/{id}")]
+        [Produces("text/html")]
+        public async Task<IActionResult> GetHtmlById(string id)
+        {
+            var searchRequest = new SearchRequest<Birthday>
+            {
+                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
+            };
+
+            var response = await _birthdayService.SearchAsync(searchRequest, "");
+            if (!response.IsValid || !response.Documents.Any())
+            {
+                return NotFound();
+            }
+
+            var birthday = response.Documents.First();
+            var fullName = ($"{birthday.Fname} {birthday.Lname}").Trim();
+            var wikipediaHtml = birthday.Wikipedia ?? string.Empty;
+
+            var title = string.IsNullOrWhiteSpace(fullName) ? "Birthday" : fullName;
+
+            var html = "<!doctype html>" +
+                       "<html><head>" +
+                       "<meta charset=\"utf-8\">" +
+                       "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
+                       "<base target=\"_blank\">" +
+                       "<title>" + WebUtility.HtmlEncode(title) + "</title>" +
+                       "<style>body{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial,\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111} .empty{color:#666}</style>" +
+                       "</head><body>" +
+                       (string.IsNullOrWhiteSpace(wikipediaHtml)
+                           ? ("<div class=\"empty\">No Wikipedia content available." + (string.IsNullOrWhiteSpace(fullName) ? string.Empty : (" for " + WebUtility.HtmlEncode(fullName))) + "</div>")
+                           : wikipediaHtml)
+                       + "</body></html>";
+
+            return Content(html, "text/html");
         }
 
         /// <summary>
