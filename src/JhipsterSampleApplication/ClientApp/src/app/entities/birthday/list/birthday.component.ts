@@ -617,7 +617,8 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   onMenuShow(): void {
-    // Using PrimeNG context menu; no custom hover/leave logic needed.
+    // Ensure menu items are up-to-date for the current context row
+    this.setMenu(this.contextSelectedRow);
   }
 
   onChipClick(event: any): void {}
@@ -627,10 +628,8 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     const row: IBirthday | undefined = dataOrEvent && dataOrEvent.data ? dataOrEvent.data : dataOrEvent;
     if (!row) return;
     this.contextSelectedRow = row;
-    // If no selection, act on the row under the cursor; else act on selection
-    if (!this.selection || this.selection.length === 0) {
-      this.selection = [row];
-    }
+    // Do NOT modify checkbox selection from a right-click. Just build the menu for the context row.
+    this.setMenu(row);
   }
 
   onContextMenuMouseLeave(): void {
