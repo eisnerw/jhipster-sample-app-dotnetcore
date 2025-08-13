@@ -145,9 +145,9 @@ namespace JhipsterSampleApplication.Controllers
 									))
 								),
 								new JObject(
-									new JProperty("term", new JObject(
-										new JProperty(viewDto.Aggregation, "")
-									))
+							new JProperty("term", new JObject(
+								new JProperty(viewDto.Aggregation ?? string.Empty, "")
+							))
 								)
 							)),
 							new JProperty("minimum_should_match", 1)
@@ -203,9 +203,9 @@ namespace JhipsterSampleApplication.Controllers
 										))
 									),
 									new JObject(
-										new JProperty("term", new JObject(
-											new JProperty(secondaryViewDto.Aggregation, "")
-										))
+						new JProperty("term", new JObject(
+							new JProperty(secondaryViewDto.Aggregation ?? string.Empty, "")
+						))
 									)
 								)),
 								new JProperty("minimum_should_match", 1)
@@ -241,7 +241,6 @@ namespace JhipsterSampleApplication.Controllers
 
 			var searchRequest = new SearchRequest<Supreme>
 			{
-				Index = "supreme",
 				Size = pageSize,
 				From = from
 			};

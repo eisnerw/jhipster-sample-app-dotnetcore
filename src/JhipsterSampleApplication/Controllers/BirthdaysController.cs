@@ -247,7 +247,7 @@ namespace JhipsterSampleApplication.Controllers
                                 ),
                                 new JObject(
                                     new JProperty("term", new JObject(
-                                        new JProperty(viewDto.Aggregation, "")
+                                        new JProperty(viewDto.Aggregation ?? string.Empty, "")
                                     ))
                                 )
                             )),
@@ -305,7 +305,7 @@ namespace JhipsterSampleApplication.Controllers
                                     ),
                                     new JObject(
                                         new JProperty("term", new JObject(
-                                            new JProperty(secondaryViewDto.Aggregation, "")
+                                            new JProperty(secondaryViewDto.Aggregation ?? string.Empty, "")
                                         ))
                                     )
                                 )),

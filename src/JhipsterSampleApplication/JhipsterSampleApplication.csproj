@@ -29,6 +29,7 @@
         <PackageReference Include="Serilog.AspNetCore" />
         <PackageReference Include="Serilog.Settings.Configuration" />
         <PackageReference Include="Serilog.Sinks.Console" />
+        <PackageReference Include="Serilog.Sinks.File" />
         <PackageReference Include="Serilog.Enrichers.Process" />
         <PackageReference Include="Serilog.Enrichers.Thread" />
         <PackageReference Include="Serilog.Sinks.SyslogMessages" />
@@ -66,14 +67,14 @@
         </SonarQubeSetting>
     </ItemGroup>
 
-    <Target Name="NpmInstall" BeforeTargets="Build" Condition="!Exists('$(RepoRoot)node_modules')">
+    <Target Name="NpmInstall" BeforeTargets="Build" Condition="!Exists('$(SpaRoot)node_modules')">
         <!-- Ensure Node.js is installed -->
-        <Exec WorkingDirectory="$(RepoRoot)" Command="node --version" ContinueOnError="true">
+        <Exec WorkingDirectory="$(SpaRoot)" Command="node --version" ContinueOnError="true">
             <Output TaskParameter="ExitCode" PropertyName="ErrorCode" />
         </Exec>
         <Error Condition="'$(ErrorCode)' != '0'" Text="Node.js is required to build and run this project. To continue, please install Node.js from https://nodejs.org/, and then restart your command prompt or IDE." />
         <Message Importance="high" Text="Restoring dependencies using 'npm'. This may take several minutes..." />
-        <Exec WorkingDirectory="$(RepoRoot)" Command="npm install" />
+        <Exec WorkingDirectory="$(SpaRoot)" Command="npm install" />
     </Target>
 
     <Target Name="RunClientBundler" BeforeTargets="Build" DependsOnTargets="NpmInstall" Condition="'$(SkipClientBuild)' != 'true'">

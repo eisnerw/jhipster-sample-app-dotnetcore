@@ -19,6 +19,10 @@ Make category case-insensitive
 *Support (uncategorized)
 *Support dob >= 1990
 *Implement IN operator
+search history
+logs to elasticsearch
+log as entity
+Move regex to LIKE
 
 Bugs:
 Still not positioning scrollbar in grid mode

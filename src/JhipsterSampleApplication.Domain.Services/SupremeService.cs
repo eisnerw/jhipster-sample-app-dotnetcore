@@ -144,11 +144,11 @@ namespace JhipsterSampleApplication.Domain.Services
 				if (rr.@operator?.Contains("contains") == true)
 				{
 					string stringValue = rr.value?.ToString() ?? string.Empty;
-					string quote = Regex.IsMatch(stringValue, @"\W") ? @"\"" : "";
+					string quote = Regex.IsMatch(stringValue, "\\W") ? "\"" : string.Empty;
 					return new JObject{
 						{
 							"query_string", new JObject{
-								{ "query", (rr.field != "document" ? (ToEsField(rr.field) + ":") : "") + quote + stringValue.ToLower().Replace(@"\"", @"\\\"") + quote }
+								{ "query", (rr.field != "document" ? (ToEsField(rr.field) + ":") : string.Empty) + quote + stringValue.ToLower().Replace("\"", "\\\"") + quote }
 							}
 						}
 					};
@@ -160,7 +160,7 @@ namespace JhipsterSampleApplication.Domain.Services
 					return new JObject{
 						{
 							"query_string", new JObject{
-								{ "query", (field != "document" ? (field + ":\"") : "\"") + valueStr.ToLower().Replace(@"\"", @"\\\"") + "\"" }
+								{ "query", (field != "document" ? (field + ":\"") : "\"") + valueStr.ToLower().Replace("\"", "\\\"") + "\"" }
 							}
 						}
 					};
@@ -175,7 +175,7 @@ namespace JhipsterSampleApplication.Domain.Services
 					}
 					string field = ToEsField(rr.field);
 					var shoulds = new JArray(values.Select(v => new JObject{
-						{ "query_string", new JObject{ { "query", (field + ":\"" + (v.ToLower().Replace("\"","\\\"")) + "\"") } } }
+						{ "query_string", new JObject{ { "query", field + ":\"" + v.ToLower().Replace("\"","\\\"") + "\"" } } }
 					}).ToArray());
 					return new JObject{ { "bool", new JObject{ { "should", shoulds } } } };
 				}
@@ -254,7 +254,6 @@ namespace JhipsterSampleApplication.Domain.Services
 			string query = queryObject.ToString();
 			var request = new SearchRequest<Supreme>
 			{
-				Index = IndexName,
 				Size = 0,
 				From = from,
 				Query = new QueryContainerDescriptor<Supreme>().Raw(query),
@@ -272,7 +271,6 @@ namespace JhipsterSampleApplication.Domain.Services
 			};
 			var uncategorizedRequest = new SearchRequest<Supreme>
 			{
-				Index = IndexName,
 				Size = 0,
 				From = from,
 				Query = new QueryContainerDescriptor<Supreme>().Raw(query),

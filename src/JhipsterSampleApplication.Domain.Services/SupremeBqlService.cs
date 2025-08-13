@@ -35,22 +35,7 @@ namespace JhipsterSampleApplication.Domain.Services
 				};
 			}
 
-			// Build token regex including dynamic field list
-			var fieldsRegex = string.Join("|", ValidFields);
-			var regexString = @"\s*(" +
-				@"(?<=IN\s)(\(\"(\\\"|[^\"])++\"|\/(\\\/|[^\/]+\/)\|[^\"\s]+\s*)(,\s*(\"(\\\"|[^\"])++\"|[^\"\s]+\s*))*\s*\)" +
-				@"|[()]" +
-				@"|(\"(\\\"|\\\\|[^\"])++\"|\/(\\\/|[^\/])+\/i?" +
-				@"|" + fieldsRegex + ")" +
-				@"|(=|!=|CONTAINS|!CONTAINS|EXISTS|!EXISTS|IN|!IN|>=|<=|>|<)|(&|\||!)|[^\"/=!<>() ]+)\s*";
-
-			var regex = new Regex(regexString);
-			var matches = regex.Matches(bqlQuery);
-			var tokens = matches
-				.Cast<Match>()
-				.Select(m => m.Groups[1].Value)
-				.Where(t => !string.IsNullOrWhiteSpace(t))
-				.ToArray();
+			var tokens = Tokenize(bqlQuery).ToArray();
 
 			if (tokens.Length == 0)
 			{
@@ -64,6 +49,101 @@ namespace JhipsterSampleApplication.Domain.Services
 			}
 
 			return result.ruleset;
+		}
+
+		private static List<string> Tokenize(string input)
+		{
+			var tokens = new List<string>();
+			if (string.IsNullOrEmpty(input)) return tokens;
+			int i = 0;
+			while (i < input.Length)
+			{
+				// skip whitespace
+				while (i < input.Length && char.IsWhiteSpace(input[i])) i++;
+				if (i >= input.Length) break;
+
+				char c = input[i];
+				// single char tokens
+				if (c == '(' || c == ')' || c == '&' || c == '|' || c == '!')
+				{
+					// Special handling: if previous token was IN/!IN and current is '(', capture the whole list until matching ')'
+					string prev = tokens.Count > 0 ? tokens[^1].ToUpperInvariant() : string.Empty;
+					if ((prev == "IN" || prev == "!IN") && c == '(')
+					{
+						int start = i;
+						int depth = 0;
+						bool inQuotes = false;
+						for (; i < input.Length; i++)
+						{
+							char ch = input[i];
+							if (ch == '"')
+							{
+								// toggle quotes if not escaped
+								bool escaped = i > 0 && input[i - 1] == '\\';
+								if (!escaped) inQuotes = !inQuotes;
+							}
+							if (!inQuotes)
+							{
+								if (ch == '(') depth++;
+								else if (ch == ')') { depth--; if (depth == 0) { i++; break; } }
+							}
+						}
+						tokens.Add(input.Substring(start, Math.Min(i, input.Length) - start));
+						continue;
+					}
+					tokens.Add(new string(c, 1));
+					i++;
+					continue;
+				}
+
+				// quoted string
+				if (c == '"')
+				{
+					int start = i;
+					i++; // skip opening quote
+					while (i < input.Length)
+					{
+						if (input[i] == '"' && input[i - 1] != '\\') { i++; break; }
+						i++;
+					}
+					tokens.Add(input.Substring(start, Math.Min(i, input.Length) - start));
+					continue;
+				}
+
+				// slash-regex /.../i?
+				if (c == '/')
+				{
+					int start = i;
+					i++;
+					bool escaped = false;
+					while (i < input.Length)
+					{
+						if (!escaped && input[i] == '/') { i++; if (i < input.Length && (input[i] == 'i' || input[i] == 'I')) i++; break; }
+						escaped = !escaped && input[i] == '\\';
+						i++;
+					}
+					tokens.Add(input.Substring(start, Math.Min(i, input.Length) - start));
+					continue;
+				}
+
+				// operators or words/numbers
+				int j = i;
+				while (j < input.Length && !char.IsWhiteSpace(input[j]) && "()&|!".IndexOf(input[j]) == -1) j++;
+				string token = input.Substring(i, j - i);
+				// split out multi-char operators if needed
+				var knownOps = new[] { ">=", "<=", "!=", "=", "CONTAINS", "!CONTAINS", "EXISTS", "!EXISTS", "IN", "!IN", ">", "<" };
+				string upper = token.ToUpperInvariant();
+				if (knownOps.Contains(upper))
+				{
+					tokens.Add(upper);
+				}
+				else
+				{
+					tokens.Add(token);
+				}
+				i = j;
+			}
+			return tokens;
 		}
 
 		private async Task<(bool matches, int index, RulesetDto ruleset)> ParseRuleset(string[] tokens, int index, bool not)
@@ -359,7 +439,7 @@ namespace JhipsterSampleApplication.Domain.Services
 			return Task.FromResult(QueryAsString(ruleset));
 		}
 
-		private static string QueryAsString(RulesetDto query)
+		private static string QueryAsString(RulesetDto query, bool recurse = false)
 		{
 			var result = new System.Text.StringBuilder();
 			if (query.rules == null) return string.Empty;
@@ -374,7 +454,7 @@ namespace JhipsterSampleApplication.Domain.Services
 				}
 				if (!string.IsNullOrEmpty(r.condition))
 				{
-					result.Append(QueryAsString(r));
+					result.Append(QueryAsString(r, query.rules.Count > 1));
 				}
 				else if (r.field == "document")
 				{
@@ -409,7 +489,22 @@ namespace JhipsterSampleApplication.Domain.Services
 					}
 				}
 			}
-			return query.rules.Count > 1 ? "(" + result.ToString() + ")" : result.ToString();
+			if (query.not)
+			{
+				if (query.rules.Count == 1 && (query.rules[0] as RulesetDto)?.name != null)
+				{
+					result.Insert(0, "!");
+				}
+				else
+				{
+					result.Insert(0, "!(").Append(")");
+				}
+			}
+			else if (recurse && multipleConditions)
+			{
+				result.Insert(0, "(").Append(")");
+			}
+			return result.ToString();
 		}
 
 		public override Task<object> Ruleset2ElasticSearch(RulesetDto ruleset)

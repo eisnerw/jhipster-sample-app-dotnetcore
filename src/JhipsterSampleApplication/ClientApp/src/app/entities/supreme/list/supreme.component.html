@@ -23,7 +23,7 @@
         }
       </div>
 
-      <input pInputText type="text" class="p-inputtext-sm ms-2 global-filter-input" placeholder="filter" (input)="superTable.filterGlobal(($event.target as HTMLInputElement).value)" />
+      <input pInputText type="text" class="p-inputtext-sm ms-2 global-filter-input" placeholder="filter" (input)="superTable.filterGlobal($any($event.target).value)" />
 
       <div class="form-check ms-2" style="font-size: 1rem; display: flex; align-items: center; font-weight: 400">
         <input id="showRowNumbers" type="checkbox" class="form-check-input" [(ngModel)]="showRowNumbers" />

@@ -553,21 +553,22 @@ namespace JhipsterSampleApplication.Test.Controllers
             _elasticClient.Indices.Refresh("birthdays");
         }
 
+        #nullable enable
         private class BirthdayDto
         {
-            public string Id { get; set; }
-            public string Lname { get; set; }
+            public string Id { get; set; } = string.Empty;
+            public string Lname { get; set; } = string.Empty;
             public string? Fname { get; set; }
-            public string Sign { get; set; }
+            public string Sign { get; set; } = string.Empty;
             public DateTime? Dob { get; set; }
             public bool? IsAlive { get; set; }
-            public string Text { get; set; }
-            public string Wikipedia { get; set; }
+            public string Text { get; set; } = string.Empty;
+            public string Wikipedia { get; set; } = string.Empty;
         }
 
         private class ClusterHealthDto
         {
-            public string Status { get; set; }
+            public string Status { get; set; } = string.Empty;
             public int NumberOfNodes { get; set; }
             public int NumberOfDataNodes { get; set; }
             public int ActiveShards { get; set; }
@@ -578,5 +579,6 @@ namespace JhipsterSampleApplication.Test.Controllers
         {
             public string Query { get; set; } = string.Empty;
         }
+        #nullable restore
     }
 } 
