@@ -1,0 +1,8 @@
+Supported BQL fields for Supreme:
+- name, term, docket_number
+- petitioner, respondent, appellant, appellee
+- heard_by, lower_court, manner_of_jurisdiction
+- majority, minority, advocates
+- question, facts_of_the_case, conclusion, description, opinion
+- justia_url, recused
+Operators: =, !=, CONTAINS, !CONTAINS, LIKE, EXISTS, !EXISTS, IN, !IN

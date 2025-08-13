@@ -1,0 +1,51 @@
+<div style="height: calc(100vh - 174px); display: flex; flex-direction: column">
+  <h2 class="d-flex align-items-center gap-2">
+    <span>Supreme...</span>
+    <lib-query-input
+      [(query)]="currentQuery"
+      (queryChange)="onQueryChange($event)"
+      placeholder="click search icon for widget or click to edit"
+      [spec]="spec"
+    ></lib-query-input>
+
+    <div class="d-flex ms-auto">
+      <div class="d-flex align-items-center ms-2">
+        <select class="form-select w-auto" [(ngModel)]="viewName" (ngModelChange)="onQueryChange(currentQuery)">
+          <option [ngValue]="null">Select a view</option>
+          @for (v of views; track v) {
+            <option [ngValue]="v.value">{{ v.label }}</option>
+          }
+        </select>
+        @if (viewName) {
+          <button type="button" class="btn btn-link p-0 ms-1" aria-label="Clear selected view" (click)="viewName = null; onQueryChange(currentQuery)">
+            <fa-icon icon="times"></fa-icon>
+          </button>
+        }
+      </div>
+
+      <input pInputText type="text" class="p-inputtext-sm ms-2 global-filter-input" placeholder="filter" (input)="superTable.filterGlobal($any($event.target).value)" />
+
+      <div class="form-check ms-2" style="font-size: 1rem; display: flex; align-items: center; font-weight: 400">
+        <input id="showRowNumbers" type="checkbox" class="form-check-input" [(ngModel)]="showRowNumbers" />
+        <label for="showRowNumbers" class="form-check-label">&nbsp;Show row numbers</label>
+      </div>
+    </div>
+  </h2>
+
+  <div class="table-responsive" style="flex: 1; min-height: 0">
+    <super-table
+      #superTable
+      [dataLoader]="dataLoader"
+      [columns]="columns"
+      [mode]="viewMode"
+      [groups]="groups"
+      [groupQuery]="groupQuery.bind(this)"
+      [superTableParent]="null"
+      [resizableColumns]="true"
+      [scrollable]="true"
+      scrollHeight="flex"
+      [showRowNumbers]="showRowNumbers"
+      [globalFilterFields]="globalFilterFields"
+    ></super-table>
+  </div>
+</div>

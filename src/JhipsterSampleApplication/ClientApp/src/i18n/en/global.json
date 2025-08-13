@@ -3,6 +3,7 @@
     "menu": {
       "entities": {
         "birthday": "Birthday",
+        "supreme": "Supreme",
         "country": "Country",
         "department": "Department",
         "employee": "Employee",
