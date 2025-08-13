@@ -1,0 +1,519 @@
+{
+    "mapping": {
+        "supreme": {
+            "mappings": {
+                "properties": {
+                    "Appellant": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "Appellee": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "Petitioner": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "Respondent": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "advocates": {
+                        "type": "text"
+                    },
+                    "argument2_url": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "conclusion": {
+                        "type": "text"
+                    },
+                    "decision": {
+                        "type": "text"
+                    },
+                    "description": {
+                        "type": "text"
+                    },
+                    "dissent": {
+                        "type": "text"
+                    },
+                    "docket_number": {
+                        "type": "text"
+                    },
+                    "facts_of_the_case": {
+                        "type": "text"
+                    },
+                    "heard_by": {
+                        "type": "text"
+                    },
+                    "justia_url": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "lower_court": {
+                        "type": "text"
+                    },
+                    "majority": {
+                        "type": "text"
+                    },
+                    "manner_of_jurisdiction": {
+                        "type": "text"
+                    },
+                    "minority": {
+                        "type": "text"
+                    },
+                    "name": {
+                        "type": "text"
+                    },
+                    "opinion": {
+                        "type": "text"
+                    },
+                    "question": {
+                        "type": "text"
+                    },
+                    "recused": {
+                        "type": "text"
+                    },
+                    "term": {
+                        "type": "text"
+                    }
+                }
+            }
+        }
+    },
+    "sample_data": {
+        "took": 2,
+        "timed_out": false,
+        "_shards": {
+            "total": 1,
+            "successful": 1,
+            "skipped": 0,
+            "failed": 0
+        },
+        "hits": {
+            "total": {
+                "value": 1520,
+                "relation": "eq"
+            },
+            "max_score": 1.0,
+            "hits": [
+                {
+                    "_index": "supreme",
+                    "_type": "_doc",
+                    "_id": "2007_06-1413",
+                    "_score": 1.0,
+                    "_source": {
+                        "name": "MeadWestvaco Corp. v. Illinois Department of Revenue",
+                        "docket_number": "06-1413",
+                        "manner_of_jurisdiction": "Writ of certiorari",
+                        "lower_court": "State appellate court",
+                        "facts_of_the_case": "MeadWestvaco, an Ohio company, sold its lucrative Lexis/Nexis division for a $1 billion profit in 1994. Illinois attempted to claim a portion of that profit when collecting taxes from MeadWestvaco for doing business in the state. Illinois argued that Lexis/Nexis was an \"operational\" part of Mead's business and therefore subject to taxation outside Mead's home state. Mead countered that Lexis/Nexis was merely an \"investment,\" whose sale was immune from taxation from outside jurisdictions. The trial court found that the division was key to Mead's operations, and therefore taxable, and the Illinois Appellate Court agreed.",
+                        "question": "Under the governing Supreme Court precedent, Allied-Signal, Inc. v. Director, Div. of Taxation, 504 U.S. 768 (1992), may a parent company use a division as a non-taxable investment when the division is involved in a substantially different business segment but the parent provides cash infusions, investment advice and oversight?",
+                        "conclusion": "The Court sent the case back to the state appellate court holding that the court had previously applied the wrong test in defining the relationship between Lexis/Nexis and Meadwestvaco. Writing for seven of his colleagues, Justice Samuel A. Alito said that the appellate court, rather than applying an \"operational function\" test, should have looked for the existence of \"functional integration, centralized management and economies of scale\" between the two companies to determine whether or not they were a unitary business for tax purposes. Justice Clarence Thomas wrote a concurring opinion arguing that the Court should refuse jurisdiction over such state tax cases.",
+                        "advocates": [
+                            "Beth S. Brinkmann",
+                            "Brian F. Barov"
+                        ],
+                        "heard_by": "Roberts Court (2006-2009)",
+                        "term": "2007",
+                        "justia_url": "https://supreme.justia.com/cases/federal/us/553/16/",
+                        "Petitioner": "MeadWestvaco Corp., successor in interest to Mead Corp.",
+                        "Respondent": "Illinois Department of Revenue et al.",
+                        "majority": [
+                            "John Paul Stevens",
+                            "Antonin Scalia",
+                            "Anthony M. Kennedy",
+                            "David H. Souter",
+                            "Clarence Thomas",
+                            "Ruth Bader Ginsburg",
+                            "Stephen G. Breyer",
+                            "John G. Roberts, Jr.",
+                            "Samuel A. Alito, Jr."
+                        ],
+                        "decision": "9/0"
+                    }
+                },
+                {
+                    "_index": "supreme",
+                    "_type": "_doc",
+                    "_id": "2023_23-108 ",
+                    "_score": 1.0,
+                    "_source": {
+                        "name": "Snyder v. United States",
+                        "docket_number": "23-108 ",
+                        "manner_of_jurisdiction": "Writ of certiorari",
+                        "lower_court": "United States Court of Appeals for the Seventh Circuit",
+                        "facts_of_the_case": "James Snyder formerly served as mayor of Portage, Indiana. He was convicted of federal funds bribery in violation of 18 U.S.C. § 666(a)(1)(B) for soliciting and accepting $13,000 in connection with the city’s purchases of garbage trucks, among other federal crimes.\nBefore, during, and after trial, Snyder argued that the evidence did not support a finding that there was an agreement to exchange money for the truck contracts before they were awarded. Without a prior quid pro quo agreement, he argued, § 666 cannot apply. Interpreting the plain language of the statute and Sixth Circuit precedent, the district court rejected his interpretation of that provision. The U.S. Court of Appeals for the Sixth Circuit affirmed.",
+                        "question": "Does 18 U.S.C. § 666(a)(1)(B) criminalize gratuities, i.e., payments in recognition of actions a state or local official has already taken or committed to take, without any quid pro quo agreement to take those actions?",
+                        "conclusion": "Federal law, 18 U.S.C. §666, proscribes bribes to state and local officials but does not make it a crime for those officials to accept gratuities for their past acts. Justice Brett Kavanaugh authored the 6-3 majority opinion of the Court.\nThe Court identified six main reasons that 18 U.S.C. §666(a)(1)(B) is a bribery statute and not a gratuities statute:\n   a) Text: The language of §666 closely resembles the federal bribery statute (§201(b)) rather than the federal gratuities statute (§201(c)).\n   b) Statutory history: Congress amended §666 in 1986 to model it after the bribery statute, not the gratuities statute.\n   c) Statutory structure: Unlike other laws, §666 does not separate bribery and gratuities into distinct provisions.\n   d) Statutory punishments: The penalties in §666 align with those for bribery, not gratuities, and would create inexplicable sentencing disparities if applied to gratuities.\n   e) Federalism: Interpreting §666 as a gratuities statute would significantly infringe on states' rights to regulate their officials' conduct.\n   f) Fair notice: The government's interpretation would create ambiguity and potentially criminalize innocuous behavior without clear guidelines for state and local officials.\nThe Court rejected the government's argument that the inclusion of the term \"rewarded\" in §666 indicates it covers gratuities. Rather, the word \"rewarded\" serves to close potential loopholes in bribery cases.\nBecause §666 prohibits bribes but not gratuities, state and local governments may choose whether and how to regulate gratuities for their officials within constitutional bounds.\nJustice Neil Gorsuch joined the Court’s opinion in full and wrote a separate concurrence.\nJustice Ketanji Brown Jackson authored a dissenting opinion, in which Justices Sonia Sotomayor and Elena Kagan joined.",
+                        "advocates": [
+                            "Lisa S. Blatt",
+                            "Colleen E. Roh Sinzdak"
+                        ],
+                        "heard_by": "Roberts Court (2022-)",
+                        "term": "2023",
+                        "description": "A case in which the Court held that 8 U.S.C. § 666(a)(1)(B) does not criminalize gratuities, i.e., payments in recognition of actions a state or local official has already taken or committed to take.",
+                        "justia_url": "https://supreme.justia.com/cases/federal/us/603/23-108/",
+                        "Petitioner": "James E. Snyder",
+                        "Respondent": "United States of America",
+                        "majority": [
+                            "Brett M. Kavanaugh",
+                            "John G. Roberts, Jr.",
+                            "Clarence Thomas",
+                            "Neil Gorsuch",
+                            "Amy Coney Barrett",
+                            "Samuel A. Alito, Jr."
+                        ],
+                        "minority": [
+                            "Sonia Sotomayor",
+                            "Elena Kagan",
+                            "Ketanji Brown Jackson"
+                        ],
+                        "decision": "6/3"
+                    }
+                },
+                {
+                    "_index": "supreme",
+                    "_type": "_doc",
+                    "_id": "2008_08-295",
+                    "_score": 1.0,
+                    "_source": {
+                        "name": "Travelers Indemnity Co. v. Bailey",
+                        "docket_number": "08-295",
+                        "manner_of_jurisdiction": "Writ of certiorari",
+                        "lower_court": "United States Court of Appeals for the Second Circuit",
+                        "facts_of_the_case": "In 1986, a federal bankruptcy court granted Travelers Indemnity Co.'s (Travelers) motion to settle with three separate classes of plaintiffs in asbestos related litigation (on behalf of its insuree Johns-Manville Corp.) and enjoin non-settling parties from future litigation with Travelers for alleged misconduct unrelated to the settlement. The orders were subsequently affirmed by a New York federal district court and the U.S. Court of Appeals for the Second Circuit.\nOver ten years later, the Second Circuit vacated the orders, stating that state-law actions (\"Direct Actions\") against Travelers that alleged wrongdoing while it acted as Johns-Manville Corp.'s insurer were not barred by the 1986 order. The court held that the federal bankruptcy court lacked jurisdiction to prevent such lawsuits.",
+                        "question": "Did the United States Court of Appeals for the Second Circuit err in holding that bankruptcy courts do not have the power to enter orders that extend beyond matters directly related to the execution of a debtor's estate?",
+                        "conclusion": "Yes. The Supreme Court held that the Second Circuit erred in holding that federal bankruptcy courts lack jurisdiction to enter orders beyond matters directly related to the execution of a debtor's estate. With Justice David H. Souter writing for the majority and joined by Chief Justice John G. Roberts, and Justices Antonin G. Scalia, Anthony M. Kennedy, Clarence Thomas, Stephen G. Breyer, and Samuel A. Alito, the Court recognized that the unambiguous terms of the 1986 orders barred Direct Actions against Travelers and the orders' finality stood in the way of challenging their enforceability. It reasoned that the federal bankruptcy court's 1986 orders had become final on direct review 20 years previously, and thus the Second Circuit improperly ruled on an issue that was not reviewable.\nJustice John Paul Stevens, joined by Ruth Bader Ginsburg, dissented. He criticized the majority for improperly interpreting the meaning of the 1986 orders.",
+                        "advocates": [
+                            "Barry R. Ostrager",
+                            "Samuel Issacharoff",
+                            "Jacob C. Cohn"
+                        ],
+                        "heard_by": "Roberts Court (2006-2009)",
+                        "term": "2008",
+                        "description": "A case in which the Court held that federal bankruptcy courts have jurisdiction to enter orders beyond matters directly related to the execution of a debtor's estate.",
+                        "Petitioner": "The Travelers Indemnity Company, et al.",
+                        "Respondent": "Pearlie Bailey, et al.",
+                        "majority": [
+                            "John G. Roberts, Jr.",
+                            "Antonin Scalia",
+                            "Anthony M. Kennedy",
+                            "David H. Souter",
+                            "Clarence Thomas",
+                            "Stephen G. Breyer",
+                            "Samuel A. Alito, Jr."
+                        ],
+                        "minority": [
+                            "John Paul Stevens",
+                            "Ruth Bader Ginsburg"
+                        ],
+                        "decision": "7/2"
+                    }
+                },
+                {
+                    "_index": "supreme",
+                    "_type": "_doc",
+                    "_id": "2014_14-114",
+                    "_score": 1.0,
+                    "_source": {
+                        "name": "King v. Burwell",
+                        "docket_number": "14-114",
+                        "manner_of_jurisdiction": "Writ of certiorari",
+                        "lower_court": "United States Court of Appeals for the Fourth Circuit",
+                        "facts_of_the_case": "In 2010, Congress passed the Affordable Care Act (ACA) to increase the number of Americans covered by health insurance and decrease the cost of health care. The ACA required each state to establish an \"exchange\" through which people could purchase health care coverage, and if a state elected not to do so, the federal government would establish one through the Secretary of Health and Human Services. The ACA also required people to obtain the minimum essential coverage or pay a tax penalty unless they fell within an unaffordability exemption for low-income individuals. To limit the number of people that would fall into such an exemption, the ACA provided for tax credits that are calculated based on the health plan in which an individual enrolls through the exchange. Although the legislative language of the ACA pertaining to the tax credits only referred to the exchanges established by the states, the Internal Revenue Service (IRS) created a regulation that made the tax credits available to those enrolled in plans through federal as well as state exchanges.\nVirginia declined to establish a state-run exchange and has one operated by the federal government. The plaintiffs are a group of Virginia residents who, without the tax credits, would fall under the unaffordability exception and be exempt from having to purchase health insurance. They sued and argued that the IRS regulation exceeded the agency's statutory authority, is arbitrary and capricious, and is contrary to the law in violation of the Administrative Procedure Act. The district court granted the defendants' motion to dismiss, and the U.S. Court of Appeals for the Fourth Circuit affirmed.",
+                        "question": "Did the Internal Revenue Service permissibly create a regulation that extended the tax credits the Affordable Care Act authorized to federal exchanges as well as those created by the states?",
+                        "conclusion": "Yes. Chief Justice John G. Roberts, Jr. delivered the opinion for the 6-3 majority. The Court held that Congress did not delegate the authority to determine whether the tax credits are available through both state-created and federally created exchanges to the Internal Revenue Service, but the language of the statute clearly indicates that Congress intended the tax credits to be available through both types of exchanges. When the plain language of the section in question is considered in the context of the statute as a whole, it is evident that the federally-created exchanges are not meaningfully different from those the states created, and therefore federally-created exchanges are not excluded from the language referring to exchanges created by the states. This reading is also in line with the Congressional intent of covering as many qualified individuals as possible, as the alternative would mean that federally-created exchanges do not contain qualified individuals and operate entirely differently from the state-created ones.\nJustice Antonin Scalia wrote a dissent in which he argued that that the plain language of the statute clearly limits the tax credits to state-created exchanges. The majority opinion’s attempt to use context to justify a more expansive reading that is at odds with the clear meaning of the text distorts statutory interpretation and amounts to rewriting the statute. Justice Scalia also argued that reading the language of the section in question to refer to both state-created and federally-created exchanges fails to give effect to the times when Congress explicitly chose to conflate the two types of exchanges as opposed to the times it did not. The reading that some parts of the statute refer to both types of exchanges and other parts do not is more consistent with the statute as a whole and gives better effect to Congress’ intent in enacting it. The majority opinion’s use of Congressional intent to support its holding errs by focusing only on one of the goals of the legislation to the exclusion of others, and in doing so oversteps the bounds of its judicial authority. Justice Clarence Thomas and Justice Samuel A. Alito, Jr. joined in the dissent.",
+                        "advocates": [
+                            "Michael A. Carvin",
+                            "Donald B. Verrilli, Jr."
+                        ],
+                        "heard_by": "Roberts Court (2010-2016)",
+                        "term": "2014",
+                        "description": "A case in which the Court determined that the plain language of the Affordable Care Act extended tax credits to federally-created exchanges as well as those the states created.",
+                        "justia_url": "https://supreme.justia.com/cases/federal/us/576/473/",
+                        "Petitioner": "David King, et al.",
+                        "Respondent": "Sylvia Mathews Burwell, Secretary of Health and Human Services, et al.",
+                        "majority": [
+                            "John G. Roberts, Jr.",
+                            "Anthony M. Kennedy",
+                            "Ruth Bader Ginsburg",
+                            "Stephen G. Breyer",
+                            "Sonia Sotomayor",
+                            "Elena Kagan"
+                        ],
+                        "minority": [
+                            "Antonin Scalia",
+                            "Clarence Thomas",
+                            "Samuel A. Alito, Jr."
+                        ],
+                        "decision": "6/3"
+                    }
+                },
+                {
+                    "_index": "supreme",
+                    "_type": "_doc",
+                    "_id": "2011_10-1219",
+                    "_score": 1.0,
+                    "_source": {
+                        "name": "Kappos v. Hyatt",
+                        "docket_number": "10-1219",
+                        "manner_of_jurisdiction": "Writ of certiorari",
+                        "lower_court": "United States Court of Appeals for the Federal Circuit",
+                        "facts_of_the_case": "When the U.S. Patent and Trademark Office denies an application for a patent, the applicant may seek judicial review of the agency's final action by one of two means. The applicant may obtain direct review of the agency's determination in the U.S. Court of Appeals for the Federal Circuit. Alternatively, the applicant may commence a civil action against the director of the PTO in federal district court. The court will decide whether a plaintiff in a civil (§ 145) action may introduce new evidence that could have been presented to the agency in the first instance. The court will also consider whether, when new evidence is introduced under § 145, the district court may decide the factual questions to which the evidence pertains, without giving deference to the prior decision of the PTO.\nGilbert P. Hyatt's patent application and subsequent claims were rejected. Hyatt appealed to the U.S. Board of Patent Appeals and Interferences. The Board reversed most of the examiner's written description rejections, but upheld some. Hyatt filed a request for rehearing on the rejected claims, which the Board dismissed on the basis that it raised new issues that could have been raised to either the examiner or the Board. Hyatt responded by filing a civil action at the U.S. District Court for the District of Columbia under §145. He submitted a declaration supporting his new and amended claims. The PTO objected to the declaration, arguing that the district court should not consider the new evidence because Hyatt did not introduce it to either the Board or the examiner. The district court agreed with the PTO, ruling that Hyatt's failure to present the evidence to the PTO constituted a negligent act. The U.S. Court of Appeals for the Federal Circuit reversed the district court's decision.",
+                        "question": "(1) Can a plaintiff, who is appealing the denial of an application of a patent by commencing a civil action against the Director of the United States Patent and Trademark Office (PTO) in a federal district court pursuant to 35 U.S.C. § 145, introduce new evidence that could have been presented to the agency in the first instance?\n(2) When new evidence is introduced under Section 145, can the district court decide de novo the factual questions to which the evidence pertains, without giving deference to the prior decision of the PTO?",
+                        "conclusion": "Yes and Yes. Justice Clarence Thomas wrote for a unanimous court affirming the lower court's decision. The Court held a patent applicant's ability to introduce new evidence in a civil action against the Patent and Trademark Office was only limited by the Federal Rules of Evidence and the Federal Rules of Civil Procedure. The Court also held that a district court can decide a de novo factual question without giving deference to the prior decision and that it may take both new evidence and the administrative record into account.\nJustice Sonia Sotomayor filed a concurring opinion which Justice Stephen G. Breyer joined. Justice Sotomayor wrote separately to emphasize that the Court's decision should not foreclose a district court's authority to exclude evidence that was deliberately suppressed or withheld in bad faith.",
+                        "advocates": [
+                            "Ginger D. Anders",
+                            "Aaron M. Panner",
+                            "Ginger D. Anders"
+                        ],
+                        "heard_by": "Roberts Court (2010-2016)",
+                        "term": "2011",
+                        "description": "A case in which the Court held that a patent applicant's ability to introduce new evidence in a civil action against the Patent and Trademark Office was only limited by the Federal Rules of Evidence and the Federal Rules of Civil Procedure.",
+                        "justia_url": "https://supreme.justia.com/cases/federal/us/566/431/",
+                        "Petitioner": "David J. Kappos, Under Secretary of Commerce for Intellectual Property and Director, Patent and Trademark Office",
+                        "Respondent": "Gilbert P. Hyatt",
+                        "majority": [
+                            "John G. Roberts, Jr.",
+                            "Antonin Scalia",
+                            "Anthony M. Kennedy",
+                            "Clarence Thomas",
+                            "Ruth Bader Ginsburg",
+                            "Stephen G. Breyer",
+                            "Samuel A. Alito, Jr.",
+                            "Sonia Sotomayor",
+                            "Elena Kagan"
+                        ],
+                        "decision": "9/0"
+                    }
+                },
+                {
+                    "_index": "supreme",
+                    "_type": "_doc",
+                    "_id": "2010_09-530",
+                    "_score": 1.0,
+                    "_source": {
+                        "name": "National Aeronautics and Space Administration v. Nelson",
+                        "docket_number": "09-530",
+                        "manner_of_jurisdiction": "Writ of certiorari",
+                        "lower_court": "United States Court of Appeals for the Ninth Circuit",
+                        "facts_of_the_case": "A 2004 Bush administration antiterrorism initiative extended background checks required for many government jobs to contract employees, including scientists and engineers at the Jet Propulsion Laboratory, a research facility operated by the California Institute of Technology under a contract with NASA. Twenty-eight lab employees, who do not have security clearances and are not involved in classified or military activities, filed suit over what they considered to be overly intrusive background checks. A three-judge panel of the U.S. Court of Appeals for the Ninth Circuit ordered the background checks halted while the case continued. The divided court later declined an en banc review.",
+                        "question": "Does the government violate a federal contract employee's constitutional right to privacy by asking her whether she has received counseling or treatment for recent illegal drug use in the past year, or by asking her references if they have any reason to believe she is unsuited to work in a federal facility?",
+                        "conclusion": "No. The court reversed the lower court decision and upheld the background checks that NASA uses for employees of companies working under contract in an opinion by Justice Samuel Alito. Justice Antonin Scalia wrote a concurring opinion, which was joined by Justice Clarence Thomas. Justice Thomas also filed his own concurring opinion. Justice Elena Kagan did not participate in the consideration or decision of the case.",
+                        "advocates": [
+                            "Neal Kumar Katyal",
+                            "Dan Stormer"
+                        ],
+                        "heard_by": "Roberts Court (2010-2016)",
+                        "term": "2010",
+                        "description": "A case in which the Court held that the government's extended background checks for federal employees under the Bush administration's antiterrorism initiative did not violate an employee's constitutional right to privacy.",
+                        "justia_url": "https://supreme.justia.com/cases/federal/us/562/134/",
+                        "Petitioner": "National Aeronautics and Space Administration",
+                        "Respondent": "Robert M. Nelson, et al.",
+                        "majority": [
+                            "John G. Roberts, Jr.",
+                            "Antonin Scalia",
+                            "Anthony M. Kennedy",
+                            "Clarence Thomas",
+                            "Ruth Bader Ginsburg",
+                            "Stephen G. Breyer",
+                            "Samuel A. Alito, Jr.",
+                            "Sonia Sotomayor"
+                        ],
+                        "recused": [
+                            "Elena Kagan"
+                        ],
+                        "decision": "8/0"
+                    }
+                },
+                {
+                    "_index": "supreme",
+                    "_type": "_doc",
+                    "_id": "2024_23-1127",
+                    "_score": 1.0,
+                    "_source": {
+                        "name": "Wisconsin Bell, Inc. cv. United States, ex rel. Heath",
+                        "docket_number": "23-1127",
+                        "manner_of_jurisdiction": "Writ of certiorari",
+                        "lower_court": "United States Court of Appeals for the Seventh Circuit",
+                        "facts_of_the_case": "In 1996, Congress created the E-rate program to help schools and libraries afford telecommunications services. The program provides federal subsidies on a sliding scale, and service providers must follow the “lowest-corresponding-price” rule, offering schools and libraries the lowest price charged to similarly situated non-residential customers. Wisconsin Bell, aware of this rule since its inception, provided services to hundreds of eligible schools and libraries under the E-rate program.\nDespite knowing about the rule, Wisconsin Bell did not train its sales representatives or implement compliance mechanisms until 2009. The company admitted to treating pricing contracts for schools and libraries the same as other customers, often instructing sales representatives to offer the highest prices possible. In 2009, following a settlement by its parent company with the Department of Justice and FCC, Wisconsin Bell developed a compliance plan. In 2008, Todd Heath filed a qui tam action under the False Claims Act, alleging that Wisconsin Bell submitted false claims and certifications related to the E-rate program. After initial dismissal and subsequent appeal, the case proceeded to discovery, and the district court granted summary judgment in favor of Wisconsin Bell. The U.S. Court of Appeals for the Seventh Circuit reversed and remanded, finding that Heath identified enough specific evidence of discriminatory pricing to allow a reasonable jury to find that Wisconsin Bell, acting with the required scienter, charged specific schools and libraries more than it charged similarly situated customers.",
+                        "question": "Do reimbursement requests submitted to the Federal Communications Commission's E-rate program qualify as “claims” under the False Claims Act?",
+                        "conclusion": "The False Claims Act (FCA) applies to E-Rate reimbursement requests because the government “provided” a portion of the money disbursed from the E-Rate program’s fund. Justice Elena Kagan authored the unanimous opinion of the Court. \nA request for money qualifies as an FCA “claim” if the government has provided “any portion” of the funds sought. The government contributed over $100 million to the E-Rate program in the relevant years through two sources: delinquent contributions from telecom carriers collected by the Federal Communications Commission (FCC) and Treasury Department and settlement payments the Justice Department secured in fraud enforcement actions. These sums were first received into government-controlled Treasury accounts before being transferred to the E-Rate fund for disbursement. Because even a fraction of the funds at issue flowed through the government’s hands, the statute’s plain text is satisfied: the government “provided” a portion of the money paid to E-Rate participants. \nWisconsin Bell’s counterargument that the government did not “provide” these funds because they originated from private carriers fails. The statutory definition makes clear that the government’s title to the money is irrelevant. Even acting as an intermediary, the government still \"provides\" money when it receives and distributes funds in furtherance of its programs, as seen in tax collection and other funding mechanisms. Since the Court finds that at least some federal money entered and exited the public treasury before funding E-Rate reimbursements, the FCA applies, and Heath’s fraud claims may proceed.\nJustices Clarence Thomas and Brett Kavanaugh each authored a concurring opinion and joined the other’s, and Justice Samuel Alito joined Justice Thomas’s concurrence in part.",
+                        "advocates": [
+                            "Allyson N. Ho",
+                            "Tejinder Singh",
+                            "Vivek Suri"
+                        ],
+                        "heard_by": "Roberts Court (2022-)",
+                        "term": "2024",
+                        "description": "A case in which the Court will decide whether reimbursement requests submitted to the Federal Communications Commission's E-rate program are “claims” under the False Claims Act.",
+                        "justia_url": "https://supreme.justia.com/cases/federal/us/604/23-1127/",
+                        "Petitioner": "Wisconsin Bell, Inc",
+                        "Respondent": "United States, ex rel. Todd Heath",
+                        "majority": [
+                            "Elena Kagan",
+                            "John G. Roberts, Jr.",
+                            "Clarence Thomas",
+                            "Brett M. Kavanaugh",
+                            "Samuel A. Alito, Jr.",
+                            "Neil Gorsuch",
+                            "Sonia Sotomayor",
+                            "Amy Coney Barrett",
+                            "Ketanji Brown Jackson"
+                        ],
+                        "decision": "9/0"
+                    }
+                },
+                {
+                    "_index": "supreme",
+                    "_type": "_doc",
+                    "_id": "2010_10-114",
+                    "_score": 1.0,
+                    "_source": {
+                        "name": "Fox v. Vice",
+                        "docket_number": "10-114",
+                        "manner_of_jurisdiction": "Writ of certiorari",
+                        "lower_court": "United States Court of Appeals for the Fifth Circuit",
+                        "facts_of_the_case": "In January 2005, Vinton, Louisiana Police Chief Billy Ray Vice, who was seeking re-election to his post, sent fellow candidate Ricky Fox an \"anonymous\" letter trying to blackmail him into dropping out of the race. A month later, someone accused Fox of uttering a racial slur and, at Vice's instigation, filed a false police report regarding Fox's alleged use of the term. Fox brought a civil rights suit against Vice and the town in state court in December 2005, asserting both state and federal claims, and the case was removed to federal court in January 2006. Separately, in April 2007, Vice was tried and found guilty of extortion in state criminal court for the anonymous letter. In 2007, in response to a motion filed by the defendants, Fox admitted that he had failed to properly present any federal cause of action, so the district court dismissed Fox's federal claims with prejudice and remanded the remaining state law claims to state court. The district court then granted the defendants' motion for attorneys' fees, finding that Fox's federal claims were frivolous, unreasonable and without foundation. Fox appealed the fee award to the U.S. Court of Appeals for the Fifth Circuit, and in a split decision the appeals court affirmed the district court's order.",
+                        "question": "Can a court award attorneys' fees to civil rights defendants based on a dismissal of a claim when the plaintiff has asserted other nonfrivolous claims?",
+                        "conclusion": "Yes. The Supreme Court vacated and remanded the lower court order in a unanimous opinion by Justice Elena Kagan. \"When a plaintiff's suit involves both frivolous and non-frivolous claims, a court may grant reasonable fees to the defendant, but only for costs that the defendant would not have incurred but for the frivolous claims,\" Kagan wrote.",
+                        "advocates": [
+                            "E. Joshua Rosenkranz",
+                            "Mark T. Stancil",
+                            "Mark T. Stancil"
+                        ],
+                        "heard_by": "Roberts Court (2010-2016)",
+                        "term": "2010",
+                        "description": "A case in which the Court held that a court may award attorney's fees to civil rights defendants when the plaintiff's suit involves frivolous and non-frivolous claims, but only for the costs incurred due to the frivolous claims. ",
+                        "justia_url": "https://supreme.justia.com/cases/federal/us/563/826/",
+                        "Petitioner": "Ricky D. Fox",
+                        "Respondent": "Judy Ann Vice, as executrix of the Estate of Billy Ray Vice, et al.",
+                        "majority": [
+                            "John G. Roberts, Jr.",
+                            "Antonin Scalia",
+                            "Anthony M. Kennedy",
+                            "Clarence Thomas",
+                            "Ruth Bader Ginsburg",
+                            "Stephen G. Breyer",
+                            "Samuel A. Alito, Jr.",
+                            "Sonia Sotomayor",
+                            "Elena Kagan"
+                        ],
+                        "decision": "9/0"
+                    }
+                },
+                {
+                    "_index": "supreme",
+                    "_type": "_doc",
+                    "_id": "2008_07-1356",
+                    "_score": 1.0,
+                    "_source": {
+                        "name": "Kansas v. Ventris",
+                        "docket_number": "07-1356",
+                        "manner_of_jurisdiction": "Writ of certiorari",
+                        "lower_court": "Kansas Supreme Court",
+                        "facts_of_the_case": "In January 2003, Donnie Ventris and his girlfriend entered the apartment of Ernest Hicks who was subsequently robbed and killed. Mr. Ventris was convicted of aggravated robbery and aggravated battery by the District Court of Montgomery County in Kansas. To rebut the testimony of Mr. Ventris at trial, the State relied on the testimony of his former cell mate, Johnnie Doser. The government recruited Mr. Doser to keep his \"ear open\" and listen for incriminating statements made by Mr. Ventris. Mr. Ventris appealed claiming this testimony violated his Sixth Amendment right to counsel. The District Court's decision was affirmed by the Court of Appeals but reversed by the Supreme Court of Kansas.\nThe court held that \"[w]ithout a knowing and voluntary waiver of the right to counsel, the admission of the defendant's uncounseled statements to an undercover informant who is secretly acting as a State agent violates the defendant's Sixth Amendment rights.\" It reasoned that the fact finding responsibilities of the trial court do not outweigh individuals' constitutional rights.",
+                        "question": "Are statements obtained in the absence of a knowing and voluntary waiver of the Sixth Amendment right to counsel admissible for the purposes of impeaching a defendant's testimony?",
+                        "conclusion": "Yes. Mr. Ventris' statements, elicited in violation of the Sixth Amendment, were admissible to impeach his inconsistent testimony at trial. With Justice Antonin G. Scalia writing for the majority and joined by Chief Justice John G. Roberts, and Justices Anthony M. Kennedy, David H. Souter, Clarence Thomas, Stephen G. Breyer, and Samuel A. Alito, the Court reasoned that the interests protected by excluding \"tainted evidence\" are outweighed by the need to assure \"integrity of the trial process.\"\nJustice John Paul Stevens, joined by Justice Ruth Bader Ginsburg, dissented. He sharply criticized the majority for allowing the State to cut corners in criminal proceedings at the expense of criminal defendants' constitutional guarantees.",
+                        "advocates": [
+                            "Stephen R. McAllister",
+                            "Nicole A. Saharsky",
+                            "Matthew J. Edge"
+                        ],
+                        "heard_by": "Roberts Court (2006-2009)",
+                        "term": "2008",
+                        "description": "A case in which the Court found that statements obtained for the purpose of impeaching a defendant's testimony, in the absence of a knowing and voluntary waiver of the Sixth Amendment right to counsel, were admissible. ",
+                        "Petitioner": "State of Kansas",
+                        "Respondent": "Donnie Ventris",
+                        "majority": [
+                            "John G. Roberts, Jr.",
+                            "Antonin Scalia",
+                            "Anthony M. Kennedy",
+                            "David H. Souter",
+                            "Clarence Thomas",
+                            "Stephen G. Breyer",
+                            "Samuel A. Alito, Jr."
+                        ],
+                        "minority": [
+                            "John Paul Stevens",
+                            "Ruth Bader Ginsburg"
+                        ],
+                        "decision": "7/2"
+                    }
+                },
+                {
+                    "_index": "supreme",
+                    "_type": "_doc",
+                    "_id": "2018_17-290",
+                    "_score": 1.0,
+                    "_source": {
+                        "name": "Merck Sharp & Dohme Corp. v. Albrecht",
+                        "docket_number": "17-290",
+                        "manner_of_jurisdiction": "Writ of certiorari",
+                        "lower_court": "United States Court of Appeals for the Third Circuit",
+                        "facts_of_the_case": "Beginning in 2010, hundreds of plaintiffs around the country filed personal injury lawsuits against drug manufacturer Merck Sharp & Dohme (“Merck”), claiming that the osteoporosis drug Fosamax had caused them to suffer severe thigh bone fractures. Under state tort law, each plaintiff alleged, among other things, that Merck’s Food and Drug Administration (FDA)-approved drug label failed to include an adequate warning regarding the risk of femur fractures.\nIn 2011 the cases were consolidated as a multi-district litigation action in the U.S. District Court for the District of New Jersey. The cases subsequently grew to include over 1,000 plaintiffs. After discovery and a bellwether trial, the district court ruled in favor of Merck on a summary judgment motion, dismissing all of the plaintiffs’ claims on the basis that they were preempted by federal law under Wyeth v. Levine, 555 U.S. 555 (2009), which held that state-law failure-to-warn claims are preempted in the event that there is “clear evidence” that the FDA would not have approved the warning that a plaintiff claims was necessary.\nThe U.S. Court of Appeals for the Third Circuit vacated and remanded the district court’s ruling, holding that preemption was an affirmative defense, and that Merck had not sufficiently proven that it was entitled to that defense as a matter of law. Under Wyeth’s demanding “clear evidence” standard, the appellate court found that the plaintiffs had produced adequate evidence for a reasonable jury to find that the FDA would have approved an appropriately worded warning about the risk of femur fractures, or at least that the chances of FDA rejection were not highly probable. Pursuant to Wyeth and Federal Rule of Civil Procedure 56, this showing was sufficient to defeat summary judgment and move forward to trial.",
+                        "question": "Is a state-law failure-to-warn claim preempted when the Food and Drug Administration (FDA) rejected the drug manufacturer’s proposal to warn about the risk after being provided with the relevant scientific data, or must such a case go to a jury for conjecture as to why the FDA rejected the proposed warning?",
+                        "conclusion": "Whether the FDA’s rejection of a proposed drug label preempts state-law failure-to-warn claims requires “clear evidence” that the drug manufacturer fully informed the FDA of the justifications for the warning required by state law and that the FDA informed the drug manufacturer that it would not approve that change and is primarily a legal question that must be resolved by a judge, not a factual question to be resolved by a jury.\nJustice Stephen Breyer authored the Opinion of the Court (6-3 in its reasoning, but 9-0 in the judgment). Under the Supremacy Clause of the U.S. Constitution, federal law preempts state law when it is “impossible for a private party to comply with both state and federal requirements.” Here, the state law at issue is state common law or statutes that require drug manufacturers to warn drug consumers of the risks associated with a particular drug. The federal law at issue is the statutory and regulatory scheme by which the FDA regulates the labels of brand-name prescription drugs.\nIn Wyeth v. Levine, 555 U.S. 555 (2009), the Court held that “absent clear evidence that the FDA would not have approved a change” to the label, the Court could not conclude that it was impossible to comply with both federal and state labeling requirements.” Applied to the facts of that case, that the state-law claims were preempted by federal law only if the drug manufacturer showed it “fully informed” the FDA of the justifications for the warning required by state law, and also that the FDA then informed the drug manufacturer that the FDA would not approve changing the drug’s label to include that warning. Justice Breyer clarified that “clear evidence” is not a heightened evidentiary standard but a requirement that the court consider “whether the relevant federal and state laws ‘irreconcilably conflic[t].’”\nIt is not enough that the FDA simply act. It must act pursuant to its congressionally delegated authority, as preemption only occurs when federal law—not all agency action—conflicts with state law. The question whether the FDA’s disapproval of the proposed label is primarily one of law and thus better suited for judges, not juries, to resolve. Judge are “better equipped” than juries “to evaluate the nature and scope of an agency’s determination...and to interpret agency decisions in light of the governing statutory and regulatory context.” Thus, the Third Circuit erred in treating the preemption question as one of fact, not law.\nJustice Clarence Thomas joined the majority and wrote separate concurring opinion to explain his understanding of preemption doctrine. Justice Thomas argued that the FDA’s response letter in this case “was not a final agency action with the force of law,” and thus could not preempt under the original meaning of the Supremacy Clause.\nJustice Samuel Alito authored an opinion concurring only in the judgment of the Court, in which Chief Justice John Roberts and Justice Brett Kavanaugh joined. Justice Alito agreed with the majority that the question of preemption in this case is a question of law, but he declined to join the majority because of concern that its discussion of the law and facts may be misleading on remand. Justice Alito argued that a standard of proof like “clear evidence” has “no place in the resolution of this question of law” and that notwithstanding the majority’s suggestion to the contrary, there are other ways in which a drug manufacturer may change a label without prior FDA approval.",
+                        "advocates": [
+                            "Shay Dvoretzky",
+                            "Malcolm L. Stewart",
+                            "David C. Frederick"
+                        ],
+                        "heard_by": "Roberts Court (2018-2020)",
+                        "term": "2018",
+                        "description": "A case in which the Court held that “clear evidence” that the FDA would not have approved a change to a drug’s label—thus pre-empting a state-law failure-to-warn claim—is evidence showing that the drug manufacturer fully informed the FDA of the justifications for the warning required by state law and that the FDA, in turn, informed the drug manufacturer that the FDA would not approve a change to the drug’s label to include that warning. The Court further held that the question of agency disapproval is primarily one of law for a judge, not a jury, to decide.",
+                        "justia_url": "https://supreme.justia.com/cases/federal/us/587/17-290/",
+                        "Petitioner": "Merck Sharp & Dohme Corp.",
+                        "Respondent": "Doris Albrecht, et al.",
+                        "majority": [
+                            "Stephen G. Breyer",
+                            "Clarence Thomas",
+                            "Ruth Bader Ginsburg",
+                            "Sonia Sotomayor",
+                            "Elena Kagan",
+                            "Neil Gorsuch"
+                        ],
+                        "minority": [
+                            "Samuel A. Alito, Jr.",
+                            "Brett M. Kavanaugh",
+                            "John G. Roberts, Jr."
+                        ],
+                        "decision": "6/3"
+                    }
+                }
+            ]
+        }
+    }
+}
