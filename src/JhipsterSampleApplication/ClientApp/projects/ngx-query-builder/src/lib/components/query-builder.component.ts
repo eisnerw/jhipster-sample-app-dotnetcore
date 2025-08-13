@@ -476,7 +476,10 @@ export class QueryBuilderComponent
         return undefined; // No displayed component
       case 'in':
       case 'not in':
-        return type === 'category' || type === 'boolean' ? 'multiselect' : type;
+        // Treat IN/NOT IN as multi-value for category, boolean, string, and number fields
+        return type === 'category' || type === 'boolean' || type === 'string' || type === 'number'
+          ? 'multiselect'
+          : type;
       default:
         return type;
     }
@@ -828,10 +831,94 @@ export class QueryBuilderComponent
       rule.field,
       operator,
     );
-    if (inputType === 'multiselect' && !Array.isArray(value)) {
+    if (inputType === 'multiselect') {
+      if (Array.isArray(value)) {
+        return value;
+      }
+      if (value === null || value === undefined) {
+        return [];
+      }
       return [value];
     }
     return value;
+  }
+
+  // ---------- Multi-value chips helpers (IN / NOT IN for string/number) ----------
+
+  private parseTokens(text: string): string[] {
+    if (!text) {
+      return [];
+    }
+    // Split on comma, pipe, or newline; trim whitespace; drop empties
+    return text
+      .split(/[\n,|]/)
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+  }
+
+  private coerceTokenForField(token: string, field: string): string | number | boolean | string {
+    const fieldType = this.config.fields[field]?.type;
+    if (fieldType === 'number') {
+      const n = Number(token);
+      return isNaN(n) ? token : (n as unknown as number);
+    }
+    if (fieldType === 'boolean') {
+      if (token.toLowerCase() === 'true') return true;
+      if (token.toLowerCase() === 'false') return false;
+      return token;
+    }
+    return token;
+  }
+
+  addTokensFromText(rule: Rule, text: string): void {
+    if (!rule) return;
+    const tokens = this.parseTokens(text).map((t) => this.coerceTokenForField(t, rule.field));
+    const current: any[] = Array.isArray(rule.value) ? (rule.value as any[]) : [];
+    const next = [...current];
+    for (const tok of tokens) {
+      if (!next.some((v) => String(v) === String(tok))) {
+        next.push(tok);
+      }
+    }
+    rule.value = next;
+    this.handleTouched();
+    this.handleDataChange();
+  }
+
+  removeToken(rule: Rule, index: number): void {
+    if (!rule || !Array.isArray(rule.value)) return;
+    rule.value.splice(index, 1);
+    this.handleTouched();
+    this.handleDataChange();
+  }
+
+  onTokenKeydown(event: KeyboardEvent, rule: Rule): void {
+    const target = event.target as HTMLInputElement;
+    const key = event.key;
+    if (key === 'Enter' || key === ',' || key === '|') {
+      event.preventDefault();
+      const value = target.value || '';
+      this.addTokensFromText(rule, value);
+      target.value = '';
+    } else if (key === 'Backspace' && (!target.value || target.value.length === 0)) {
+      // Remove last token when backspacing on empty input
+      const arr: any[] = Array.isArray(rule.value) ? (rule.value as any[]) : [];
+      if (arr.length > 0) {
+        arr.pop();
+        rule.value = arr;
+        this.handleTouched();
+        this.handleDataChange();
+      }
+    }
+  }
+
+  onTokenBlur(event: FocusEvent, rule: Rule): void {
+    const target = event.target as HTMLInputElement;
+    const value = target.value || '';
+    if (value.trim().length > 0) {
+      this.addTokensFromText(rule, value);
+      target.value = '';
+    }
   }
 
   changeInput(): void {
@@ -1256,7 +1343,12 @@ export class QueryBuilderComponent
       case 'boolean':
         return val !== true && val !== false;
       case 'multiselect':
-        return !Array.isArray(val);
+        if (!Array.isArray(val)) return true;
+        // For IN/NOT IN operators, require at least one selected value
+        if (rule.operator === 'in' || rule.operator === 'not in') {
+          return val.length === 0;
+        }
+        return false;
       default:
         return val === undefined || val === null;
     }

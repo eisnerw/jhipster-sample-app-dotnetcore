@@ -484,19 +484,38 @@
           </select>
         }
         @case ('multiselect') {
-          <select
-            [ngClass]="getClassNames('inputControl')"
-            [(ngModel)]="rule.value"
-            (ngModelChange)="changeInput()"
-            [disabled]="disabled"
-            multiple
-          >
-            @for (opt of getOptions(rule.field, rule, data); track opt) {
-              <option [ngValue]="opt.value">
-                {{ opt.name }}
-              </option>
-            }
-          </select>
+          @if ((getOptions(rule.field, rule, data) || []).length > 0) {
+            <select
+              [ngClass]="getClassNames('inputControl')"
+              [(ngModel)]="rule.value"
+              (ngModelChange)="changeInput()"
+              [disabled]="disabled"
+              multiple
+            >
+              @for (opt of getOptions(rule.field, rule, data); track opt) {
+                <option [ngValue]="opt.value">
+                  {{ opt.name }}
+                </option>
+              }
+            </select>
+          } @else {
+            <div [ngClass]="getClassNames('inputControl')" class="q-chip-input">
+              @for (tok of (rule.value || []); track tok; let i = $index) {
+                <span class="q-chip">
+                  {{ tok }}
+                  <button type="button" class="q-chip-remove" (click)="removeToken(rule, i)" [disabled]="disabled">×</button>
+                </span>
+              }
+              <input
+                type="text"
+                class="q-chip-text"
+                [disabled]="disabled"
+                (keydown)="onTokenKeydown($event, rule)"
+                (blur)="onTokenBlur($event, rule)"
+                placeholder="Add value"
+              />
+            </div>
+          }
         }
         @case ('boolean') {
           <input

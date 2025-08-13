@@ -276,16 +276,27 @@ export function bqlToRuleset(
       ) {
         consume(); // (
         const values: any[] = [];
+        let expectValue = true;
         while (peek() && peek().value !== ')') {
-          const tok = consume();
-          if (tok.type !== 'word' && tok.type !== 'string') {
-            throw new Error('Unexpected token');
-          }
-          const v =
-            tok.type === 'string' ? tok.value : parseValue(tok, field, config);
-          values.push(v);
-          if (peek() && peek().value === ',') {
+          const tok = peek();
+          if (expectValue) {
+            if (tok.type !== 'word' && tok.type !== 'string') {
+              throw new Error('Unexpected token');
+            }
             consume();
+            const v =
+              tok.type === 'string' ? tok.value : parseValue(tok, field, config);
+            values.push(v);
+            expectValue = false;
+            if (peek() && peek().value === ',') {
+              consume();
+              expectValue = true;
+            }
+          } else {
+            // We just consumed a value but no comma found before ')'
+            if (tok.value !== ')') {
+              throw new Error('Unexpected token');
+            }
           }
         }
         if (!peek() || peek().value !== ')') {
@@ -294,6 +305,12 @@ export function bqlToRuleset(
         consume();
         if (values.length === 0) {
           throw new Error('IN requires at least one value');
+        }
+        if (!expectValue) {
+          // ok
+        } else {
+          // Trailing comma like (a,)
+          throw new Error('Trailing comma in IN list');
         }
         return {
           condition: 'and',

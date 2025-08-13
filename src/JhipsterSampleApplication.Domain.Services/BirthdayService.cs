@@ -396,16 +396,44 @@ public class BirthdayService : IBirthdayService
                     ret = oredTerms[0];
                 }
             } else if (rr.@operator?.Contains("in") == true) {
-                List<string> uniqueValues = await GetUniqueFieldValuesAsync(rr.field + ".keyword");
-                var valueArray = rr.value as JArray ?? new JArray();
-                List<string> caseSensitiveMatches = valueArray.Select(v =>
+                // IN/NOT IN support using terms query. Guard against nulls and empty arrays.
+                var valueArray = rr.value as JArray;
+                if (valueArray is not JArray){
+                    valueArray  = JArray.FromObject(rr.value!);
+                }
+                if (valueArray == null || valueArray.Count == 0)
                 {
-                    string vStr = v?.ToString() ?? string.Empty;
-                    return uniqueValues.Where(s => s.ToLower() == vStr.ToLower());
-                }).Aggregate((agg, list) => agg.Concat(list).ToList()).ToList();
+                    // Invalid or no-op: return match_none to be safe for positive IN; for NOT IN, wrap later in must_not
+                    return new JObject{{
+                        "match_none", new JObject{}
+                    }};
+                }
+
+                // For text fields, map to existing unique .keyword values with case-insensitive matching
+                List<string> uniqueValues = await GetUniqueFieldValuesAsync(rr.field + ".keyword");
+                var lowered = uniqueValues.Select(s => new { raw = s, lower = s.ToLower() }).ToList();
+                var requested = valueArray
+                    .Select(v => (v?.ToString() ?? string.Empty).ToLower())
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .ToList();
+
+                var matched = lowered
+                    .Where(u => requested.Contains(u.lower))
+                    .Select(u => u.raw)
+                    .Distinct()
+                    .ToList();
+
+                if (matched.Count == 0)
+                {
+                    // Nothing matches: return match_none (or will invert later for NOT IN)
+                    return new JObject{{
+                        "match_none", new JObject{}
+                    }};
+                }
+
                 return new JObject{{
                     "terms", new JObject{{
-                        rr.field + ".keyword", JArray.FromObject(caseSensitiveMatches)
+                        rr.field + ".keyword", JArray.FromObject(matched)
                     }}
                 }};
             } else if (rr.@operator?.Contains("exists") == true) {

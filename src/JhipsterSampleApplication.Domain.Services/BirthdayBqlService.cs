@@ -350,11 +350,20 @@ namespace JhipsterSampleApplication.Domain.Services
             {
                 if (tokens[index].StartsWith("(") && tokens[index].EndsWith(")"))
                 {
-                    var values = tokens[index].Substring(1, tokens[index].Length - 2)
+                    var raw = tokens[index].Substring(1, tokens[index].Length - 2);
+                    var values = raw
                         .Split(',')
-                        .Select(v => v.Trim().ToLower())
-                        .Where(v => IsValidValue(field, v.StartsWith('"') && v.EndsWith('"') ? v.Substring(1, v.Length - 2) : v))
-                        .Select(v => $"\"{v}\"")
+                        .Select(v => v.Trim())
+                        .Select(v =>
+                        {
+                            var t = v;
+                            if (t.Length >= 2 && t.StartsWith('"') && t.EndsWith('"'))
+                            {
+                                t = t.Substring(1, t.Length - 2);
+                            }
+                            return t.ToLower();
+                        })
+                        .Where(v => IsValidValue(field, v))
                         .ToList();
 
                     if (values.Count == 0)

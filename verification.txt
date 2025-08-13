@@ -18,7 +18,7 @@ Save named rulesets in elasticsearch
 Make category case-insensitive
 *Support (uncategorized)
 *Support dob >= 1990
-Implement IN operator
+*Implement IN operator
 
 Bugs:
 Still not positioning scrollbar in grid mode

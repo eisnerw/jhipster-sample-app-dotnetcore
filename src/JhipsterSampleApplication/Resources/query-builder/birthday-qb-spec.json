@@ -8,12 +8,12 @@
     "lname": {
       "name": "Last Name",
       "type": "string",
-      "operators": ["=", "!=", "contains", "!contains", "like", "!like"]
+      "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "not in"]
     },
     "fname": {
       "name": "First Name",
       "type": "string",
-      "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+      "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "not in", "exists"]
     },
     "isAlive": {
       "name": "Alive?",
@@ -49,8 +49,8 @@
     }
   },
   "operatorMap": {
-    "string": ["=", "!=", "contains", "!contains", "like", "!like"],
-    "number": ["=", "!=", ">", ">=", "<", "<="],
+    "string": ["=", "!=", "contains", "!contains", "like", "!like", "in", "not in"],
+    "number": ["=", "!=", ">", ">=", "<", "<=", "in", "not in"],
     "time": ["=", "!=", ">", ">=", "<", "<="],
     "date": ["=", "!=", ">", ">=", "<", "<="],
     "category": ["=", "!=", "in", "not in"],
