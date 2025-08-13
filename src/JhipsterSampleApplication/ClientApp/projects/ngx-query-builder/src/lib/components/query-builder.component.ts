@@ -1229,7 +1229,16 @@ export class QueryBuilderComponent
         if ((item as RuleSet).rules) {
           return this.validateRulesInRuleset(item as RuleSet, errorStore);
         } else if ((item as Rule).field) {
-          const field = this.config.fields[(item as Rule).field];
+          const rule = item as Rule;
+          const field = this.config.fields[rule.field];
+          if (field) {
+            if (!this.isOperatorAllowed(rule)) {
+              errorStore.push({ field: rule.field, operator: rule.operator, error: 'invalid-operator' });
+            }
+            if (!this.hasAllowedRegexFlagsForContains(rule, field)) {
+              errorStore.push({ field: rule.field, error: 'invalid-regex-flags' });
+            }
+          }
           if (field && field.validator) {
             const error = field.validator(item as Rule, ruleset);
             if (error != null) {
@@ -1241,6 +1250,38 @@ export class QueryBuilderComponent
         }
       });
     }
+  }
+
+  private isOperatorAllowed(rule: Rule): boolean {
+    const fieldConf = this.config.fields[rule.field];
+    if (!fieldConf) {
+      return false;
+    }
+    const allowedOperators = this.getOperators(rule.field) || [];
+    return typeof rule.operator === 'string' && allowedOperators.indexOf(rule.operator) !== -1;
+  }
+
+  private hasAllowedRegexFlagsForContains(rule: Rule, field: Field): boolean {
+    const operator = rule.operator;
+    if (operator !== 'contains' && operator !== '!contains') {
+      return true;
+    }
+    const value = (rule as any).value;
+    if (typeof value !== 'string') {
+      return true; // non-string values are not regex literals; let other validators handle
+    }
+    // Match regex literals like /exp/ or /exp/i, allowing escaped slashes
+    const match = value.match(/^\/(?:\\\/|\\.|[^\/])+\/([a-z]*)$/);
+    if (!match) {
+      return true; // not a regex literal; normal contains value is fine
+    }
+    const flags = match[1] || '';
+    for (const ch of flags) {
+      if (ch !== 'i') {
+        return false; // only 'i' is allowed
+      }
+    }
+    return true;
   }
 
   private handleDataChange(): void {
@@ -1830,3 +1871,6 @@ export class QueryBuilderComponent
     }
   }
 }
+
+// Additions: helper methods and strengthened rule validation
+// NOTE: Placing these methods at file end inside the class would break structure; instead, we insert them with minimal disruption above where they're first used.

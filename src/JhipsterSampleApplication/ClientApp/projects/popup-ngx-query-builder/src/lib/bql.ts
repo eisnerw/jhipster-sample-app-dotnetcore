@@ -4,6 +4,39 @@ export interface BqlParseOptions {
 
 import { RuleSet, Rule, QueryBuilderConfig } from 'ngx-query-builder';
 
+// Default operator map mirroring the query builder component
+const DEFAULT_OPERATOR_MAP: Record<string, string[]> = {
+  string: ['=', '!=', 'contains', '!contains', 'like', '!like'],
+  number: ['=', '!=', '>', '>=', '<', '<='],
+  time: ['=', '!=', '>', '>=', '<', '<='],
+  date: ['=', '!=', '>', '>=', '<', '<='],
+  category: ['=', '!=', 'in', 'not in'],
+  boolean: ['='],
+};
+
+function getAllowedOperators(
+  fieldName: string,
+  config: QueryBuilderConfig,
+): string[] {
+  const fieldConf = config.fields[fieldName];
+  if (!fieldConf) return [];
+  let operators: string[] | undefined = fieldConf.operators;
+  if (config.getOperators) {
+    try {
+      operators = config.getOperators(fieldName, fieldConf);
+    } catch {
+      // fall back below
+    }
+  }
+  if (!operators || operators.length === 0) {
+    operators = DEFAULT_OPERATOR_MAP[fieldConf.type] || [];
+  }
+  if (fieldConf.nullable) {
+    operators = operators.concat(['is null', 'is not null']);
+  }
+  return operators;
+}
+
 function isRule(obj: Rule | RuleSet): obj is Rule {
   return (obj as Rule).field !== undefined;
 }
@@ -489,14 +522,7 @@ function validateRule(
   const fieldConf = config.fields[rule.field];
   if (!fieldConf) return false;
 
-  let operators = fieldConf.operators || [];
-  if (config.getOperators) {
-    try {
-      operators = config.getOperators(rule.field, fieldConf);
-    } catch {
-      operators = fieldConf.operators || [];
-    }
-  }
+  const operators = getAllowedOperators(rule.field, config);
   if (operators.length && !operators.includes(rule.operator)) {
     return false;
   }
@@ -504,6 +530,21 @@ function validateRule(
   if (rule.operator === 'in' || rule.operator === 'not in') {
     if (!Array.isArray(rule.value) || rule.value.length === 0) {
       return false;
+    }
+  }
+
+  // For contains operators, restrict regex literals to /exp/ or /exp/i only
+  if (rule.operator === 'contains' || rule.operator === '!contains') {
+    if (typeof rule.value === 'string') {
+      const m = rule.value.match(/^\/(?:\\\/|\\.|[^\/])+\/([a-z]*)$/);
+      if (m) {
+        const flags = m[1] || '';
+        for (const ch of flags) {
+          if (ch !== 'i') {
+            return false;
+          }
+        }
+      }
     }
   }
 
