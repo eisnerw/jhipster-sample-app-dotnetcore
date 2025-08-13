@@ -23,6 +23,7 @@ search history
 logs to elasticsearch
 log as entity
 Move regex to LIKE
+Fix failing tests
 
 Bugs:
 Still not positioning scrollbar in grid mode
