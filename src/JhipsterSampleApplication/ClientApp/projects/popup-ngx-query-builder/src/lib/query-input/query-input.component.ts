@@ -98,7 +98,38 @@ export class QueryInputComponent implements OnInit {
   };
 
   get queryBuilderConfig(): QueryBuilderConfig {
-    const base = this.config || this.defaultConfig;
+    // Start from provided config or minimal default
+    const base = { ...(this.config || this.defaultConfig) } as QueryBuilderConfig;
+
+    // If a spec is provided, merge fields/entities and hydrate operators from operatorMap
+    if (this.spec) {
+      let specObj: QueryLanguageSpec | null = null;
+      if (typeof this.spec === 'string') {
+        try {
+          specObj = JSON.parse(this.spec) as QueryLanguageSpec;
+        } catch {
+          specObj = null;
+        }
+      } else {
+        specObj = this.spec as QueryLanguageSpec;
+      }
+      if (specObj && specObj.fields) {
+        const opMap = specObj.operatorMap || {};
+        const hydratedFields: Record<string, any> = {};
+        Object.keys(specObj.fields).forEach((k) => {
+          const f = { ...(specObj!.fields as any)[k] };
+          if ((!f.operators || f.operators.length === 0) && f.type && opMap[f.type]) {
+            f.operators = [...opMap[f.type]];
+          }
+          hydratedFields[k] = f;
+        });
+        base.fields = hydratedFields as any;
+        if (specObj.entities) {
+          base.entities = specObj.entities;
+        }
+      }
+    }
+
     return {
       ...base,
       listNamedRulesets: this.listNamedRulesets.bind(this),
