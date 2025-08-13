@@ -1,0 +1,33 @@
+[
+	{
+		"id": "term",
+		"name": "Term",
+		"field": "term",
+		"aggregation": "term.keyword",
+		"query": "term:*",
+		"categoryQuery": "",
+		"script": "",
+		"domain": "supreme"
+	},
+	{
+		"id": "heard by",
+		"name": "Heard By",
+		"field": "heard_by",
+		"aggregation": "heard_by.keyword",
+		"query": "heard_by:*",
+		"categoryQuery": "",
+		"script": "",
+		"domain": "supreme"
+	},
+	{
+		"id": "term/heard by",
+		"name": "Heard By",
+		"field": "heard_by",
+		"aggregation": "heard_by.keyword",
+		"query": "heard_by:*",
+		"categoryQuery": "",
+		"script": "",
+		"parentViewId": "term",
+		"domain": "supreme"
+	}
+]

@@ -1,0 +1,92 @@
+{
+  "fields": {
+    "document": {
+      "name": "Document",
+      "type": "string",
+      "operators": ["contains", "!contains"]
+    },
+    "name": {
+      "name": "Case Name",
+      "type": "string",
+      "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "not in", "exists"]
+    },
+    "term": {
+      "name": "Term",
+      "type": "string",
+      "operators": ["=", "!=", "in", "not in", "exists"]
+    },
+    "docket_number": {
+      "name": "Docket #",
+      "type": "string",
+      "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+    },
+    "petitioner": {
+      "name": "Petitioner",
+      "type": "string",
+      "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+    },
+    "respondent": {
+      "name": "Respondent",
+      "type": "string",
+      "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+    },
+    "heard_by": {
+      "name": "Heard By",
+      "type": "string",
+      "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+    },
+    "lower_court": {
+      "name": "Lower Court",
+      "type": "string",
+      "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+    },
+    "manner_of_jurisdiction": {
+      "name": "Jurisdiction",
+      "type": "string",
+      "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+    },
+    "majority": {
+      "name": "Majority",
+      "type": "string",
+      "operators": ["contains", "!contains", "exists"]
+    },
+    "minority": {
+      "name": "Minority",
+      "type": "string",
+      "operators": ["contains", "!contains", "exists"]
+    },
+    "advocates": {
+      "name": "Advocates",
+      "type": "string",
+      "operators": ["contains", "!contains", "exists"]
+    },
+    "question": {
+      "name": "Question",
+      "type": "string",
+      "operators": ["contains", "!contains", "exists"]
+    },
+    "facts_of_the_case": {
+      "name": "Facts",
+      "type": "string",
+      "operators": ["contains", "!contains", "exists"]
+    },
+    "conclusion": {
+      "name": "Conclusion",
+      "type": "string",
+      "operators": ["contains", "!contains", "exists"]
+    },
+    "description": {
+      "name": "Description",
+      "type": "string",
+      "operators": ["contains", "!contains", "exists"]
+    }
+  },
+  "operatorMap": {
+    "string": ["=", "!=", "contains", "!contains", "like", "!like", "in", "not in"],
+    "number": ["=", "!=", ">", ">=", "<", "<=", "in", "not in"],
+    "time": ["=", "!=", ">", ">=", "<", "<="],
+    "date": ["=", "!=", ">", ">=", "<", "<="],
+    "category": ["=", "!=", "in", "not in"],
+    "boolean": ["="]
+  }
+}
