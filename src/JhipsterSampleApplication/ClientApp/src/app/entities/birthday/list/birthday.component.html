@@ -129,6 +129,8 @@
 
   <p-contextMenu #contextMenu [model]="menuItems" (onShow)="onMenuShow()"></p-contextMenu>
 
+  <p-confirmDialog></p-confirmDialog>
+
   <p-dialog [(visible)]="showCategorizeDialog" [modal]="true" [header]="'Categorize (' + rowsToCategorizeCount + ')'" [style]="{width: '32rem'}">
     <div class="mb-2">
       <label class="form-label">New category</label>

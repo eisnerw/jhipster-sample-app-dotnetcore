@@ -25,6 +25,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { ButtonModule } from 'primeng/button';
 import { MenuModule } from 'primeng/menu';
 import { ChipModule } from 'primeng/chip';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 import {
   BirthdayService,
@@ -82,6 +83,7 @@ import {
     ButtonModule,
     MenuModule,
     ChipModule,
+    ConfirmDialogModule,
   ],
   standalone: true,
 })
@@ -194,69 +196,14 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   // New properties for super-table
-  menuItems: MenuItem[] = [
-    {
-      label: 'Categorize',
-      icon: 'pi pi-tags',
-      command: () => this.openCategorizeDialog(),
-    },
-    {
-      label: 'Select action',
-      items: [
-        {
-          label: 'View',
-          icon: 'pi pi-fw pi-search',
-          command() {
-            // Handle view action
-          },
-        },
-        {
-          label: 'Edit',
-          icon: 'pi pi-fw pi-pencil',
-          command() {
-            // Handle edit action
-          },
-        },
-        {
-          label: 'Delete',
-          icon: 'pi pi-fw pi-trash',
-          command() {
-            // Handle delete action
-          },
-        },
-      ],
-    },
-    {
-      label: 'Select another birthday to relate',
-      items: [
-        {
-          label: 'Relate',
-          icon: 'pi pi-fw pi-link',
-          command() {
-            // Handle relate action
-          },
-        },
-      ],
-    },
-  ];
+  menuItems: MenuItem[] = [];
   contextSelectedRow: IBirthday | null = null;
   checkboxSelectedRows: IBirthday[] = [];
   chipSelectedRows: IBirthday[] = [];
   chipMenuRow: IBirthday | null = null;
   chipMenuIsCount: boolean = false;
 
-  chipMenuModel: MenuItem[] = [
-    {
-      label: 'Categorize',
-      icon: 'pi pi-tags',
-      command: () => this.openCategorizeDialog(),
-    },
-    {
-      label: 'Delete',
-      icon: 'pi pi-trash',
-      command: () => this.deleteFromChipMenu(),
-    },
-  ];
+  chipMenuModel: MenuItem[] = [];
 
   // Selection and context menu state
   selectionMode: 'single' | 'multiple' | null | undefined = 'multiple';
@@ -581,25 +528,102 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   setMenu(birthday: IBirthday | null): void {
-    // First menu item is Categorize; we keep its label constant
-    // Second grouped item starts with 'Select action' and we can keep it generic; we only adjust the relate item label
-    let alternate: IBirthday | null = null;
-    if (birthday) {
-      for (const selectedRow of this.chipSelectedRows) {
-        if (selectedRow.id !== birthday.id) {
-          alternate = selectedRow;
-          break;
-        }
+    const twoSelected = (this.selection?.length || 0) === 2;
+    this.menuItems = this.buildContextMenuModel(birthday, twoSelected);
+    // For chip menu build: pass hovered birthday if any
+    this.updateChipMenuModel(twoSelected, birthday);
+    this.contextSelectedRow = birthday;
+  }
+
+  private getDisplayName(row: IBirthday | null | undefined): string {
+    if (!row) return '';
+    const firstName = row.fname || '';
+    const lastName = row.lname || '';
+    return `${firstName} ${lastName}`.trim();
+  }
+
+  private buildContextMenuModel(birthday: IBirthday | null, twoSelected: boolean): MenuItem[] {
+    const items: MenuItem[] = [];
+    items.push({ label: 'Categorize', icon: 'pi pi-tags', command: () => this.openCategorizeDialog() });
+    if (twoSelected && birthday) {
+      const other = (this.selection as IBirthday[]).find(s => s.id !== birthday.id) || null;
+      const relateTo = this.getDisplayName(other);
+      if (relateTo) {
+        items.push({ label: `Relate to ${relateTo}`, icon: 'pi pi-link', command: () => this.relateFromContext() });
       }
     }
-    if (alternate) {
-      const firstName = alternate.fname ?? '';
-      const lastName = alternate.lname ?? '';
-      this.menuItems[1].label = `Relate to ${firstName} ${lastName}`;
-    } else {
-      this.menuItems[1].label = `Select another birthday to relate`;
+    items.push({ label: 'View', icon: 'pi pi-search', command: () => this.viewFromContext() });
+    items.push({ label: 'Edit', icon: 'pi pi-pencil', command: () => this.editFromContext() });
+    items.push({ label: 'Delete', icon: 'pi pi-trash', command: () => this.deleteFromContext() });
+    return items;
+  }
+
+  private updateChipMenuModel(twoSelected: boolean, hovered: IBirthday | null): void {
+    // 3+ count chip: only Categorize/Delete
+    if (this.chipMenuIsCount) {
+      this.chipMenuModel = [
+        { label: 'Categorize', icon: 'pi pi-tags', command: () => this.openCategorizeDialog() },
+        { label: 'Delete', icon: 'pi pi-trash', command: () => this.deleteFromChipMenu() },
+      ];
+      return;
     }
-    this.contextSelectedRow = birthday;
+    // Row chip menu: include View/Edit and dynamic Relate when exactly two selected
+    const model: MenuItem[] = [
+      { label: 'Categorize', icon: 'pi pi-tags', command: () => this.openCategorizeDialog() },
+    ];
+    if (twoSelected && hovered) {
+      const other = (this.selection as IBirthday[]).find(s => s.id !== hovered.id) || null;
+      const relateTo = this.getDisplayName(other);
+      if (relateTo) model.push({ label: `Relate to ${relateTo}`, icon: 'pi pi-link', command: () => this.relateFromContext() });
+      // Add Both actions
+      model.push({ label: 'Categorize Both', icon: 'pi pi-tags', command: () => this.openCategorizeBoth() });
+    }
+    model.push({ label: 'View', icon: 'pi pi-search', command: () => this.viewFromContext() });
+    model.push({ label: 'Edit', icon: 'pi pi-pencil', command: () => this.editFromContext() });
+    model.push({ label: 'Delete', icon: 'pi pi-trash', command: () => this.deleteFromChipMenu() });
+    if (twoSelected && hovered) {
+      model.push({ label: 'Delete Both', icon: 'pi pi-trash', command: () => this.deleteBothFromChipMenu() });
+    }
+    this.chipMenuModel = model;
+  }
+
+  // View/Edit/Delete handlers for row context
+  viewFromContext(): void {
+    const row = this.contextSelectedRow || (this.selection && this.selection[0]);
+    const id = row?.id;
+    if (!id) return;
+    this.router.navigate(['/birthday', id, 'view']);
+  }
+
+  editFromContext(): void {
+    const row = this.contextSelectedRow || (this.selection && this.selection[0]);
+    const id = row?.id;
+    if (!id) return;
+    this.router.navigate(['/birthday', id, 'edit']);
+  }
+
+  deleteFromContext(): void {
+    const row = this.contextSelectedRow || (this.selection && this.selection[0]);
+    const id = row?.id;
+    if (!id) return;
+    this.birthdayService.delete(id).subscribe({ next: () => this.refreshData(), error: () => this.refreshData() });
+  }
+
+  relateFromContext(): void {
+    // Placeholder: implement relate flow later
+  }
+
+  openCategorizeBoth(): void {
+    // Force count mode to target all selected rows
+    this.chipMenuIsCount = true;
+    this.openCategorizeDialog();
+  }
+
+  deleteBothFromChipMenu(): void {
+    const selected = (this.selection || []) as IBirthday[];
+    if (!selected.length) return;
+    this.chipMenuIsCount = true;
+    this.deleteFromChipMenu();
   }
 
   private restoreState(): void {
@@ -960,23 +984,36 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     this.chipMenuIsCount = false;
     if (!rowsToDelete || rowsToDelete.length === 0) return;
 
-    // For now, delete one-by-one sequentially
     const ids = rowsToDelete.map(r => r.id).filter(Boolean) as string[];
     if (ids.length === 0) return;
-    this.messageService.add({ severity: 'info', summary: 'Delete', detail: `Deleting ${ids.length} item(s)...` });
 
-    const deleteNext = (remaining: string[]) => {
-      if (remaining.length === 0) {
-        this.refreshData();
-        return;
-      }
-      const id = remaining.shift()!;
-      this.birthdayService.delete(id).subscribe({
-        next: () => deleteNext(remaining),
-        error: () => deleteNext(remaining),
-      });
+    const proceed = () => {
+      this.messageService.add({ severity: 'info', summary: 'Delete', detail: `Deleting ${ids.length} item(s)...` });
+      const deleteNext = (remaining: string[]) => {
+        if (remaining.length === 0) {
+          this.refreshData();
+          return;
+        }
+        const id = remaining.shift()!;
+        this.birthdayService.delete(id).subscribe({
+          next: () => deleteNext(remaining),
+          error: () => deleteNext(remaining),
+        });
+      };
+      deleteNext([...ids]);
     };
 
-    deleteNext([...ids]);
+    if (ids.length > 1) {
+      this.confirmationService.confirm({
+        header: 'Confirm Delete',
+        icon: 'pi pi-exclamation-triangle',
+        message: `You are about to delete ${ids.length} records, do you want to proceed?`,
+        acceptLabel: 'Yes',
+        rejectLabel: 'No',
+        accept: () => proceed(),
+      });
+    } else {
+      proceed();
+    }
   }
 }

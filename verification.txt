@@ -9,7 +9,7 @@ Future:
 Retains last column repositions from grid to group mode
 *Global filtering
 Highlight search terms
-Chip bar
+*Chip bar
 *Right click menus
 Save named rulesets in elasticsearch
 *CONTAINS regex
@@ -18,6 +18,7 @@ Save named rulesets in elasticsearch
 Make category case-insensitive
 *Support (uncategorized)
 *Support dob >= 1990
+Implement IN operator
 
 Bugs:
 Still not positioning scrollbar in grid mode
