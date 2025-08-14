@@ -23,6 +23,12 @@ function getAllowedOperators(
   if (!operators || operators.length === 0) {
     operators = [];
   }
+  if (operators.includes('contains') && !operators.includes('like')) {
+    operators = operators.concat(['like']);
+  }
+  if (operators.includes('!contains') && !operators.includes('!like')) {
+    operators = operators.concat(['!like']);
+  }
   if (fieldConf.nullable) {
     operators = operators.concat(['is null', 'is not null']);
   }

@@ -270,6 +270,15 @@ describe('validateBql', () => {
     expect(validateBql('fname !LIKE bob', cfg4)).toBeTrue();
   });
 
+  it('should accept !LIKE when !contains is configured', () => {
+    const cfg: QueryBuilderConfig = {
+      fields: {
+        fname: { name: 'First', type: 'string', operators: ['!contains'] },
+      },
+    } as any;
+    expect(validateBql('fname !LIKE bob', cfg)).toBeTrue();
+  });
+
   it('should accept IN operator', () => {
     const cfg5: QueryBuilderConfig = {
       fields: {
