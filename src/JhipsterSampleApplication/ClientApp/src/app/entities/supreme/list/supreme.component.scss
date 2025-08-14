@@ -1,1 +1,104 @@
-/* styles for supreme list */
+:host {
+  ::ng-deep .p-datatable .p-datatable-tbody > tr {
+    min-height: 22px !important;
+    line-height: 22px !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+    padding: 0 0.5rem !important;
+    min-height: 22px !important;
+    line-height: 22px !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-tbody > tr > td > * {
+    line-height: 22px !important;
+    min-height: 22px !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-tbody > tr > td:first-child {
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 22px !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-tbody > tr > td:first-child > div {
+    min-height: 22px !important;
+    line-height: 22px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-tbody > tr > td > .p-button {
+    width: 22px !important;
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 22px !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-tbody > tr > td > .p-button .p-button-icon {
+    font-size: 12px !important;
+    line-height: 22px !important;
+    height: 22px !important;
+    width: 22px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-tbody > tr > td > .p-button .p-button-label {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-tbody > tr > td > .p-element {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 22px !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-tbody > tr > td > .p-element > * {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 22px !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-thead > tr.header-row {
+    height: 32px !important;
+    line-height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-thead > tr.header-row > th {
+    padding: 0 0.5rem !important;
+    height: 32px !important;
+    line-height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-thead > tr.header-row > th > * {
+    line-height: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+    display: flex !important;
+    align-items: center;
+  }
+
+  /* Match Birthday query builder sizing */
+  ::ng-deep ngx-query-builder {
+    font-size: 0.875rem;
+
+    .q-switch-label,
+    .q-button,
+    .q-input-control,
+    .q-field-control,
+    .q-operator-control,
+    .q-entity-control,
+    .p-inputtext,
+    .p-dropdown-label {
+      font-size: 0.875rem;
+      padding: 0.25rem 0.5rem;
+      line-height: 1rem;
+    }
+
+    .p-dropdown-trigger {
+      width: 1.5rem;
+    }
+  }
+}

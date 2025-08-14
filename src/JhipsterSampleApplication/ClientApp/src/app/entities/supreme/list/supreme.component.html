@@ -9,21 +9,39 @@
     ></lib-query-input>
 
     <div class="d-flex ms-auto">
+      <button
+        class="btn btn-info me-2"
+        (click)="refreshData()"
+        [title]="(dataLoader.loading$ | async) ? 'Refresh (cancel current and restart)' : 'Refresh List'"
+      >
+        <fa-icon icon="sync" [spin]="dataLoader.loading$ | async"></fa-icon>
+        <span>Refresh List</span>
+      </button>
+
       <div class="d-flex align-items-center ms-2">
-        <select class="form-select w-auto" [(ngModel)]="viewName" (ngModelChange)="onQueryChange(currentQuery)">
+        <select class="form-select w-auto" [(ngModel)]="viewName" (ngModelChange)="onViewChange($event)">
           <option [ngValue]="null">Select a view</option>
           @for (v of views; track v) {
-            <option [ngValue]="v.value">{{ v.label }}</option>
+            <option [ngValue]="v.value">
+              {{ v.label }}
+            </option>
           }
         </select>
         @if (viewName) {
-          <button type="button" class="btn btn-link p-0 ms-1" aria-label="Clear selected view" (click)="viewName = null; onQueryChange(currentQuery)">
+          <button type="button" class="btn btn-link p-0 ms-1" aria-label="Clear selected view" (click)="onViewChange(null)">
             <fa-icon icon="times"></fa-icon>
           </button>
         }
       </div>
 
-      <input pInputText type="text" class="p-inputtext-sm ms-2 global-filter-input" placeholder="filter" (input)="superTable.filterGlobal($any($event.target).value)" />
+      <input
+        #globalFilterInput
+        pInputText
+        type="text"
+        class="p-inputtext-sm ms-2 global-filter-input"
+        placeholder="filter"
+        (input)="superTable.filterGlobal(globalFilterInput.value)"
+      />
 
       <div class="form-check ms-2" style="font-size: 1rem; display: flex; align-items: center; font-weight: 400">
         <input id="showRowNumbers" type="checkbox" class="form-check-input" [(ngModel)]="showRowNumbers" />
@@ -31,6 +49,31 @@
       </div>
     </div>
   </h2>
+
+  @if (checkboxSelectedRows.length > 0) {
+    <div class="chip-bar d-flex align-items-center gap-2 mb-2">
+      @if (checkboxSelectedRows.length <= 2) {
+        <ng-container *ngFor="let row of chipSelectedRows; trackBy: trackById">
+          <p-chip
+            [label]="(row.name || '')"
+            [removable]="true"
+            (onRemove)="onRemoveChip(row)"
+            (mouseenter)="onChipMouseEnter($event, row)"
+          ></p-chip>
+        </ng-container>
+      }
+      @if (checkboxSelectedRows.length >= 3) {
+        <p-chip
+          [label]="checkboxSelectedRows.length + ' selected'"
+          [removable]="true"
+          (onRemove)="onRemoveCountChip()"
+          (mouseenter)="onCountChipMouseEnter($event)"
+        ></p-chip>
+      }
+    </div>
+  }
+
+  <p-menu #chipMenu [popup]="true" [model]="chipMenuModel"></p-menu>
 
   <div class="table-responsive" style="flex: 1; min-height: 0">
     <super-table
@@ -46,6 +89,26 @@
       scrollHeight="flex"
       [showRowNumbers]="showRowNumbers"
       [globalFilterFields]="globalFilterFields"
+      [selectionMode]="selectionMode"
+      [(selection)]="selection"
+      (selectionChange)="onCheckboxChange()"
+      [contextMenu]="contextMenu"
+      (onContextMenuSelect)="onContextMenuSelect($event)"
+      (contextMenuSelectionChange)="onContextMenuSelect($event)"
+      [expandedRowTemplate]="expandedRow"
     ></super-table>
   </div>
+
+  <ng-template #expandedRow let-rowData>
+    <tr>
+      <td [attr.colspan]="columns.length + 1">
+        <h5>Details for {{ rowData.name }}</h5>
+        <p>Term: {{ rowData.term }}</p>
+        <p>Docket #: {{ rowData.docket_number }}</p>
+        <p>Heard by: {{ rowData.heard_by }}</p>
+      </td>
+    </tr>
+  </ng-template>
+
+  <p-contextMenu #contextMenu [model]="menuItems" (onShow)="onMenuShow()"></p-contextMenu>
 </div>

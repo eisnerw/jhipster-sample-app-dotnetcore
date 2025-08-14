@@ -13,10 +13,14 @@ import { QueryInputComponent, bqlToRuleset } from 'popup-ngx-query-builder';
 import { QueryLanguageSpec } from 'ngx-query-builder';
 import { MenuItem, MessageService } from 'primeng/api';
 import { MenuModule } from 'primeng/menu';
+import { ContextMenuModule } from 'primeng/contextmenu';
 import { TableModule } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
+import { ChipModule } from 'primeng/chip';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 
 import SharedModule from 'app/shared/shared.module';
 import { ViewService } from '../../view/service/view.service';
@@ -45,6 +49,10 @@ import { ISupreme } from '../supreme.model';
     DialogModule,
     ButtonModule,
     MenuModule,
+    ContextMenuModule,
+    ChipModule,
+    ConfirmDialogModule,
+    FontAwesomeModule,
   ],
   standalone: true,
 })
@@ -77,10 +85,12 @@ export class SupremeComponent implements OnInit, AfterViewInit {
 
   columns: ColumnConfig[] = [
     { field: 'lineNumber', header: '#', type: 'lineNumber', width: '4rem' },
+    { field: 'checkbox', header: '', type: 'checkbox', width: '2rem' },
     { field: 'name', header: 'Case', filterType: 'text', type: 'string', width: '360px' },
     { field: 'term', header: 'Term', filterType: 'text', type: 'string', width: '120px' },
     { field: 'docket_number', header: 'Docket #', filterType: 'text', type: 'string', width: '140px' },
     { field: 'heard_by', header: 'Heard By', filterType: 'text', type: 'string', width: '240px' },
+    { field: 'expander', header: '', type: 'expander', width: '25px', style: 'font-weight: 700;' },
   ];
 
   private lastSortEvent: any = null;
@@ -104,6 +114,99 @@ export class SupremeComponent implements OnInit, AfterViewInit {
     });
     this.loadViews();
     this.handleNavigation();
+  }
+
+  // Parity helpers (chips, selection, context menu)
+  selectionMode: 'single' | 'multiple' | null | undefined = 'multiple';
+  selection: ISupreme[] = [];
+  checkboxSelectedRows: ISupreme[] = [];
+  chipSelectedRows: ISupreme[] = [];
+  chipMenuModel: MenuItem[] = [];
+  menuItems: MenuItem[] = [];
+  contextSelectedRow: ISupreme | null = null;
+
+  refreshData(): void {
+    if (this.superTable) {
+      this.superTable.filterGlobal('');
+    }
+    this.onQueryChange(this.currentQuery, true);
+  }
+
+  onViewChange(view: string | null): void {
+    this.viewName = view;
+    if (this.viewName) {
+      try { this.superTable?.filterGlobal(''); } catch {}
+      this.loadRootGroups();
+    } else {
+      this.groups = [];
+      this.viewMode = 'grid';
+      this.loadPage();
+      setTimeout(() => this.superTable.applyCapturedHeaderState(), 500);
+    }
+  }
+
+  trackById(index: number, row: ISupreme): any {
+    return (row as any)?.id ?? index;
+  }
+
+  onCheckboxChange(): void {
+    this.checkboxSelectedRows = this.selection || [];
+    this.chipSelectedRows = this.checkboxSelectedRows.slice(0, 2);
+  }
+
+  onChipMouseEnter(event: MouseEvent, row: ISupreme): void {
+    this.chipMenuModel = [
+      { label: 'View', icon: 'pi pi-search', command: () => this.viewFromContext() },
+      { label: 'Delete', icon: 'pi pi-trash', command: () => this.deleteFromChipMenu() },
+    ];
+    (this as any).chipMenu?.show(event);
+  }
+
+  onCountChipMouseEnter(event: MouseEvent): void {
+    this.chipMenuModel = [
+      { label: 'Delete', icon: 'pi pi-trash', command: () => this.deleteFromChipMenu() },
+    ];
+    (this as any).chipMenu?.show(event);
+  }
+
+  onRemoveChip(row: ISupreme): void {
+    const id = (row as any)?.id;
+    this.selection = (this.selection || []).filter((r: any) => ((r?.id ?? r) !== id));
+    this.onCheckboxChange();
+  }
+
+  onRemoveCountChip(): void {
+    this.selection = [];
+    this.onCheckboxChange();
+  }
+
+  onContextMenuSelect(dataOrEvent: any): void {
+    const row: ISupreme | undefined = dataOrEvent && dataOrEvent.data ? dataOrEvent.data : dataOrEvent;
+    if (!row) return;
+    this.contextSelectedRow = row;
+    this.setMenu(row);
+  }
+
+  onMenuShow(): void {
+    this.setMenu(this.contextSelectedRow);
+  }
+
+  setMenu(row: ISupreme | null): void {
+    this.menuItems = [
+      { label: 'View', icon: 'pi pi-search', command: () => this.viewFromContext() },
+      { label: 'Delete', icon: 'pi pi-trash', command: () => this.deleteFromChipMenu() },
+    ];
+  }
+
+  viewFromContext(): void {
+    const row: any = this.contextSelectedRow || (this.selection && this.selection[0]);
+    const id = row?.id;
+    if (!id) return;
+    this.router.navigate(['/supreme', id, 'view']);
+  }
+
+  deleteFromChipMenu(): void {
+    // hook up when delete implemented for Supreme
   }
 
   ngAfterViewInit(): void {
