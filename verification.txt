@@ -26,6 +26,7 @@ Move regex to LIKE
 Fix failing tests
 supreme entity
 Persist column widths
+Analysis (evaluator)
 
 Bugs:
 Still not positioning scrollbar in grid mode
