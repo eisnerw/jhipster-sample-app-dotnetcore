@@ -14,13 +14,6 @@ namespace JhipsterSampleApplication.Domain.Services
 {
 	public class SupremeBqlService : GenericBqlService<Supreme>, ISupremeBqlService
 	{
-		private static readonly string[] ValidFields = new[] {
-			"name","term","docket_number","petitioner","respondent","appellant","appellee",
-			"heard_by","lower_court","manner_of_jurisdiction","document","majority","minority","advocates",
-			"description","facts_of_the_case","question","conclusion","decision","opinion","justia_url","recused"
-		};
-		private static readonly string[] ValidOperators = new[] { "=", "!=", "CONTAINS", "!CONTAINS", "LIKE", "EXISTS", "!EXISTS", "IN", "!IN" };
-
 		private static JObject LoadSpec()
 		{
 			var baseDir = AppContext.BaseDirectory;
