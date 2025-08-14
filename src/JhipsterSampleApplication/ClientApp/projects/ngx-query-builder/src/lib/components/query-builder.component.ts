@@ -352,6 +352,18 @@ export class QueryBuilderComponent
     return hasErrors ? errors : null;
   }
 
+  // Stable identity for rules/rulesets to prevent expensive DOM recreation (NG0956)
+  getRuleId(rule: Rule | RuleSet): any {
+    // Prefer name for named rulesets
+    if ((rule as RuleSet).rules) {
+      const rs = rule as RuleSet;
+      return rs.name || rs;
+    }
+    const r = rule as Rule;
+    // Build a stable composite key for rules
+    return `${r.field}|${r.operator}|${r.entity ?? ''}`;
+  }
+
   // ----------ControlValueAccessor Implementation----------
 
   @Input()

@@ -24,6 +24,8 @@ logs to elasticsearch
 log as entity
 Move regex to LIKE
 Fix failing tests
+supreme entity
+Persist column widths
 
 Bugs:
 Still not positioning scrollbar in grid mode

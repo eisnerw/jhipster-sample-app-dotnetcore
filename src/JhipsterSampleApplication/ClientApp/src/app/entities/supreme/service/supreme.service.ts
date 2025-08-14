@@ -44,39 +44,44 @@ export class SupremeService {
       queryString += '*';
     }
 
+    const includeDescriptive = req?.includeDescriptive === true;
     return this.http.get<{
       hits: ISupreme[] | any[];
       hitType: string;
       totalHits: number;
       searchAfter: string[];
       pitId: string | null;
-    }>(`${this.searchUrl}?${queryString}`, {
+    }>(`${this.searchUrl}?${queryString}&includeDescriptive=${includeDescriptive}`, {
       params: options,
       observe: 'response',
     });
   }
 
-  searchWithRuleset(ruleset: any): Observable<EntityArrayResponseType> {
+  searchWithRuleset(ruleset: any, req?: any): Observable<EntityArrayResponseType> {
+    const options = createRequestOption(req);
+    const includeDescriptive = req?.includeDescriptive === true;
     return this.http.post<{
       hits: ISupreme[] | any[];
       hitType: string;
       totalHits: number;
       searchAfter: string[];
       pitId: string | null;
-    }>(this.rulesetSearchUrl, ruleset, {
+    }>(`${this.rulesetSearchUrl}?includeDescriptive=${includeDescriptive}`, ruleset, {
+      params: options,
       observe: 'response',
     });
   }
 
   searchWithBql(bqlQuery: string, req?: any): Observable<EntityArrayResponseType> {
     const options = createRequestOption(req);
+    const includeDescriptive = req?.includeDescriptive === true;
     return this.http.post<{
       hits: ISupreme[] | any[];
       hitType: string;
       totalHits: number;
       searchAfter: string[];
       pitId: string | null;
-    }>(this.bqlSearchUrl, bqlQuery, {
+    }>(`${this.bqlSearchUrl}?includeDescriptive=${includeDescriptive}`, bqlQuery, {
       params: options,
       headers: { 'Content-Type': 'text/plain' },
       observe: 'response',

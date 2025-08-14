@@ -59,7 +59,7 @@
     <div [ngClass]="getClassNames('treeContainer', collapsed ? 'collapsed' : null)" (transitionend)="transitionEnd()" #treeContainer>
       @if (data && data.rules) {
         <ul [ngClass]="getClassNames('tree')">
-          @for (rule of data.rules; track rule; let i = $index) {
+          @for (rule of data.rules; track (isRuleset(rule) ? (rule.name || rule) : (rule.field + '|' + rule.operator + '|' + (rule.entity || ''))); let i = $index) {
             @if (!config.rulesLimit || i < config.rulesLimit) {
               @if (isRule(rule) || !config.levelLimit || level + 1 < config.levelLimit) {
                 <li [ngClass]="getQueryItemClassName()">
@@ -377,7 +377,7 @@
         (ngModelChange)="changeEntity($event, rule, index, data)"
         [disabled]="disabled"
       >
-        @for (entity of entities; track entity) {
+        @for (entity of entities; track entity.value || entity.name) {
           <option [ngValue]="entity.value">
             {{ entity.name }}
           </option>
@@ -399,7 +399,7 @@
         (ngModelChange)="changeField($event, rule)"
         [disabled]="disabled"
       >
-        @for (field of getFields(rule.entity || ''); track field) {
+        @for (field of getFields(rule.entity || ''); track field.value || field.name) {
           <option [ngValue]="field.value">
             {{ field.name }}
           </option>
@@ -476,7 +476,7 @@
         }
         @case ('category') {
           <select [ngClass]="getClassNames('inputControl')" [(ngModel)]="rule.value" (ngModelChange)="changeInput()" [disabled]="disabled">
-            @for (opt of getOptions(rule.field, rule, data); track opt) {
+            @for (opt of getOptions(rule.field, rule, data); track (opt.value ?? opt.name)) {
               <option [ngValue]="opt.value">
                 {{ opt.name }}
               </option>
@@ -492,7 +492,7 @@
               [disabled]="disabled"
               multiple
             >
-              @for (opt of getOptions(rule.field, rule, data); track opt) {
+              @for (opt of getOptions(rule.field, rule, data); track (opt.value ?? opt.name)) {
                 <option [ngValue]="opt.value">
                   {{ opt.name }}
                 </option>

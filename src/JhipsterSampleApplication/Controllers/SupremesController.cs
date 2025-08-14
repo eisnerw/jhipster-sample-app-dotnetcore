@@ -70,7 +70,8 @@ namespace JhipsterSampleApplication.Controllers
 			[FromQuery] string[]? searchAfter = null,
 			[FromQuery] string? view = null,
 			[FromQuery] string? category = null,
-			[FromQuery] string? secondaryCategory = null)
+			[FromQuery] string? secondaryCategory = null,
+			[FromQuery] bool includeDescriptive = false)
 		{
 			if (string.IsNullOrWhiteSpace(query))
 			{
@@ -78,7 +79,7 @@ namespace JhipsterSampleApplication.Controllers
 			}
 			JObject queryStringObject = new JObject(new JProperty("query", query));
 			JObject queryObject = new JObject(new JProperty("query_string", queryStringObject));
-			return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter);
+			return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter, includeDescriptive);
 		}
 
 		[HttpPost("search/ruleset")]
@@ -92,11 +93,12 @@ namespace JhipsterSampleApplication.Controllers
 			[FromQuery] string[]? searchAfter = null,
 			[FromQuery] string? view = null,
 			[FromQuery] string? category = null,
-			[FromQuery] string? secondaryCategory = null)
+			[FromQuery] string? secondaryCategory = null,
+			[FromQuery] bool includeDescriptive = false)
 		{
 			var ruleset = _mapper.Map<Ruleset>(rulesetDto);
 			var queryObject = await _supremeService.ConvertRulesetToElasticSearch(ruleset);
-			return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter);
+			return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter, includeDescriptive);
 		}
 
 		[HttpPost("search/elasticsearch")]
@@ -110,7 +112,8 @@ namespace JhipsterSampleApplication.Controllers
 			[FromQuery] string? category = null,
 			[FromQuery] string? secondaryCategory = null,
 			[FromQuery] string? pitId = null,
-			[FromQuery] string[]? searchAfter = null)
+			[FromQuery] string[]? searchAfter = null,
+			[FromQuery] bool includeDescriptive = false)
 		{
 			if (!string.IsNullOrEmpty(view))
 			{
@@ -242,7 +245,13 @@ namespace JhipsterSampleApplication.Controllers
 			var searchRequest = new SearchRequest<Supreme>
 			{
 				Size = pageSize,
-				From = from
+				From = from,
+				Source = includeDescriptive
+					? null
+					: new SourceFilter
+					{
+						Excludes = new[] { "justia_url", "facts_of_the_case", "question", "conclusion" }
+					}
 			};
 
 			var sortDescriptor = new List<ISort>();
@@ -253,8 +262,49 @@ namespace JhipsterSampleApplication.Controllers
 				{
 					var field = sortParts[0];
 					var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
-					sortDescriptor.Add(new FieldSort { Field = field, Order = order });
+					if (field == "docket_number")
+					{
+						var script =
+							@"def dn = params._source.containsKey('docket_number') ? params._source.docket_number : null;" +
+							@"if (dn == null) return 0L;" +
+							@"dn = dn.toString().trim();" +
+							@"def parts = dn.split('-');" +
+							@"long a = 0; long b = 0;" +
+							@"if (parts.length > 0) { def p0 = parts[0].replaceAll('\\D',''); if (p0.length() > 0) { a = Long.parseLong(p0); } }" +
+							@"if (parts.length > 1) { def p1 = parts[1].replaceAll('\\D',''); if (p1.length() > 0) { b = Long.parseLong(p1); } }" +
+							@"return a * 1000000L + b;";
+						sortDescriptor.Add(new ScriptSort
+						{
+							Script = new InlineScript(script),
+							Type = "number",
+							Order = order
+						});
+					}
+					else
+					{
+						sortDescriptor.Add(new FieldSort { Field = field, Order = order });
+					}
 				}
+			}
+			else
+			{
+				// Default: reverse sort by docket_number treating it as two numeric parts (e.g., YY-NNNN)
+				// Use a script sort that parses the parts and combines into a sortable long value
+				var script =
+					@"def dn = params._source.containsKey('docket_number') ? params._source.docket_number : null;" +
+					@"if (dn == null) return 0L;" +
+					@"dn = dn.toString().trim();" +
+					@"def parts = dn.split('-');" +
+					@"long a = 0; long b = 0;" +
+					@"if (parts.length > 0) { def p0 = parts[0].replaceAll('\\D',''); if (p0.length() > 0) { a = Long.parseLong(p0); } }" +
+					@"if (parts.length > 1) { def p1 = parts[1].replaceAll('\\D',''); if (p1.length() > 0) { b = Long.parseLong(p1); } }" +
+					@"return a * 1000000L + b;";
+				sortDescriptor.Add(new ScriptSort
+				{
+					Script = new InlineScript(script),
+					Type = "number",
+					Order = SortOrder.Descending
+				});
 			}
 			// Always add _id as the last sort field for consistent pagination
 			sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
@@ -268,12 +318,30 @@ namespace JhipsterSampleApplication.Controllers
 			{
 				var s = hit.Source;
 				supremeDtos.Add(new {
-					Id = s.Id!,
-					Name = s.Name,
-					Term = s.Term,
-					Docket_Number = s.Docket_Number,
-					Heard_By = s.Heard_By,
-					Justia_Url = s.Justia_Url
+					// maintain explicit snake_case keys to match frontend expectations
+					id = s.Id!,
+					name = s.Name,
+					term = s.Term,
+					docket_number = s.Docket_Number,
+					justia_url = s.Justia_Url,
+					decision = s.Decision,
+					description = s.Description,
+					dissent = s.Dissent,
+					lower_court = s.Lower_Court,
+					manner_of_jurisdiction = s.Manner_Of_Jurisdiction,
+					opinion = s.Opinion,
+					argument2_url = s.Argument2_Url,
+					appellant = s.Appellant,
+					appellee = s.Appellee,
+					petitioner = s.Petitioner,
+					respondent = s.Respondent,
+					recused = s.Recused,
+					majority = s.Majority,
+					minority = s.Minority,
+					advocates = s.Advocates,
+					facts_of_the_case = s.Facts_Of_The_Case,
+					question = s.Question,
+					conclusion = s.Conclusion
 				});
 			}
 			List<object>? searchAfterResponse = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null;

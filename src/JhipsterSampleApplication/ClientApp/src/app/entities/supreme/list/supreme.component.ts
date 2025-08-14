@@ -80,23 +80,29 @@ export class SupremeComponent implements OnInit, AfterViewInit {
   views: { label: string; value: string }[] = [];
   viewMode: 'grid' | 'group' = 'grid';
   groups: GroupDescriptor[] = [];
-  globalFilterFields: string[] = ['name', 'term', 'heard_by', 'docket_number'];
+  globalFilterFields: string[] = ['name', 'term', 'docket_number', 'decision', 'description'];
   showRowNumbers = false;
 
   columns: ColumnConfig[] = [
     { field: 'lineNumber', header: '#', type: 'lineNumber', width: '4rem' },
     { field: 'checkbox', header: '', type: 'checkbox', width: '2rem' },
-    { field: 'name', header: 'Case', filterType: 'text', type: 'string', width: '360px' },
-    { field: 'term', header: 'Term', filterType: 'text', type: 'string', width: '120px' },
-    { field: 'docket_number', header: 'Docket #', filterType: 'text', type: 'string', width: '140px' },
-    { field: 'heard_by', header: 'Heard By', filterType: 'text', type: 'string', width: '240px' },
+    { field: 'name', header: 'Case', filterType: 'text', type: 'string' },
+    { field: 'term', header: 'Term', filterType: 'text', type: 'string' },
+    { field: 'docket_number', header: 'Docket #', filterType: 'text', type: 'string' },
+    { field: 'decision', header: 'Decision', filterType: 'text', type: 'string' },
+    { field: 'description', header: 'Description', filterType: 'text', type: 'string' },
     { field: 'expander', header: '', type: 'expander', width: '25px', style: 'font-weight: 700;' },
   ];
 
   private lastSortEvent: any = null;
+  private lastTableState: any;
 
   constructor() {
     const fetchFunction: FetchFunction<ISupreme> = (queryParams: any) => {
+      // Exclude large descriptive fields by default for grid
+      if (queryParams.includeDescriptive === undefined) {
+        queryParams.includeDescriptive = false;
+      }
       if (queryParams.bqlQuery) {
         const bql = queryParams.bqlQuery;
         delete queryParams.bqlQuery;
@@ -127,6 +133,8 @@ export class SupremeComponent implements OnInit, AfterViewInit {
 
   refreshData(): void {
     if (this.superTable) {
+      // Respect seeded widths on next restore and clear any stale captured widths
+      (this.superTable as any).resetWidthState();
       this.superTable.filterGlobal('');
     }
     this.onQueryChange(this.currentQuery, true);
@@ -136,10 +144,12 @@ export class SupremeComponent implements OnInit, AfterViewInit {
     this.viewName = view;
     if (this.viewName) {
       try { this.superTable?.filterGlobal(''); } catch {}
+      if (this.superTable) (this.superTable as any).resetWidthState();
       this.loadRootGroups();
     } else {
       this.groups = [];
       this.viewMode = 'grid';
+      if (this.superTable) (this.superTable as any).resetWidthState();
       this.loadPage();
       setTimeout(() => this.superTable.applyCapturedHeaderState(), 500);
     }
@@ -210,6 +220,8 @@ export class SupremeComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
+    // On first render, seed equal widths by skipping one restore, then load
+    try { (this.superTable as any).resetWidthState?.(); } catch {}
     this.onQueryChange(this.currentQuery);
   }
 
@@ -236,6 +248,12 @@ export class SupremeComponent implements OnInit, AfterViewInit {
   }
 
   loadPage(): void {
+    // Mirror Birthday: capture header state before loading, then restore after
+    try {
+      if (this.superTable) {
+        this.superTable.captureHeaderState();
+      }
+    } catch {}
     const filter: any = {};
     if (this.currentQuery && this.currentQuery.trim().length > 0) {
       filter.bqlQuery = this.currentQuery.trim();
