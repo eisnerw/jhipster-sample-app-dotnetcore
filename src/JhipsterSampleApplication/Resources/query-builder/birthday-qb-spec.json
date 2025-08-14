@@ -3,7 +3,7 @@
     "document": {
       "name": "Document",
       "type": "string",
-      "operators": ["contains", "!contains"]
+      "operators": ["contains", "!contains", "like", "!like"]
     },
     "lname": {
       "name": "Last Name",
@@ -22,7 +22,7 @@
     "categories": {
       "name": "Category",
       "type": "string",
-      "operators": ["contains", "!contains", "exists"]
+      "operators": ["contains", "!contains", "like", "!like", "exists"]
     },
     "dob": {
       "name": "Birthday",

@@ -258,7 +258,7 @@ public class BirthdayService : IBirthdayService
                     "BOGUSFIELD", "CANTMATCH"
                 }}
             }};
-            if (rr.@operator?.Contains("contains") == true)
+            if (rr.@operator?.Contains("contains") == true || rr.@operator?.Contains("like") == true)
             {
                 string stringValue = rr.value?.ToString() ?? string.Empty;
                 if (stringValue.StartsWith("/") && (stringValue.EndsWith("/") || stringValue.EndsWith("/i")))

@@ -3,7 +3,7 @@
     "document": {
       "name": "Document",
       "type": "string",
-      "operators": ["contains", "!contains"]
+      "operators": ["contains", "!contains", "like", "!like"]
     },
     "name": {
       "name": "Case Name",
@@ -48,37 +48,37 @@
     "majority": {
       "name": "Majority",
       "type": "string",
-      "operators": ["contains", "!contains", "exists"]
+      "operators": ["contains", "!contains", "like", "!like", "exists"]
     },
     "minority": {
       "name": "Minority",
       "type": "string",
-      "operators": ["contains", "!contains", "exists"]
+      "operators": ["contains", "!contains", "like", "!like", "exists"]
     },
     "advocates": {
       "name": "Advocates",
       "type": "string",
-      "operators": ["contains", "!contains", "exists"]
+      "operators": ["contains", "!contains", "like", "!like", "exists"]
     },
     "question": {
       "name": "Question",
       "type": "string",
-      "operators": ["contains", "!contains", "exists"]
+      "operators": ["contains", "!contains", "like", "!like", "exists"]
     },
     "facts_of_the_case": {
       "name": "Facts",
       "type": "string",
-      "operators": ["contains", "!contains", "exists"]
+      "operators": ["contains", "!contains", "like", "!like", "exists"]
     },
     "conclusion": {
       "name": "Conclusion",
       "type": "string",
-      "operators": ["contains", "!contains", "exists"]
+      "operators": ["contains", "!contains", "like", "!like", "exists"]
     },
     "description": {
       "name": "Description",
       "type": "string",
-      "operators": ["contains", "!contains", "exists"]
+      "operators": ["contains", "!contains", "like", "!like", "exists"]
     }
   },
   "operatorMap": {

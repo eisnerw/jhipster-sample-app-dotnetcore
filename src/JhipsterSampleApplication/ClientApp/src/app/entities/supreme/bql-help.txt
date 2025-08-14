@@ -5,4 +5,4 @@ Supported BQL fields for Supreme:
 - majority, minority, advocates
 - question, facts_of_the_case, conclusion, description, opinion
 - justia_url, recused
-Operators: =, !=, CONTAINS, !CONTAINS, LIKE, EXISTS, !EXISTS, IN, !IN
+Operators: =, !=, CONTAINS, !CONTAINS, LIKE, !LIKE, EXISTS, !EXISTS, IN, !IN

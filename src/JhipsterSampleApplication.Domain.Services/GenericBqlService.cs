@@ -140,6 +140,14 @@ namespace JhipsterSampleApplication.Domain.Services
                     .ToList() ?? new List<string>();
                 if (opsLower.Count > 0)
                 {
+                    if (opsLower.Contains("contains") && !opsLower.Contains("like"))
+                    {
+                        opsLower.Add("like");
+                    }
+                    if (opsLower.Contains("!contains") && !opsLower.Contains("!like"))
+                    {
+                        opsLower.Add("!like");
+                    }
                     _fieldOperatorsLowerByName[fieldName] = opsLower;
                 }
 
@@ -166,6 +174,14 @@ namespace JhipsterSampleApplication.Domain.Services
                     .Where(s => !string.IsNullOrWhiteSpace(s))
                     .Distinct()
                     .ToList() ?? new List<string>();
+                if (ops.Contains("contains") && !ops.Contains("like"))
+                {
+                    ops.Add("like");
+                }
+                if (ops.Contains("!contains") && !ops.Contains("!like"))
+                {
+                    ops.Add("!like");
+                }
                 _operatorMapLowerByType[type] = ops;
             }
 
@@ -205,7 +221,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 @"|(""(\\""|\\\\|[^""])+\""|\/(\\\/|[^\/])+\/i?" +
                 (string.IsNullOrEmpty(fieldsAlt) ? string.Empty : @"|" + fieldsAlt) +
                 @")" +
-                @"|(=|!=|CONTAINS|!CONTAINS|EXISTS|!EXISTS|IN|!IN|>=|<=|>|<)" +
+                @"|(=|!=|CONTAINS|!CONTAINS|LIKE|!LIKE|EXISTS|!EXISTS|IN|!IN|>=|<=|>|<)" +
                 @"|(&|\||!)" +
                 @"|[^""/=!<>() ]+)\s*";
 
@@ -471,10 +487,11 @@ namespace JhipsterSampleApplication.Domain.Services
                         }
                     }
 
+                    var op = Regex.IsMatch(docValue ?? string.Empty, @"^/.*/i?$", RegexOptions.IgnoreCase) ? "like" : "contains";
                     return (true, index + 1, new RulesetDto
                     {
                         field = _defaultFullTextField,
-                        @operator = "contains",
+                        @operator = op,
                         value = docValue ?? string.Empty
                     });
                 }

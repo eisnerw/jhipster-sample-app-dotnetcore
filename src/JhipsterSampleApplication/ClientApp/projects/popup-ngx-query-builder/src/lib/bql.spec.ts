@@ -171,15 +171,13 @@ describe('BQL named ruleset support', () => {
 
 describe('BQL regex support', () => {
   const cfg: QueryBuilderConfig = {
-    fields: { document: { type: 'string', operators: ['contains'] } },
+    fields: { document: { type: 'string', operators: ['like'] } },
   } as any;
 
   it('should omit quotes for regex values', () => {
     const rs: RuleSet = {
       condition: 'and',
-      rules: [
-        { field: 'document', operator: 'contains', value: '/ani/' } as Rule,
-      ],
+      rules: [{ field: 'document', operator: 'like', value: '/ani/' } as Rule],
     } as any;
     expect(rulesetToBql(rs, cfg)).toBe('/ani/');
   });
@@ -187,11 +185,17 @@ describe('BQL regex support', () => {
   it('should handle regex flags', () => {
     const rs: RuleSet = {
       condition: 'and',
-      rules: [
-        { field: 'document', operator: 'contains', value: '/dani/i' } as Rule,
-      ],
+      rules: [{ field: 'document', operator: 'like', value: '/dani/i' } as Rule],
     } as any;
     expect(rulesetToBql(rs, cfg)).toBe('/dani/i');
+  });
+
+  it('should parse regex literals as LIKE', () => {
+    const rs = bqlToRuleset('/dani/i', cfg);
+    const r = rs.rules[0] as Rule;
+    expect(r.field).toBe('document');
+    expect(r.operator).toBe('like');
+    expect(r.value).toBe('/dani/i');
   });
 });
 

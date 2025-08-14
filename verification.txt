@@ -12,7 +12,7 @@ Retains last column repositions from grid to group mode
 *Chip bar
 *Right click menus
 Save named rulesets in elasticsearch
-*CONTAINS regex
+*LIKE regex
 *No hits
 *V20
 Make category case-insensitive

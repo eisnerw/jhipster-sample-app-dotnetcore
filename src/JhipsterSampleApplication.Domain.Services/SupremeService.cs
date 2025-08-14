@@ -141,7 +141,7 @@ namespace JhipsterSampleApplication.Domain.Services
 						"match_none", new JObject{}
 					}
 				};
-				if (rr.@operator?.Contains("contains") == true)
+                                if (rr.@operator?.Contains("contains") == true || rr.@operator?.Contains("like") == true)
 				{
 					string stringValue = rr.value?.ToString() ?? string.Empty;
 					string quote = Regex.IsMatch(stringValue, "\\W") ? "\"" : string.Empty;
