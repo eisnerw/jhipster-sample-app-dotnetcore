@@ -326,15 +326,23 @@ export function bqlToRuleset(
         valTok.type === 'string'
           ? valTok.value
           : parseValue(valTok, field, config);
+      if (
+        (operator === 'contains' || operator === '!contains') &&
+        typeof value === 'string' &&
+        /^\/.*\/i?$/.test(value)
+      ) {
+        operator = operator === 'contains' ? 'like' : '!like';
+      }
       return { condition: 'and', rules: [{ field, operator, value }] };
     } else {
       const value = first.type === 'string' ? first.value : first.value;
+      const op = /^\/.*\/i?$/.test(value) ? 'like' : 'contains';
       return {
         condition: 'and',
         rules: [
           {
             field: 'document',
-            operator: 'contains',
+            operator: op,
             value: parseValue({ type: 'word', value }, 'document', config),
           },
         ],
@@ -449,11 +457,11 @@ function valueToString(value: any): string {
 
 export function rulesetToBql(rs: RuleSet, config: QueryBuilderConfig): string {
   function ruleToString(rule: Rule): string {
-    if (
-      rule.field === 'document' &&
-      rule.operator.toLowerCase() === 'contains'
-    ) {
-      return valueToString(rule.value);
+    if (rule.field === 'document') {
+      const op = rule.operator.toLowerCase();
+      if (op === 'contains' || op === 'like') {
+        return valueToString(rule.value);
+      }
     }
     const op = toOperatorToken(rule.operator);
     return `${rule.field}${isAlphaOperator(op) ? ' ' : ''}${op}${isAlphaOperator(op) ? ' ' : ''}${valueToString(rule.value)}`;
@@ -542,8 +550,16 @@ function validateRule(
     }
   }
 
-  // For contains operators, restrict regex literals to /exp/ or /exp/i only
-  if (rule.operator === 'contains' || rule.operator === '!contains') {
+  if (
+    (rule.operator === 'contains' || rule.operator === '!contains') &&
+    typeof rule.value === 'string' &&
+    /^\/.*\/i?$/.test(rule.value)
+  ) {
+    return false;
+  }
+
+  // For like operators, restrict regex literals to /exp/ or /exp/i only
+  if (rule.operator === 'like' || rule.operator === '!like') {
     if (typeof rule.value === 'string') {
       const m = rule.value.match(/^\/(?:\\\/|\\.|[^\/])+\/([a-z]*)$/);
       if (m) {

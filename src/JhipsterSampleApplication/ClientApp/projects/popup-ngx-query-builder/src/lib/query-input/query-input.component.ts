@@ -91,7 +91,7 @@ export class QueryInputComponent implements OnInit {
       document: {
         name: 'Document',
         type: 'string',
-        operators: ['contains', '!contains'],
+        operators: ['contains', '!contains', 'like', '!like'],
         defaultOperator: 'contains',
       },
     },

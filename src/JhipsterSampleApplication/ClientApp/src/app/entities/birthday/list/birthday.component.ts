@@ -234,7 +234,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
             if (s) terms.push(s);
           };
           // document contains "x" or generic value searches should highlight value
-          if (operator && (operator.includes('contains') || operator === '=' || operator === '==' || operator === 'in' || operator === 'not in')) {
+          if (operator && (operator.includes('contains') || operator.includes('like') || operator === '=' || operator === '==' || operator === 'in' || operator === 'not in')) {
             if (Array.isArray(value)) value.forEach(pushVal);
             else pushVal(value);
           } else if (field === 'document') {

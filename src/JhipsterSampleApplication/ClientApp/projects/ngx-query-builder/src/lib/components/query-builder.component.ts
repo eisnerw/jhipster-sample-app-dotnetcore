@@ -1378,7 +1378,7 @@ export class QueryBuilderComponent
             if (!this.isOperatorAllowed(rule)) {
               errorStore.push({ field: rule.field, operator: rule.operator, error: 'invalid-operator' });
             }
-            if (!this.hasAllowedRegexFlagsForContains(rule, field)) {
+            if (!this.hasAllowedRegexFlagsForLike(rule, field)) {
               errorStore.push({ field: rule.field, error: 'invalid-regex-flags' });
             }
           }
@@ -1404,9 +1404,9 @@ export class QueryBuilderComponent
     return typeof rule.operator === 'string' && allowedOperators.indexOf(rule.operator) !== -1;
   }
 
-  private hasAllowedRegexFlagsForContains(rule: Rule, field: Field): boolean {
+  private hasAllowedRegexFlagsForLike(rule: Rule, field: Field): boolean {
     const operator = rule.operator;
-    if (operator !== 'contains' && operator !== '!contains') {
+    if (operator !== 'like' && operator !== '!like') {
       return true;
     }
     const value = (rule as any).value;
@@ -1416,7 +1416,7 @@ export class QueryBuilderComponent
     // Match regex literals like /exp/ or /exp/i, allowing escaped slashes
     const match = value.match(/^\/(?:\\\/|\\.|[^\/])+\/([a-z]*)$/);
     if (!match) {
-      return true; // not a regex literal; normal contains value is fine
+      return true; // not a regex literal; normal like value is fine
     }
     const flags = match[1] || '';
     for (const ch of flags) {

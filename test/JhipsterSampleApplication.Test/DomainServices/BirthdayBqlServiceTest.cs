@@ -29,7 +29,7 @@ public class BirthdayBqlServiceTest
             condition = "and",
             rules = new List<RulesetDto>
             {
-                new RulesetDto { field = "document", @operator = "contains", value = pattern }
+                new RulesetDto { field = "document", @operator = "like", value = pattern }
             }
         };
 
