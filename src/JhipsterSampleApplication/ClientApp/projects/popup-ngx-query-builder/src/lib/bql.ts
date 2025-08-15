@@ -90,7 +90,7 @@ function tokenize(input: string): Token[] {
       const word = input.slice(i, j);
       const up = word.toUpperCase();
       if (
-        (up === '!CONTAINS' || up === '!LIKE') &&
+        (up === '!CONTAINS' || up === '!LIKE' || up === '!IN') &&
         (j === input.length || /\s|\(|\)|!|&|\||=|<|>|"/.test(input[j]))
       ) {
         tokens.push({ type: 'operator', value: up });
@@ -266,11 +266,11 @@ export function bqlToRuleset(
         peek().value.toLowerCase() === 'in'
       ) {
         consume();
-        operator = 'not in';
+        operator = '!in';
       }
 
       if (
-        (operator === 'in' || operator === 'not in') &&
+        (operator === 'in' || operator === '!in') &&
         peek() &&
         peek().value === '('
       ) {
@@ -544,7 +544,7 @@ function validateRule(
     return false;
   }
 
-  if (rule.operator === 'in' || rule.operator === 'not in') {
+  if (rule.operator === 'in' || rule.operator === '!in') {
     if (!Array.isArray(rule.value) || rule.value.length === 0) {
       return false;
     }
@@ -593,7 +593,7 @@ function validateRule(
     allowedValues &&
     allowedValues.length
   ) {
-    if (rule.operator === 'in' || rule.operator === 'not in') {
+    if (rule.operator === 'in' || rule.operator === '!in') {
       if (
         !Array.isArray(rule.value) ||
         !rule.value.every((v: any) => allowedValues!.includes(v))

@@ -487,7 +487,7 @@ export class QueryBuilderComponent
       case 'is not null':
         return undefined; // No displayed component
       case 'in':
-      case 'not in':
+      case '!in':
         // Treat IN/NOT IN as multi-value for category, boolean, string, and number fields
         return type === 'category' || type === 'boolean' || type === 'string' || type === 'number'
           ? 'multiselect'
@@ -509,6 +509,19 @@ export class QueryBuilderComponent
       }
     }
     return conf.options || this.defaultEmptyList;
+  }
+
+  displayOperator(op: string): string {
+    switch (op) {
+      case '!contains':
+        return 'not contains';
+      case '!like':
+        return 'not like';
+      case '!in':
+        return 'not in';
+      default:
+        return op;
+    }
   }
 
   getClassNames(...args: any[]): string | undefined {
@@ -1348,7 +1361,7 @@ export class QueryBuilderComponent
         }
         return true;
       case 'category':
-        if (rule.operator === 'in' || rule.operator === 'not in') {
+        if (rule.operator === 'in' || rule.operator === '!in') {
           return !Array.isArray(val) || val.length === 0;
         }
         return val === undefined || val === null;
@@ -1357,7 +1370,7 @@ export class QueryBuilderComponent
       case 'multiselect':
         if (!Array.isArray(val)) return true;
         // For IN/NOT IN operators, require at least one selected value
-        if (rule.operator === 'in' || rule.operator === 'not in') {
+        if (rule.operator === 'in' || rule.operator === '!in') {
           return val.length === 0;
         }
         return false;

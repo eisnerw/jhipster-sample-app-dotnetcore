@@ -241,7 +241,7 @@ namespace JhipsterSampleApplication.Domain.Services
                     return new[] { lowerOp };
                 case "in":
                     return new[] { "IN" };
-                case "not in":
+                case "!in":
                     return new[] { "!IN" };
                 case "contains":
                     return new[] { "CONTAINS" };
@@ -558,7 +558,7 @@ namespace JhipsterSampleApplication.Domain.Services
                     return (true, index + 1, new RulesetDto
                     {
                         field = field,
-                        @operator = opToken == "IN" ? "in" : "not in",
+                        @operator = opToken == "IN" ? "in" : "!in",
                         value = values ?? new List<string>()
                     });
                 }
@@ -690,7 +690,7 @@ namespace JhipsterSampleApplication.Domain.Services
                     {
                         result.Append(" " + (r.value is bool b && !b ? "!" : "") + "EXISTS ");
                     }
-                    else if (r.@operator == "in" || r.@operator == "not in")
+                    else if (r.@operator == "in" || r.@operator == "!in")
                     {
                         var values = r.value as IEnumerable<string> ?? new List<string>();
                         var quoted = values.Select(v => Regex.IsMatch(v, "^[a-zA-Z\\d]+$") ? v : "\"" + Regex.Replace(v ?? string.Empty, "([\\\"])", "\\$1") + "\"");

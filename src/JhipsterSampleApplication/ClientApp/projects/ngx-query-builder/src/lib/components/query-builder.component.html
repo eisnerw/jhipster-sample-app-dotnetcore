@@ -423,7 +423,7 @@
       >
         @for (operator of getOperators(rule.field); track operator) {
           <option [ngValue]="operator">
-            {{ operator }}
+            {{ displayOperator(operator) }}
           </option>
         }
       </select>
