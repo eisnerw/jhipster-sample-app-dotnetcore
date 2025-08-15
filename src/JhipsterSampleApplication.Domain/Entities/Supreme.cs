@@ -27,10 +27,11 @@ namespace JhipsterSampleApplication.Domain.Entities
 			public string? Appellee { get; set; }
 			public string? Petitioner { get; set; }
 			public string? Respondent { get; set; }
-		public List<string>? Recused { get; set; }
-		public List<string>? Majority { get; set; }
-		public List<string>? Minority { get; set; }
-		public List<string>? Advocates { get; set; }
+                public List<string>? Recused { get; set; }
+                public List<string>? Majority { get; set; }
+                public List<string>? Minority { get; set; }
+                public List<string>? Advocates { get; set; }
+                [PropertyName("categories")] public List<string> Categories { get; set; } = new List<string>();
 
 		public override bool Equals(object? obj)
 		{

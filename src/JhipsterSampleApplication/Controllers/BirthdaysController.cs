@@ -46,20 +46,6 @@ namespace JhipsterSampleApplication.Controllers
             _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
         }
 
-        public class ClusterHealthDto
-        {
-            public string Status { get; set; } = string.Empty;
-            public int NumberOfNodes { get; set; }
-            public int NumberOfDataNodes { get; set; }
-            public int ActiveShards { get; set; }
-            public int ActivePrimaryShards { get; set; }
-        }
-        public class SimpleApiResponse
-        {
-            public bool Success { get; set; }
-            public string? Message { get; set; }
-        }
-
         public class RawSearchRequestDto
         {
             public string? Query { get; set; }
@@ -71,20 +57,6 @@ namespace JhipsterSampleApplication.Controllers
         public class BqlQueryDto
         {
             public string Query { get; set; } = string.Empty;
-        }
-
-        public class CategorizeRequestDto
-        {
-            public List<string> Ids { get; set; } = new List<string>();
-            public string Category { get; set; } = string.Empty;
-            public bool RemoveCategory { get; set; }
-        }
-
-        public class CategorizeMultipleRequestDto
-        {
-            public List<string> Rows { get; set; } = new List<string>();
-            public List<string> Add { get; set; } = new List<string>();
-            public List<string> Remove { get; set; } = new List<string>();
         }
 
         /// <summary>
