@@ -8,12 +8,12 @@
     "name": {
       "name": "Case Name",
       "type": "string",
-      "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "not in", "exists"]
+      "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"]
     },
     "term": {
       "name": "Term",
       "type": "string",
-      "operators": ["=", "!=", "in", "not in", "exists"]
+      "operators": ["=", "!=", "in", "!in", "exists"]
     },
     "docket_number": {
       "name": "Docket #",
@@ -82,11 +82,11 @@
     }
   },
   "operatorMap": {
-    "string": ["=", "!=", "contains", "!contains", "like", "!like", "in", "not in"],
-    "number": ["=", "!=", ">", ">=", "<", "<=", "in", "not in"],
+    "string": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in"],
+    "number": ["=", "!=", ">", ">=", "<", "<=", "in", "!in"],
     "time": ["=", "!=", ">", ">=", "<", "<="],
     "date": ["=", "!=", ">", ">=", "<", "<="],
-    "category": ["=", "!=", "in", "not in"],
+    "category": ["=", "!=", "in", "!in"],
     "boolean": ["="]
   }
 }

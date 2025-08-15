@@ -142,6 +142,17 @@ describe('BQL named ruleset support', () => {
     expect(rulesetToBql(rs, cfg)).toBe('sign IN (aries,taurus)');
   });
 
+  it('should parse and stringify !IN operator', () => {
+    const cfg: QueryBuilderConfig = {
+      fields: { sign: { type: 'string', operators: ['!in'] } },
+    } as any;
+    const rs = bqlToRuleset('sign !IN (aries,taurus)', cfg);
+    const r = rs.rules[0] as Rule;
+    expect(r.operator).toBe('!in');
+    expect(r.value).toEqual(['aries', 'taurus']);
+    expect(rulesetToBql(rs, cfg)).toBe('sign !IN (aries,taurus)');
+  });
+
   it('should parse IN operator with quoted value', () => {
     const cfg: QueryBuilderConfig = {
       fields: { sign: { type: 'string', operators: ['in'] } },
