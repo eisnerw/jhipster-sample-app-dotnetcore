@@ -59,16 +59,18 @@ public class BirthdayService : IBirthdayService
             }
             pitId = pitResponse.Id;
         }
+        string targetIndex = IndexName;
         if (!string.IsNullOrEmpty(pitId))
         {
             // Note: Not setting PIT in the request if pitId is empty string
             request.PointInTime = new PointInTime(pitId);
+            targetIndex = string.Empty; // avoid specifying index when using PIT
         }
-        var response = await _elasticClient.SearchAsync<Birthday>(request);
+        var response = await _elasticClient.LowLevel.SearchAsync<SearchResponse<Birthday>>(targetIndex, PostData.Serializable(request));
         if (!response.IsValid)
         {
             // Retry with direct streaming disabled to expose detailed error information
-            var retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(IndexName, PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
+            var retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(targetIndex, PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
             throw new Exception(retryResponse.Body);
         }
         if (response.Hits.Count > 0)
