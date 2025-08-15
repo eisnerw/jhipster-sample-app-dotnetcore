@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using Nest;
+using Elasticsearch.Net;
 using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using Newtonsoft.Json.Linq;
@@ -43,11 +44,13 @@ namespace JhipsterSampleApplication.Domain.Services
 			{
 				request.PointInTime = new PointInTime(pitId);
 			}
-			var response = await _elasticClient.SearchAsync<Supreme>(request);
-			if (!response.IsValid)
-			{
-				throw new Exception(response.DebugInformation);
-			}
+                        var response = await _elasticClient.SearchAsync<Supreme>(request);
+                        if (!response.IsValid)
+                        {
+                                // Retry with direct streaming disabled to expose detailed error information
+                                var retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(IndexName, PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
+                                throw new Exception(retryResponse.Body);
+                        }
 			if (response.Hits.Count > 0)
 			{
 				foreach (var hit in response.Hits)
