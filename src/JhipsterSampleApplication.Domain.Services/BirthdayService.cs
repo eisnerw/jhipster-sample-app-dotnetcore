@@ -65,8 +65,11 @@ public class BirthdayService : IBirthdayService
             request.PointInTime = new PointInTime(pitId);
         }
         var response = await _elasticClient.SearchAsync<Birthday>(request);
-        if (!response.IsValid){
-            throw new Exception(response.DebugInformation);
+        if (!response.IsValid)
+        {
+            // Retry with direct streaming disabled to expose detailed error information
+            var retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(IndexName, PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
+            throw new Exception(retryResponse.Body);
         }
         if (response.Hits.Count > 0)
         {
