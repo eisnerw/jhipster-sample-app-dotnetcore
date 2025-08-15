@@ -253,6 +253,25 @@ public class BirthdayService : IBirthdayService
         // it uses the keyworkd fields.  Since those are case sensitive, it forces a search for all cased values that would match insenitively
         if (rr.rules == null || rr.rules.Count == 0)
         {
+            // Handle negated operators (!LIKE, !CONTAINS, !IN, etc.) and
+            // exists=false by recursively generating the positive query and
+            // wrapping it in a must_not bool.
+            if (rr.@operator?.Contains("!") == true ||
+                (rr.@operator == "exists" && rr.value is bool b && !b))
+            {
+                var inner = await ConvertRulesetToElasticSearch(new Ruleset
+                {
+                    field = rr.field,
+                    @operator = rr.@operator?.Replace("!", string.Empty),
+                    value = rr.@operator == "exists" ? true : rr.value
+                });
+                return new JObject{{
+                    "bool", new JObject{{
+                        "must_not", inner
+                    }}
+                }};
+            }
+
             JObject ret = new JObject{{
                 "term", new JObject{{
                     "BOGUSFIELD", "CANTMATCH"
@@ -403,7 +422,7 @@ public class BirthdayService : IBirthdayService
                 }
                 if (valueArray == null || valueArray.Count == 0)
                 {
-                    // Invalid or no-op: return match_none to be safe for positive IN; for NOT IN, wrap later in must_not
+                    // Invalid or no-op: return match_none to be safe
                     return new JObject{{
                         "match_none", new JObject{}
                     }};
@@ -457,14 +476,6 @@ public class BirthdayService : IBirthdayService
                 ret = new JObject{{
                     "bool", new JObject{{
                         "must", JArray.FromObject(lstExists)
-                    }}
-                }};
-            }
-            if (rr.@operator?.Contains("!") == true || (rr.@operator == "exists" && !(rr.value != null && (Boolean)rr.value)))
-            {
-                ret = new JObject {{
-                    "bool", new JObject{{
-                        "must_not", JObject.FromObject(ret)
                     }}
                 }};
             }
