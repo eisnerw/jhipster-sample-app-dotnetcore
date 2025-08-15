@@ -28,27 +28,29 @@ namespace JhipsterSampleApplication.Domain.Services
 
 		public async Task<ISearchResponse<Supreme>> SearchAsync(ISearchRequest request, string? pitId = null)
 		{
-			if (pitId == null)
-			{
-				var pitResponse = await _elasticClient.OpenPointInTimeAsync(new OpenPointInTimeRequest(IndexName)
-				{
-					KeepAlive = "2m"
-				});
-				if (!pitResponse.IsValid)
-				{
-					throw new Exception($"Failed to open point in time: {pitResponse.DebugInformation}");
-				}
-				pitId = pitResponse.Id;
-			}
-			if (!string.IsNullOrEmpty(pitId))
-			{
-				request.PointInTime = new PointInTime(pitId);
-			}
-                        var response = await _elasticClient.SearchAsync<Supreme>(request);
+                        if (pitId == null)
+                        {
+                                var pitResponse = await _elasticClient.OpenPointInTimeAsync(new OpenPointInTimeRequest(IndexName)
+                                {
+                                        KeepAlive = "2m"
+                                });
+                                if (!pitResponse.IsValid)
+                                {
+                                        throw new Exception($"Failed to open point in time: {pitResponse.DebugInformation}");
+                                }
+                                pitId = pitResponse.Id;
+                        }
+                        string targetIndex = IndexName;
+                        if (!string.IsNullOrEmpty(pitId))
+                        {
+                                request.PointInTime = new PointInTime(pitId);
+                                targetIndex = string.Empty; // do not send an index when using PIT
+                        }
+                        var response = await _elasticClient.LowLevel.SearchAsync<SearchResponse<Supreme>>(targetIndex, PostData.Serializable(request));
                         if (!response.IsValid)
                         {
                                 // Retry with direct streaming disabled to expose detailed error information
-                                var retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(IndexName, PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
+                                var retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(targetIndex, PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
                                 throw new Exception(retryResponse.Body);
                         }
 			if (response.Hits.Count > 0)
