@@ -12,6 +12,7 @@ using System.Net;
 using JhipsterSampleApplication.Dto;
 using AutoMapper;
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -24,19 +25,22 @@ namespace JhipsterSampleApplication.Controllers
 		private readonly ISupremeBqlService _bqlService;
 		private readonly IMapper _mapper;
 		private readonly IViewService _viewService;
+		private readonly ILogger<SupremesController> _logger;
 
 		public SupremesController(
 			ISupremeService supremeService,
 			IElasticClient elasticClient,
 			ISupremeBqlService bqlService,
 			IMapper mapper,
-			IViewService viewService)
+			IViewService viewService,
+			ILogger<SupremesController> logger)
 		{
 			_supremeService = supremeService;
 			_elasticClient = elasticClient;
 			_bqlService = bqlService;
 			_mapper = mapper;
 			_viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
+			_logger = logger;
 		}
 
 		public class RawSearchRequestDto
@@ -74,13 +78,22 @@ namespace JhipsterSampleApplication.Controllers
 			[FromQuery] string? secondaryCategory = null,
 			[FromQuery] bool includeDescriptive = false)
 		{
+			_logger.LogInformation("Supreme lucene search called. query='{Query}', from={From}, pageSize={PageSize}, sort='{Sort}', view='{View}', category='{Category}', secondaryCategory='{SecondaryCategory}', includeDescriptive={IncludeDescriptive}", query, from, pageSize, sort, view, category, secondaryCategory, includeDescriptive);
 			if (string.IsNullOrWhiteSpace(query))
 			{
 				return BadRequest("Query cannot be empty");
 			}
 			JObject queryStringObject = new JObject(new JProperty("query", query));
 			JObject queryObject = new JObject(new JProperty("query_string", queryStringObject));
-			return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter, includeDescriptive);
+			try
+			{
+				return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter, includeDescriptive);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Supreme lucene search failed");
+				return StatusCode(500, ex.Message);
+			}
 		}
 
 		[HttpPost("search/ruleset")]
@@ -258,21 +271,28 @@ namespace JhipsterSampleApplication.Controllers
 			var sortDescriptor = new List<ISort>();
 			if (!string.IsNullOrEmpty(sort))
 			{
-				var sortParts = sort.Split(':');
+				var sortParts = sort.Contains(':') ? sort.Split(':') : (sort.Contains(',') ? sort.Split(',') : Array.Empty<string>());
 				if (sortParts.Length == 2)
 				{
 					var field = sortParts[0];
 					var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
 					if (field == "docket_number")
 					{
+						_logger.LogInformation("Using docket_number script sort. order={Order}", order);
 						var script =
 							@"def dn = params._source.containsKey('docket_number') ? params._source.docket_number : null;" +
 							@"if (dn == null) return 0L;" +
 							@"dn = dn.toString().trim();" +
-							@"def parts = dn.split('-');" +
+							@"int idx = dn.indexOf('-');" +
 							@"long a = 0; long b = 0;" +
-							@"if (parts.length > 0) { def p0 = parts[0].replaceAll('\\D',''); if (p0.length() > 0) { a = Long.parseLong(p0); } }" +
-							@"if (parts.length > 1) { def p1 = parts[1].replaceAll('\\D',''); if (p1.length() > 0) { b = Long.parseLong(p1); } }" +
+							@"String s0 = idx >= 0 ? dn.substring(0, idx) : dn;" +
+							@"String s1 = idx >= 0 ? dn.substring(idx + 1) : """";" +
+							@"String d0 = """";" +
+							@"for (int i = 0; i < s0.length(); ++i) { def ch = s0.charAt(i); if (ch >= '0' && ch <= '9') { d0 = d0 + s0.substring(i, i+1); } }" +
+							@"String d1 = """";" +
+							@"for (int i = 0; i < s1.length(); ++i) { def ch = s1.charAt(i); if (ch >= '0' && ch <= '9') { d1 = d1 + s1.substring(i, i+1); } }" +
+							@"if (d0.length() > 0) { a = Long.parseLong(d0); }" +
+							@"if (d1.length() > 0) { b = Long.parseLong(d1); }" +
 							@"return a * 1000000L + b;";
 						sortDescriptor.Add(new ScriptSort
 						{
@@ -283,29 +303,22 @@ namespace JhipsterSampleApplication.Controllers
 					}
 					else
 					{
-						sortDescriptor.Add(new FieldSort { Field = field, Order = order });
+						if (field.Equals("name", StringComparison.OrdinalIgnoreCase))
+						{
+							_logger.LogInformation("Skipping sort on text field 'name'; falling back to _id only");
+						}
+						else
+						{
+							_logger.LogInformation("Using field sort. field={Field}, order={Order}", field, order);
+							sortDescriptor.Add(new FieldSort { Field = field, Order = order });
+						}
 					}
 				}
 			}
 			else
 			{
-				// Default: reverse sort by docket_number treating it as two numeric parts (e.g., YY-NNNN)
-				// Use a script sort that parses the parts and combines into a sortable long value
-				var script =
-					@"def dn = params._source.containsKey('docket_number') ? params._source.docket_number : null;" +
-					@"if (dn == null) return 0L;" +
-					@"dn = dn.toString().trim();" +
-					@"def parts = dn.split('-');" +
-					@"long a = 0; long b = 0;" +
-					@"if (parts.length > 0) { def p0 = parts[0].replaceAll('\\D',''); if (p0.length() > 0) { a = Long.parseLong(p0); } }" +
-					@"if (parts.length > 1) { def p1 = parts[1].replaceAll('\\D',''); if (p1.length() > 0) { b = Long.parseLong(p1); } }" +
-					@"return a * 1000000L + b;";
-				sortDescriptor.Add(new ScriptSort
-				{
-					Script = new InlineScript(script),
-					Type = "number",
-					Order = SortOrder.Descending
-				});
+				// Default: rely on _id only (added below) to avoid mapping issues
+				_logger.LogInformation("Using default sort by _id only");
 			}
 			// Always add _id as the last sort field for consistent pagination
 			sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });

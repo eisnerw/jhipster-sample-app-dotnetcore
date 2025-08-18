@@ -48,7 +48,17 @@ namespace JhipsterSampleApplication.Domain.Services
                         if (!response.IsValid)
                         {
                                 // Retry with direct streaming disabled to expose detailed error information
-                                var retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(IndexName, PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
+                                StringResponse retryResponse;
+                                if (request.PointInTime != null)
+                                {
+                                        // When using PIT, do not specify an index in the path
+                                        retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
+                                }
+                                else
+                                {
+                                        retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(IndexName, PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
+                                }
+                                // Surface elastic error body directly to caller for logging
                                 throw new Exception(retryResponse.Body);
                         }
 			if (response.Hits.Count > 0)
