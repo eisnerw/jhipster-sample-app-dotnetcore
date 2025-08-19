@@ -106,7 +106,13 @@
                         "type": "text"
                     },
                     "term": {
-                        "type": "text"
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
                     },
                     "categories": {
                         "type": "text",
