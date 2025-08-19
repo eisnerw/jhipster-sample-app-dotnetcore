@@ -308,6 +308,8 @@
               [contextMenuSelection]="contextMenuSelection"
               (onContextMenuSelect)="onContextMenuSelect.emit($event)"
               (contextMenuSelectionChange)="contextMenuSelectionChange.emit($event)"
+              (rowExpand)="rowExpand.emit($event)"
+              (rowCollapse)="rowCollapse.emit($event)"
             ></super-table>
           </td>
         </tr>
