@@ -39,8 +39,15 @@ namespace JhipsterSampleApplication.Domain.Entities
         [Column("domain")]
         public string Domain { get; set; } = string.Empty;
 
-        public void SetIdFromName()
+        public void EnsureId()
         {
+            if (!string.IsNullOrEmpty(Id))
+            {
+                // An explicit identifier was provided. Keep it so renaming the view
+                // doesn't break references or hierarchy relationships.
+                return;
+            }
+
             if (string.IsNullOrEmpty(Name))
             {
                 throw new InvalidOperationException("View name cannot be null or empty");
@@ -48,7 +55,7 @@ namespace JhipsterSampleApplication.Domain.Entities
 
             if (!string.IsNullOrEmpty(parentViewId))
             {
-                Id = $"{parentViewId.ToLowerInvariant()}.{Name.ToLowerInvariant()}";
+                Id = $"{parentViewId.ToLowerInvariant()}/{Name.ToLowerInvariant()}";
             }
             else
             {

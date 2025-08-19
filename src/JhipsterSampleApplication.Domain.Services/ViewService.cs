@@ -73,7 +73,7 @@ namespace JhipsterSampleApplication.Domain.Services
             }
 
             var view = _mapper.Map<View>(viewDto);
-            view.SetIdFromName();
+            view.EnsureId();
             var createdView = await _viewRepository.AddAsync(view);
             return _mapper.Map<ViewDto>(createdView);
         }
@@ -96,7 +96,7 @@ namespace JhipsterSampleApplication.Domain.Services
             }
 
             var view = _mapper.Map<View>(viewDto);
-            view.SetIdFromName();
+            view.EnsureId();
             var updatedView = await _viewRepository.UpdateAsync(view);
             return _mapper.Map<ViewDto>(updatedView);
         }
