@@ -43,13 +43,85 @@ namespace JhipsterSampleApplication.Controllers
 			_logger = logger;
 		}
 
-		public class RawSearchRequestDto
-		{
-			public string? Query { get; set; }
-			public int? From { get; set; }
-			public int? Size { get; set; }
-			public string? Sort { get; set; }
-		}
+                public class RawSearchRequestDto
+                {
+                        public string? Query { get; set; }
+                        public int? From { get; set; }
+                        public int? Size { get; set; }
+                        public string? Sort { get; set; }
+                }
+
+                /// <summary>
+                /// Returns an HTML page constructed from various fields for a given Supreme document
+                /// </summary>
+                [HttpGet("html/{id}")]
+                [Produces("text/html")]
+                public async Task<IActionResult> GetHtmlById(string id)
+                {
+                        var searchRequest = new SearchRequest<Supreme>
+                        {
+                                Query = new QueryContainerDescriptor<Supreme>().Term(t => t.Field("_id").Value(id))
+                        };
+
+                        var response = await _supremeService.SearchAsync(searchRequest);
+                        if (!response.IsValid || !response.Documents.Any())
+                        {
+                                return NotFound();
+                        }
+
+                        var s = response.Documents.First();
+                        string? Join(IEnumerable<string>? list)
+                        {
+                                if (list == null) return null;
+                                var vals = list.Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => WebUtility.HtmlEncode(v.Trim())).ToList();
+                                return vals.Count > 0 ? string.Join(", ", vals) : null;
+                        }
+                        string? JoinDissent(string? dissent)
+                        {
+                                if (string.IsNullOrWhiteSpace(dissent)) return null;
+                                var parts = dissent.Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim());
+                                return Join(parts);
+                        }
+                        var sb = new StringBuilder();
+                        sb.Append("<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><base target=\"_blank\"><title>")
+                          .Append(WebUtility.HtmlEncode(s.Name ?? "Supreme"))
+                          .Append("</title><style>body{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial,\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111} .empty{color:#666} .field-name{font-weight:600}</style></head><body>");
+
+                        if (!string.IsNullOrWhiteSpace(s.Name) || !string.IsNullOrWhiteSpace(s.Docket_Number))
+                        {
+                                sb.Append("<h3>").Append(WebUtility.HtmlEncode(s.Name ?? string.Empty));
+                                if (!string.IsNullOrWhiteSpace(s.Docket_Number))
+                                {
+                                        sb.Append(" (").Append(WebUtility.HtmlEncode(s.Docket_Number)).Append(")");
+                                }
+                                sb.Append("</h3>");
+                        }
+
+                        void AppendField(string label, string? value)
+                        {
+                                if (string.IsNullOrWhiteSpace(value)) return;
+                                sb.Append("<div><span class=\"field-name\">").Append(WebUtility.HtmlEncode(label)).Append("</span> ").Append(value).Append("</div>");
+                        }
+
+                        AppendField("lower court", WebUtility.HtmlEncode(s.Lower_Court ?? string.Empty));
+                        AppendField("jurisdiction", WebUtility.HtmlEncode(s.Manner_Of_Jurisdiction ?? string.Empty));
+                        AppendField("decision", WebUtility.HtmlEncode(s.Decision ?? string.Empty));
+                        AppendField("advocates", Join(s.Advocates));
+                        AppendField("description", WebUtility.HtmlEncode(s.Description ?? string.Empty));
+                        AppendField("question", WebUtility.HtmlEncode(s.Question ?? string.Empty));
+                        AppendField("facts of the case", WebUtility.HtmlEncode(s.Facts_Of_The_Case ?? string.Empty));
+                        AppendField("conclusion", WebUtility.HtmlEncode(s.Conclusion ?? string.Empty));
+                        AppendField("opinion", WebUtility.HtmlEncode(s.Opinion ?? string.Empty));
+                        AppendField("dissent", JoinDissent(s.Dissent));
+                        AppendField("justia url", string.IsNullOrWhiteSpace(s.Justia_Url) ? null : "<a href=\"" + WebUtility.HtmlEncode(s.Justia_Url) + "\">" + WebUtility.HtmlEncode(s.Justia_Url) + "</a>");
+                        AppendField("argument2 url", string.IsNullOrWhiteSpace(s.Argument2_Url) ? null : "<a href=\"" + WebUtility.HtmlEncode(s.Argument2_Url) + "\">" + WebUtility.HtmlEncode(s.Argument2_Url) + "</a>");
+                        AppendField("majority", Join(s.Majority));
+                        AppendField("minority", Join(s.Minority));
+                        AppendField("recused", Join(s.Recused));
+
+                        sb.Append("</body></html>");
+                        return Content(sb.ToString(), "text/html");
+                }
 
 		[HttpGet("query-builder-spec")]
 		[Produces("application/json")]
@@ -388,71 +460,6 @@ namespace JhipsterSampleApplication.Controllers
                         return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter);
                 }
 
-                [HttpGet("html/{id}")]
-                [Produces("text/html")]
-                public async Task<IActionResult> GetHtmlById(string id)
-                {
-                        var searchRequest = new SearchRequest<Supreme>
-                        {
-                                Query = new QueryContainerDescriptor<Supreme>().Term(t => t.Field("_id").Value(id))
-                        };
-
-                        var response = await _supremeService.SearchAsync(searchRequest, "");
-                        if (!response.IsValid || !response.Documents.Any())
-                        {
-                                return NotFound();
-                        }
-
-                        var supreme = response.Documents.First();
-                        var title = supreme.Name ?? "Supreme";
-
-                        var attributes = new Dictionary<string, string?>
-                        {
-                                {"Name", supreme.Name},
-                                {"Docket Number", supreme.Docket_Number},
-                                {"Manner Of Jurisdiction", supreme.Manner_Of_Jurisdiction},
-                                {"Lower Court", supreme.Lower_Court},
-                                {"Facts Of The Case", supreme.Facts_Of_The_Case},
-                                {"Question", supreme.Question},
-                                {"Conclusion", supreme.Conclusion},
-                                {"Decision", supreme.Decision},
-                                {"Description", supreme.Description},
-                                {"Dissent", supreme.Dissent},
-                                {"Heard By", supreme.Heard_By},
-                                {"Term", supreme.Term},
-                                {"Justia Url", supreme.Justia_Url},
-                                {"Opinion", supreme.Opinion},
-                                {"Argument2 Url", supreme.Argument2_Url},
-                                {"Appellant", supreme.Appellant},
-                                {"Appellee", supreme.Appellee},
-                                {"Petitioner", supreme.Petitioner},
-                                {"Respondent", supreme.Respondent},
-                                {"Recused", supreme.Recused != null ? string.Join(", ", supreme.Recused) : null},
-                                {"Majority", supreme.Majority != null ? string.Join(", ", supreme.Majority) : null},
-                                {"Minority", supreme.Minority != null ? string.Join(", ", supreme.Minority) : null},
-                                {"Advocates", supreme.Advocates != null ? string.Join(", ", supreme.Advocates) : null},
-                                {"Categories", supreme.Categories != null ? string.Join(", ", supreme.Categories) : null}
-                        };
-
-                        var sb = new StringBuilder();
-                        sb.Append("<!doctype html><html><head>");
-                        sb.Append("<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-                        sb.Append("<base target=\"_blank\"><title>")
-                          .Append(WebUtility.HtmlEncode(title))
-                          .Append("</title>");
-                        sb.Append("<style>body{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial,\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111} table{border-collapse:collapse;width:100%} th,td{padding:4px;text-align:left;border-bottom:1px solid #ddd}</style>");
-                        sb.Append("</head><body><table>");
-                        foreach (var kv in attributes)
-                        {
-                                sb.Append("<tr><th>")
-                                  .Append(WebUtility.HtmlEncode(kv.Key))
-                                  .Append("</th><td>")
-                                  .Append(WebUtility.HtmlEncode(kv.Value ?? string.Empty))
-                                  .Append("</td></tr>");
-                        }
-                        sb.Append("</table></body></html>");
-                        return Content(sb.ToString(), "text/html");
-                }
 
                 [HttpGet("{id}")]
                 [ProducesResponseType(typeof(SupremeDto), 200)]
