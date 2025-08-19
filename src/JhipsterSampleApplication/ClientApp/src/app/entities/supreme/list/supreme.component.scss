@@ -1,10 +1,5 @@
 :host {
-  ::ng-deep .p-datatable,
-  ::ng-deep .p-datatable-wrapper,
-  ::ng-deep .p-datatable-table,
-  ::ng-deep .p-datatable .p-datatable-wrapper .p-datatable-table {
-    width: 100% !important;
-  }
+  /* Avoid forcing table/wrapper widths to prevent horizontal scrolling */
   ::ng-deep .p-datatable table {
     table-layout: fixed !important;
     width: 100% !important;
@@ -88,6 +83,94 @@
     max-height: 32px !important;
     display: flex !important;
     align-items: center;
+  }
+
+  /* Center checkboxes in header and body like Birthday component */
+  ::ng-deep .p-checkbox {
+    width: 16px !important;
+    height: 16px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 16px !important;
+    max-height: 16px !important;
+    position: relative !important;
+    top: -3px !important;
+  }
+  ::ng-deep .p-checkbox .p-checkbox-box {
+    width: 16px !important;
+    height: 16px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 16px !important;
+    max-height: 16px !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-thead > tr.header-row > th:first-child {
+    padding: 0 !important;
+    margin: 0 !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-thead > tr.header-row > th:first-child > div {
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+    line-height: 32px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    align-items: flex-end;
+  }
+  ::ng-deep .p-datatable .p-datatable-thead > tr.header-row > th:first-child .p-checkbox {
+    width: 16px !important;
+    height: 16px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 16px !important;
+    max-height: 16px !important;
+    position: relative !important;
+    top: -7px !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-thead > tr.header-row > th:first-child .p-checkbox .p-checkbox-box {
+    width: 16px !important;
+    height: 16px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 16px !important;
+    max-height: 16px !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-thead > tr.header-row > th:first-child .p-checkbox .p-checkbox-icon {
+    font-size: 12px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 12px !important;
+    height: 12px !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-thead > tr.header-row > th:first-child .p-checkbox .p-checkbox-input {
+    height: 9.6px !important;
+    border-top-width: 0 !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-tbody .p-checkbox .p-checkbox-box.p-highlight,
+  ::ng-deep .p-datatable .p-datatable-thead .p-checkbox .p-checkbox-box.p-highlight,
+  ::ng-deep .p-checkbox .p-checkbox-box.p-highlight {
+    background: #ffffff !important;
+    border-color: var(--surface-border, #ced4da) !important;
+    box-shadow: none !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-tbody .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
+  ::ng-deep .p-datatable .p-datatable-thead .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
+  ::ng-deep .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
+  ::ng-deep .p-checkbox .p-checkbox-icon {
+    color: var(--text-color, #212529) !important;
+    font-size: 12px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 12px !important;
+    height: 12px !important;
+  }
+
+  /* Ensure scrollable tables don't exceed container width */
+  ::ng-deep .p-datatable.p-datatable-scrollable .p-datatable-wrapper {
+    overflow: auto;
   }
 
   /* Match Birthday query builder sizing */
