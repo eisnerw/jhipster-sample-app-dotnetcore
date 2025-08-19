@@ -1,7 +1,7 @@
 [
 	{
-		"id": "term",
-		"name": "Term",
+		"id": "heard_term",
+		"name": "Term/heard by",
 		"field": "term",
 		"aggregation": "term.keyword",
 		"query": "term:*",
@@ -17,7 +17,7 @@
 		"query": "heard_by:*",
 		"categoryQuery": "",
 		"script": "",
-		"parentViewId": "term",
+		"parentViewId": "heard_term",
 		"domain": "supreme"
 	},
 	{
@@ -41,6 +41,16 @@
 		"domain": "supreme"
 	},
 	{
+		"id": "decision_term",
+		"name": "Term/decision",
+		"field": "term",
+		"aggregation": "term.keyword",
+		"query": "term:*",
+		"categoryQuery": "",
+		"script": "",
+		"domain": "supreme"
+	},	
+	{
 		"id": "decision",
 		"name": "Decision",
 		"field": "decision",
@@ -48,7 +58,17 @@
 		"query": "decision:*",
 		"categoryQuery": "",
 		"script": "",
+		"parentViewId": "decision_term",
+		"domain": "supreme"
+	},
+	{
+		"id": "term",
+		"name": "Term",
+		"field": "term",
+		"aggregation": "term.keyword",
+		"query": "term:*",
+		"categoryQuery": "",
+		"script": "",
 		"domain": "supreme"
 	}
-
 ]
