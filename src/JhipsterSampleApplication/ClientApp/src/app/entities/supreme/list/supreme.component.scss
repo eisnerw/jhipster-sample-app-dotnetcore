@@ -171,6 +171,7 @@
   /* Ensure scrollable tables don't exceed container width */
   ::ng-deep .p-datatable.p-datatable-scrollable .p-datatable-wrapper {
     overflow: auto;
+    scrollbar-gutter: stable;
   }
 
   /* Match Birthday query builder sizing */
