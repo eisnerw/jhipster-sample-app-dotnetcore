@@ -133,8 +133,6 @@ export class SupremeComponent implements OnInit, AfterViewInit {
 
   refreshData(): void {
     if (this.superTable) {
-      // Respect seeded widths on next restore and clear any stale captured widths
-      (this.superTable as any).resetWidthState();
       this.superTable.filterGlobal('');
     }
     this.onQueryChange(this.currentQuery, true);
@@ -144,12 +142,10 @@ export class SupremeComponent implements OnInit, AfterViewInit {
     this.viewName = view;
     if (this.viewName) {
       try { this.superTable?.filterGlobal(''); } catch {}
-      if (this.superTable) (this.superTable as any).resetWidthState();
       this.loadRootGroups();
     } else {
       this.groups = [];
       this.viewMode = 'grid';
-      if (this.superTable) (this.superTable as any).resetWidthState();
       this.loadPage();
       setTimeout(() => this.superTable.applyCapturedHeaderState(), 500);
     }
