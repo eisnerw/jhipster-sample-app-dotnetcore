@@ -71,6 +71,34 @@ function tokenize(input: string): Token[] {
       i++;
       continue;
     }
+    // Regex literal: /.../ or /.../i with support for escapes and spaces
+    if (ch === '/') {
+      let j = i + 1;
+      let ok = false;
+      while (j < input.length) {
+        const cj = input[j];
+        if (cj === '\\') {
+          j += 2; // skip escaped char
+          continue;
+        }
+        if (cj === '/') {
+          // consume optional flags
+          j++;
+          let k = j;
+          while (k < input.length && /[a-z]/i.test(input[k])) k++;
+          const literal = input.slice(i, k);
+          tokens.push({ type: 'word', value: literal });
+          i = k;
+          ok = true;
+          break;
+        }
+        j++;
+      }
+      if (ok) {
+        continue;
+      }
+      // fall through to default word token if no closing '/'
+    }
     if (
       (ch === '!' && i + 1 < input.length && input[i + 1] === '=') ||
       /=|<|>/.test(ch)
@@ -558,16 +586,27 @@ function validateRule(
     return false;
   }
 
+  // Incomplete regex literals (start with '/' but missing closing '/') are invalid
+  if (typeof rule.value === 'string') {
+    if (rule.value.startsWith('/') && !/^\/(?:\\\/|\\.|[^\/])+\/[a-z]*$/.test(rule.value)) {
+      return false;
+    }
+  }
+
   // For like operators, restrict regex literals to /exp/ or /exp/i only
   if (rule.operator === 'like' || rule.operator === '!like') {
     if (typeof rule.value === 'string') {
       const m = rule.value.match(/^\/(?:\\\/|\\.|[^\/])+\/([a-z]*)$/);
       if (m) {
-        const flags = m[1] || '';
-        for (const ch of flags) {
-          if (ch !== 'i') {
-            return false;
-          }
+        const flags = (m[1] || '').replace(/[^i]/g, '');
+        const body = rule.value.replace(/^\//, '').replace(/\/[a-z]*$/, '');
+        try {
+          // Attempt to build JS regex; reject only if it throws
+          // Limit flags to 'i' as per UI spec
+          // eslint-disable-next-line no-new
+          new RegExp(body, flags);
+        } catch {
+          return false;
         }
       }
     }

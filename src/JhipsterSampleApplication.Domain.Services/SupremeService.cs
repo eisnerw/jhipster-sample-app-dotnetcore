@@ -157,6 +157,80 @@ namespace JhipsterSampleApplication.Domain.Services
                                 if (rr.@operator?.Contains("contains") == true || rr.@operator?.Contains("like") == true)
 				{
 					string stringValue = rr.value?.ToString() ?? string.Empty;
+					// Handle regex literals like /exp/ or /exp/i
+					if (stringValue.StartsWith("/") && (stringValue.EndsWith("/") || stringValue.EndsWith("/i")))
+					{
+						bool caseInsensitive = stringValue.EndsWith("/i");
+						string re = stringValue.Substring(1, stringValue.Length - (caseInsensitive ? 3 : 2));
+						string regex = ToElasticRegEx(re.Replace(@"\\\\", @"\"), caseInsensitive);
+						if (regex.StartsWith("^"))
+						{
+							regex = regex.Substring(1);
+						}
+						else
+						{
+							regex = ".*" + regex;
+						}
+						if (regex.EndsWith("$"))
+						{
+							regex = regex.Substring(0, regex.Length - 1);
+						}
+						else
+						{
+							regex += ".*";
+						}
+						if (rr.field == "document")
+						{
+							// Build should over every textual field that exists (prefer .keyword when available)
+							var fields = new[] {
+								"name",
+								"term",
+								"docket_number",
+								"decision",
+								"description",
+								"dissent",
+								"question",
+								"facts_of_the_case",
+								"conclusion",
+								"opinion",
+								"heard_by",
+								"lower_court",
+								"manner_of_jurisdiction",
+								"majority",
+								"minority",
+								"advocates",
+								"categories",
+								"recused",
+								"Appellant",
+								"Appellee",
+								"Petitioner",
+								"Respondent",
+								"argument2_url",
+								"justia_url"
+							};
+							var shoulds = new JArray(fields.Select(f => new JObject{
+								{ "regexp", new JObject{ { (f == "name" || f == "term" || f == "docket_number" || f == "decision" || f == "description" || f == "question" || f == "facts_of_the_case" || f == "conclusion" || f == "opinion" || f == "heard_by" || f == "lower_court" || f == "manner_of_jurisdiction" || f == "majority" || f == "minority" || f == "advocates" || f == "categories") ? f : f + ".keyword", new JObject{ { "value", regex }, { "flags", "ALL" }, { "rewrite", "constant_score" } } } } }
+							}).ToArray());
+							// If case-insensitive AND the regex is a simple word/phrase, also add a query_string clause over analyzed fields
+							var plain = Regex.Replace(re, @"\\s", " ").Trim();
+							if (caseInsensitive && Regex.IsMatch(plain, @"^[A-Za-z0-9 _\-]+$"))
+							{
+								shoulds.Add(new JObject{
+									{
+										"query_string", new JObject{ { "query", plain.ToLower().Replace("\"","\\\"") } }
+									}
+								});
+							}
+							return new JObject{ { "bool", new JObject{ { "should", shoulds } } } };
+						}
+						else
+						{
+							string field = ToEsField(rr.field);
+							return new JObject{
+								{ "regexp", new JObject{ { field + ".keyword", new JObject{ { "value", regex }, { "flags", "ALL" }, { "rewrite", "constant_score" } } } } }
+							};
+						}
+					}
 					string quote = Regex.IsMatch(stringValue, "\\W") ? "\"" : string.Empty;
 					return new JObject{
 						{
@@ -361,6 +435,79 @@ namespace JhipsterSampleApplication.Domain.Services
 				}
 			}
 			return content;
+		}
+
+		private string ToElasticRegEx(string pattern, bool caseInsensitive)
+		{
+			string ret = "";
+			string[] regexTokens = Regex.Replace(pattern, @"([\[\]]|\\\\|\\\[|\\\]|\\s|\\S|\\w|\\W|\\d|\\D|.)", "`$1").Split('`');
+			bool inBracketClass = false;
+			for (int i = 1; i < regexTokens.Length; i++)
+			{
+				if (inBracketClass)
+				{
+					switch (regexTokens[i])
+					{
+						case "]":
+							inBracketClass = false;
+							ret += regexTokens[i];
+							break;
+						case @"\s":
+							ret += " \n\t\r";
+							break;
+						case @"\d":
+							ret += "0-9";
+							break;
+						case @"\w":
+							ret += "A-Za-z_";
+							break;
+						default:
+							if (caseInsensitive && Regex.IsMatch(regexTokens[i], @"^[A-Za-z]+$"))
+							{
+								if ((i + 2) < regexTokens.Length && regexTokens[i + 1] == "-" && Regex.IsMatch(regexTokens[i + 2], @"^[A-Za-z]+$"))
+								{
+									ret += regexTokens[i].ToLower() + "-" + regexTokens[i + 2].ToLower() + regexTokens[i].ToUpper() + "-" + regexTokens[i + 2].ToUpper();
+									i += 2;
+								}
+								else
+								{
+									ret += regexTokens[i].ToLower() + regexTokens[i].ToUpper();
+								}
+							}
+							else
+							{
+								ret += regexTokens[i];
+							}
+							break;
+					}
+				}
+				else if (regexTokens[i] == "[")
+				{
+					inBracketClass = true;
+					ret += regexTokens[i];
+				}
+				else if (regexTokens[i] == @"\s")
+				{
+					ret += @"[ \n\t\r]";
+				}
+				else if (regexTokens[i] == @"\d")
+				{
+					ret += @"[0-9]";
+				}
+				else if (regexTokens[i] == @"\w")
+				{
+					ret += @"[A-Za-z_]";
+				}
+				else if (caseInsensitive && Regex.IsMatch(regexTokens[i], @"[A-Za-z]"))
+				{
+					ret += "[" + regexTokens[i].ToLower() + regexTokens[i].ToUpper() + "]";
+				}
+				else
+				{
+					ret += regexTokens[i];
+				}
+			}
+			return ret;
 		}
 	}
 }

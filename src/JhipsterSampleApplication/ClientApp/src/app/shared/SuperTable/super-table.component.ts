@@ -86,6 +86,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Input() superTableParent: SuperTable | null = null;
   @Input() parentKey: string | undefined;
   @Input() expandedRowTemplate: TemplateRef<any> | undefined;
+  @Input() highlightPattern: string | null | undefined;
 
   @ViewChild('pTable') pTable!: Table;
   @ViewChildren('detailTable') detailTables!: QueryList<SuperTable>;
@@ -162,6 +163,62 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   ngOnInit(): void {
     // no initialization required
+  }
+
+  // Highlight helper: returns HTML with <mark> around pattern matches
+  formatCell(value: any, field?: string): any {
+    if (value === null || value === undefined) return '';
+    const text = String(value);
+    const pat = (this.highlightPattern || '').trim();
+    if (!pat) return this.escapeHtml(text);
+    try {
+      let rx: RegExp;
+      if (pat.startsWith('/') && /\/([a-z]*)$/.test(pat)) {
+        const m = pat.match(/^\/(.*)\/([a-z]*)$/);
+        if (m) {
+          rx = new RegExp(m[1], m[2].includes('i') ? 'gi' : 'g');
+        } else {
+          return this.escapeHtml(text);
+        }
+      } else {
+        // Build union of words, escape specials
+        const parts = pat
+          .split(/\s+/)
+          .map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+          .filter(p => p.length > 0);
+        if (parts.length === 0) return this.escapeHtml(text);
+        rx = new RegExp('(' + parts.join('|') + ')', 'gi');
+      }
+      const escaped = this.escapeHtml(text);
+      // Replace on escaped string by mapping back literal matches; approximate by running on original and rebuilding
+      const segments: any[] = [];
+      let last = 0;
+      let match: RegExpExecArray | null;
+      rx.lastIndex = 0;
+      while ((match = rx.exec(text)) !== null) {
+        const start = match.index;
+        const end = start + match[0].length;
+        segments.push(this.escapeHtml(text.slice(last, start)));
+        segments.push('<mark>' + this.escapeHtml(text.slice(start, end)) + '</mark>');
+        last = end;
+        if (match[0].length === 0) {
+          rx.lastIndex++;
+        }
+      }
+      segments.push(this.escapeHtml(text.slice(last)));
+      return segments.join('');
+    } catch {
+      return this.escapeHtml(text);
+    }
+  }
+
+  private escapeHtml(s: string): string {
+    return s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   getIndentStyle(group: GroupDescriptor): { [key: string]: string } {

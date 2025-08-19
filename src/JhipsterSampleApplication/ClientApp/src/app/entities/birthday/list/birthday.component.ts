@@ -249,7 +249,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       visit(rs);
     } catch {}
     // Deduplicate and limit to reasonable length
-    const dedup = Array.from(new Set(terms.map(t => t))).filter(t => t.length <= 64).slice(0, 20);
+    const dedup = Array.from(new Set(terms.map(t => t))).filter(t => t.length <= 256).slice(0, 50);
     return dedup;
   }
 
@@ -264,43 +264,72 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
       const style = doc.createElement('style');
       style.textContent = '.__bql-hl{background:yellow; color:#111;}';
       doc.head?.appendChild(style);
-      // Build regex to find terms (escape regex), case-insensitive
+      // Build matchers from terms; support regex literals (/.../flags) with case sensitivity per 'i' flag
       const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const pattern = terms.map(esc).join('|');
-      if (!pattern) return;
-      const re = new RegExp(`(${pattern})`, 'gi');
-      const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {
-        acceptNode: (node: any) => {
-          if (!node.nodeValue) return NodeFilter.FILTER_REJECT;
-          if (!re.test(node.nodeValue)) return NodeFilter.FILTER_REJECT;
-          return NodeFilter.FILTER_ACCEPT;
+      const regexes: { re: RegExp }[] = [];
+      const words: string[] = [];
+      for (const t of terms) {
+        const m = t.match(/^\/(.*)\/([a-z]*)$/);
+        if (m) {
+          const body = m[1];
+          const flags = (m[2] || '').includes('i') ? 'gi' : 'g';
+          try { regexes.push({ re: new RegExp(body, flags) }); } catch {}
+        } else {
+          words.push(esc(t));
         }
-      } as any);
+      }
+      if (words.length) {
+        try { regexes.push({ re: new RegExp('(' + words.join('|') + ')', 'gi') }); } catch {}
+      }
+      if (regexes.length === 0) return;
+      // Tree-walk and collect text nodes to process
+      const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null as any);
       const textNodes: Text[] = [];
       let n: any;
       while ((n = walker.nextNode())) {
-        textNodes.push(n as Text);
+        if (n && n.nodeValue && String(n.nodeValue).trim().length > 0) {
+          textNodes.push(n as Text);
+        }
       }
       textNodes.forEach(tn => {
         const parent = tn.parentNode as HTMLElement | null;
         if (!parent) return;
-        const html = tn.nodeValue || '';
-        // Reset regex for each node
-        const localRe = new RegExp(`(${pattern})`, 'gi');
-        const parts = html.split(localRe);
-        if (parts.length <= 1) return;
-        const frag = doc.createDocumentFragment();
-        for (let i = 0; i < parts.length; i++) {
-          const part = parts[i];
-          if (i % 2 === 1) {
-            const mark = doc.createElement('mark');
-            mark.className = '__bql-hl';
-            mark.textContent = part;
-            frag.appendChild(mark);
-          } else if (part) {
-            frag.appendChild(doc.createTextNode(part));
+        const text = tn.nodeValue || '';
+        // Collect match ranges across all regexes
+        type Range = { s: number; e: number };
+        const ranges: Range[] = [];
+        for (const { re } of regexes) {
+          re.lastIndex = 0;
+          let m: RegExpExecArray | null;
+          while ((m = re.exec(text)) !== null) {
+            const s = m.index;
+            const e = s + (m[0]?.length || 0);
+            if (e > s) ranges.push({ s, e });
+            if (m[0].length === 0) re.lastIndex++;
           }
         }
+        if (ranges.length === 0) return;
+        // Merge overlapping
+        ranges.sort((a, b) => a.s - b.s || a.e - b.e);
+        const merged: Range[] = [];
+        for (const r of ranges) {
+          if (!merged.length || r.s > merged[merged.length - 1].e) {
+            merged.push({ ...r });
+          } else {
+            merged[merged.length - 1].e = Math.max(merged[merged.length - 1].e, r.e);
+          }
+        }
+        const frag = doc.createDocumentFragment();
+        let last = 0;
+        for (const r of merged) {
+          if (r.s > last) frag.appendChild(doc.createTextNode(text.slice(last, r.s)));
+          const mark = doc.createElement('mark');
+          mark.className = '__bql-hl';
+          mark.textContent = text.slice(r.s, r.e);
+          frag.appendChild(mark);
+          last = r.e;
+        }
+        if (last < text.length) frag.appendChild(doc.createTextNode(text.slice(last)));
         parent.replaceChild(frag, tn);
       });
     } catch {}

@@ -129,7 +129,7 @@
                 <p-tableCheckbox [value]="rowData" dataKey="id"></p-tableCheckbox>
               }
               @case ('string') {
-                <span class="cell-content" [pTooltip]="rowData[col.field]">{{ rowData[col.field] }}</span>
+                <span class="cell-content" [pTooltip]="rowData[col.field]" [innerHTML]="formatCell(rowData[col.field], col.field)"></span>
               }
               @case ('date') {
                 <span class="cell-content" [pTooltip]="(rowData[col.field] | date: col.dateFormat || 'MM/dd/yyyy') || ''">{{
@@ -140,7 +140,7 @@
                 <span class="cell-content" [pTooltip]="rowData[col.field] ? 'Yes' : 'No'">{{ rowData[col.field] ? 'Yes' : 'No' }}</span>
               }
               @case ('list') {
-                <span class="cell-content" [pTooltip]="rowData[col.field]">{{ rowData[col.field] }}</span>
+                <span class="cell-content" [pTooltip]="rowData[col.field]" [innerHTML]="formatCell(rowData[col.field], col.field)"></span>
               }
               @case ('lineNumber') {
                 <span class="cell-content" [pTooltip]="rowIndex + 1">{{ rowIndex + 1 }}</span>

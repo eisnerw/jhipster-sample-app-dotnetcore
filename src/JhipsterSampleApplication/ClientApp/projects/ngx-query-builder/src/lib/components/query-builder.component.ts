@@ -1431,13 +1431,18 @@ export class QueryBuilderComponent
     if (!match) {
       return true; // not a regex literal; normal like value is fine
     }
-    const flags = match[1] || '';
-    for (const ch of flags) {
-      if (ch !== 'i') {
-        return false; // only 'i' is allowed
-      }
+    const rawFlags = match[1] || '';
+    // Only allow 'i' flag from UI perspective
+    const flags = rawFlags.replace(/[^i]/g, '');
+    const body = value.replace(/^\//, '').replace(/\/[a-z]*$/, '');
+    try {
+      // Try to compile; fail only if it throws
+      // eslint-disable-next-line no-new
+      new RegExp(body, flags);
+      return true;
+    } catch {
+      return false;
     }
-    return true;
   }
 
   private handleDataChange(): void {
