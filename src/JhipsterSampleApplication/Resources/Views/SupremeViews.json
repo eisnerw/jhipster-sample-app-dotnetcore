@@ -10,16 +10,6 @@
 		"domain": "supreme"
 	},
 	{
-		"id": "heard by",
-		"name": "Heard By",
-		"field": "heard_by",
-		"aggregation": "heard_by.keyword",
-		"query": "heard_by:*",
-		"categoryQuery": "",
-		"script": "",
-		"domain": "supreme"
-	},
-	{
 		"id": "term/heard by",
 		"name": "Heard By",
 		"field": "heard_by",
@@ -29,5 +19,36 @@
 		"script": "",
 		"parentViewId": "term",
 		"domain": "supreme"
+	},
+	{
+		"id": "advocates",
+		"name": "Advocates",
+		"field": "advocates",
+		"aggregation": "advocates.keyword",
+		"query": "advocates:*",
+		"categoryQuery": "",
+		"script": "",
+		"domain": "supreme"
+	},
+	{
+		"id": "lower court",
+		"name": "Lower Court",
+		"field": "lower_court",
+		"aggregation": "lower_court.keyword",
+		"query": "lower_court:*",
+		"categoryQuery": "",
+		"script": "",
+		"domain": "supreme"
+	},
+	{
+		"id": "decision",
+		"name": "Decision",
+		"field": "decision",
+		"aggregation": "decision.keyword",
+		"query": "decision:*",
+		"categoryQuery": "",
+		"script": "",
+		"domain": "supreme"
 	}
+
 ]
