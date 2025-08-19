@@ -339,12 +339,12 @@ namespace JhipsterSampleApplication.Domain.Services
 		public async Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(JObject queryObject, ViewDto viewDto, int size = 20, int from = 0, IList<ISort>? sort = null)
 		{
 			string query = queryObject.ToString();
-			var request = new SearchRequest<Supreme>
-			{
-				Size = 0,
-				From = from,
-				Query = new QueryContainerDescriptor<Supreme>().Raw(query),
-				Aggregations = new AggregationDictionary{
+                        var request = new SearchRequest<Supreme>(IndexName)
+                        {
+                                Size = 0,
+                                From = from,
+                                Query = new QueryContainerDescriptor<Supreme>().Raw(query),
+                                Aggregations = new AggregationDictionary{
 					{
 						"distinct",
 						new TermsAggregation("distinct")
@@ -356,12 +356,12 @@ namespace JhipsterSampleApplication.Domain.Services
 					}
 				}
 			};
-			var uncategorizedRequest = new SearchRequest<Supreme>
-			{
-				Size = 0,
-				From = from,
-				Query = new QueryContainerDescriptor<Supreme>().Raw(query),
-				Aggregations = new AggregationDictionary{
+                        var uncategorizedRequest = new SearchRequest<Supreme>(IndexName)
+                        {
+                                Size = 0,
+                                From = from,
+                                Query = new QueryContainerDescriptor<Supreme>().Raw(query),
+                                Aggregations = new AggregationDictionary{
 					{
 						"uncategorized", new FilterAggregation("uncategorized")
 						{
