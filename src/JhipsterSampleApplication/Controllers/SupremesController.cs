@@ -342,19 +342,25 @@ namespace JhipsterSampleApplication.Controllers
 				}
 			}
 
-			var searchRequest = new SearchRequest<Supreme>
-			{
-				Size = pageSize,
-				From = from,
-				Source = includeDescriptive
-					? null
-					: new SourceFilter
-					{
-						Excludes = new[] { "justia_url", "facts_of_the_case", "question", "conclusion" }
-					}
-			};
+                        var searchRequest = new SearchRequest<Supreme>
+                        {
+                                Size = pageSize,
+                                From = from,
+                                Source = includeDescriptive
+                                        ? null
+                                        : new SourceFilter
+                                        {
+                                                Excludes = new[] { "justia_url", "facts_of_the_case", "question", "conclusion" }
+                                        }
+                        };
 
-			var sortDescriptor = new List<ISort>();
+                        if (searchAfter != null && searchAfter.Length > 0)
+                        {
+                                searchRequest.SearchAfter = searchAfter.Cast<object>().ToList();
+                                searchRequest.From = null;
+                        }
+
+                        var sortDescriptor = new List<ISort>();
 			if (!string.IsNullOrEmpty(sort))
 			{
 				var sortParts = sort.Contains(':') ? sort.Split(':') : (sort.Contains(',') ? sort.Split(',') : Array.Empty<string>());
