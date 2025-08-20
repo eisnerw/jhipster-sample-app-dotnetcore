@@ -35,6 +35,8 @@ export class DataLoader<T> {
 
   // Load generation guard: ignores responses from older loads to prevent duplicates
   private activeLoadId = 0;
+  // Track loaded item identifiers to avoid emitting duplicates
+  private seenIds = new Set<string>();
 
   constructor(private fetchFunction: FetchFunction<T>) {
     this.data$ = this.bufferSubject;
@@ -58,6 +60,7 @@ export class DataLoader<T> {
     this.bufferSubject.next([]);
     this.pitId = null;
     this.searchAfter = [];
+    this.seenIds.clear();
 
     const queryParams: any = {
       pageSize: this.itemsPerPage,
@@ -110,8 +113,20 @@ export class DataLoader<T> {
       this.buffer = [];
     }
 
+    // Filter out any hits that have already been loaded
+    const uniqueHits = newHits.filter(hit => {
+      const id = (hit as any)?.id ?? (hit as any)?._id;
+      if (id !== undefined && id !== null) {
+        if (this.seenIds.has(String(id))) {
+          return false;
+        }
+        this.seenIds.add(String(id));
+      }
+      return true;
+    });
+
     const remaining = this.dataLoadLimit - this.buffer.length;
-    const toAdd = newHits.slice(0, remaining);
+    const toAdd = uniqueHits.slice(0, remaining);
     if (toAdd.length > 0) {
       this.buffer.push(...toAdd);
 
