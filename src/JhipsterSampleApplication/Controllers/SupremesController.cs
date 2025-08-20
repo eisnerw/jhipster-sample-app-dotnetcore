@@ -630,7 +630,8 @@ namespace JhipsterSampleApplication.Controllers
                 [ProducesResponseType(typeof(IReadOnlyCollection<string>), 200)]
                 public async Task<IActionResult> GetUniqueFieldValues(string field)
                 {
-                        var values = await _supremeService.GetUniqueFieldValuesAsync(field + ".keyword");
+                        var esField = field == "term" ? field : field + ".keyword";
+                        var values = await _supremeService.GetUniqueFieldValuesAsync(esField);
                         return Ok(values);
                 }
 

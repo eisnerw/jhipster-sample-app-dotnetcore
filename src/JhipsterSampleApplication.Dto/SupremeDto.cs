@@ -16,7 +16,7 @@ namespace JhipsterSampleApplication.Dto
         public string? Description { get; set; }
         public string? Dissent { get; set; }
         public string? Heard_By { get; set; }
-        public string? Term { get; set; }
+        public int? Term { get; set; }
         public string? Justia_Url { get; set; }
         public string? Opinion { get; set; }
         public string? Argument2_Url { get; set; }

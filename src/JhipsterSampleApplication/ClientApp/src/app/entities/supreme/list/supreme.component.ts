@@ -95,7 +95,7 @@ export class SupremeComponent implements OnInit, AfterViewInit {
     { field: 'lineNumber', header: '#', type: 'lineNumber', width: '4rem' },
     { field: 'checkbox', header: '', type: 'checkbox', width: '2rem' },
     { field: 'name', header: 'Case', filterType: 'text', type: 'string' },
-    { field: 'term', header: 'Term', filterType: 'text', type: 'string' },
+    { field: 'term', header: 'Term', filterType: 'numeric', type: 'string' },
     { field: 'docket_number', header: 'Docket #', filterType: 'text', type: 'string' },
     { field: 'decision', header: 'Decision', filterType: 'text', type: 'string' },
     { field: 'description', header: 'Description', filterType: 'text', type: 'string' },
