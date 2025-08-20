@@ -85,7 +85,7 @@ namespace JhipsterSampleApplication.Controllers
                         var sb = new StringBuilder();
                         sb.Append("<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><base target=\"_blank\"><title>")
                           .Append(WebUtility.HtmlEncode(s.Name ?? "Supreme"))
-                          .Append("</title><style>body{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial,\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111} .empty{color:#666} .field-name{font-weight:600}</style></head><body>");
+                          .Append("</title><style>body{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial,\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111} .empty{color:#666} .field-name{font-weight:600} .field{margin-bottom:0.7em}</style></head><body>");
 
                         if (!string.IsNullOrWhiteSpace(s.Name) || !string.IsNullOrWhiteSpace(s.Docket_Number))
                         {
@@ -97,10 +97,24 @@ namespace JhipsterSampleApplication.Controllers
                                 sb.Append("</h3>");
                         }
 
+                        string FormatLabel(string label)
+                        {
+                                return string.Join(" ", label.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(w =>
+                                        (w.Equals("of", StringComparison.OrdinalIgnoreCase) || w.Equals("the", StringComparison.OrdinalIgnoreCase))
+                                                ? w.ToLowerInvariant()
+                                                : w.Equals("url", StringComparison.OrdinalIgnoreCase)
+                                                        ? "URL"
+                                                        : char.ToUpperInvariant(w[0]) + w.Substring(1)));
+                        }
+
                         void AppendField(string label, string? value)
                         {
                                 if (string.IsNullOrWhiteSpace(value)) return;
-                                sb.Append("<div><span class=\"field-name\">").Append(WebUtility.HtmlEncode(label)).Append("</span> ").Append(value).Append("</div>");
+                                sb.Append("<div class=\"field\"><span class=\"field-name\">")
+                                  .Append(WebUtility.HtmlEncode(FormatLabel(label)))
+                                  .Append(":</span> ")
+                                  .Append(value)
+                                  .Append("</div>");
                         }
 
                         AppendField("lower court", WebUtility.HtmlEncode(s.Lower_Court ?? string.Empty));
