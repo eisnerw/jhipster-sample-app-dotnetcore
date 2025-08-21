@@ -146,8 +146,10 @@ namespace JhipsterSampleApplication.Controllers
                         AppendField("conclusion", WebUtility.HtmlEncode(s.Conclusion ?? string.Empty));
                         AppendField("opinion", WebUtility.HtmlEncode(s.Opinion ?? string.Empty));
                         AppendField("dissent", JoinDissent(s.Dissent));
-                        AppendField("justia url", string.IsNullOrWhiteSpace(s.Justia_Url) ? null : "<a href=\"" + WebUtility.HtmlEncode(s.Justia_Url) + "\">" + WebUtility.HtmlEncode(s.Justia_Url) + "</a>");
-                        AppendField("argument2 url", string.IsNullOrWhiteSpace(s.Argument2_Url) ? null : "<a href=\"" + WebUtility.HtmlEncode(s.Argument2_Url) + "\">" + WebUtility.HtmlEncode(s.Argument2_Url) + "</a>");
+                        AppendInlineFields(
+                                ("justia url", string.IsNullOrWhiteSpace(s.Justia_Url) ? null : "<a href=\"" + WebUtility.HtmlEncode(s.Justia_Url) + "\">" + WebUtility.HtmlEncode(s.Justia_Url) + "</a>"),
+                                ("oyez url", string.IsNullOrWhiteSpace(s.Argument2_Url) ? null : "<a href=\"" + WebUtility.HtmlEncode(s.Argument2_Url) + "\">" + WebUtility.HtmlEncode(s.Argument2_Url) + "</a>")
+                        );
                         AppendField("majority", Join(s.Majority));
                         AppendField("minority", Join(s.Minority));
                         AppendField("recused", Join(s.Recused));
