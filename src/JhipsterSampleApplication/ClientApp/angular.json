@@ -18,20 +18,27 @@
       "prefix": "jhi",
       "architect": {
         "build": {
-          "builder": "@angular-builders/custom-webpack:browser",
+          "builder": "@angular/build:application",
           "options": {
-            "customWebpackConfig": {
-              "path": "./webpack/webpack.custom.js"
-            },
             "outputPath": "dist/",
             "index": "src/index.html",
-            "main": "src/main.ts",
-            "polyfills": ["zone.js"],
+            "polyfills": [
+              "zone.js"
+            ],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
-            "assets": ["src/content", "src/favicon.ico", "src/manifest.webapp", "src/robots.txt"],
-            "styles": ["src/content/scss/vendor.scss", "src/content/scss/global.scss"],
-            "scripts": []
+            "assets": [
+              "src/content",
+              "src/favicon.ico",
+              "src/manifest.webapp",
+              "src/robots.txt"
+            ],
+            "styles": [
+              "src/content/scss/vendor.scss",
+              "src/content/scss/global.scss"
+            ],
+            "scripts": [],
+            "browser": "src/main.ts"
           },
           "configurations": {
             "production": {
@@ -40,8 +47,6 @@
               "sourceMap": false,
               "namedChunks": false,
               "extractLicenses": true,
-              "vendorChunk": false,
-              "buildOptimizer": true,
               "serviceWorker": true,
               "ngswConfigPath": "ngsw-config.json",
               "budgets": [
@@ -58,9 +63,7 @@
               ]
             },
             "development": {
-              "buildOptimizer": false,
               "optimization": false,
-              "vendorChunk": true,
               "extractLicenses": false,
               "sourceMap": true,
               "namedChunks": true,
@@ -75,10 +78,11 @@
           "defaultConfiguration": "production"
         },
         "serve": {
-          "builder": "@angular-builders/custom-webpack:dev-server",
+          "builder": "@angular/build:dev-server",
           "options": {
             "buildTarget": "jhipster-sample-application:build:development",
-            "port": 4200
+            "port": 4200,
+            "proxyConfig": "proxy.conf.json"
           },
           "configurations": {
             "production": {
@@ -261,7 +265,7 @@
           }
         }
       }
-    }  
+    }
   },
   "cli": {
     "cache": {

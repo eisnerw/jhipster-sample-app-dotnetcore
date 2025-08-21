@@ -9,6 +9,7 @@ import locale from '@angular/common/locales/en';
 import { ApplicationConfigService } from 'app/core/config/application-config.service';
 import { fontAwesomeIcons } from './config/font-awesome-icons';
 import MainComponent from './layouts/main/main.component';
+import { environment } from 'environments/environment';
 
 @Component({
   selector: 'jhi-app',
@@ -24,7 +25,7 @@ export default class AppComponent {
   private readonly dpConfig = inject(NgbDatepickerConfig);
 
   constructor() {
-    this.applicationConfigService.setEndpointPrefix(SERVER_API_URL);
+    this.applicationConfigService.setEndpointPrefix(environment.SERVER_API_URL);
     registerLocaleData(locale);
     this.iconLibrary.addIcons(...fontAwesomeIcons);
     this.dpConfig.minDate = {
