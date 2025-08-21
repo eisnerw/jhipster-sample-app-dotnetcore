@@ -182,10 +182,9 @@ namespace JhipsterSampleApplication.Domain.Services
 						if (rr.field == "document")
 						{
 							// Build should over every textual field that exists (prefer .keyword when available)
-							var fields = new[] {
-								"name",
-								"term",
-								"docket_number",
+                                                        var fields = new[] {
+                                                                "name",
+                                                                "docket_number",
 								"decision",
 								"description",
 								"dissent",
@@ -209,7 +208,7 @@ namespace JhipsterSampleApplication.Domain.Services
 								"justia_url"
 							};
 							var shoulds = new JArray(fields.Select(f => new JObject{
-								{ "regexp", new JObject{ { (f == "name" || f == "term" || f == "docket_number" || f == "decision" || f == "description" || f == "question" || f == "facts_of_the_case" || f == "conclusion" || f == "opinion" || f == "heard_by" || f == "lower_court" || f == "manner_of_jurisdiction" || f == "majority" || f == "minority" || f == "advocates" || f == "categories") ? f : f + ".keyword", new JObject{ { "value", regex }, { "flags", "ALL" }, { "rewrite", "constant_score" } } } } }
+                                                                { "regexp", new JObject{ { (f == "name" || f == "docket_number" || f == "decision" || f == "description" || f == "question" || f == "facts_of_the_case" || f == "conclusion" || f == "opinion" || f == "heard_by" || f == "lower_court" || f == "manner_of_jurisdiction" || f == "majority" || f == "minority" || f == "advocates" || f == "categories") ? f : f + ".keyword", new JObject{ { "value", regex }, { "flags", "ALL" }, { "rewrite", "constant_score" } } } } }
 							}).ToArray());
 							// If case-insensitive AND the regex is a simple word/phrase, also add a query_string clause over analyzed fields
 							var plain = Regex.Replace(re, @"\\s", " ").Trim();
@@ -242,7 +241,7 @@ namespace JhipsterSampleApplication.Domain.Services
 				}
 				else if (rr.@operator?.Contains("=") == true)
 				{
-					var valueStr = rr.value as string ?? string.Empty;
+                                        var valueStr = rr.value?.ToString() ?? string.Empty;
 					string field = ToEsField(rr.field);
 					return new JObject{
 						{

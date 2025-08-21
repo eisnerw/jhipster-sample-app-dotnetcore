@@ -19,7 +19,7 @@ namespace JhipsterSampleApplication.Domain.Entities
 			public string? Description { get; set; }
 			public string? Dissent { get; set; }
 			[PropertyName("heard_by")] public string? Heard_By { get; set; }
-			public string? Term { get; set; }
+                        public int? Term { get; set; }
 			[PropertyName("justia_url")] public string? Justia_Url { get; set; }
 			public string? Opinion { get; set; }
 			[PropertyName("argument2_url")] public string? Argument2_Url { get; set; }

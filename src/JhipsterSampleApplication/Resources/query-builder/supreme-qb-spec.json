@@ -12,8 +12,8 @@
     },
     "term": {
       "name": "Term",
-      "type": "string",
-      "operators": ["=", "!=", "in", "!in", "exists"]
+      "type": "number",
+      "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"]
     },
     "docket_number": {
       "name": "Docket #",

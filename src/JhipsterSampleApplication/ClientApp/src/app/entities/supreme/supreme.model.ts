@@ -1,7 +1,7 @@
 export interface ISupreme {
 	id?: string;
 	name?: string;
-	term?: string;
+        term?: number;
 	docket_number?: string;
 	justia_url?: string;
 	decision?: string;
@@ -28,7 +28,7 @@ export class Supreme implements ISupreme {
 	constructor(
 		public id?: string,
 		public name?: string,
-		public term?: string,
+                public term?: number,
 		public docket_number?: string,
         public justia_url?: string,
         public decision?: string,
