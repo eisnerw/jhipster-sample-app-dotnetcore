@@ -5,7 +5,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { HttpClientModule } from '@angular/common/http';
+import { HttpClientModule, HttpResponse } from '@angular/common/http';
 import { combineLatest, Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -114,11 +114,24 @@ export class SupremeComponent implements OnInit, AfterViewInit {
       if (queryParams.bqlQuery) {
         const bql = queryParams.bqlQuery;
         delete queryParams.bqlQuery;
-        return this.supremeService.searchWithBql(bql, queryParams);
+        return this.supremeService
+          .searchWithBql(bql, queryParams)
+          .pipe(map(res => this.useQuestionIfPresent(res)));
       }
-      return this.supremeService.query(queryParams);
+      return this.supremeService.query(queryParams).pipe(map(res => this.useQuestionIfPresent(res)));
     };
     this.dataLoader = new DataLoader<ISupreme>(fetchFunction);
+  }
+
+  private useQuestionIfPresent(res: HttpResponse<any>): HttpResponse<any> {
+    const hits = res.body?.hits;
+    if (Array.isArray(hits)) {
+      res.body.hits = hits.map((h: any) => ({
+        ...h,
+        description: h.question ?? h.description,
+      }));
+    }
+    return res;
   }
 
   ngOnInit(): void {
@@ -474,16 +487,23 @@ export class SupremeComponent implements OnInit, AfterViewInit {
           if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
             groupData.groups = hits.map((h) => ({ name: h.categoryName, count: h.count, categories: path }));
             groupData.mode = 'group';
-          } else {
-            const fetch: FetchFunction<ISupreme> = (queryParams: any) => {
-              if (queryParams.bqlQuery) {
-                const bql = queryParams.bqlQuery;
-                delete queryParams.bqlQuery;
-                return this.supremeService.searchWithBql(bql, queryParams);
-              }
-              return this.supremeService.query(queryParams);
-            };
-            const loader = new DataLoader<ISupreme>(fetch);
+            } else {
+              const fetch: FetchFunction<ISupreme> = (queryParams: any) => {
+                if (queryParams.includeDescriptive === undefined) {
+                  queryParams.includeDescriptive = false;
+                }
+                if (queryParams.bqlQuery) {
+                  const bql = queryParams.bqlQuery;
+                  delete queryParams.bqlQuery;
+                  return this.supremeService
+                    .searchWithBql(bql, queryParams)
+                    .pipe(map(res => this.useQuestionIfPresent(res)));
+                }
+                return this.supremeService
+                  .query(queryParams)
+                  .pipe(map(res => this.useQuestionIfPresent(res)));
+              };
+              const loader = new DataLoader<ISupreme>(fetch);
             const filter: any = { view: this.viewName! };
             filter.bqlQuery = this.currentQuery.trim();
             if (path.length >= 1) filter.category = path[0];
@@ -501,16 +521,23 @@ export class SupremeComponent implements OnInit, AfterViewInit {
           if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
             groupData.groups = hits.map((h) => ({ name: h.categoryName, count: h.count, categories: path }));
             groupData.mode = 'group';
-          } else {
-            const fetch: FetchFunction<ISupreme> = (queryParams: any) => {
-              if (queryParams.bqlQuery) {
-                const bql = queryParams.bqlQuery;
-                delete queryParams.bqlQuery;
-                return this.supremeService.searchWithBql(bql, queryParams);
-              }
-              return this.supremeService.query(queryParams);
-            };
-            const loader = new DataLoader<ISupreme>(fetch);
+            } else {
+              const fetch: FetchFunction<ISupreme> = (queryParams: any) => {
+                if (queryParams.includeDescriptive === undefined) {
+                  queryParams.includeDescriptive = false;
+                }
+                if (queryParams.bqlQuery) {
+                  const bql = queryParams.bqlQuery;
+                  delete queryParams.bqlQuery;
+                  return this.supremeService
+                    .searchWithBql(bql, queryParams)
+                    .pipe(map(res => this.useQuestionIfPresent(res)));
+                }
+                return this.supremeService
+                  .query(queryParams)
+                  .pipe(map(res => this.useQuestionIfPresent(res)));
+              };
+              const loader = new DataLoader<ISupreme>(fetch);
             const filter: any = { view: this.viewName!, query: '*' };
             if (path.length >= 1) filter.category = path[0];
             if (path.length >= 2) filter.secondaryCategory = path[1];
