@@ -230,22 +230,55 @@ namespace JhipsterSampleApplication.Domain.Services
 							};
 						}
 					}
-					string quote = Regex.IsMatch(stringValue, "\\W") ? "\"" : string.Empty;
-					return new JObject{
-						{
-							"query_string", new JObject{
-								{ "query", (rr.field != "document" ? (ToEsField(rr.field) + ":") : string.Empty) + quote + stringValue.ToLower().Replace("\"", "\\\"") + quote }
-							}
-						}
-					};
-				}
-				else if (rr.@operator?.Contains("=") == true)
-				{
+                                        string quote = Regex.IsMatch(stringValue, "\\W") ? "\"" : string.Empty;
+                                        return new JObject{
+                                                {
+                                                        "query_string", new JObject{
+                                                                { "query", (rr.field != "document" ? (ToEsField(rr.field) + ":") : string.Empty) + quote + stringValue.ToLower().Replace("\"", "\\\"") + quote }
+                                                        }
+                                                }
+                                        };
+                                }
+                                else if (rr.@operator == ">" || rr.@operator == ">=" || rr.@operator == "<" || rr.@operator == "<=")
+                                {
+                                        string field = ToEsField(rr.field);
+                                        var rangeOperator = rr.@operator switch
+                                        {
+                                                ">" => "gt",
+                                                ">=" => "gte",
+                                                "<" => "lt",
+                                                "<=" => "lte",
+                                                _ => string.Empty
+                                        };
                                         var valueStr = rr.value?.ToString() ?? string.Empty;
-					string field = ToEsField(rr.field);
-					return new JObject{
-						{
-							"query_string", new JObject{
+                                        if (double.TryParse(valueStr, out var numericValue))
+                                        {
+                                                return new JObject{
+                                                        {
+                                                                "range", new JObject{
+                                                                        { field, new JObject{ { rangeOperator, numericValue } } }
+                                                                }
+                                                        }
+                                                };
+                                        }
+                                        else
+                                        {
+                                                return new JObject{
+                                                        {
+                                                                "range", new JObject{
+                                                                        { field, new JObject{ { rangeOperator, valueStr } } }
+                                                                }
+                                                        }
+                                                };
+                                        }
+                                }
+                                else if (rr.@operator?.Contains("=") == true)
+                                {
+                                        var valueStr = rr.value?.ToString() ?? string.Empty;
+                                        string field = ToEsField(rr.field);
+                                        return new JObject{
+                                                {
+                                                        "query_string", new JObject{
 								{ "query", (field != "document" ? (field + ":\"") : "\"") + valueStr.ToLower().Replace("\"", "\\\"") + "\"" }
 							}
 						}
