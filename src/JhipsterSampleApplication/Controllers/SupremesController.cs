@@ -487,8 +487,9 @@ namespace JhipsterSampleApplication.Controllers
 			[FromQuery] string? pitId = null,
 			[FromQuery] string[]? searchAfter = null,
 			[FromQuery] string? view = null,
-			[FromQuery] string? category = null,
-			[FromQuery] string? secondaryCategory = null)
+                        [FromQuery] string? category = null,
+                        [FromQuery] string? secondaryCategory = null,
+                        [FromQuery] bool includeDescriptive = false)
 		{
 			if (string.IsNullOrWhiteSpace(bqlQuery))
 			{
@@ -497,7 +498,7 @@ namespace JhipsterSampleApplication.Controllers
                         var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
                         var ruleset = _mapper.Map<Ruleset>(rulesetDto);
                         var queryObject = await _supremeService.ConvertRulesetToElasticSearch(ruleset);
-                        return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter);
+                        return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter, includeDescriptive);
                 }
 
 
