@@ -85,7 +85,7 @@ namespace JhipsterSampleApplication.Controllers
                         var sb = new StringBuilder();
                         sb.Append("<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><base target=\"_blank\"><title>")
                           .Append(WebUtility.HtmlEncode(s.Name ?? "Supreme"))
-                          .Append("</title><style>body{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial,\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111} .empty{color:#666} .field-name{font-weight:600} .field{margin-bottom:0.7em}</style></head><body>");
+                          .Append("</title><style>body{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial,\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111} .empty{color:#666} .field-name{font-weight:600} .field{margin-bottom:0.7em} .inline-field{display:inline-block;margin-right:0.25in}</style></head><body>");
 
                         if (!string.IsNullOrWhiteSpace(s.Name) || !string.IsNullOrWhiteSpace(s.Docket_Number))
                         {
@@ -117,10 +117,29 @@ namespace JhipsterSampleApplication.Controllers
                                   .Append("</div>");
                         }
 
-                        AppendField("lower court", WebUtility.HtmlEncode(s.Lower_Court ?? string.Empty));
-                        AppendField("jurisdiction", WebUtility.HtmlEncode(s.Manner_Of_Jurisdiction ?? string.Empty));
-                        AppendField("decision", WebUtility.HtmlEncode(s.Decision ?? string.Empty));
-                        AppendField("advocates", Join(s.Advocates));
+                        void AppendInlineFields(params (string label, string? value)[] fields)
+                        {
+                                var items = fields.Where(f => !string.IsNullOrWhiteSpace(f.value)).ToList();
+                                if (items.Count == 0) return;
+                                sb.Append("<div class=\"field\">");
+                                foreach (var item in items)
+                                {
+                                        sb.Append("<span class=\"inline-field\"><span class=\"field-name\">")
+                                          .Append(WebUtility.HtmlEncode(FormatLabel(item.label)))
+                                          .Append(":</span> ")
+                                          .Append(item.value)
+                                          .Append("</span>");
+                                }
+                                sb.Append("</div>");
+                        }
+
+                        AppendInlineFields(
+                                ("term", WebUtility.HtmlEncode(s.Term?.ToString())),
+                                ("lower court", WebUtility.HtmlEncode(s.Lower_Court ?? string.Empty)),
+                                ("jurisdiction", WebUtility.HtmlEncode(s.Manner_Of_Jurisdiction ?? string.Empty)),
+                                ("decision", WebUtility.HtmlEncode(s.Decision ?? string.Empty)),
+                                ("advocates", Join(s.Advocates))
+                        );
                         AppendField("description", WebUtility.HtmlEncode(s.Description ?? string.Empty));
                         AppendField("question", WebUtility.HtmlEncode(s.Question ?? string.Empty));
                         AppendField("facts of the case", WebUtility.HtmlEncode(s.Facts_Of_The_Case ?? string.Empty));
