@@ -423,29 +423,32 @@ namespace JhipsterSampleApplication.Domain.Services
 		{
 			List<ViewResultDto> content = new();
 			var result = await _elasticClient.SearchAsync<Aggregation>(request);
-			((BucketAggregate)result.Aggregations.ToList()[0].Value).Items.ToList().ForEach(it =>
-			{
-				KeyedBucket<object> kb = (KeyedBucket<object>)it;
-				string categoryName = kb.KeyAsString != null ? kb.KeyAsString : (string)kb.Key;
-				bool notCategorized = false;
-				if (Regex.IsMatch(categoryName, @"\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z"))
-				{
-					categoryName = Regex.Replace(categoryName, @"(\d{4,4})-(\d{2,2})-(\d{2,2})T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z", "$1-$2-$3");
-				}
-				if (string.IsNullOrEmpty(categoryName))
-				{
-					categoryName = "(Uncategorized)";
-					notCategorized = true;
-				}
-				content.Add(new ViewResultDto
-				{
-					CategoryName = categoryName,
-					Count = kb.DocCount,
-					NotCategorized = notCategorized
-				});
+            if (result.Aggregations.Count > 0)
+            {
+                ((BucketAggregate)result.Aggregations.ToList()[0].Value).Items.ToList().ForEach(it =>
+                {
+                    KeyedBucket<object> kb = (KeyedBucket<object>)it;
+                    string categoryName = kb.KeyAsString ?? (kb.Key?.ToString() ?? string.Empty);
+                    bool notCategorized = false;
+                    if (Regex.IsMatch(categoryName, @"\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z"))
+                    {
+                        categoryName = Regex.Replace(categoryName, @"(\d{4,4})-(\d{2,2})-(\d{2,2})T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z", "$1-$2-$3");
+                    }
+                    if (string.IsNullOrEmpty(categoryName))
+                    {
+                        categoryName = "(Uncategorized)";
+                        notCategorized = true;
+                    }
+                    content.Add(new ViewResultDto
+                    {
+                        CategoryName = categoryName,
+                        Count = kb.DocCount,
+                        NotCategorized = notCategorized
+                    });
 
-			});
-			content = content.OrderBy(cat => cat.CategoryName).ToList();
+                });
+            }
+            content = content.OrderBy(cat => cat.CategoryName).ToList();
 			var uncategorizedResponse = await _elasticClient.SearchAsync<Supreme>(uncategorizedRequest);
 			var uncatetgorizedCount = uncategorizedResponse.Aggregations.Filter("uncategorized").DocCount;
 			if (uncatetgorizedCount > 0)

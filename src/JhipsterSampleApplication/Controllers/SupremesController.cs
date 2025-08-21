@@ -350,7 +350,7 @@ namespace JhipsterSampleApplication.Controllers
                                         ? null
                                         : new SourceFilter
                                         {
-                                                Excludes = new[] { "justia_url", "facts_of_the_case", "question", "conclusion" }
+                                                Excludes = new[] { "justia_url", "argument2_url", "facts_of_the_case", "conclusion" }
                                         }
                         };
 
