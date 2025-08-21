@@ -14,17 +14,20 @@ namespace JhipsterSampleApplication.Domain.Services
 {
 	public class SupremeService : ISupremeService
 	{
-		private readonly IElasticClient _elasticClient;
-		private const string IndexName = "supreme";
-		private readonly ISupremeBqlService _bqlService;
-		private readonly IViewService _viewService;
+                private readonly IElasticClient _elasticClient;
+                private const string IndexName = "supreme";
+                private readonly ISupremeBqlService _bqlService;
+                private readonly IViewService _viewService;
+                private readonly IRulesetConversionService _conversionService;
+                private static readonly string[] DocumentFields = new[] { "name", "docket_number", "decision", "description", "dissent", "question", "facts_of_the_case", "conclusion", "opinion", "heard_by", "lower_court", "manner_of_jurisdiction", "majority", "minority", "advocates", "categories", "recused", "Appellant", "Appellee", "Petitioner", "Respondent", "argument2_url", "justia_url" };
 
-		public SupremeService(IElasticClient elasticClient, ISupremeBqlService bqlService, IViewService viewService)
-		{
-			_elasticClient = elasticClient ?? throw new ArgumentNullException(nameof(elasticClient));
-			_bqlService = bqlService ?? throw new ArgumentNullException(nameof(bqlService));
-			_viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
-		}
+                public SupremeService(IElasticClient elasticClient, ISupremeBqlService bqlService, IViewService viewService, IRulesetConversionService conversionService)
+                {
+                        _elasticClient = elasticClient ?? throw new ArgumentNullException(nameof(elasticClient));
+                        _bqlService = bqlService ?? throw new ArgumentNullException(nameof(bqlService));
+                        _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
+                        _conversionService = conversionService ?? throw new ArgumentNullException(nameof(conversionService));
+                }
 
 		public async Task<ISearchResponse<Supreme>> SearchAsync(ISearchRequest request, string? pitId = null)
 		{
@@ -92,34 +95,10 @@ namespace JhipsterSampleApplication.Domain.Services
 			return await _elasticClient.DeleteAsync<Supreme>(id);
 		}
 
-		public async Task<List<string>> GetUniqueFieldValuesAsync(string field)
-		{
-			var result = await _elasticClient.SearchAsync<Aggregation>(q => q
-				.Size(0).Index(IndexName).Aggregations(agg => agg.Terms(
-					"distinct", e => e.Field(field).Size(10000)
-				))
-			);
-			List<string> ret = new List<string>();
-			if (result.Aggregations != null && result.Aggregations.Any())
-			{
-				var firstAggregation = result.Aggregations.First();
-				if (firstAggregation.Value is BucketAggregate bucketAggregate && bucketAggregate.Items != null)
-				{
-					foreach (var item in bucketAggregate.Items)
-					{
-						if (item is KeyedBucket<Object> kb)
-						{
-							string value = kb.KeyAsString ?? kb.Key?.ToString() ?? string.Empty;
-							if (!string.IsNullOrEmpty(value))
-							{
-								ret.Add(value);
-							}
-						}
-					}
-				}
-			}
-			return ret;
-		}
+                public async Task<List<string>> GetUniqueFieldValuesAsync(string field)
+                {
+                        return await _conversionService.GetUniqueFieldValuesAsync(IndexName, field);
+                }
 
 		public async Task<ISearchResponse<Supreme>> SearchWithRulesetAsync(Ruleset ruleset, int size = 20, int from = 0, IList<ISort>? sort = null)
 		{
@@ -145,167 +124,12 @@ namespace JhipsterSampleApplication.Domain.Services
 			return await SearchAsync(searchRequest);
 		}
 
-		public async Task<JObject> ConvertRulesetToElasticSearch(Ruleset rr)
-		{
-			if (rr.rules == null || rr.rules.Count == 0)
-			{
-				JObject ret = new JObject{
-					{
-						"match_none", new JObject{}
-					}
-				};
-                                if (rr.@operator?.Contains("contains") == true || rr.@operator?.Contains("like") == true)
-				{
-					string stringValue = rr.value?.ToString() ?? string.Empty;
-					// Handle regex literals like /exp/ or /exp/i
-					if (stringValue.StartsWith("/") && (stringValue.EndsWith("/") || stringValue.EndsWith("/i")))
-					{
-						bool caseInsensitive = stringValue.EndsWith("/i");
-						string re = stringValue.Substring(1, stringValue.Length - (caseInsensitive ? 3 : 2));
-						string regex = ToElasticRegEx(re.Replace(@"\\\\", @"\"), caseInsensitive);
-						if (regex.StartsWith("^"))
-						{
-							regex = regex.Substring(1);
-						}
-						else
-						{
-							regex = ".*" + regex;
-						}
-						if (regex.EndsWith("$"))
-						{
-							regex = regex.Substring(0, regex.Length - 1);
-						}
-						else
-						{
-							regex += ".*";
-						}
-						if (rr.field == "document")
-						{
-							// Build should over every textual field that exists (prefer .keyword when available)
-                                                        var fields = new[] {
-                                                                "name",
-                                                                "docket_number",
-								"decision",
-								"description",
-								"dissent",
-								"question",
-								"facts_of_the_case",
-								"conclusion",
-								"opinion",
-								"heard_by",
-								"lower_court",
-								"manner_of_jurisdiction",
-								"majority",
-								"minority",
-								"advocates",
-								"categories",
-								"recused",
-								"Appellant",
-								"Appellee",
-								"Petitioner",
-								"Respondent",
-								"argument2_url",
-								"justia_url"
-							};
-							var shoulds = new JArray(fields.Select(f => new JObject{
-                                                                { "regexp", new JObject{ { (f == "name" || f == "docket_number" || f == "decision" || f == "description" || f == "question" || f == "facts_of_the_case" || f == "conclusion" || f == "opinion" || f == "heard_by" || f == "lower_court" || f == "manner_of_jurisdiction" || f == "majority" || f == "minority" || f == "advocates" || f == "categories") ? f : f + ".keyword", new JObject{ { "value", regex }, { "flags", "ALL" }, { "rewrite", "constant_score" } } } } }
-							}).ToArray());
-							// If case-insensitive AND the regex is a simple word/phrase, also add a query_string clause over analyzed fields
-							var plain = Regex.Replace(re, @"\\s", " ").Trim();
-							if (caseInsensitive && Regex.IsMatch(plain, @"^[A-Za-z0-9 _\-]+$"))
-							{
-								shoulds.Add(new JObject{
-									{
-										"query_string", new JObject{ { "query", plain.ToLower().Replace("\"","\\\"") } }
-									}
-								});
-							}
-							return new JObject{ { "bool", new JObject{ { "should", shoulds } } } };
-						}
-						else
-						{
-							string field = ToEsField(rr.field);
-							return new JObject{
-								{ "regexp", new JObject{ { field + ".keyword", new JObject{ { "value", regex }, { "flags", "ALL" }, { "rewrite", "constant_score" } } } } }
-							};
-						}
-					}
-					string quote = Regex.IsMatch(stringValue, "\\W") ? "\"" : string.Empty;
-					return new JObject{
-						{
-							"query_string", new JObject{
-								{ "query", (rr.field != "document" ? (ToEsField(rr.field) + ":") : string.Empty) + quote + stringValue.ToLower().Replace("\"", "\\\"") + quote }
-							}
-						}
-					};
-				}
-				else if (rr.@operator?.Contains("=") == true)
-				{
-                                        var valueStr = rr.value?.ToString() ?? string.Empty;
-					string field = ToEsField(rr.field);
-					return new JObject{
-						{
-							"query_string", new JObject{
-								{ "query", (field != "document" ? (field + ":\"") : "\"") + valueStr.ToLower().Replace("\"", "\\\"") + "\"" }
-							}
-						}
-					};
-				}
-				else if (rr.@operator?.Contains("in") == true)
-				{
-					var valueArray = rr.value as IEnumerable<object>;
-					var values = valueArray?.Select(v => v?.ToString() ?? string.Empty).Where(s => !string.IsNullOrWhiteSpace(s)).ToList() ?? new List<string>();
-					if (values.Count == 0)
-					{
-						return new JObject{ { "match_none", new JObject{} } };
-					}
-					string field = ToEsField(rr.field);
-					var shoulds = new JArray(values.Select(v => new JObject{
-						{ "query_string", new JObject{ { "query", field + ":\"" + v.ToLower().Replace("\"","\\\"") + "\"" } } }
-					}).ToArray());
-					return new JObject{ { "bool", new JObject{ { "should", shoulds } } } };
-				}
-				else if (rr.@operator?.Contains("exists") == true)
-				{
-					return new JObject{
-						{
-							"exists", new JObject{ { "field", ToEsField(rr.field) } }
-						}
-					};
-				}
-				if (rr.@operator?.Contains("!") == true)
-				{
-					var inner = await ConvertRulesetToElasticSearch(new Ruleset
-					{
-						field = rr.field,
-						@operator = rr.@operator!.Replace("!", string.Empty),
-						value = rr.value
-					});
-					return new JObject { { "bool", new JObject { { "must_not", inner } } } };
-				}
-				return ret;
-			}
-			else
-			{
-				List<object> rls = new List<object>();
-				for (int i = 0; i < rr.rules.Count; i++)
-				{
-					rls.Add(await ConvertRulesetToElasticSearch(rr.rules[i]));
-				}
-				if (rr.condition == "and")
-				{
-					return new JObject{ { "bool", new JObject{ { rr.not == true ? "must_not" : "must", JArray.FromObject(rls) } } } };
-				}
-				JObject ret = new JObject{ { "bool", new JObject{ { "should", JArray.FromObject(rls) } } } };
-				if (rr.not == true)
-				{
-					ret = new JObject{ { "bool", new JObject{ { "must_not", JObject.FromObject(ret) } } } };
-				}
-				return ret;
-			}
-		}
+            public async Task<JObject> ConvertRulesetToElasticSearch(Ruleset rr)
+            {
+                    return await _conversionService.ConvertRulesetToElasticSearch(rr, IndexName, ToEsField, DocumentFields);
+            }
 
-		private static string ToEsField(string? field)
+                private static string ToEsField(string? field)
 		{
 			if (string.IsNullOrEmpty(field) || field == "document") return "document";
 			// Map BQL field names (lowercase) to ES field names (some are camel or lowercase)

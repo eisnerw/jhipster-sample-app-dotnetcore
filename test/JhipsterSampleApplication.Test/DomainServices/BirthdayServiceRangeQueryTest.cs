@@ -18,7 +18,8 @@ public class BirthdayServiceRangeQueryTest
         var elasticClient = new Mock<IElasticClient>().Object;
         var bqlService = new Mock<IBirthdayBqlService>().Object;
         var viewService = new Mock<IViewService>().Object;
-        _service = new BirthdayService(elasticClient, bqlService, viewService);
+        var conversionService = new RulesetConversionService(elasticClient);
+        _service = new BirthdayService(elasticClient, bqlService, viewService, conversionService);
     }
 
     [Theory]
