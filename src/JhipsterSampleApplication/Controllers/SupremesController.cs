@@ -367,7 +367,7 @@ namespace JhipsterSampleApplication.Controllers
                                 Size = pageSize,
                                 From = from,
                                 Source = includeDescriptive
-                                        ? null
+                                        ? true
                                         : new SourceFilter
                                         {
                                                 Excludes = new[] { "justia_url", "argument2_url", "facts_of_the_case", "conclusion" }
