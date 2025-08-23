@@ -103,28 +103,39 @@ public class BirthdayService : IBirthdayService
     {
         List<ViewResultDto> content = new();
         var result = await _elasticClient.SearchAsync<Aggregation>(request);
-        ((BucketAggregate)result.Aggregations.ToList()[0].Value).Items.ToList().ForEach(it =>
+        // DEBUG var curl = ToCurl(_elasticClient, result, request);  // inspect `curl` in debugger
+        // DEBUG System.Console.WriteLine(curl);
+        if (result.Aggregations.Count > 0)
         {
-            KeyedBucket<object> kb = (KeyedBucket<object>)it;
-            string categoryName = kb.KeyAsString != null ? kb.KeyAsString : (string)kb.Key;
-            bool notCategorized = false;
-            if (Regex.IsMatch(categoryName, @"\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z"))
+            ((BucketAggregate)result.Aggregations.ToList()[0].Value).Items.ToList().ForEach(it =>
             {
-                categoryName = Regex.Replace(categoryName, @"(\d{4,4})-(\d{2,2})-(\d{2,2})T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z", "$1-$2-$3");
-            }
-            if (string.IsNullOrEmpty(categoryName))
-            {
-                categoryName = "(Uncategorized)";
-                notCategorized = true;
-            }
+                KeyedBucket<object> kb = (KeyedBucket<object>)it;
+                string categoryName = kb.KeyAsString != null ? kb.KeyAsString : (string)kb.Key;
+                bool notCategorized = false;
+                if (Regex.IsMatch(categoryName, @"\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z"))
+                {
+                    categoryName = Regex.Replace(categoryName, @"(\d{4,4})-(\d{2,2})-(\d{2,2})T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z", "$1-$2-$3");
+                }
+                if (string.IsNullOrEmpty(categoryName))
+                {
+                    categoryName = "(Uncategorized)";
+                    notCategorized = true;
+                }
+                content.Add(new ViewResultDto
+                {
+                    CategoryName = categoryName,
+                    Count = kb.DocCount,
+                    NotCategorized = notCategorized
+                });
+
+            });
+        } else {
             content.Add(new ViewResultDto
             {
-                CategoryName = categoryName,
-                Count = kb.DocCount,
-                NotCategorized = notCategorized
-            });
-
-        });
+                CategoryName = "No hits",
+                Count = 0
+            });            
+        }
         content = content.OrderBy(cat => cat.CategoryName).ToList();
         var uncategorizedResponse = await _elasticClient.SearchAsync<Birthday>(uncategorizedRequest);
         var uncatetgorizedCount = uncategorizedResponse.Aggregations.Filter("uncategorized").DocCount;
@@ -147,6 +158,32 @@ public class BirthdayService : IBirthdayService
             }
         }
         return content;
+    }
+
+    static string ToCurl(IElasticClient client, IResponse resp, ISearchRequest? originalRequest)
+    {
+        // Prefer the actual URL NEST hit; fall back to something sane if missing.
+        var url = resp?.ApiCall?.Uri?.ToString() ?? "http://localhost:9200/_search";
+
+        // 1) If NEST captured the body, use it…
+        string? body = null;
+        var bytes = resp?.ApiCall?.RequestBodyInBytes;
+        if (bytes is { Length: > 0 })
+            body = Encoding.UTF8.GetString(bytes);
+
+        // 2) …otherwise, serialize the original request ourselves.
+        if (string.IsNullOrWhiteSpace(body) && originalRequest != null)
+        {
+            using var ms = new MemoryStream();
+            client.RequestResponseSerializer.Serialize(originalRequest, ms, SerializationFormatting.Indented);
+            body = Encoding.UTF8.GetString(ms.ToArray());
+        }
+
+        // Escape for: curl -d '...'
+        static string Esc(string s) => s.Replace("'", "'\"'\"'");
+
+        // Use POST since we’re sending a body (ES accepts POST for _search).
+        return $"curl -X POST \"{url}\" -H 'Content-Type: application/json' -d '{Esc(body ?? "{}")}'";
     }
 
     /// <summary>
