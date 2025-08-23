@@ -73,7 +73,7 @@ public static class WebConfiguration
        app.UseSpa(spa =>
         {
             spa.Options.SourcePath = "ClientApp";
-            spa.UseProxyToSpaDevelopmentServer("http://localhost:9000");
+            spa.UseProxyToSpaDevelopmentServer("http://localhost:4200");
         });
         if (!env.IsDevelopment())
         {
