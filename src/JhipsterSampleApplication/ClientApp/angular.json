@@ -34,7 +34,42 @@
               "src/content",
               "src/favicon.ico",
               "src/manifest.webapp",
-              "src/robots.txt"
+              "src/robots.txt",
+              {
+                "glob": "**/*",
+                "input": "src/swagger-ui",
+                "output": "/swagger-ui/"
+              },
+              {
+                "glob": "swagger-ui.css",
+                "input": "node_modules/swagger-ui-dist",
+                "output": "/swagger-ui/"
+              },
+              {
+                "glob": "swagger-ui-bundle.js",
+                "input": "node_modules/swagger-ui-dist",
+                "output": "/swagger-ui/"
+              },
+              {
+                "glob": "swagger-ui-standalone-preset.js",
+                "input": "node_modules/swagger-ui-dist",
+                "output": "/swagger-ui/"
+              },
+              {
+                "glob": "favicon-16x16.png",
+                "input": "node_modules/swagger-ui-dist",
+                "output": "/swagger-ui/"
+              },
+              {
+                "glob": "favicon-32x32.png",
+                "input": "node_modules/swagger-ui-dist",
+                "output": "/swagger-ui/"
+              },
+              {
+                "glob": "axios.min.js",
+                "input": "node_modules/axios/dist",
+                "output": "/swagger-ui/"
+              }
             ],
             "styles": [
               "src/content/scss/vendor.scss",
@@ -84,8 +119,13 @@
           "builder": "@angular/build:dev-server",
           "options": {
             "buildTarget": "jhipster-sample-application:build:development",
+            "host": "127.0.0.1",
             "port": 4200,
-            "proxyConfig": "proxy.conf.json"
+            "proxyConfig": "proxy.conf.json",
+            "allowedHosts": [
+              "creative-systems-inc.com",
+              "www.creative-systems-inc.com"
+            ]
           },
           "configurations": {
             "production": {
