@@ -10,6 +10,6 @@ eg $input-color: red;
 @use 'bootstrap/scss/bootstrap';
 
 // Import PrimeIcons
-/////>>>@import '~primeicons/primeicons.css';
+@import "primeicons/primeicons.css";
 
 /* jhipster-needle-scss-add-vendor JHipster will add new css style */
