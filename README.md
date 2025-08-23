@@ -37,8 +37,8 @@ In ./src/JhipsterSampleApplication/ClientApp run
 For angular 20, we currently need to run
 
     npm install --legacy-peer-deps
-    npm install --save-dev webpack
-    npm install --save-dev webpack-cli
+    npm install --save-dev webpack --force 
+    npm install --save-dev webpack-cli --force
 
 We use npm scripts and [Webpack][] as our build system.
 
