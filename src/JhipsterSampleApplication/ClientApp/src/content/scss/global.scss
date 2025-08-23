@@ -2,10 +2,10 @@
 @use 'bootstrap-variables' as *;
 
 // Correct: use Bootstrap entrypoint and optionally override variables here
-@use "bootstrap" with (
+/////>>>@use "bootstrap" with (
   // Example override (if defined in bootstrap-variables)
-  $dropdown-link-hover-color: $dropdown-link-hover-color
-);
+/////>>>  $dropdown-link-hover-color: $dropdown-link-hover-color
+/////>>>);
 
 // Use Bootstrap variables via namespace
 @use "bootstrap" as bs;
@@ -27,23 +27,23 @@ a {
   font-weight: bold;
 }
 
-a:not([href]):not([tabindex]):hover.dropdown-item {
-  color: bs.$dropdown-link-hover-color;
-}
+/////>>>a:not([href]):not([tabindex]):hover.dropdown-item {
+/////>>>  color: bs.$dropdown-link-hover-color;
+/////>>>}
 
 /* 🛠 Cannot use mix() on CSS vars — fallback to one variable or hardcoded value */
-.dropdown-item.active:hover {
-  background-color: bs.$dropdown-link-hover-bg; // or a custom color like #f0f0f0
-}
+/////>>>.dropdown-item.active:hover {
+/////>>>  background-color: bs.$dropdown-link-hover-bg; // or a custom color like #f0f0f0
+/////>>>}
 
 a:hover {
   color: #533f03;
   cursor: pointer;
 }
 
-.dropdown-item:hover {
-  color: bs.$dropdown-link-hover-color;
-}
+/////>>>.dropdown-item:hover {
+/////>>>  color: bs.$dropdown-link-hover-color;
+/////>>>}
 
 /* ==========================================================================
    Browser Upgrade Prompt

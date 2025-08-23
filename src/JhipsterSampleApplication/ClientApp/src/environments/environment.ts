@@ -1,4 +1,5 @@
 export const environment = {
-  VERSION: __VERSION__,
+  VERSION: '0.0.1-SNAPSHOT',
   DEBUG_INFO_ENABLED: false,
+  SERVER_API_URL: '',
 };
