@@ -48,6 +48,7 @@ public static class WebConfiguration
     {
         app.UseDefaultFiles();
         app.UseStaticFiles();
+        app.UseSpaStaticFiles();
 
         app.UseRouting();
         app.UseAuthorization();
@@ -73,12 +74,9 @@ public static class WebConfiguration
        app.UseSpa(spa =>
         {
             spa.Options.SourcePath = "ClientApp";
-            spa.UseProxyToSpaDevelopmentServer("http://localhost:4200");
+            // Static files for the SPA are served from ClientApp/dist via UseSpaStaticFiles
+            // When running ng build --watch, changes will appear without restarting the server
         });
-        if (!env.IsDevelopment())
-        {
-            app.UseSpaStaticFiles();
-        }
 
         return app;
     }
