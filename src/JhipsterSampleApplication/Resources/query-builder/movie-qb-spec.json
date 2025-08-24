@@ -1,0 +1,34 @@
+{
+  "fields": {
+    "document": {
+      "name": "Document",
+      "type": "string",
+      "operators": ["contains", "!contains", "like", "!like"]
+    },
+    "title": {
+      "name": "Title",
+      "type": "string",
+      "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"]
+    },
+    "release_year": {
+      "name": "Release Year",
+      "type": "number",
+      "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"]
+    },
+    "genres": {
+      "name": "Genres",
+      "type": "string",
+      "operators": ["contains", "!contains", "in", "!in", "exists"]
+    },
+    "country": {
+      "name": "Country",
+      "type": "string",
+      "operators": ["=", "!=", "in", "!in", "exists"]
+    }
+  },
+  "operatorMap": {
+    "string": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in"],
+    "number": ["=", "!=", ">", ">=", "<", "<=", "in", "!in"],
+    "boolean": ["="]
+  }
+}
