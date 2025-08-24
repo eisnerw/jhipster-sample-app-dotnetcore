@@ -14,6 +14,10 @@ namespace JhipsterSampleApplication.Domain.Entities
         [PropertyName("runtime_minutes")] public int? RuntimeMinutes { get; set; }
         public string? Country { get; set; }
         public List<string>? Languages { get; set; }
+        public List<string>? Directors { get; set; }
+        public List<string>? Producers { get; set; }
+        public List<string>? Writers { get; set; }
+        public List<string>? Cast { get; set; }
         [PropertyName("budget_usd")] public double? BudgetUsd { get; set; }
         [PropertyName("gross_usd")] public double? GrossUsd { get; set; }
         [PropertyName("rotten_tomatoes_scores")] public double? RottenTomatoesScores { get; set; }

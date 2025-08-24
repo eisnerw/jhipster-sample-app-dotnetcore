@@ -11,6 +11,10 @@ namespace JhipsterSampleApplication.Dto
         public int? RuntimeMinutes { get; set; }
         public string? Country { get; set; }
         public List<string>? Languages { get; set; }
+        public List<string>? Directors { get; set; }
+        public List<string>? Producers { get; set; }
+        public List<string>? Writers { get; set; }
+        public List<string>? Cast { get; set; }
         public double? BudgetUsd { get; set; }
         public double? GrossUsd { get; set; }
         public double? RottenTomatoesScores { get; set; }
