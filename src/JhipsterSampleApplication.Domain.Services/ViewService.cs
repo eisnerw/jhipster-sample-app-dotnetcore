@@ -23,7 +23,22 @@ namespace JhipsterSampleApplication.Domain.Services
 
         public async Task<ViewDto> GetByIdAsync(string id)
         {
+            // Try exact match first
             var view = await _viewRepository.GetByIdAsync(id);
+            if (view == null)
+            {
+                // Try common normalizations used by initialization (lower-cased ids)
+                var altId = id.ToLowerInvariant();
+                view = await _viewRepository.GetByIdAsync(altId);
+            }
+            if (view == null)
+            {
+                // Fallback: scan all and match either Id or Name case-insensitively
+                var all = await _viewRepository.GetAllAsync();
+                view = all.FirstOrDefault(v =>
+                    string.Equals(v.Id, id, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(v.Name, id, StringComparison.OrdinalIgnoreCase));
+            }
             return _mapper.Map<ViewDto>(view);
         }
 

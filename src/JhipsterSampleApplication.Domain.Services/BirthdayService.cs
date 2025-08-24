@@ -105,36 +105,35 @@ public class BirthdayService : IBirthdayService
         var result = await _elasticClient.SearchAsync<Aggregation>(request);
         // DEBUG var curl = ToCurl(_elasticClient, result, request);  // inspect `curl` in debugger
         // DEBUG System.Console.WriteLine(curl);
-        if (result.Aggregations.Count > 0)
+        var aggList = result.Aggregations?.ToList();
+        if (aggList == null || aggList.Count == 0)
         {
-            ((BucketAggregate)result.Aggregations.ToList()[0].Value).Items.ToList().ForEach(it =>
+            return content;
+        }
+        var bucketAggregate = aggList[0].Value as BucketAggregate;
+        if (bucketAggregate == null)
+        {
+            return content;
+        }
+        foreach (var it in bucketAggregate.Items.OfType<KeyedBucket<object>>())
+        {
+            string categoryName = it.KeyAsString ?? (it.Key?.ToString() ?? string.Empty);
+            bool notCategorized = false;
+            if (Regex.IsMatch(categoryName, @"\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z"))
             {
-                KeyedBucket<object> kb = (KeyedBucket<object>)it;
-                string categoryName = kb.KeyAsString != null ? kb.KeyAsString : (string)kb.Key;
-                bool notCategorized = false;
-                if (Regex.IsMatch(categoryName, @"\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z"))
-                {
-                    categoryName = Regex.Replace(categoryName, @"(\d{4,4})-(\d{2,2})-(\d{2,2})T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z", "$1-$2-$3");
-                }
-                if (string.IsNullOrEmpty(categoryName))
-                {
-                    categoryName = "(Uncategorized)";
-                    notCategorized = true;
-                }
-                content.Add(new ViewResultDto
-                {
-                    CategoryName = categoryName,
-                    Count = kb.DocCount,
-                    NotCategorized = notCategorized
-                });
-
-            });
-        } else {
+                categoryName = Regex.Replace(categoryName, @"(\d{4,4})-(\d{2,2})-(\d{2,2})T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z", "$1-$2-$3");
+            }
+            if (string.IsNullOrEmpty(categoryName))
+            {
+                categoryName = "(Uncategorized)";
+                notCategorized = true;
+            }
             content.Add(new ViewResultDto
             {
-                CategoryName = "No hits",
-                Count = 0
-            });            
+                CategoryName = categoryName,
+                Count = it.DocCount,
+                NotCategorized = notCategorized
+            });
         }
         content = content.OrderBy(cat => cat.CategoryName).ToList();
         var uncategorizedResponse = await _elasticClient.SearchAsync<Birthday>(uncategorizedRequest);

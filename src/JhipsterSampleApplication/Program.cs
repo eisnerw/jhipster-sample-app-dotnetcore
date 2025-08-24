@@ -15,18 +15,16 @@ using JhipsterSampleApplication.Domain;
 using System.Globalization;
 using Nest;
 using System.Numerics;
-using System.Diagnostics;
 using JhipsterSampleApplication.Domain.Entities;
-using System.Threading;
 
 PrintBanner(10 * 1000);
 
-if (false && !Debugger.IsAttached)
+if (false && !System.Diagnostics.Debugger.IsAttached)
 {
-    Console.WriteLine($"PID: {System.Diagnostics.Process.GetCurrentProcess().Id}");
-    while (!Debugger.IsAttached)
+    Console.WriteLine($"PID: {Environment.ProcessId}");
+    while (!System.Diagnostics.Debugger.IsAttached)
     {
-        Thread.Sleep(100);  // Wait for debugger to attach
+        System.Threading.Thread.Sleep(100);  // Wait for debugger to attach
     }
 }
 

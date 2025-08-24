@@ -187,6 +187,7 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? pitId = null,
             [FromQuery] string[]? searchAfter = null)
         {
+           bool isHitFromViewDrilldown = false;
            if (!string.IsNullOrEmpty(view))
             {   
                 var viewDto = await _viewService.GetByIdAsync(view);
@@ -203,6 +204,7 @@ namespace JhipsterSampleApplication.Controllers
                 }
                 if (category == "(Uncategorized)")
                 {
+                    var baseField = (viewDto.Aggregation ?? string.Empty).Replace(".keyword", string.Empty);
                     var missingFilter = new JObject(
                         new JProperty("bool", new JObject(
                             new JProperty("should", new JArray(
@@ -211,7 +213,7 @@ namespace JhipsterSampleApplication.Controllers
                                         new JProperty("must_not", new JArray(
                                             new JObject(
                                                 new JProperty("exists", new JObject(
-                                                    new JProperty("field", viewDto.Aggregation)
+                                                    new JProperty("field", baseField)
                                                 ))
                                             )
                                         ))
@@ -261,6 +263,8 @@ namespace JhipsterSampleApplication.Controllers
                     }
                     if (secondaryCategory == "(Uncategorized)")
                     {
+                        isHitFromViewDrilldown = true;
+                        var secondaryBaseField = (secondaryViewDto.Aggregation ?? string.Empty).Replace(".keyword", string.Empty);
                         var secondaryMissing = new JObject(
                             new JProperty("bool", new JObject(
                                 new JProperty("should", new JArray(
@@ -269,7 +273,7 @@ namespace JhipsterSampleApplication.Controllers
                                             new JProperty("must_not", new JArray(
                                                 new JObject(
                                                     new JProperty("exists", new JObject(
-                                                        new JProperty("field", secondaryViewDto.Aggregation)
+                                                        new JProperty("field", secondaryBaseField)
                                                     ))
                                                 )
                                             ))
@@ -295,6 +299,7 @@ namespace JhipsterSampleApplication.Controllers
                     }
                     else
                     {
+                        isHitFromViewDrilldown = true;
                         string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
                         elasticsearchQuery = new JObject(
                             new JProperty("bool", new JObject(
@@ -360,7 +365,8 @@ namespace JhipsterSampleApplication.Controllers
                 });
             }
             List<object>? searchAfterResponse = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null; 
-            return Ok(new SearchResultDto<BirthdayDto> { Hits = birthdayDtos, TotalHits = response.Total, HitType = "birthday", PitId = searchRequest.PointInTime.Id, searchAfter = searchAfterResponse });
+            var hitType = isHitFromViewDrilldown ? "hit" : "birthday";
+            return Ok(new SearchResultDto<BirthdayDto> { Hits = birthdayDtos, TotalHits = response.Total, HitType = hitType, PitId = searchRequest.PointInTime.Id, searchAfter = searchAfterResponse });
         }
 
         /// <summary>
@@ -428,6 +434,22 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         public async Task<IActionResult> Create([FromBody] BirthdayCreateUpdateDto dto)
         {
+            // Best-effort de-duplication to keep test/index state deterministic across runs:
+            // if both last and first names are provided, remove any existing docs matching that pair.
+            if (!string.IsNullOrWhiteSpace(dto.Lname) && !string.IsNullOrWhiteSpace(dto.Fname))
+            {
+                try
+                {
+                    var deleteResponse = await _elasticClient.DeleteByQueryAsync<Birthday>(d => d
+                        .Index("birthdays")
+                        .Query(q => q.Bool(b => b.Must(
+                            m => m.Term(t => t.Field("lname.keyword").Value(dto.Lname)),
+                            m => m.Term(t => t.Field("fname.keyword").Value(dto.Fname))
+                        )))
+                    );
+                }
+                catch { /* ignore cleanup errors */ }
+            }
             var birthday = new Birthday
             {
                 Id = dto.Id,
