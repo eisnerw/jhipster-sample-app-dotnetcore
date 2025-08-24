@@ -34,7 +34,7 @@ namespace JhipsterSampleApplication.Domain.Services
             {
                 request.Source = new SourceFilter { Excludes = new[] { "synopsis" } };
             }
-            var response = await _elasticClient.SearchAsync<Movie>(request);
+            var response = await _elasticClient.LowLevel.SearchAsync<SearchResponse<Movie>>(IndexName, PostData.Serializable(request));
             if (!response.IsValid)
             {
                 StringResponse retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(IndexName, PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
