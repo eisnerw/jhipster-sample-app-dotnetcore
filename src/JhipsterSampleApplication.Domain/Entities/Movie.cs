@@ -19,6 +19,7 @@ namespace JhipsterSampleApplication.Domain.Entities
         [PropertyName("rotten_tomatoes_scores")] public double? RottenTomatoesScores { get; set; }
         public string? Summary { get; set; }
         public string? Synopsis { get; set; }
+        [PropertyName("categories")] public List<string> Categories { get; set; } = new List<string>();
 
         public override bool Equals(object? obj)
         {

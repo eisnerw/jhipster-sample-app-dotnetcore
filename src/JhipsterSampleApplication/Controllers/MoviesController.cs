@@ -96,7 +96,7 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpGet("search/lucene")]
-        [ProducesResponseType(typeof(SearchResultDto<object>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
         public async Task<IActionResult> SearchWithLuceneQuery([FromQuery] string query, [FromQuery] int from = 0, [FromQuery] int pageSize = 20, [FromQuery] string? sort = null, [FromQuery] bool includeDescriptive = false)
         {
             if (string.IsNullOrWhiteSpace(query))
@@ -109,16 +109,32 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpPost("search/ruleset")]
-        [ProducesResponseType(typeof(SearchResultDto<object>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
         public async Task<IActionResult> SearchWithRuleset([FromBody] RulesetDto rulesetDto, [FromQuery] int from = 0, [FromQuery] int pageSize = 20, [FromQuery] string? sort = null, [FromQuery] bool includeDescriptive = false)
         {
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var result = await _movieService.SearchWithRulesetAsync(ruleset, pageSize, from, sort == null ? null : new List<ISort> { new FieldSort { Field = sort } }, includeDescriptive);
-            return Ok(new SearchResultDto<object> { TotalHits = result.Total, Hits = result.Documents.Select(d => (object)d).ToList() });
+            var dtos = result.Documents.Select(d => _mapper.Map<MovieDto>(d)).ToList();
+            return Ok(new SearchResultDto<MovieDto> { TotalHits = result.Total, Hits = dtos });
         }
 
-        [HttpPost("search/raw")]
-        [ProducesResponseType(typeof(SearchResultDto<object>), 200)]
+        [HttpPost("search/bql")]
+        [Consumes("text/plain")]
+        [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
+        public async Task<IActionResult> SearchWithBql([FromBody] string bqlQuery, [FromQuery] int from = 0, [FromQuery] int pageSize = 20, [FromQuery] string? sort = null, [FromQuery] bool includeDescriptive = false)
+        {
+            if (string.IsNullOrWhiteSpace(bqlQuery))
+            {
+                return BadRequest("Query cannot be empty");
+            }
+            var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
+            var ruleset = _mapper.Map<Ruleset>(rulesetDto);
+            var queryObject = await _movieService.ConvertRulesetToElasticSearch(ruleset);
+            return await Search(queryObject, pageSize, from, sort, includeDescriptive);
+        }
+
+        [HttpPost("search/elasticsearch")]
+        [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
         public async Task<IActionResult> RawSearch([FromBody] RawSearchRequestDto request, [FromQuery] bool includeDescriptive = false)
         {
             if (string.IsNullOrWhiteSpace(request.Query))
@@ -136,7 +152,8 @@ namespace JhipsterSampleApplication.Controllers
                 searchRequest.Sort = new List<ISort> { new FieldSort { Field = request.Sort } };
             }
             var response = await _movieService.SearchAsync(searchRequest, includeDescriptive);
-            return Ok(new SearchResultDto<object> { TotalHits = response.Total, Hits = response.Documents.Select(d => (object)d).ToList() });
+            var dtos = response.Documents.Select(d => _mapper.Map<MovieDto>(d)).ToList();
+            return Ok(new SearchResultDto<MovieDto> { TotalHits = response.Total, Hits = dtos });
         }
 
         private async Task<IActionResult> Search(JObject queryObject, int pageSize, int from, string? sort, bool includeDescriptive)
@@ -152,7 +169,8 @@ namespace JhipsterSampleApplication.Controllers
                 searchRequest.Sort = new List<ISort> { new FieldSort { Field = sort } };
             }
             var response = await _movieService.SearchAsync(searchRequest, includeDescriptive);
-            return Ok(new SearchResultDto<object> { TotalHits = response.Total, Hits = response.Documents.Select(d => (object)d).ToList() });
+            var dtos = response.Documents.Select(d => _mapper.Map<MovieDto>(d)).ToList();
+            return Ok(new SearchResultDto<MovieDto> { TotalHits = response.Total, Hits = dtos });
         }
 
         [HttpGet("{id}")]
@@ -170,21 +188,11 @@ namespace JhipsterSampleApplication.Controllers
                 return NotFound();
             }
             var m = response.Documents.First();
-            var dto = new MovieDto
+            var dto = _mapper.Map<MovieDto>(m);
+            if (!includeDescriptive)
             {
-                Id = id,
-                Title = m.Title,
-                ReleaseYear = m.ReleaseYear,
-                Genres = m.Genres,
-                RuntimeMinutes = m.RuntimeMinutes,
-                Country = m.Country,
-                Languages = m.Languages,
-                BudgetUsd = m.BudgetUsd,
-                GrossUsd = m.GrossUsd,
-                RottenTomatoesScores = m.RottenTomatoesScores,
-                Summary = m.Summary,
-                Synopsis = includeDescriptive ? m.Synopsis : null
-            };
+                dto.Synopsis = null;
+            }
             return Ok(dto);
         }
 
@@ -214,6 +222,191 @@ namespace JhipsterSampleApplication.Controllers
         {
             var response = await _movieService.DeleteAsync(id);
             return Ok(new SimpleApiResponse { Success = response.IsValid, Message = response.DebugInformation.Split('\n')[0] });
+        }
+
+        [HttpPost("categorize")]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        public async Task<IActionResult> Categorize([FromBody] CategorizeRequestDto request)
+        {
+            if (request.Ids == null || !request.Ids.Any())
+            {
+                return BadRequest("At least one ID must be provided");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Category))
+            {
+                return BadRequest("Category cannot be empty");
+            }
+
+            var searchRequest = new SearchRequest<Movie>
+            {
+                Query = new QueryContainerDescriptor<Movie>().Terms(t => t.Field("_id").Terms(request.Ids))
+            };
+
+            var response = await _movieService.SearchAsync(searchRequest, false);
+            if (!response.IsValid)
+            {
+                return BadRequest("Failed to search for movies");
+            }
+
+            var successCount = 0;
+            var errorCount = 0;
+            var errorMessages = new List<string>();
+
+            foreach (var movie in response.Documents)
+            {
+                try
+                {
+                    if (request.RemoveCategory)
+                    {
+                        if (movie.Categories != null)
+                        {
+                            var cat = movie.Categories.FirstOrDefault(c => string.Equals(c, request.Category, StringComparison.OrdinalIgnoreCase));
+                            if (cat != null)
+                            {
+                                movie.Categories.Remove(cat);
+                                var updateResponse = await _movieService.UpdateAsync(movie.Id!, movie);
+                                if (updateResponse.IsValid)
+                                {
+                                    successCount++;
+                                }
+                                else
+                                {
+                                    errorCount++;
+                                    errorMessages.Add($"Failed to update movie {movie.Id}: {updateResponse.DebugInformation}");
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        movie.Categories ??= new List<string>();
+                        if (!movie.Categories.Any(c => string.Equals(c, request.Category, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            movie.Categories.Add(request.Category);
+                            var updateResponse = await _movieService.UpdateAsync(movie.Id!, movie);
+                            if (updateResponse.IsValid)
+                            {
+                                successCount++;
+                            }
+                            else
+                            {
+                                errorCount++;
+                                errorMessages.Add($"Failed to update movie {movie.Id}: {updateResponse.DebugInformation}");
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errorCount++;
+                    errorMessages.Add($"Error processing movie {movie.Id}: {ex.Message}");
+                }
+            }
+
+            var message = $"Processed {request.Ids.Count} movies. Success: {successCount}, Errors: {errorCount}";
+            if (errorMessages.Any())
+            {
+                message += $". Error details: {string.Join("; ", errorMessages)}";
+            }
+
+            return Ok(new SimpleApiResponse
+            {
+                Success = errorCount == 0,
+                Message = message
+            });
+        }
+
+        [HttpPost("categorize-multiple")]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        public async Task<IActionResult> CategorizeMultiple([FromBody] CategorizeMultipleRequestDto request)
+        {
+            if (request.Rows == null || !request.Rows.Any())
+            {
+                return BadRequest("At least one row ID must be provided");
+            }
+
+            var toAdd = (request.Add ?? new List<string>())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => s.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var toRemove = (request.Remove ?? new List<string>())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => s.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (!toAdd.Any() && !toRemove.Any())
+            {
+                return BadRequest("Nothing to add or remove");
+            }
+
+            var searchRequest = new SearchRequest<Movie>
+            {
+                Query = new QueryContainerDescriptor<Movie>().Terms(t => t.Field("_id").Terms(request.Rows))
+            };
+
+            var response = await _movieService.SearchAsync(searchRequest, false);
+            if (!response.IsValid)
+            {
+                return BadRequest("Failed to search for movies");
+            }
+
+            var successCount = 0;
+            var errorCount = 0;
+            var errorMessages = new List<string>();
+
+            foreach (var movie in response.Documents)
+            {
+                try
+                {
+                    var current = movie.Categories ?? new List<string>();
+
+                    if (toRemove.Any() && current.Any())
+                    {
+                        current = current.Where(c => !toRemove.Any(r => string.Equals(c, r, StringComparison.OrdinalIgnoreCase))).ToList();
+                    }
+
+                    foreach (var add in toAdd)
+                    {
+                        if (!current.Any(c => string.Equals(c, add, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            current.Add(add);
+                        }
+                    }
+
+                    movie.Categories = current;
+                    var updateResponse = await _movieService.UpdateAsync(movie.Id!, movie);
+                    if (updateResponse.IsValid)
+                    {
+                        successCount++;
+                    }
+                    else
+                    {
+                        errorCount++;
+                        errorMessages.Add($"Failed to update movie {movie.Id}: {updateResponse.DebugInformation}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errorCount++;
+                    errorMessages.Add($"Error processing movie {movie.Id}: {ex.Message}");
+                }
+            }
+
+            var message = $"Processed {request.Rows.Count} movies. Success: {successCount}, Errors: {errorCount}";
+            if (errorMessages.Any())
+            {
+                message += $". Error details: {string.Join("; ", errorMessages)}";
+            }
+
+            return Ok(new SimpleApiResponse
+            {
+                Success = errorCount == 0,
+                Message = message
+            });
         }
 
         [HttpGet("unique-values/{field}")]
