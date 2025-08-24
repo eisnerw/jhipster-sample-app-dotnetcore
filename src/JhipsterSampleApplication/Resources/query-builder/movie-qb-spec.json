@@ -20,6 +20,11 @@
       "type": "string",
       "operators": ["contains", "!contains", "in", "!in", "exists"]
     },
+    "cast": {
+      "name": "Cast",
+      "type": "string",
+      "operators": ["contains", "!contains", "like", "!like", "in", "!in", "exists"]
+    },
     "country": {
       "name": "Country",
       "type": "string",

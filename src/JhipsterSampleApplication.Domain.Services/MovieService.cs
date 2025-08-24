@@ -59,20 +59,54 @@ namespace JhipsterSampleApplication.Domain.Services
 
         public async Task<List<string>> GetUniqueFieldValuesAsync(string field)
         {
-            var result = await _elasticClient.SearchAsync<Aggregation>(q => q
-                .Size(0).Index(IndexName).Aggregations(agg => agg.Terms("distinct", e => e.Field(field).Size(10000))));
+            var sourceField = field.EndsWith(".keyword") ? field.Substring(0, field.Length - 8) : field;
+            var result = await _elasticClient.SearchAsync<JObject>(s => s
+                .Size(0)
+                .Index(IndexName)
+                .Aggregations(agg => agg
+                    .Terms("distinct", t => t
+                        .Field(field)
+                        .Size(10000)
+                        .Aggregations(a => a.TopHits("first", th => th
+                            .Size(1)
+                            .Source(src => src.Includes(i => i.Field(sourceField))))))));
+
             var ret = new List<string>();
-            var firstAgg = result.Aggregations.FirstOrDefault().Value as BucketAggregate;
-            if (firstAgg?.Items != null)
+            var terms = result.Aggregations.Terms("distinct");
+            if (terms != null)
             {
-                foreach (var item in firstAgg.Items)
+                foreach (var bucket in terms.Buckets)
                 {
-                    if (item is KeyedBucket<object> kb)
+                    var top = bucket.TopHits("first");
+                    var hit = top?.Hits<JObject>().FirstOrDefault();
+                    var source = hit?.Source;
+                    var token = source?[sourceField];
+                    if (token != null)
                     {
-                        var value = kb.KeyAsString ?? kb.Key?.ToString() ?? string.Empty;
-                        if (!string.IsNullOrEmpty(value))
+                        if (token is JArray arr)
                         {
-                            ret.Add(value);
+                            var key = (bucket.KeyAsString ?? bucket.Key?.ToString() ?? string.Empty).ToLowerInvariant();
+                            string? match = null;
+                            foreach (var v in arr.Values<string>())
+                            {
+                                if (v != null && v.ToLowerInvariant() == key)
+                                {
+                                    match = v;
+                                    break;
+                                }
+                            }
+                            if (!string.IsNullOrEmpty(match))
+                            {
+                                ret.Add(match);
+                            }
+                        }
+                        else
+                        {
+                            var value = token.ToString();
+                            if (!string.IsNullOrEmpty(value))
+                            {
+                                ret.Add(value);
+                            }
                         }
                     }
                 }
