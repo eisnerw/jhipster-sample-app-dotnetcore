@@ -10,7 +10,7 @@
 		"domain": "supreme"
 	},
 	{
-		"id": "term/heard by",
+		"id": "term_heard by",
 		"name": "Heard By",
 		"field": "heard_by",
 		"aggregation": "heard_by.keyword",
