@@ -102,7 +102,7 @@ export class MovieComponent implements OnInit, AfterViewInit {
     { field: 'languages', header: 'Languages', filterType: 'text', type: 'string', width: '8rem' },
     { field: 'budget_usd', header: 'Budget', filterType: 'numeric', type: 'string', width: '8rem' },
     { field: 'gross_usd', header: 'Gross', filterType: 'numeric', type: 'string', width: '8rem' },
-    { field: 'rotten_tomatoes_scores', header: 'Rotten Tomatoes', filterType: 'numeric', type: 'string', width: '8rem' },
+    { field: 'rotten_tomatoes_score', header: 'Rotten Tomatoes', filterType: 'numeric', type: 'string', width: '8rem' },
   ];
 
   private lastSortEvent: any = null;

@@ -18,9 +18,9 @@ namespace JhipsterSampleApplication.Domain.Entities
         public List<string>? Producers { get; set; }
         public List<string>? Writers { get; set; }
         public List<string>? Cast { get; set; }
-        [PropertyName("budget_usd")] public double? BudgetUsd { get; set; }
-        [PropertyName("gross_usd")] public double? GrossUsd { get; set; }
-        [PropertyName("rotten_tomatoes_scores")] public double? RottenTomatoesScores { get; set; }
+        [PropertyName("budget_usd")] public long? BudgetUsd { get; set; }
+        [PropertyName("gross_usd")] public long? GrossUsd { get; set; }
+        [PropertyName("rotten_tomatoes_score")] public int? RottenTomatoesScore { get; set; }
         public string? Summary { get; set; }
         public string? Synopsis { get; set; }
         [PropertyName("categories")] public List<string> Categories { get; set; } = new List<string>();
