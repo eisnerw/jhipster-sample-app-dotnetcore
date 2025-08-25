@@ -8,6 +8,7 @@ using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Dto;
 using Nest;
 using Newtonsoft.Json.Linq;
+using System.Text.RegularExpressions;
 
 namespace JhipsterSampleApplication.Domain.Services
 {
@@ -203,12 +204,120 @@ private static RulesetDto MapToDto(Ruleset rr)
 
 public Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(JObject queryObject, ViewDto viewDto, int size = 20, int from = 0, IList<ISort>? sort = null)
         {
-            throw new NotImplementedException();
+            string query = queryObject.ToString();
+            var request = new SearchRequest<Movie>
+            {
+                Size = 0,
+                From = from,
+                Query = new QueryContainerDescriptor<Movie>().Raw(query),
+                Aggregations = new AggregationDictionary
+                {
+                    {
+                        "distinct",
+                        new TermsAggregation("distinct")
+                        {
+                            Size = 10000,
+                            Field = string.IsNullOrEmpty(viewDto.Script) ? viewDto.Aggregation : null,
+                            Script = !string.IsNullOrEmpty(viewDto.Script) ? new InlineScript(viewDto.Script) : null
+                        }
+                    }
+                }
+            };
+            var uncategorizedRequest = new SearchRequest<Movie>
+            {
+                Size = 0,
+                From = from,
+                Query = new QueryContainerDescriptor<Movie>().Raw(query),
+                Aggregations = new AggregationDictionary
+                {
+                    {
+                        "uncategorized", new FilterAggregation("uncategorized")
+                        {
+                            Filter = new BoolQuery
+                            {
+                                Should = new List<QueryContainer>
+                                {
+                                    new BoolQuery
+                                    {
+                                        MustNot = new List<QueryContainer>
+                                        {
+                                            new ExistsQuery
+                                            {
+                                                Field = viewDto.Aggregation
+                                            }
+                                        }
+                                    },
+                                    new TermQuery
+                                    {
+                                        Field = viewDto.Aggregation,
+                                        Value = string.Empty
+                                    }
+                                },
+                                MinimumShouldMatch = 1
+                            }
+                        }
+                    }
+                }
+            };
+            return SearchUsingViewAsync(request, uncategorizedRequest);
         }
 
-        public Task<List<ViewResultDto>> SearchUsingViewAsync(ISearchRequest request, ISearchRequest uncategorizedRequest)
+        public async Task<List<ViewResultDto>> SearchUsingViewAsync(ISearchRequest request, ISearchRequest uncategorizedRequest)
         {
-            throw new NotImplementedException();
+            List<ViewResultDto> content = new();
+            var result = await _elasticClient.SearchAsync<Aggregation>(request);
+            var aggList = result.Aggregations?.ToList();
+            if (aggList == null || aggList.Count == 0)
+            {
+                return content;
+            }
+            var bucketAggregate = aggList[0].Value as BucketAggregate;
+            if (bucketAggregate == null)
+            {
+                return content;
+            }
+            foreach (var it in bucketAggregate.Items.OfType<KeyedBucket<object>>())
+            {
+                string categoryName = it.KeyAsString ?? (it.Key?.ToString() ?? string.Empty);
+                bool notCategorized = false;
+                if (Regex.IsMatch(categoryName, @"\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z"))
+                {
+                    categoryName = Regex.Replace(categoryName, @"(\d{4,4})-(\d{2,2})-(\d{2,2})T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z", "$1-$2-$3");
+                }
+                if (string.IsNullOrEmpty(categoryName))
+                {
+                    categoryName = "(Uncategorized)";
+                    notCategorized = true;
+                }
+                content.Add(new ViewResultDto
+                {
+                    CategoryName = categoryName,
+                    Count = it.DocCount,
+                    NotCategorized = notCategorized
+                });
+            }
+            content = content.OrderBy(cat => cat.CategoryName).ToList();
+            var uncategorizedResponse = await _elasticClient.SearchAsync<Movie>(uncategorizedRequest);
+            var uncatetgorizedCount = uncategorizedResponse.Aggregations.Filter("uncategorized").DocCount;
+            if (uncatetgorizedCount > 0)
+            {
+                var existingUncategorized = content.FirstOrDefault(c => c.NotCategorized == true);
+                if (existingUncategorized != null)
+                {
+                    existingUncategorized.Count = (existingUncategorized.Count ?? 0) + uncatetgorizedCount;
+                }
+                else
+                {
+                    content.Add(new ViewResultDto
+                    {
+                        CategoryName = "(Uncategorized)",
+                        Selected = false,
+                        NotCategorized = true,
+                        Count = uncatetgorizedCount
+                    });
+                }
+            }
+            return content;
         }
 
     }
