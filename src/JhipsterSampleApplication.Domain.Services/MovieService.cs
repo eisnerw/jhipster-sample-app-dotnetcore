@@ -111,25 +111,22 @@ namespace JhipsterSampleApplication.Domain.Services
 
         public async Task<JObject> ConvertRulesetToElasticSearch(Ruleset rr)
         {
-            if (rr.rules == null || rr.rules.Count == 0)
+            var dto = ToDto(rr);
+            var result = await _bqlService.Ruleset2ElasticSearch(dto);
+            return result as JObject ?? new JObject();
+        }
+
+        private static RulesetDto ToDto(Ruleset rule)
+        {
+            return new RulesetDto
             {
-                if (!string.IsNullOrEmpty(rr.field) && rr.value != null)
-                {
-                    return new JObject
-                    {
-                        { "term", new JObject { { ToEsField(rr.field), JToken.FromObject(rr.value) } } }
-                    };
-                }
-                return new JObject { { "match_all", new JObject() } };
-            }
-            var clauses = new JArray();
-            foreach (var rule in rr.rules)
-            {
-                clauses.Add(await ConvertRulesetToElasticSearch(rule));
-            }
-            string op = rr.condition == "or" ? "should" : "must";
-            var boolObj = new JObject { { op, clauses } };
-            return new JObject { { "bool", boolObj } };
+                field = rule.field,
+                @operator = rule.@operator,
+                value = rule.value,
+                condition = rule.condition,
+                @not = rule.@not,
+                rules = rule.rules?.Select(ToDto).ToList()
+            };
         }
 
                 public Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(JObject queryObject, ViewDto viewDto, int size = 20, int from = 0, IList<ISort>? sort = null)

@@ -6,6 +6,7 @@ using Moq;
 using Nest;
 using Newtonsoft.Json.Linq;
 using Xunit;
+using Microsoft.Extensions.Logging;
 
 namespace JhipsterSampleApplication.Test.DomainServices;
 
@@ -16,7 +17,9 @@ public class BirthdayServiceRangeQueryTest
     public BirthdayServiceRangeQueryTest()
     {
         var elasticClient = new Mock<IElasticClient>().Object;
-        var bqlService = new Mock<IBirthdayBqlService>().Object;
+        var logger = new Mock<ILogger<BirthdayBqlService>>().Object;
+        var namedQuery = new Mock<INamedQueryService>().Object;
+        IBirthdayBqlService bqlService = new BirthdayBqlService(logger, namedQuery);
         var viewService = new Mock<IViewService>().Object;
         _service = new BirthdayService(elasticClient, bqlService, viewService);
     }

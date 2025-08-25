@@ -99,7 +99,160 @@ namespace JhipsterSampleApplication.Domain.Services
 
         public virtual Task<object> Ruleset2ElasticSearch(RulesetDto ruleset)
         {
-            throw new NotImplementedException();
+            ArgumentNullException.ThrowIfNull(ruleset);
+
+            JObject Convert(RulesetDto rr)
+            {
+                if (rr.rules == null || rr.rules.Count == 0)
+                {
+                    // Handle negated operators and negative exists
+                    if (rr.@operator?.Contains("!") == true ||
+                        (rr.@operator == "exists" && rr.value is bool b && !b))
+                    {
+                        var inner = Convert(new RulesetDto
+                        {
+                            field = rr.field,
+                            @operator = rr.@operator?.Replace("!", string.Empty),
+                            value = rr.@operator == "exists" ? true : rr.value
+                        });
+                        return new JObject
+                        {
+                            { "bool", new JObject { { "must_not", inner } } }
+                        };
+                    }
+
+                    // Range operators
+                    if (rr.@operator == ">" || rr.@operator == ">=" ||
+                        rr.@operator == "<" || rr.@operator == "<=" ||
+                        rr.@operator == "=")
+                    {
+                        var rangeBody = new JObject();
+                        var valueString = rr.value?.ToString() ?? string.Empty;
+
+                        if (rr.@operator == "=")
+                        {
+                            var (start, endExclusive) = ParseDateValue(valueString);
+                            rangeBody.Add("gte", start.ToString("yyyy-MM-dd'T'HH:mm:ss"));
+                            if (endExclusive != null)
+                            {
+                                rangeBody.Add("lt", endExclusive.Value.ToString("yyyy-MM-dd'T'HH:mm:ss"));
+                            }
+                            else
+                            {
+                                rangeBody.Add("lte", start.ToString("yyyy-MM-dd'T'HH:mm:ss"));
+                            }
+                            return new JObject
+                            {
+                                { "range", new JObject { { rr.field!, rangeBody } } }
+                            };
+                        }
+
+                        var opMap = new Dictionary<string, string>
+                        {
+                            {">", "gt"},
+                            {">=", "gte"},
+                            {"<", "lt"},
+                            {"<=", "lte"}
+                        };
+
+                        if (DateTime.TryParse(valueString, out var dateValue))
+                        {
+                            valueString = dateValue.ToString("yyyy-MM-dd'T'HH:mm:ss");
+                        }
+                        else
+                        {
+                            var (start, endExclusive) = ParseDateValue(valueString);
+                            if (rr.@operator == ">" && endExclusive != null)
+                            {
+                                valueString = endExclusive.Value.ToString("yyyy-MM-dd'T'HH:mm:ss");
+                            }
+                            else if (rr.@operator == "<=" && endExclusive != null)
+                            {
+                                valueString = endExclusive.Value.ToString("yyyy-MM-dd'T'HH:mm:ss");
+                            }
+                            else
+                            {
+                                valueString = start.ToString("yyyy-MM-dd'T'HH:mm:ss");
+                            }
+                        }
+
+                        rangeBody.Add(opMap[rr.@operator!], valueString);
+                        return new JObject
+                        {
+                            { "range", new JObject { { rr.field!, rangeBody } } }
+                        };
+                    }
+
+                    if (rr.@operator == "exists" && rr.value is bool b2 && b2)
+                    {
+                        return new JObject
+                        {
+                            { "exists", new JObject { { "field", rr.field! } } }
+                        };
+                    }
+
+                    return new JObject
+                    {
+                        { "term", new JObject { { rr.field!, JToken.FromObject(rr.value!) } } }
+                    };
+                }
+
+                var clauses = new JArray();
+                foreach (var rule in rr.rules)
+                {
+                    clauses.Add(Convert(rule));
+                }
+
+                if (rr.condition == "and")
+                {
+                    return new JObject
+                    {
+                        { "bool", new JObject { { rr.not ? "must_not" : "must", clauses } } }
+                    };
+                }
+
+                var boolObj = new JObject { { "should", clauses } };
+                if (rr.not)
+                {
+                    return new JObject
+                    {
+                        { "bool", new JObject { { "must_not", boolObj } } }
+                    };
+                }
+                return new JObject { { "bool", boolObj } };
+            }
+
+            return Task.FromResult<object>(Convert(ruleset));
+        }
+
+        private static (DateTime start, DateTime? endExclusive) ParseDateValue(string value)
+        {
+            if (Regex.IsMatch(value, @"^\d{4}$"))
+            {
+                var year = int.Parse(value);
+                var start = new DateTime(year, 1, 1, 0, 0, 0);
+                return (start, start.AddYears(1));
+            }
+            if (Regex.IsMatch(value, @"^\d{4}-\d{2}$"))
+            {
+                var year = int.Parse(value.Substring(0, 4));
+                var month = int.Parse(value.Substring(5, 2));
+                var start = new DateTime(year, month, 1, 0, 0, 0);
+                return (start, start.AddMonths(1));
+            }
+            if (Regex.IsMatch(value, @"^\d{4}-\d{2}-\d{2}$"))
+            {
+                var year = int.Parse(value.Substring(0, 4));
+                var month = int.Parse(value.Substring(5, 2));
+                var day = int.Parse(value.Substring(8, 2));
+                var start = new DateTime(year, month, day, 0, 0, 0);
+                return (start, start.AddDays(1));
+            }
+            if (DateTime.TryParse(value, out var dt))
+            {
+                return (dt, null);
+            }
+            return (DateTime.MinValue, null);
         }
 
         protected virtual bool ValidateBqlQuery(string bqlQuery)
