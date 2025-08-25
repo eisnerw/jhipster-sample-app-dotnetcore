@@ -109,30 +109,41 @@ namespace JhipsterSampleApplication.Domain.Services
             return await SearchAsync(searchRequest);
         }
 
-        public async Task<JObject> ConvertRulesetToElasticSearch(Ruleset rr)
-        {
-            if (rr.rules == null || rr.rules.Count == 0)
-            {
-                if (!string.IsNullOrEmpty(rr.field) && rr.value != null)
-                {
-                    return new JObject
-                    {
-                        { "term", new JObject { { ToEsField(rr.field), JToken.FromObject(rr.value) } } }
-                    };
-                }
-                return new JObject { { "match_all", new JObject() } };
-            }
-            var clauses = new JArray();
-            foreach (var rule in rr.rules)
-            {
-                clauses.Add(await ConvertRulesetToElasticSearch(rule));
-            }
-            string op = rr.condition == "or" ? "should" : "must";
-            var boolObj = new JObject { { op, clauses } };
-            return new JObject { { "bool", boolObj } };
-        }
+        
+public async Task<JObject> ConvertRulesetToElasticSearch(Ruleset rr)
+{
+    if (!ValidateRuleset(rr))
+    {
+        throw new ArgumentException("Invalid ruleset", nameof(rr));
+    }
+    var dto = MapToDto(rr);
+    var result = await _bqlService.Ruleset2ElasticSearch(dto);
+    return result is JObject jo ? jo : JObject.FromObject(result);
+}
 
-                public Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(JObject queryObject, ViewDto viewDto, int size = 20, int from = 0, IList<ISort>? sort = null)
+private static bool ValidateRuleset(Ruleset rr)
+{
+    if (rr.rules == null || rr.rules.Count == 0)
+    {
+        return !string.IsNullOrWhiteSpace(rr.field);
+    }
+    return rr.rules.All(ValidateRuleset);
+}
+
+private static RulesetDto MapToDto(Ruleset rr)
+{
+    return new RulesetDto
+    {
+        field = rr.field,
+        @operator = rr.@operator,
+        value = rr.value,
+        condition = rr.condition,
+        @not = rr.@not,
+        rules = rr.rules?.Select(MapToDto).ToList() ?? new List<RulesetDto>()
+    };
+}
+
+public Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(JObject queryObject, ViewDto viewDto, int size = 20, int from = 0, IList<ISort>? sort = null)
         {
             throw new NotImplementedException();
         }
@@ -142,27 +153,5 @@ namespace JhipsterSampleApplication.Domain.Services
             throw new NotImplementedException();
         }
 
-        private static string ToEsField(string? field)
-        {
-            return field switch
-            {
-                "title" => "title",
-                "release_year" => "release_year",
-                "genres" => "genres",
-                "runtime_minutes" => "runtime_minutes",
-                "country" => "country",
-                "languages" => "languages",
-                "directors" => "directors",
-                "producers" => "producers",
-                "writers" => "writers",
-                "cast" => "cast",
-                "budget_usd" => "budget_usd",
-                "gross_usd" => "gross_usd",
-                "rotten_tomatoes_scores" => "rotten_tomatoes_scores",
-                "summary" => "summary",
-                "synopsis" => "synopsis",
-                _ => field ?? string.Empty
-            };
-        }
     }
 }

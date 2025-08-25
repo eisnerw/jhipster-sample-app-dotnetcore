@@ -2,9 +2,11 @@ using System.Threading.Tasks;
 using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Nest;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 using Xunit;
 
 namespace JhipsterSampleApplication.Test.DomainServices;
@@ -13,10 +15,16 @@ public class BirthdayServiceRangeQueryTest
 {
     private readonly BirthdayService _service;
 
+    private class TestBirthdayBqlService : GenericBqlService<Birthday>, IBirthdayBqlService
+    {
+        public TestBirthdayBqlService() : base(new Mock<ILogger<BirthdayBqlService>>().Object,
+            new Mock<INamedQueryService>().Object, new JObject()) { }
+    }
+
     public BirthdayServiceRangeQueryTest()
     {
         var elasticClient = new Mock<IElasticClient>().Object;
-        var bqlService = new Mock<IBirthdayBqlService>().Object;
+        var bqlService = new TestBirthdayBqlService();
         var viewService = new Mock<IViewService>().Object;
         _service = new BirthdayService(elasticClient, bqlService, viewService);
     }
