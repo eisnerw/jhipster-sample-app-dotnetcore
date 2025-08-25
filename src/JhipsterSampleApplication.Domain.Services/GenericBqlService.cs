@@ -97,9 +97,377 @@ namespace JhipsterSampleApplication.Domain.Services
             return Task.FromResult(QueryAsString(ruleset));
         }
 
-        public virtual Task<object> Ruleset2ElasticSearch(RulesetDto ruleset)
+        public virtual async Task<object> Ruleset2ElasticSearch(RulesetDto ruleset)
         {
-            throw new NotImplementedException();
+            ArgumentNullException.ThrowIfNull(ruleset);
+
+            // The generic implementation assumes the ruleset has already been validated
+            // by the calling service.  All rules share the same conversion logic, so we
+            // recursively build an Elasticsearch query represented as a JObject.
+
+            if (ruleset.rules == null || ruleset.rules.Count == 0)
+            {
+                // Handle negated operators (e.g. !LIKE, !IN, !EXISTS) by generating the
+                // positive query and wrapping it in a must_not bool clause.
+                if (ruleset.@operator?.Contains("!") == true ||
+                    (ruleset.@operator == "exists" && ruleset.value is bool b && !b))
+                {
+                    var inner = await Ruleset2ElasticSearch(new RulesetDto
+                    {
+                        field = ruleset.field,
+                        @operator = ruleset.@operator?.Replace("!", string.Empty),
+                        value = ruleset.@operator == "exists" ? true : ruleset.value
+                    });
+
+                    return new JObject
+                    {
+                        {
+                            "bool", new JObject
+                            {
+                                { "must_not", JToken.FromObject(inner) }
+                            }
+                        }
+                    };
+                }
+
+                JObject ret = new JObject
+                {
+                    { "term", new JObject{ { "BOGUSFIELD", "CANTMATCH" } } }
+                };
+
+                if (ruleset.@operator?.Contains("contains") == true ||
+                    ruleset.@operator?.Contains("like") == true)
+                {
+                    string stringValue = ruleset.value?.ToString() ?? string.Empty;
+
+                    // Support regex literals: /exp/ or /exp/i
+                    if (stringValue.StartsWith("/") &&
+                       (stringValue.EndsWith("/") || stringValue.EndsWith("/i")))
+                    {
+                        bool caseInsensitive = stringValue.EndsWith("/i");
+                        string re = stringValue.Substring(1, stringValue.Length - (caseInsensitive ? 3 : 2));
+                        string regex = ToElasticRegEx(re.Replace(@"\\", @"\"), caseInsensitive);
+
+                        if (!regex.StartsWith("^"))
+                        {
+                            regex = ".*" + regex;
+                        }
+                        else
+                        {
+                            regex = regex.Substring(1);
+                        }
+
+                        if (!regex.EndsWith("$"))
+                        {
+                            regex += ".*";
+                        }
+                        else
+                        {
+                            regex = regex.Substring(0, regex.Length - 1);
+                        }
+
+                        return new JObject
+                        {
+                            {
+                                "regexp",
+                                new JObject
+                                {
+                                    {
+                                        ruleset.field + ".keyword",
+                                        new JObject
+                                        {
+                                            { "value", regex },
+                                            { "flags", "ALL" },
+                                            { "rewrite", "constant_score" }
+                                        }
+                                    }
+                                }
+                            }
+                        };
+                    }
+
+                    string quote = Regex.IsMatch(stringValue, @"\W") ? "\"" : string.Empty;
+                    ret = new JObject
+                    {
+                        {
+                            "query_string",
+                            new JObject
+                            {
+                                { "query", (ruleset.field != "document" ? (ruleset.field + ":") : string.Empty) +
+                                            quote + stringValue.ToLower().Replace("\"", "\\\"") + quote }
+                            }
+                        }
+                    };
+                }
+                else if (ruleset.@operator == ">" || ruleset.@operator == ">=" ||
+                         ruleset.@operator == "<" || ruleset.@operator == "<=")
+                {
+                    string valueString = ruleset.value?.ToString() ?? string.Empty;
+
+                    if (Regex.IsMatch(valueString, @"^\d{4}(?:-\d{2}(?:-\d{2})?)?$") ||
+                        DateTime.TryParse(valueString, out _))
+                    {
+                        return BuildDateQuery(ruleset.field!, ruleset.@operator!, valueString);
+                    }
+
+                    var rangeOperator = ruleset.@operator switch
+                    {
+                        ">" => "gt",
+                        ">=" => "gte",
+                        "<" => "lt",
+                        "<=" => "lte",
+                        _ => string.Empty
+                    };
+
+                    return new JObject
+                    {
+                        {
+                            "range",
+                            new JObject
+                            {
+                                {
+                                    ruleset.field!,
+                                    new JObject { { rangeOperator, valueString } }
+                                }
+                            }
+                        }
+                    };
+                }
+                else if (ruleset.@operator?.Contains("=") == true)
+                {
+                    var valueStr = ruleset.value?.ToString() ?? string.Empty;
+
+                    if (Regex.IsMatch(valueStr, @"^\d{4}(?:-\d{2}(?:-\d{2})?)?$") ||
+                        DateTime.TryParse(valueStr, out _))
+                    {
+                        return BuildDateQuery(ruleset.field!, "=", valueStr);
+                    }
+
+                    ret = new JObject
+                    {
+                        {
+                            "term",
+                            new JObject
+                            {
+                                { ruleset.field + ".keyword", valueStr }
+                            }
+                        }
+                    };
+                }
+                else if (ruleset.@operator?.Contains("in") == true)
+                {
+                    var valueArray = ruleset.value as IEnumerable<object>;
+                    var values = valueArray?.Select(v => v?.ToString() ?? string.Empty)
+                        .Where(s => !string.IsNullOrWhiteSpace(s))
+                        .ToList() ?? new List<string>();
+
+                    ret = new JObject
+                    {
+                        {
+                            "terms",
+                            new JObject
+                            {
+                                { ruleset.field + ".keyword", JArray.FromObject(values) }
+                            }
+                        }
+                    };
+                }
+                else if (ruleset.@operator?.Contains("exists") == true)
+                {
+                    ret = new JObject
+                    {
+                        { "exists", new JObject{ { "field", ruleset.field } } }
+                    };
+                }
+
+                return ret;
+            }
+            else
+            {
+                var rls = new List<object>();
+                foreach (var rule in ruleset.rules)
+                {
+                    rls.Add(await Ruleset2ElasticSearch(rule));
+                }
+
+                if (ruleset.condition == "and")
+                {
+                    return new JObject
+                    {
+                        {
+                            "bool", new JObject
+                            {
+                                { ruleset.not ? "must_not" : "must", JArray.FromObject(rls) }
+                            }
+                        }
+                    };
+                }
+
+                JObject ret = new JObject
+                {
+                    { "bool", new JObject { { "should", JArray.FromObject(rls) } } }
+                };
+
+                if (ruleset.not)
+                {
+                    ret = new JObject
+                    {
+                        { "bool", new JObject { { "must_not", JObject.FromObject(ret) } } }
+                    };
+                }
+
+                return ret;
+            }
+        }
+
+        private static (DateTime start, DateTime? endExclusive) ParseDateValue(string value)
+        {
+            if (Regex.IsMatch(value, @"^\d{4}$"))
+            {
+                var year = int.Parse(value);
+                var start = new DateTime(year, 1, 1, 0, 0, 0);
+                return (start, start.AddYears(1));
+            }
+            if (Regex.IsMatch(value, @"^\d{4}-\d{2}$"))
+            {
+                var year = int.Parse(value.Substring(0, 4));
+                var month = int.Parse(value.Substring(5, 2));
+                var start = new DateTime(year, month, 1, 0, 0, 0);
+                return (start, start.AddMonths(1));
+            }
+            if (Regex.IsMatch(value, @"^\d{4}-\d{2}-\d{2}$"))
+            {
+                var year = int.Parse(value.Substring(0, 4));
+                var month = int.Parse(value.Substring(5, 2));
+                var day = int.Parse(value.Substring(8, 2));
+                var start = new DateTime(year, month, day, 0, 0, 0);
+                return (start, start.AddDays(1));
+            }
+            if (DateTime.TryParse(value, out var dt))
+            {
+                return (dt, null);
+            }
+            return (DateTime.MinValue, null);
+        }
+
+        private static JObject BuildDateQuery(string field, string op, string value)
+        {
+            var (start, endExclusive) = ParseDateValue(value);
+            var startStr = start.ToString("yyyy-MM-dd'T'HH:mm:ss");
+
+            JObject rangeBody = new JObject();
+
+            switch (op)
+            {
+                case ">":
+                    if (endExclusive.HasValue)
+                        rangeBody.Add("gte", endExclusive.Value.ToString("yyyy-MM-dd'T'HH:mm:ss"));
+                    else
+                        rangeBody.Add("gt", startStr);
+                    break;
+                case ">=":
+                    rangeBody.Add("gte", startStr);
+                    break;
+                case "<":
+                    rangeBody.Add("lt", startStr);
+                    break;
+                case "<=":
+                    if (endExclusive.HasValue)
+                        rangeBody.Add("lt", endExclusive.Value.ToString("yyyy-MM-dd'T'HH:mm:ss"));
+                    else
+                        rangeBody.Add("lte", startStr);
+                    break;
+                case "=":
+                    if (endExclusive.HasValue)
+                    {
+                        rangeBody.Add("gte", startStr);
+                        rangeBody.Add("lt", endExclusive.Value.ToString("yyyy-MM-dd'T'HH:mm:ss"));
+                    }
+                    else
+                    {
+                        rangeBody.Add("gte", startStr);
+                        rangeBody.Add("lte", startStr);
+                    }
+                    break;
+            }
+
+            return new JObject
+            {
+                { "range", new JObject { { field, rangeBody } } }
+            };
+        }
+
+        private static string ToElasticRegEx(string pattern, bool caseInsensitive)
+        {
+            string ret = string.Empty;
+            string[] tokens = Regex.Replace(pattern, @"([\[\]]|\\\\|\\\[|\\\]|\\s|\\S|\\w|\\W|\\d|\\D|.)", "`$1").Split('`');
+            bool bracketed = false;
+            for (int i = 1; i < tokens.Length; i++)
+            {
+                if (bracketed)
+                {
+                    switch (tokens[i])
+                    {
+                        case "]":
+                            bracketed = false;
+                            ret += tokens[i];
+                            break;
+                        case "\\s":
+                            ret += " \n\t\r";
+                            break;
+                        case "\\d":
+                            ret += "0-9";
+                            break;
+                        case "\\w":
+                            ret += "A-Za-z_";
+                            break;
+                        default:
+                            if (caseInsensitive && Regex.IsMatch(tokens[i], @"^[A-Za-z]+$"))
+                            {
+                                if ((i + 2) < tokens.Length && tokens[i + 1] == "-" && Regex.IsMatch(tokens[i + 2], @"^[A-Za-z]+$"))
+                                {
+                                    ret += tokens[i].ToLower() + "-" + tokens[i + 2].ToLower() + tokens[i].ToUpper() + "-" + tokens[i + 2].ToUpper();
+                                    i += 2;
+                                }
+                                else
+                                {
+                                    ret += tokens[i].ToLower() + tokens[i].ToUpper();
+                                }
+                            }
+                            else
+                            {
+                                ret += tokens[i];
+                            }
+                            break;
+                    }
+                }
+                else if (tokens[i] == "[")
+                {
+                    bracketed = true;
+                    ret += tokens[i];
+                }
+                else if (tokens[i] == "\\s")
+                {
+                    ret += "[ \n\t\r]";
+                }
+                else if (tokens[i] == "\\d")
+                {
+                    ret += "[0-9]";
+                }
+                else if (tokens[i] == "\\w")
+                {
+                    ret += "[A-Za-z_]";
+                }
+                else if (caseInsensitive && Regex.IsMatch(tokens[i], "[A-Za-z]"))
+                {
+                    ret += "[" + tokens[i].ToLower() + tokens[i].ToUpper() + "]";
+                }
+                else
+                {
+                    ret += tokens[i];
+                }
+            }
+            return ret;
         }
 
         protected virtual bool ValidateBqlQuery(string bqlQuery)
