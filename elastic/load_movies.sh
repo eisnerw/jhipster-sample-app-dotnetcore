@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Delete the "movies" index (safe if it doesn't exist)
+curl -X DELETE "http://localhost:9200/movies?ignore_unavailable=true&expand_wildcards=all&pretty"
+
 curl -X PUT "http://localhost:9200/movies" -H 'Content-Type: application/json' -d'
 {
   "settings": {

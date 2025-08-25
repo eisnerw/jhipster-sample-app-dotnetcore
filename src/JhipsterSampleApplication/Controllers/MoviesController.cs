@@ -170,7 +170,7 @@ namespace JhipsterSampleApplication.Controllers
             };
             if (!string.IsNullOrEmpty(sort))
             {
-                searchRequest.Sort = new List<ISort> { new FieldSort { Field = sort } };
+                searchRequest.Sort = new List<ISort> { new FieldSort { Field = "release_year", Order = SortOrder.Descending, Missing = "_last", UnmappedType = FieldType.Integer  } }; //    new List<ISort> { new FieldSort { Field = sort } };
             }
             var response = await _movieService.SearchAsync(searchRequest, includeDescriptive);
             var dtos = response.Documents.Select(d => _mapper.Map<MovieDto>(d)).ToList();
