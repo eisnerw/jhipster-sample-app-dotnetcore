@@ -116,7 +116,8 @@ namespace JhipsterSampleApplication.Controllers
             }
             JObject queryStringObject = new JObject(new JProperty("query", query));
             JObject queryObject = new JObject(new JProperty("query_string", queryStringObject));
-            return await Search(queryObject, pageSize, from, sort, includeDescriptive, pitId, searchAfter);
+            var overrideSort = "release_year.keyword:desc";
+            return await Search(queryObject, pageSize, from, overrideSort, includeDescriptive, pitId, searchAfter);
         }
 
         [HttpPost("search/ruleset")]
