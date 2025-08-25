@@ -34,12 +34,40 @@ namespace JhipsterSampleApplication.Domain.Services
             {
                 request.Source = new SourceFilter { Excludes = new[] { "synopsis" } };
             }
-            var response = await _elasticClient.LowLevel.SearchAsync<SearchResponse<Movie>>(IndexName, PostData.Serializable(request));
+
+            if (string.IsNullOrEmpty(pitId))
+            {
+                var pitResponse = await _elasticClient.OpenPointInTimeAsync(new OpenPointInTimeRequest(IndexName)
+                {
+                    KeepAlive = "2m"
+                });
+                if (!pitResponse.IsValid)
+                {
+                    throw new Exception($"Failed to open point in time: {pitResponse.DebugInformation}");
+                }
+                pitId = pitResponse.Id;
+            }
+
+            if (!string.IsNullOrEmpty(pitId))
+            {
+                request.PointInTime = new PointInTime(pitId);
+            }
+
+            var response = await _elasticClient.SearchAsync<Movie>(request);
             if (!response.IsValid)
             {
-                StringResponse retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(IndexName, PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
+                StringResponse retryResponse;
+                if (request.PointInTime != null)
+                {
+                    retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
+                }
+                else
+                {
+                    retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(IndexName, PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
+                }
                 throw new Exception(retryResponse.Body);
             }
+
             foreach (var hit in response.Hits)
             {
                 if (hit.Source != null)
