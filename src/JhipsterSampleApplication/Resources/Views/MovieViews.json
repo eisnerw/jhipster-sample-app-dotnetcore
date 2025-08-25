@@ -7,7 +7,7 @@
     "query": "directors:*",
     "categoryQuery": "",
     "script": "",
-    "domain": "movies"
+    "domain": "movie"
   },
   {
     "id": "producers",
@@ -17,7 +17,7 @@
     "query": "producers:*",
     "categoryQuery": "",
     "script": "",
-    "domain": "movies"
+    "domain": "movie"
   },
   {
     "id": "writers",
@@ -27,7 +27,7 @@
     "query": "writers:*",
     "categoryQuery": "",
     "script": "",
-    "domain": "movies"
+    "domain": "movie"
   },
   {
     "id": "cast",
@@ -37,6 +37,6 @@
     "query": "cast:*",
     "categoryQuery": "",
     "script": "",
-    "domain": "movies"
+    "domain": "movie"
   }
 ]
