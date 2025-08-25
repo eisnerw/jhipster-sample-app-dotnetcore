@@ -15,9 +15,9 @@ namespace JhipsterSampleApplication.Dto
         public List<string>? Producers { get; set; }
         public List<string>? Writers { get; set; }
         public List<string>? Cast { get; set; }
-        public double? BudgetUsd { get; set; }
-        public double? GrossUsd { get; set; }
-        public double? RottenTomatoesScores { get; set; }
+        public long? BudgetUsd { get; set; }
+        public long? GrossUsd { get; set; }
+        public int? RottenTomatoesScore { get; set; }
         public string? Summary { get; set; }
         public string? Synopsis { get; set; }
         public List<string>? Categories { get; set; }
