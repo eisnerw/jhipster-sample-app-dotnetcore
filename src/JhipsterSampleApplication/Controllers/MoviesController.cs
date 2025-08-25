@@ -101,7 +101,14 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpGet("search/lucene")]
         [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
-        public async Task<IActionResult> SearchWithLuceneQuery([FromQuery] string query, [FromQuery] int from = 0, [FromQuery] int pageSize = 20, [FromQuery] string? sort = null, [FromQuery] bool includeDescriptive = false)
+        public async Task<IActionResult> SearchWithLuceneQuery(
+            [FromQuery] string query,
+            [FromQuery] int from = 0,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? sort = null,
+            [FromQuery] bool includeDescriptive = false,
+            [FromQuery] string? pitId = null,
+            [FromQuery] string[]? searchAfter = null)
         {
             if (string.IsNullOrWhiteSpace(query))
             {
@@ -109,23 +116,37 @@ namespace JhipsterSampleApplication.Controllers
             }
             JObject queryStringObject = new JObject(new JProperty("query", query));
             JObject queryObject = new JObject(new JProperty("query_string", queryStringObject));
-            return await Search(queryObject, pageSize, from, sort, includeDescriptive);
+            var overrideSort = "release_year.keyword:desc";
+            return await Search(queryObject, pageSize, from, overrideSort, includeDescriptive, pitId, searchAfter);
         }
 
         [HttpPost("search/ruleset")]
         [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
-        public async Task<IActionResult> SearchWithRuleset([FromBody] RulesetDto rulesetDto, [FromQuery] int from = 0, [FromQuery] int pageSize = 20, [FromQuery] string? sort = null, [FromQuery] bool includeDescriptive = false)
+        public async Task<IActionResult> SearchWithRuleset(
+            [FromBody] RulesetDto rulesetDto,
+            [FromQuery] int from = 0,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? sort = null,
+            [FromQuery] bool includeDescriptive = false,
+            [FromQuery] string? pitId = null,
+            [FromQuery] string[]? searchAfter = null)
         {
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
-            var result = await _movieService.SearchWithRulesetAsync(ruleset, pageSize, from, sort == null ? null : new List<ISort> { new FieldSort { Field = sort } }, includeDescriptive);
-            var dtos = result.Documents.Select(d => _mapper.Map<MovieDto>(d)).ToList();
-            return Ok(new SearchResultDto<MovieDto> { TotalHits = result.Total, Hits = dtos });
+            var queryObject = await _movieService.ConvertRulesetToElasticSearch(ruleset);
+            return await Search(queryObject, pageSize, from, sort, includeDescriptive, pitId, searchAfter);
         }
 
         [HttpPost("search/bql")]
         [Consumes("text/plain")]
         [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
-        public async Task<IActionResult> SearchWithBql([FromBody] string bqlQuery, [FromQuery] int from = 0, [FromQuery] int pageSize = 20, [FromQuery] string? sort = null, [FromQuery] bool includeDescriptive = false)
+        public async Task<IActionResult> SearchWithBql(
+            [FromBody] string bqlQuery,
+            [FromQuery] int from = 0,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? sort = null,
+            [FromQuery] bool includeDescriptive = false,
+            [FromQuery] string? pitId = null,
+            [FromQuery] string[]? searchAfter = null)
         {
             if (string.IsNullOrWhiteSpace(bqlQuery))
             {
@@ -134,12 +155,12 @@ namespace JhipsterSampleApplication.Controllers
             var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _movieService.ConvertRulesetToElasticSearch(ruleset);
-            return await Search(queryObject, pageSize, from, sort, includeDescriptive);
+            return await Search(queryObject, pageSize, from, sort, includeDescriptive, pitId, searchAfter);
         }
 
         [HttpPost("search/elasticsearch")]
         [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
-        public async Task<IActionResult> RawSearch([FromBody] RawSearchRequestDto request, [FromQuery] bool includeDescriptive = false)
+        public async Task<IActionResult> RawSearch([FromBody] RawSearchRequestDto request, [FromQuery] bool includeDescriptive = false, [FromQuery] string? pitId = null, [FromQuery] string[]? searchAfter = null)
         {
             if (string.IsNullOrWhiteSpace(request.Query))
             {
@@ -153,28 +174,64 @@ namespace JhipsterSampleApplication.Controllers
             };
             if (!string.IsNullOrEmpty(request.Sort))
             {
-                searchRequest.Sort = new List<ISort> { new FieldSort { Field = request.Sort } };
+                var sortDescriptor = new List<ISort>();
+                var sortParts = request.Sort.Contains(',') ? request.Sort.Split(',') : request.Sort.Split(':');
+                if (sortParts.Length == 2)
+                {
+                    var field = sortParts[0];
+                    var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
+                    sortDescriptor.Add(new FieldSort { Field = field, Order = order });
+                }
+                sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
+                searchRequest.Sort = sortDescriptor;
             }
-            var response = await _movieService.SearchAsync(searchRequest, includeDescriptive);
+            if (searchAfter != null && searchAfter.Length > 0)
+            {
+                searchRequest.SearchAfter = searchAfter.Cast<object>().ToList();
+                searchRequest.From = null;
+            }
+            var response = await _movieService.SearchAsync(searchRequest, includeDescriptive, pitId);
             var dtos = response.Documents.Select(d => _mapper.Map<MovieDto>(d)).ToList();
-            return Ok(new SearchResultDto<MovieDto> { TotalHits = response.Total, Hits = dtos });
+            List<object>? searchAfterResponse = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null;
+            return Ok(new SearchResultDto<MovieDto> { TotalHits = response.Total, Hits = dtos, PitId = searchRequest.PointInTime?.Id, searchAfter = searchAfterResponse });
         }
 
-        private async Task<IActionResult> Search(JObject queryObject, int pageSize, int from, string? sort, bool includeDescriptive)
+        private async Task<IActionResult> Search(JObject queryObject, int pageSize, int from, string? sort, bool includeDescriptive, string? pitId, string[]? searchAfter)
         {
             var searchRequest = new SearchRequest<Movie>
             {
                 Size = pageSize,
-                From = from,
-                Query = new QueryContainerDescriptor<Movie>().Raw(queryObject.ToString())
+                From = from
             };
+
+            if (searchAfter != null && searchAfter.Length > 0)
+            {
+                searchRequest.SearchAfter = searchAfter.Cast<object>().ToList();
+                searchRequest.From = null;
+            }
+
+            // Build sort descriptor
+            var sortDescriptor = new List<ISort>();
             if (!string.IsNullOrEmpty(sort))
             {
-                searchRequest.Sort = new List<ISort> { new FieldSort { Field = "release_year", Order = SortOrder.Descending, Missing = "_last", UnmappedType = FieldType.Integer  } }; //    new List<ISort> { new FieldSort { Field = sort } };
+                var sortParts = sort.Contains(',') ? sort.Split(',') : sort.Split(':');
+                if (sortParts.Length == 2)
+                {
+                    var field = sortParts[0];
+                    var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
+                    sortDescriptor.Add(new FieldSort { Field = field, Order = order });
+                }
             }
-            var response = await _movieService.SearchAsync(searchRequest, includeDescriptive);
+            // Always add _id as the last sort field for consistent pagination
+            sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
+
+            searchRequest.Sort = sortDescriptor;
+            searchRequest.Query = new QueryContainerDescriptor<Movie>().Raw(queryObject.ToString());
+
+            var response = await _movieService.SearchAsync(searchRequest, includeDescriptive, pitId);
             var dtos = response.Documents.Select(d => _mapper.Map<MovieDto>(d)).ToList();
-            return Ok(new SearchResultDto<MovieDto> { TotalHits = response.Total, Hits = dtos });
+            List<object>? searchAfterResponse = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null;
+            return Ok(new SearchResultDto<MovieDto> { TotalHits = response.Total, Hits = dtos, PitId = searchRequest.PointInTime?.Id, searchAfter = searchAfterResponse });
         }
 
         [HttpGet("{id}")]
