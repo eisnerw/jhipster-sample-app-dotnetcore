@@ -79,7 +79,7 @@ namespace JhipsterSampleApplication.Controllers
             AppendField("Cast", m.Cast == null ? null : string.Join(", ", m.Cast));
             AppendField("Budget", m.BudgetUsd?.ToString());
             AppendField("Gross", m.GrossUsd?.ToString());
-            AppendField("Rotten Tomatoes", m.RottenTomatoesScores?.ToString());
+            AppendField("Rotten Tomatoes", m.RottenTomatoesScore?.ToString());
             AppendField("Summary", m.Summary);
             AppendField("Synopsis", m.Synopsis);
             sb.Append("</body></html>");

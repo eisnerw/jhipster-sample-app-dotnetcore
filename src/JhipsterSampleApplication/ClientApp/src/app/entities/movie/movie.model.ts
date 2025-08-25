@@ -8,7 +8,7 @@ export interface IMovie {
   languages?: string[];
   budget_usd?: number;
   gross_usd?: number;
-  rotten_tomatoes_scores?: number;
+  rotten_tomatoes_score?: number;
 }
 
 export class Movie implements IMovie {
@@ -22,7 +22,7 @@ export class Movie implements IMovie {
     public languages?: string[],
     public budget_usd?: number,
     public gross_usd?: number,
-    public rotten_tomatoes_scores?: number,
+    public rotten_tomatoes_score?: number,
   ) {}
 }
 
