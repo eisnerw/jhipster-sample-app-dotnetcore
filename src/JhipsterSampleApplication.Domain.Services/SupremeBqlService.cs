@@ -107,10 +107,5 @@ namespace JhipsterSampleApplication.Domain.Services
 			}
 			return result.ToString();
 		}
-
-		public override Task<object> Ruleset2ElasticSearch(RulesetDto ruleset)
-		{
-			throw new NotImplementedException();
-		}
 	}
 }
