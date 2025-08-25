@@ -1,0 +1,42 @@
+[
+  {
+    "id": "directors",
+    "name": "Directors",
+    "field": "directors",
+    "aggregation": "directors.keyword",
+    "query": "directors:*",
+    "categoryQuery": "",
+    "script": "",
+    "domain": "movies"
+  },
+  {
+    "id": "producers",
+    "name": "Producers",
+    "field": "producers",
+    "aggregation": "producers.keyword",
+    "query": "producers:*",
+    "categoryQuery": "",
+    "script": "",
+    "domain": "movies"
+  },
+  {
+    "id": "writers",
+    "name": "Writers",
+    "field": "writers",
+    "aggregation": "writers.keyword",
+    "query": "writers:*",
+    "categoryQuery": "",
+    "script": "",
+    "domain": "movies"
+  },
+  {
+    "id": "cast",
+    "name": "Cast",
+    "field": "cast",
+    "aggregation": "cast.keyword",
+    "query": "cast:*",
+    "categoryQuery": "",
+    "script": "",
+    "domain": "movies"
+  }
+]

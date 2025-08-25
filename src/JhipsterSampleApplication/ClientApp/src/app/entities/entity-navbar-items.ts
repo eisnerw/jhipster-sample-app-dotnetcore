@@ -2,6 +2,11 @@ import NavbarItem from 'app/layouts/navbar/navbar-item.model';
 
 export const ENTITY_NAV_ITEMS: NavbarItem[] = [
   {
+    name: 'Movie',
+    route: '/movie',
+    translationKey: 'global.menu.entities.movie',
+  },
+  {
     name: 'Birthday',
     route: '/birthday',
     translationKey: 'global.menu.entities.birthday',
