@@ -25,13 +25,15 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IMovieBqlService _bqlService;
         private readonly IMapper _mapper;
         private readonly ILogger<MoviesController> _logger;
+        private readonly IViewService _viewService;
 
-        public MoviesController(IMovieService movieService, IElasticClient elasticClient, IMovieBqlService bqlService, IMapper mapper, ILogger<MoviesController> logger)
+        public MoviesController(IMovieService movieService, IElasticClient elasticClient, IMovieBqlService bqlService, IMapper mapper, IViewService viewService, ILogger<MoviesController> logger)
         {
             _movieService = movieService;
             _elasticClient = elasticClient;
             _bqlService = bqlService;
             _mapper = mapper;
+            _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
             _logger = logger;
         }
 
@@ -101,6 +103,7 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpGet("search/lucene")]
         [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         public async Task<IActionResult> SearchWithLuceneQuery(
             [FromQuery] string query,
             [FromQuery] int from = 0,
@@ -108,7 +111,10 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? sort = null,
             [FromQuery] bool includeDescriptive = false,
             [FromQuery] string? pitId = null,
-            [FromQuery] string[]? searchAfter = null)
+            [FromQuery] string[]? searchAfter = null,
+            [FromQuery] string? view = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? secondaryCategory = null)
         {
             if (string.IsNullOrWhiteSpace(query))
             {
@@ -117,11 +123,12 @@ namespace JhipsterSampleApplication.Controllers
             JObject queryStringObject = new JObject(new JProperty("query", query));
             JObject queryObject = new JObject(new JProperty("query_string", queryStringObject));
             var overrideSort = "release_year:desc";
-            return await Search(queryObject, pageSize, from, overrideSort, includeDescriptive, pitId, searchAfter);
+            return await Search(queryObject, pageSize, from, overrideSort, includeDescriptive, view, category, secondaryCategory, pitId, searchAfter);
         }
 
         [HttpPost("search/ruleset")]
         [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         public async Task<IActionResult> SearchWithRuleset(
             [FromBody] RulesetDto rulesetDto,
             [FromQuery] int from = 0,
@@ -129,16 +136,20 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? sort = null,
             [FromQuery] bool includeDescriptive = false,
             [FromQuery] string? pitId = null,
-            [FromQuery] string[]? searchAfter = null)
+            [FromQuery] string[]? searchAfter = null,
+            [FromQuery] string? view = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? secondaryCategory = null)
         {
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _movieService.ConvertRulesetToElasticSearch(ruleset);
-            return await Search(queryObject, pageSize, from, sort, includeDescriptive, pitId, searchAfter);
+            return await Search(queryObject, pageSize, from, sort, includeDescriptive, view, category, secondaryCategory, pitId, searchAfter);
         }
 
         [HttpPost("search/bql")]
         [Consumes("text/plain")]
         [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         public async Task<IActionResult> SearchWithBql(
             [FromBody] string bqlQuery,
             [FromQuery] int from = 0,
@@ -146,7 +157,10 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? sort = null,
             [FromQuery] bool includeDescriptive = false,
             [FromQuery] string? pitId = null,
-            [FromQuery] string[]? searchAfter = null)
+            [FromQuery] string[]? searchAfter = null,
+            [FromQuery] string? view = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? secondaryCategory = null)
         {
             if (string.IsNullOrWhiteSpace(bqlQuery))
             {
@@ -155,49 +169,154 @@ namespace JhipsterSampleApplication.Controllers
             var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _movieService.ConvertRulesetToElasticSearch(ruleset);
-            return await Search(queryObject, pageSize, from, sort, includeDescriptive, pitId, searchAfter);
+            return await Search(queryObject, pageSize, from, sort, includeDescriptive, view, category, secondaryCategory, pitId, searchAfter);
         }
 
         [HttpPost("search/elasticsearch")]
         [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
-        public async Task<IActionResult> RawSearch([FromBody] RawSearchRequestDto request, [FromQuery] bool includeDescriptive = false, [FromQuery] string? pitId = null, [FromQuery] string[]? searchAfter = null)
+        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
+        public async Task<IActionResult> Search([FromBody] JObject elasticsearchQuery,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] int from = 0,
+            [FromQuery] string? sort = null,
+            [FromQuery] bool includeDescriptive = false,
+            [FromQuery] string? view = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? secondaryCategory = null,
+            [FromQuery] string? pitId = null,
+            [FromQuery] string[]? searchAfter = null)
         {
-            if (string.IsNullOrWhiteSpace(request.Query))
+            bool isHitFromViewDrilldown = false;
+            if (!string.IsNullOrEmpty(view))
             {
-                return BadRequest("Query cannot be empty");
-            }
-            var searchRequest = new SearchRequest<Movie>
-            {
-                From = request.From ?? 0,
-                Size = request.Size ?? 20,
-                Query = new QueryContainerDescriptor<Movie>().Raw(request.Query)
-            };
-            if (!string.IsNullOrEmpty(request.Sort))
-            {
-                var sortDescriptor = new List<ISort>();
-                var sortParts = request.Sort.Contains(',') ? request.Sort.Split(',') : request.Sort.Split(':');
-                if (sortParts.Length == 2)
+                var viewDto = await _viewService.GetByIdAsync(view);
+                if (viewDto == null)
                 {
-                    var field = sortParts[0];
-                    var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
-                    sortDescriptor.Add(new FieldSort { Field = field, Order = order });
+                    throw new ArgumentException($"view '{view}' not found");
                 }
-                sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
-                searchRequest.Sort = sortDescriptor;
+                if (category == null)
+                {
+                    if (secondaryCategory != null)
+                    {
+                        throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
+                    }
+                    var viewResult = await _movieService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, from, pageSize);
+                    return Ok(new SearchResultDto<ViewResultDto> { Hits = viewResult, HitType = "view", ViewName = view });
+                }
+                if (category == "(Uncategorized)")
+                {
+                    var baseField = (viewDto.Aggregation ?? string.Empty).Replace(".keyword", string.Empty);
+                    var missingFilter = new JObject(
+                        new JProperty("bool", new JObject(
+                            new JProperty("should", new JArray(
+                                new JObject(
+                                    new JProperty("bool", new JObject(
+                                        new JProperty("must_not", new JArray(
+                                            new JObject(
+                                                new JProperty("exists", new JObject(
+                                                    new JProperty("field", baseField)
+                                                ))
+                                            )
+                                        ))
+                                    ))
+                                ),
+                                new JObject(
+                                    new JProperty("term", new JObject(
+                                        new JProperty(viewDto.Aggregation ?? string.Empty, "")
+                                    ))
+                                )
+                            )),
+                            new JProperty("minimum_should_match", 1)
+                        ))
+                    );
+                    elasticsearchQuery = new JObject(
+                        new JProperty("bool", new JObject(
+                            new JProperty("must", new JArray(
+                                missingFilter,
+                                elasticsearchQuery
+                            ))
+                        ))
+                    );
+                }
+                else
+                {
+                    string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ? $"{viewDto.Aggregation}:\\\"{category}\\\"" : viewDto.CategoryQuery.Replace("{}", category);
+                    elasticsearchQuery = new JObject(
+                        new JProperty("bool", new JObject(
+                            new JProperty("must", new JArray(
+                                new JObject(
+                                    new JProperty("query_string", new JObject(
+                                        new JProperty("query", categoryQuery)
+                                    ))
+                                ),
+                                elasticsearchQuery
+                            ))
+                        ))
+                    );
+                }
+                var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
+                if (secondaryViewDto != null)
+                {
+                    if (secondaryCategory == null)
+                    {
+                        var viewSecondaryResult = await _movieService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, from, pageSize);
+                        return Ok(new SearchResultDto<ViewResultDto> { Hits = viewSecondaryResult, HitType = "view", ViewName = view, viewCategory = category });
+                    }
+                    if (secondaryCategory == "(Uncategorized)")
+                    {
+                        isHitFromViewDrilldown = true;
+                        var secondaryBaseField = (secondaryViewDto.Aggregation ?? string.Empty).Replace(".keyword", string.Empty);
+                        var secondaryMissing = new JObject(
+                            new JProperty("bool", new JObject(
+                                new JProperty("should", new JArray(
+                                    new JObject(
+                                        new JProperty("bool", new JObject(
+                                            new JProperty("must_not", new JArray(
+                                                new JObject(
+                                                    new JProperty("exists", new JObject(
+                                                        new JProperty("field", secondaryBaseField)
+                                                    ))
+                                                )
+                                            ))
+                                        ))
+                                    ),
+                                    new JObject(
+                                        new JProperty("term", new JObject(
+                                            new JProperty(secondaryViewDto.Aggregation ?? string.Empty, "")
+                                        ))
+                                    )
+                                )),
+                                new JProperty("minimum_should_match", 1)
+                            ))
+                        );
+                        elasticsearchQuery = new JObject(
+                            new JProperty("bool", new JObject(
+                                new JProperty("must", new JArray(
+                                    secondaryMissing,
+                                    elasticsearchQuery
+                                ))
+                            ))
+                        );
+                    }
+                    else
+                    {
+                        isHitFromViewDrilldown = true;
+                        string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ? $"{secondaryViewDto.Aggregation}:\\\"{secondaryCategory}\\\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
+                        elasticsearchQuery = new JObject(
+                            new JProperty("bool", new JObject(
+                                new JProperty("must", new JArray(
+                                    new JObject(
+                                        new JProperty("query_string", new JObject(
+                                            new JProperty("query", secondaryCategoryQuery)
+                                        ))
+                                    ),
+                                    elasticsearchQuery
+                                ))
+                            ))
+                        );
+                    }
+                }
             }
-            if (searchAfter != null && searchAfter.Length > 0)
-            {
-                searchRequest.SearchAfter = searchAfter.Cast<object>().ToList();
-                searchRequest.From = null;
-            }
-            var response = await _movieService.SearchAsync(searchRequest, includeDescriptive, pitId);
-            var dtos = response.Documents.Select(d => _mapper.Map<MovieDto>(d)).ToList();
-            List<object>? searchAfterResponse = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null;
-            return Ok(new SearchResultDto<MovieDto> { TotalHits = response.Total, Hits = dtos, PitId = searchRequest.PointInTime?.Id, searchAfter = searchAfterResponse });
-        }
-
-        private async Task<IActionResult> Search(JObject queryObject, int pageSize, int from, string? sort, bool includeDescriptive, string? pitId, string[]? searchAfter)
-        {
             var searchRequest = new SearchRequest<Movie>
             {
                 Size = pageSize,
@@ -210,7 +329,6 @@ namespace JhipsterSampleApplication.Controllers
                 searchRequest.From = null;
             }
 
-            // Build sort descriptor
             var sortDescriptor = new List<ISort>();
             if (!string.IsNullOrEmpty(sort))
             {
@@ -222,16 +340,26 @@ namespace JhipsterSampleApplication.Controllers
                     sortDescriptor.Add(new FieldSort { Field = field, Order = order });
                 }
             }
-            // Always add _id as the last sort field for consistent pagination
             sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
 
             searchRequest.Sort = sortDescriptor;
-            searchRequest.Query = new QueryContainerDescriptor<Movie>().Raw(queryObject.ToString());
+            searchRequest.Query = new QueryContainerDescriptor<Movie>().Raw(elasticsearchQuery.ToString());
 
             var response = await _movieService.SearchAsync(searchRequest, includeDescriptive, pitId);
-            var dtos = response.Documents.Select(d => _mapper.Map<MovieDto>(d)).ToList();
+            var movieDtos = new List<MovieDto>();
+            foreach (var hit in response.Hits)
+            {
+                var m = hit.Source;
+                var dto = _mapper.Map<MovieDto>(m);
+                if (!includeDescriptive)
+                {
+                    dto.Synopsis = null;
+                }
+                movieDtos.Add(dto);
+            }
             List<object>? searchAfterResponse = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null;
-            return Ok(new SearchResultDto<MovieDto> { TotalHits = response.Total, Hits = dtos, PitId = searchRequest.PointInTime?.Id, searchAfter = searchAfterResponse });
+            var hitType = isHitFromViewDrilldown ? "hit" : "movie";
+            return Ok(new SearchResultDto<MovieDto> { Hits = movieDtos, TotalHits = response.Total, HitType = hitType, PitId = searchRequest.PointInTime?.Id, searchAfter = searchAfterResponse });
         }
 
         [HttpGet("{id}")]
