@@ -240,7 +240,7 @@ namespace JhipsterSampleApplication.Controllers
                 }
                 else
                 {
-                    string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ? $"{viewDto.Aggregation}:\\\"{category}\\\"" : viewDto.CategoryQuery.Replace("{}", category);
+                    string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ? $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);
                     elasticsearchQuery = new JObject(
                         new JProperty("bool", new JObject(
                             new JProperty("must", new JArray(
