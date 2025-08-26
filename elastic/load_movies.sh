@@ -6,88 +6,31 @@ curl -X PUT "http://localhost:9200/movies" -H 'Content-Type: application/json' -
 {
   "settings": {
     "number_of_shards": 1,
-    "number_of_replicas": 0,
-    "analysis": {
-      "normalizer": {
-        "lowercase_normalizer": {
-          "type": "custom",
-          "filter": ["lowercase"]
-        }
-      }
-    },
-    "index": {
-      "query": {
-        "default_field": [
-          "title", "genres", "categories", "languages", "country",
-          "directors", "producers", "writers", "cast"
-        ]
-      }
-    }
+    "number_of_replicas": 0
   },
   "mappings": {
     "properties": {
       "title": {
         "type": "text",
         "fields": {
-          "keyword": { "type": "keyword", "normalizer": "lowercase_normalizer", "ignore_above": 256 }
+          "keyword": { "type": "keyword", "ignore_above": 256 }
         }
       },
-
       "release_year":    { "type": "integer" },
       "runtime_minutes": { "type": "integer" },
 
-      "genres": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword", "normalizer": "lowercase_normalizer", "ignore_above": 256 }
-        }
-      },
-      "categories": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword", "normalizer": "lowercase_normalizer", "ignore_above": 256 }
-        }
-      },
-      "languages": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword", "normalizer": "lowercase_normalizer", "ignore_above": 256 }
-        }
-      },
-      "country": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword", "normalizer": "lowercase_normalizer", "ignore_above": 256 }
-        }
-      },
+      "genres":     { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "categories": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "languages":  { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "country":    { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
 
-      "summary":  { "type": "text" },   // full-text only
-      "synopsis": { "type": "text" },   // full-text only
+      "summary":  { "type": "text" },
+      "synopsis": { "type": "text" },
 
-      "directors": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword", "normalizer": "lowercase_normalizer", "ignore_above": 256 }
-        }
-      },
-      "producers": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword", "normalizer": "lowercase_normalizer", "ignore_above": 256 }
-        }
-      },
-      "writers": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword", "normalizer": "lowercase_normalizer", "ignore_above": 256 }
-        }
-      },
-      "cast": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword", "normalizer": "lowercase_normalizer", "ignore_above": 256 }
-        }
-      },
+      "directors": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "producers": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "writers":   { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "cast":      { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
 
       "budget_usd":            { "type": "long" },
       "gross_usd":             { "type": "long" },
