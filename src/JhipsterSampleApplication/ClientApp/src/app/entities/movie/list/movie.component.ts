@@ -103,6 +103,7 @@ export class MovieComponent implements OnInit, AfterViewInit {
     { field: 'budgetUsd', header: 'Budget', filterType: 'numeric', type: 'string', width: '8rem' },
     { field: 'grossUsd', header: 'Gross', filterType: 'numeric', type: 'string', width: '8rem' },
     { field: 'rottenTomatoesScore', header: 'Rotten Tomatoes', filterType: 'numeric', type: 'string', width: '8rem' },
+    { field: 'expander', header: '', type: 'expander', width: '25px', style: 'font-weight: 700;' },
   ];
 
   private lastSortEvent: any = null;
@@ -215,7 +216,7 @@ export class MovieComponent implements OnInit, AfterViewInit {
     const key = (row as any)?.id || JSON.stringify(row);
     this.expandedRowKeys[key] = true;
     setTimeout(() => {
-      const url = '/api/movie/html/' + (row as any).id;
+      const url = '/api/movies/html/' + (row as any).id;
       this.iframeSafeSrcById[(row as any).id!] = this.sanitizer.bypassSecurityTrustResourceUrl(url);
     }, 50);
   }

@@ -58,32 +58,49 @@ namespace JhipsterSampleApplication.Controllers
             {
                 return NotFound();
             }
+
             var m = response.Documents.First();
+
+            string? Join(IEnumerable<string>? list)
+            {
+                if (list == null) return null;
+                var vals = list.Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => WebUtility.HtmlEncode(v.Trim())).ToList();
+                return vals.Count > 0 ? string.Join(", ", vals) : null;
+            }
+
+            string? Encode(string? v) => string.IsNullOrWhiteSpace(v) ? null : WebUtility.HtmlEncode(v);
+
             var sb = new StringBuilder();
-            sb.Append("<!doctype html><html><head><meta charset=\"utf-8\"><title>")
+            sb.Append("<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><base target=\"_blank\"><title>")
               .Append(WebUtility.HtmlEncode(m.Title ?? "Movie"))
-              .Append("</title></head><body>");
+              .Append("</title><style>body{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial,\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111}.field-name{font-weight:600}.field{margin-bottom:0.7em}</style></head><body>");
+
             void AppendField(string label, string? value)
             {
                 if (string.IsNullOrWhiteSpace(value)) return;
-                sb.Append("<div><strong>").Append(WebUtility.HtmlEncode(label)).Append(":</strong> ")
-                  .Append(WebUtility.HtmlEncode(value)).Append("</div>");
+                sb.Append("<div class=\"field\"><span class=\"field-name\">")
+                  .Append(WebUtility.HtmlEncode(label))
+                  .Append(":</span> ")
+                  .Append(value)
+                  .Append("</div>");
             }
-            AppendField("Title", m.Title);
-            AppendField("Release Year", m.ReleaseYear?.ToString());
-            AppendField("Genres", m.Genres == null ? null : string.Join(", ", m.Genres));
-            AppendField("Runtime", m.RuntimeMinutes?.ToString());
-            AppendField("Country", m.Country);
-            AppendField("Languages", m.Languages == null ? null : string.Join(", ", m.Languages));
-            AppendField("Directors", m.Directors == null ? null : string.Join(", ", m.Directors));
-            AppendField("Producers", m.Producers == null ? null : string.Join(", ", m.Producers));
-            AppendField("Writers", m.Writers == null ? null : string.Join(", ", m.Writers));
-            AppendField("Cast", m.Cast == null ? null : string.Join(", ", m.Cast));
-            AppendField("Budget", m.BudgetUsd?.ToString());
-            AppendField("Gross", m.GrossUsd?.ToString());
-            AppendField("Rotten Tomatoes", m.RottenTomatoesScore?.ToString());
-            AppendField("Summary", m.Summary);
-            AppendField("Synopsis", m.Synopsis);
+
+            AppendField("Title", Encode(m.Title));
+            AppendField("Release Year", Encode(m.ReleaseYear?.ToString()));
+            AppendField("Genres", Join(m.Genres));
+            AppendField("Runtime", Encode(m.RuntimeMinutes?.ToString()));
+            AppendField("Country", Encode(m.Country));
+            AppendField("Languages", Join(m.Languages));
+            AppendField("Directors", Join(m.Directors));
+            AppendField("Producers", Join(m.Producers));
+            AppendField("Writers", Join(m.Writers));
+            AppendField("Cast", Join(m.Cast));
+            AppendField("Budget", Encode(m.BudgetUsd?.ToString()));
+            AppendField("Gross", Encode(m.GrossUsd?.ToString()));
+            AppendField("Rotten Tomatoes", Encode(m.RottenTomatoesScore?.ToString()));
+            AppendField("Summary", Encode(m.Summary));
+            AppendField("Synopsis", Encode(m.Synopsis));
+
             sb.Append("</body></html>");
             return Content(sb.ToString(), "text/html");
         }
