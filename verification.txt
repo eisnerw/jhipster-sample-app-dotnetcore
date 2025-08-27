@@ -30,3 +30,4 @@ Analysis (evaluator)
 
 Bugs:
 Still not positioning scrollbar in grid mode
+>>fname=franz doesn't work ... case sensitive
