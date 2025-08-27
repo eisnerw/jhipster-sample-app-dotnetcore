@@ -18,7 +18,7 @@ public class BirthdayServiceRangeQueryTest
     private class TestBirthdayBqlService : GenericBqlService<Birthday>, IBirthdayBqlService
     {
         public TestBirthdayBqlService() : base(new Mock<ILogger<BirthdayBqlService>>().Object,
-            new Mock<INamedQueryService>().Object, new JObject()) { }
+            new Mock<INamedQueryService>().Object, new JObject(), "birthdays") { }
     }
 
     public BirthdayServiceRangeQueryTest()

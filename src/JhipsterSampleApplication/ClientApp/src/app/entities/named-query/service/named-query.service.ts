@@ -41,7 +41,7 @@ export class NamedQueryService {
     });
   }
 
-  query(req?: { name?: string; owner?: string }): Observable<EntityArrayResponseType> {
+  query(req?: { name?: string; owner?: string; domain?: string }): Observable<EntityArrayResponseType> {
     const options = createRequestOption(req);
     return this.http.get<INamedQuery[]>(this.resourceUrl, {
       params: options,

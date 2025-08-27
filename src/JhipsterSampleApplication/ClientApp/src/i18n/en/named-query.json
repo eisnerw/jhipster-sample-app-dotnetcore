@@ -1,0 +1,20 @@
+{
+  "jhipsterSampleApplicationApp": {
+    "namedQuery": {
+      "home": {
+        "title": "Named Queries",
+        "refreshListLabel": "Refresh List",
+        "createLabel": "Create new Named Query",
+        "createOrEditLabel": "Create or edit a Named Query",
+        "notFound": "No named queries found"
+      },
+      "detail": {
+        "title": "Named Query"
+      },
+      "name": "Name",
+      "text": "Text",
+      "owner": "Owner",
+      "domain": "Domain"
+    }
+  }
+}
