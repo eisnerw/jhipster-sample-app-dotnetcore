@@ -26,7 +26,7 @@ namespace JhipsterSampleApplication.Domain.Services
             return JObject.Parse(json);
         }
 
-        public MovieBqlService(ILogger<MovieBqlService> logger, INamedQueryService namedQueryService) : base(logger, namedQueryService, LoadSpec())
+        public MovieBqlService(ILogger<MovieBqlService> logger, INamedQueryService namedQueryService) : base(logger, namedQueryService, LoadSpec(), "movies")
         {
         }
 

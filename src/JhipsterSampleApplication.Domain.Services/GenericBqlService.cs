@@ -17,6 +17,7 @@ namespace JhipsterSampleApplication.Domain.Services
         protected readonly ILogger _logger;
         protected readonly INamedQueryService _namedQueryService;
         private readonly JObject _qbSpec;
+        private readonly string _domain;
 
         // Computed spec data
         private readonly HashSet<string> _validFields = new HashSet<string>(StringComparer.Ordinal);
@@ -29,11 +30,12 @@ namespace JhipsterSampleApplication.Domain.Services
         		private string? _defaultFullTextField;
 		private readonly Regex _tokenizer;
 
-        protected GenericBqlService(ILogger logger, INamedQueryService namedQueryService, JObject qbSpec)
+        protected GenericBqlService(ILogger logger, INamedQueryService namedQueryService, JObject qbSpec, string domain)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _namedQueryService = namedQueryService ?? throw new ArgumentNullException(nameof(namedQueryService));
             _qbSpec = qbSpec ?? throw new ArgumentNullException(nameof(qbSpec));
+            _domain = domain ?? throw new ArgumentNullException(nameof(domain));
 
             BuildSpecCaches();
             _tokenizer = BuildTokenizer();
@@ -760,7 +762,7 @@ namespace JhipsterSampleApplication.Domain.Services
             if (Regex.IsMatch(tokens[index], @"^(?=.*[A-Z])[A-Z0-9_]+$"))
             {
                 var rulesetName = tokens[index];
-                var namedQuery = await _namedQueryService.FindByNameAndOwner(rulesetName, null);
+                var namedQuery = await _namedQueryService.FindByNameAndOwner(rulesetName, null, _domain);
                 if (namedQuery != null)
                 {
                     var ruleset = await Bql2Ruleset(namedQuery.Text);

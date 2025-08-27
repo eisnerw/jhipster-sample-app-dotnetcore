@@ -27,7 +27,7 @@ namespace JhipsterSampleApplication.Domain.Services
             return JObject.Parse(json);
         }
 
-        public BirthdayBqlService(ILogger<BirthdayBqlService> logger, INamedQueryService namedQueryService) : base(logger, namedQueryService, LoadSpec())
+        public BirthdayBqlService(ILogger<BirthdayBqlService> logger, INamedQueryService namedQueryService) : base(logger, namedQueryService, LoadSpec(), "birthdays")
         {
         }
 
