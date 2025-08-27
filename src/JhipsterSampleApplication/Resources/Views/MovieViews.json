@@ -38,5 +38,55 @@
     "categoryQuery": "",
     "script": "",
     "domain": "movie"
+  },
+  {
+    "id": "year",
+    "name": "Year",
+    "field": "year",
+    "aggregation": "year",
+    "query": "year:*",
+    "categoryQuery": "",
+    "script": "",
+    "domain": "movie"
+  },
+  {
+    "id": "genres",
+    "name": "Genres",
+    "field": "genres",
+    "aggregation": "genres.keyword",
+    "query": "genres:*",
+    "categoryQuery": "",
+    "script": "",
+    "domain": "movie"
+  },
+  {
+    "id": "languages",
+    "name": "Language",
+    "field": "languages",
+    "aggregation": "languages.keyword",
+    "query": "languages:*",
+    "categoryQuery": "",
+    "script": "",
+    "domain": "movie"
+  },
+  {
+    "id": "country",
+    "name": "Country",
+    "field": "country",
+    "aggregation": "country.keyword",
+    "query": "country:*",
+    "categoryQuery": "",
+    "script": "",
+    "domain": "movie"
+  },
+  {
+    "id": "rotten_tomatoes_score",
+    "name": "Rotten Tomatoes",
+    "field": "rotten_tomatoes_score",
+    "aggregation": "rotten_tomatoes_score",
+    "query": "rotten_tomatoes_score:*",
+    "categoryQuery": "",
+    "script": "",
+    "domain": "movie"
   }
 ]
