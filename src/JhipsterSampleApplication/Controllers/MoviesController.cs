@@ -354,7 +354,8 @@ namespace JhipsterSampleApplication.Controllers
                 {
                     var field = sortParts[0];
                     var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
-                    sortDescriptor.Add(new FieldSort { Field = field, Order = order });
+                    // sortDescriptor.Add(new FieldSort { Field = field, Order = order });
+                    sortDescriptor.Add(new FieldSort { Field = "release_year", Order = SortOrder.Ascending });
                 }
             }
             sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
