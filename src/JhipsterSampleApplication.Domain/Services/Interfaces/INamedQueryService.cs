@@ -15,12 +15,12 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
 
         Task Delete(long id);
 
-        Task<IEnumerable<NamedQuery>> FindByOwner(string owner);
+        Task<IEnumerable<NamedQuery>> FindByOwner(string owner, string? domain = null);
 
-        Task<IEnumerable<NamedQuery>> FindByName(string name);
+        Task<IEnumerable<NamedQuery>> FindByName(string name, string? domain = null);
 
-        Task<IEnumerable<NamedQuery>> FindBySelectedOwner(string filter);
+        Task<IEnumerable<NamedQuery>> FindBySelectedOwner(string filter, string? domain = null);
 
-        Task<NamedQuery?> FindByNameAndOwner(string name, string? owner);
+        Task<NamedQuery?> FindByNameAndOwner(string name, string? owner, string? domain = null);
     }
-} 
+}

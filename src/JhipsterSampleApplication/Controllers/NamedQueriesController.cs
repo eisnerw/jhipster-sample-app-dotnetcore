@@ -47,9 +47,9 @@ namespace JhipsterSampleApplication.Controllers
         /// <returns>List of named queries</returns>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<NamedQueryDto>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<NamedQueryDto>>> GetAll([FromQuery] string? name = null, [FromQuery] string? owner = null)
+        public async Task<ActionResult<IEnumerable<NamedQueryDto>>> GetAll([FromQuery] string? name = null, [FromQuery] string? owner = null, [FromQuery] string? domain = null)
         {
-            _log.LogDebug("REST request to get NamedQueries with filters: name={Name}, owner={Owner}", name, owner);
+            _log.LogDebug("REST request to get NamedQueries with filters: name={Name}, owner={Owner}, domain={Domain}", name, owner, domain);
             var currentUser = await _userService.GetUserWithUserRoles();
             if (currentUser == null)
                 return Unauthorized();
@@ -57,7 +57,7 @@ namespace JhipsterSampleApplication.Controllers
             IEnumerable<NamedQuery>? found = null;
             if ((string.IsNullOrEmpty(name) && string.IsNullOrEmpty(owner)) || (isAdmin && !string.IsNullOrEmpty(owner) && owner.StartsWith("*") && string.IsNullOrEmpty(name)))
             {
-                found = (await _namedQueryService.FindByOwner(string.IsNullOrEmpty(owner) ? currentUser.Login! : owner.Substring(1))).ToList().OrderBy(nq=>nq.Name).ThenBy(nq=> nq.Owner == "GLOBAL" || nq.Owner == "SYSTEM" ? 1 : 0);
+                found = (await _namedQueryService.FindByOwner(string.IsNullOrEmpty(owner) ? currentUser.Login! : owner.Substring(1), domain)).ToList().OrderBy(nq=>nq.Name).ThenBy(nq=> nq.Owner == "GLOBAL" || nq.Owner == "SYSTEM" ? 1 : 0);
                 return Ok(found!.Select(_mapper.Map<NamedQueryDto>));
             }
             if (!isAdmin)
@@ -66,7 +66,7 @@ namespace JhipsterSampleApplication.Controllers
             }
             if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(owner))
             {
-                NamedQuery? namedQuery = await _namedQueryService.FindByNameAndOwner(name!.ToUpper(), owner);
+                NamedQuery? namedQuery = await _namedQueryService.FindByNameAndOwner(name!.ToUpper(), owner, domain);
                 if (namedQuery == null)
                 {
                     return NotFound();
@@ -75,14 +75,14 @@ namespace JhipsterSampleApplication.Controllers
             }
             if (!string.IsNullOrEmpty(owner))
             {
-                found = (await _namedQueryService.FindBySelectedOwner(owner)).OrderBy(nq=>nq.Name).ThenBy(nq=> nq.Owner == "GLOBAL" || nq.Owner == "SYSTEM" ? 1 : 0);
+                found = (await _namedQueryService.FindBySelectedOwner(owner, domain)).OrderBy(nq=>nq.Name).ThenBy(nq=> nq.Owner == "GLOBAL" || nq.Owner == "SYSTEM" ? 1 : 0);
             }
             else // by name
             {
-                found = (await _namedQueryService.FindByName(name!.ToUpper())).OrderBy(nq=>nq.Name).ThenBy(nq=> nq.Owner == "GLOBAL" || nq.Owner == "SYSTEM" ? 1 : 0);
+                found = (await _namedQueryService.FindByName(name!.ToUpper(), domain)).OrderBy(nq=>nq.Name).ThenBy(nq=> nq.Owner == "GLOBAL" || nq.Owner == "SYSTEM" ? 1 : 0);
             }
             return Ok(found!.Select(_mapper.Map<NamedQueryDto>));
-        }   
+        }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<NamedQueryDto>> Get(long id)
@@ -97,7 +97,8 @@ namespace JhipsterSampleApplication.Controllers
                 Id = entity.Id,
                 Name = entity.Name,
                 Text = entity.Text,
-                Owner = entity.Owner
+                Owner = entity.Owner,
+                Domain = entity.Domain
             };
             return Ok(dto);
         }
@@ -109,14 +110,16 @@ namespace JhipsterSampleApplication.Controllers
             var entity = new NamedQuery {
                 Name = namedQueryDto.Name,
                 Text = namedQueryDto.Text,
-                Owner = namedQueryDto.Owner
+                Owner = namedQueryDto.Owner,
+                Domain = namedQueryDto.Domain
             };
             var saved = await _namedQueryService.Save(entity);
             var dto = new NamedQueryDto {
                 Id = saved.Id,
                 Name = saved.Name,
                 Text = saved.Text,
-                Owner = saved.Owner
+                Owner = saved.Owner,
+                Domain = saved.Domain
             };
             return CreatedAtAction(nameof(Get), new { id = dto.Id }, dto);
         }
@@ -145,7 +148,8 @@ namespace JhipsterSampleApplication.Controllers
                 Id = id,
                 Name = namedQueryDto.Name!,
                 Text = namedQueryDto.Text!,
-                Owner = owner
+                Owner = owner,
+                Domain = namedQueryDto.Domain ?? existingEntity.Domain
             };
             await _namedQueryService.Save(entity);
             return NoContent();
@@ -167,14 +171,14 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpGet("by-owner/{owner}")]
-        public async Task<ActionResult<IEnumerable<NamedQuery>>> GetNamedQueriesByOwner(string owner)
+        public async Task<ActionResult<IEnumerable<NamedQuery>>> GetNamedQueriesByOwner(string owner, [FromQuery] string? domain = null)
         {
             if (string.IsNullOrEmpty(owner))
             {
                 return BadRequest("Owner cannot be null or empty.");
             }
-            var namedQueries = await _namedQueryService.FindByOwner(owner);
+            var namedQueries = await _namedQueryService.FindByOwner(owner, domain);
             return Ok(namedQueries);
         }
     }
-} 
+}

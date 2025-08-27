@@ -20,6 +20,10 @@ namespace JhipsterSampleApplication.Domain.Entities
         [StringLength(50)]
         public required string Owner { get; set; }
 
+        [Required]
+        [StringLength(50)]
+        public required string Domain { get; set; }
+
         public bool? IsSystem { get; set; }
 
         public override bool Equals(object? obj)
@@ -43,7 +47,8 @@ namespace JhipsterSampleApplication.Domain.Entities
                     $", Name='{Name}'" +
                     $", Text='{Text}'" +
                     $", Owner='{Owner}'" +
+                    $", Domain='{Domain}'" +
                     "}";
         }
     }
-} 
+}
