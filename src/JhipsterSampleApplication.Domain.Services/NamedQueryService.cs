@@ -23,6 +23,7 @@ namespace JhipsterSampleApplication.Domain.Services
         public async Task<NamedQuery> Save(NamedQuery namedQuery)
         {
             namedQuery.Name = namedQuery.Name.ToUpper();
+            namedQuery.Domain = namedQuery.Domain.ToUpper();
             namedQuery.Owner = string.IsNullOrEmpty(namedQuery.Owner) ? namedQuery.Owner : namedQuery.Owner.ToLower().Replace("global","GLOBAL").Replace("system","SYSTEM");
             
             var currentUser = await _userService.GetUserWithUserRoles();
@@ -47,7 +48,7 @@ namespace JhipsterSampleApplication.Domain.Services
                     namedQuery.IsSystem = null;
                     namedQuery.Owner = string.IsNullOrEmpty(namedQuery.Owner) ? (currentUser?.Login ?? namedQuery.Owner) : namedQuery.Owner;
                 }
-                NamedQuery? existing = await FindByNameAndOwner(namedQuery.Name, namedQuery.Owner.Replace("SYSTEM", "GLOBAL"));
+                NamedQuery? existing = await FindByNameAndOwner(namedQuery.Name, namedQuery.Owner.Replace("SYSTEM", "GLOBAL"), namedQuery.Domain);
                 if (existing != null && existing.Id != namedQuery.Id && existing.Owner.Replace("SYSTEM", "GLOBAL") == namedQuery.Owner.Replace("SYSTEM", "GLOBAL"))
                 {
                     throw new InvalidOperationException("A query by that name already exists");
@@ -59,7 +60,7 @@ namespace JhipsterSampleApplication.Domain.Services
             }
             else
             {
-                NamedQuery? existing = await  FindByNameAndOwner(namedQuery.Name, currentUser!.Login);
+                NamedQuery? existing = await  FindByNameAndOwner(namedQuery.Name, currentUser!.Login, namedQuery.Domain);
                 if (existing != null && existing.Id != namedQuery.Id && existing.Owner != "GLOBAL")
                 {
                     throw new InvalidOperationException("A query by that name already exists");
@@ -136,11 +137,12 @@ namespace JhipsterSampleApplication.Domain.Services
             await _namedQueryRepository.SaveChangesAsync();
         }
 
-        public async Task<IEnumerable<NamedQuery>> FindByOwner(string owner)
+        public async Task<IEnumerable<NamedQuery>> FindByOwner(string owner, string? domain = null)
         {
-            List<NamedQuery> owners = [.. (await _namedQueryRepository.FindByOwnerAsync(owner))];
+            domain = domain?.ToUpper();
+            List<NamedQuery> owners = [.. (await _namedQueryRepository.FindByOwnerAsync(owner, domain))];
             List<string> ownerNames = owners.Select(o=>o.Name).ToList();
-            List<NamedQuery> global = [.. (await _namedQueryRepository.FindByOwnerAsync("GLOBAL"))];
+            List<NamedQuery> global = [.. (await _namedQueryRepository.FindByOwnerAsync("GLOBAL", domain))];
             owners.AddRange(global.Where(g => !ownerNames.Contains(g.Name)));
             foreach (var query in owners)
             {
@@ -152,10 +154,11 @@ namespace JhipsterSampleApplication.Domain.Services
             return owners;
         }
 
-        public async Task<IEnumerable<NamedQuery>> FindByName(string name)
+        public async Task<IEnumerable<NamedQuery>> FindByName(string name, string? domain = null)
         {
+            domain = domain?.ToUpper();
             var result = await _namedQueryRepository.QueryHelper()
-                .Filter(nq => nq.Name == name)
+                .Filter(nq => nq.Name == name && (domain == null || nq.Domain == domain))
                 .GetAllAsync();
             foreach (var query in result)
             {
@@ -167,14 +170,15 @@ namespace JhipsterSampleApplication.Domain.Services
             return result;
         }
 
-        public async Task<IEnumerable<NamedQuery>> FindBySelectedOwner(string filter)
+        public async Task<IEnumerable<NamedQuery>> FindBySelectedOwner(string filter, string? domain = null)
         {
+            domain = domain?.ToUpper();
             var result = await _namedQueryRepository.QueryHelper()
-                .Filter(nq=>filter == "ALL" || 
-                    (filter == "USER" && nq.Owner != "GLOBAL") || 
-                    (filter == "SYSTEM" && nq.IsSystem == true) || 
-                    (nq.Owner == filter)  
-                )
+                .Filter(nq=> (filter == "ALL" ||
+                    (filter == "USER" && nq.Owner != "GLOBAL") ||
+                    (filter == "SYSTEM" && nq.IsSystem == true) ||
+                    (nq.Owner == filter))
+                    && (domain == null || nq.Domain == domain))
                 .GetAllAsync();
             foreach (var query in result)
             {
@@ -186,8 +190,9 @@ namespace JhipsterSampleApplication.Domain.Services
             return result;
         }        
 
-        public async Task<NamedQuery?> FindByNameAndOwner(string name, string? owner)
+        public async Task<NamedQuery?> FindByNameAndOwner(string name, string? owner, string? domain = null)
         {
+            domain = domain?.ToUpper();
             var currentUser = await _userService.GetUserWithUserRoles();
             // Only check authorization if we have a current user (i.e. not during startup)
             if (currentUser != null && !string.IsNullOrEmpty(owner) && owner != currentUser.Login)
@@ -199,12 +204,12 @@ namespace JhipsterSampleApplication.Domain.Services
                 }
             }
             var found = await _namedQueryRepository.QueryHelper()
-                .Filter(nq => nq.Name == name && nq.Owner == (string.IsNullOrEmpty(owner) ? currentUser!.Login : owner))
+                .Filter(nq => nq.Name == name && nq.Owner == (string.IsNullOrEmpty(owner) ? currentUser!.Login : owner) && (domain == null || nq.Domain == domain))
                 .GetAllAsync();
             if (!found.Any()){
                 found = await _namedQueryRepository.QueryHelper()
-                    .Filter(nq => nq.Name == name && nq.Owner == "GLOBAL")
-                    .GetAllAsync();                
+                    .Filter(nq => nq.Name == name && nq.Owner == "GLOBAL" && (domain == null || nq.Domain == domain))
+                    .GetAllAsync();
             }
             if (!found.Any())
             {

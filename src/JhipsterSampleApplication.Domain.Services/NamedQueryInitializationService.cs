@@ -70,14 +70,21 @@ namespace JhipsterSampleApplication.Domain.Services
                                 continue;
                             }
 
-                            var existingQuery = await _namedQueryService.FindByNameAndOwner(namedQuery.Name, namedQuery.Owner);
+                            if (string.IsNullOrEmpty(namedQuery.Domain))
+                            {
+                                _logger.LogError("Named query {QueryName} in file {File} has null or empty domain", namedQuery.Name, jsonFilePath);
+                                continue;
+                            }
+
+                            var existingQuery = await _namedQueryService.FindByNameAndOwner(namedQuery.Name, namedQuery.Owner, namedQuery.Domain);
                             if (existingQuery == null)
                             {
                                 var entity = new JhipsterSampleApplication.Domain.Entities.NamedQuery
                                 {
                                     Name = namedQuery.Name,
                                     Text = namedQuery.Text,
-                                    Owner = namedQuery.Owner
+                                    Owner = namedQuery.Owner,
+                                    Domain = namedQuery.Domain
                                 };
                                 await _namedQueryService.Save(entity);
                                 _logger.LogInformation("Created named query: {QueryName}", namedQuery.Name);

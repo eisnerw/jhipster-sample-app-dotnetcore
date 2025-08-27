@@ -99,6 +99,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Text).IsRequired();
                 entity.Property(e => e.Owner).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Domain).IsRequired().HasMaxLength(50);
             });
 
             builder.Entity<Selector>(entity =>

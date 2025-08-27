@@ -10,8 +10,8 @@ namespace JhipsterSampleApplication.Domain.Repositories.Interfaces
     {
         new Task<NamedQuery> CreateOrUpdateAsync(NamedQuery namedQuery);
         Task<IPage<NamedQuery>> FindAllNamedQueries(IPageable pageable);
-        Task<NamedQuery> FindOneByName(string name);
-        Task<List<NamedQuery>> FindByOwnerAsync(string owner);
+        Task<NamedQuery> FindOneByName(string name, string? domain = null);
+        Task<List<NamedQuery>> FindByOwnerAsync(string owner, string? domain = null);
         Task<NamedQuery> FindOne(long id);
     }
-} 
+}
