@@ -24,6 +24,46 @@
       "name": "Country",
       "type": "string",
       "operators": ["=", "!=", "in", "!in", "exists"]
+    },
+    "languages": {
+      "name": "Language",
+      "type": "string",
+      "operators": ["=", "!=", "in", "!in", "exists"]
+    },
+    "directors": {
+      "name": "Director",
+      "type": "string",
+      "operators": ["contains", "!contains", "in", "!in", "exists"]
+    },
+    "producers": {
+      "name": "Producer",
+      "type": "string",
+      "operators": ["contains", "!contains", "in", "!in", "exists"]
+    },
+    "writers": {
+      "name": "Producer",
+      "type": "string",
+      "operators": ["contains", "!contains", "in", "!in", "exists"]
+    },
+    "cast": {
+      "name": "Cast",
+      "type": "string",
+      "operators": ["contains", "!contains", "in", "!in", "exists"]
+    },
+    "budget_usd": {
+      "name": "Budget",
+      "type": "number",
+      "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"]
+    },
+    "gross_usd": {
+      "name": "Gross",
+      "type": "number",
+      "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"]
+    },
+    "rotten_tomatoes_score": {
+      "name": "Rotten Tomatoes Score",
+      "type": "number",
+      "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"]
     }
   },
   "operatorMap": {
