@@ -245,13 +245,63 @@ namespace JhipsterSampleApplication.Domain.Services
                         return BuildDateQuery(ruleset.field!, "=", valueStr);
                     }
 
+                    var valueLower = valueStr.ToLowerInvariant();
+
                     ret = new JObject
                     {
                         {
-                            "term",
+                            "bool",
                             new JObject
                             {
-                                { ruleset.field + ".keyword", valueStr }
+                                {
+                                    "must",
+                                    new JArray
+                                    {
+                                        new JObject
+                                        {
+                                            {
+                                                "match",
+                                                new JObject
+                                                {
+                                                    {
+                                                        ruleset.field!,
+                                                        new JObject
+                                                        {
+                                                            { "query", valueLower },
+                                                            { "operator", "and" }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        new JObject
+                                        {
+                                            {
+                                                "script",
+                                                new JObject
+                                                {
+                                                    {
+                                                        "script",
+                                                        new JObject
+                                                        {
+                                                            {
+                                                                "source",
+                                                                $"doc['{ruleset.field}.keyword'].value.toLowerCase() == params.query"
+                                                            },
+                                                            {
+                                                                "params",
+                                                                new JObject
+                                                                {
+                                                                    { "query", valueLower }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     };
