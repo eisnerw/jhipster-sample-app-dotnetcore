@@ -92,6 +92,8 @@ export class QueryInputComponent implements OnInit {
   ngOnInit(): void {
     this.onQueryChange();
     this.loadNamedQueries();
+    // Pre-load history so arrow navigation is responsive when editing starts
+    this.loadHistory();
   }
 
   private loadNamedQueries(): void {
@@ -119,7 +121,6 @@ export class QueryInputComponent implements OnInit {
     this.previousQuery = this.query;
     this.editing = true;
     this.onQueryChange();
-    this.loadHistory();
   }
 
   clearQuery(event?: Event) {
@@ -238,22 +239,21 @@ export class QueryInputComponent implements OnInit {
   }
 
   showPrevHistory(event: any) {
+    event.preventDefault();
     if (!this.history.length) {
       return;
     }
-    event.preventDefault();
     if (this.historyIndex < this.history.length - 1) {
       this.historyIndex++;
       this.query = this.history[this.historyIndex];
-      this.onQueryChange();
     }
   }
 
   showNextHistory(event: any) {
+    event.preventDefault();
     if (!this.history.length) {
       return;
     }
-    event.preventDefault();
     if (this.historyIndex > 0) {
       this.historyIndex--;
       this.query = this.history[this.historyIndex];
@@ -261,7 +261,6 @@ export class QueryInputComponent implements OnInit {
       this.historyIndex = -1;
       this.query = '';
     }
-    this.onQueryChange();
   }
 
   private loadHistory(): void {
