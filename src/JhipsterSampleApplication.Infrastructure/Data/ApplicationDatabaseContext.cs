@@ -27,6 +27,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data
         public required DbSet<View> Views { get; set; }
         public required DbSet<NamedQuery> NamedQueries { get; set; }
         public required DbSet<Selector> Selectors { get; set; }
+        public required DbSet<History> Histories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -112,6 +113,16 @@ namespace JhipsterSampleApplication.Infrastructure.Data
                 entity.Property(e => e.Action).IsRequired();
                 entity.Property(e => e.ActionParameter).IsRequired();
                 entity.Property(e => e.Description).IsRequired();
+            });
+
+            builder.Entity<History>(entity =>
+            {
+                entity.ToTable("history");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.User).HasMaxLength(50);
+                entity.Property(e => e.Domain).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Text).IsRequired();
             });
         }
 

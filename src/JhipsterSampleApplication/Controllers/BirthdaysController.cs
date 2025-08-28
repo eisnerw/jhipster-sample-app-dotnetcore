@@ -29,6 +29,7 @@ namespace JhipsterSampleApplication.Controllers
         private readonly ILogger<BirthdaysController> _log;
         private readonly IMapper _mapper;
         private readonly IViewService _viewService;
+        private readonly IHistoryService _historyService;
 
         public BirthdaysController(
             IBirthdayService birthdayService,
@@ -36,7 +37,8 @@ namespace JhipsterSampleApplication.Controllers
             IBirthdayBqlService bqlService,
             ILogger<BirthdaysController> log,
             IMapper mapper,
-            IViewService viewService)
+            IViewService viewService,
+            IHistoryService historyService)
         {
             _birthdayService = birthdayService;
             _elasticClient = elasticClient;
@@ -44,6 +46,7 @@ namespace JhipsterSampleApplication.Controllers
             _log = log;
             _mapper = mapper;
             _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
+            _historyService = historyService;
         }
 
         public class RawSearchRequestDto
@@ -395,6 +398,7 @@ namespace JhipsterSampleApplication.Controllers
             var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
+            await _historyService.Save(new History { User = User?.Identity?.Name, Domain = "birthday", Text = bqlQuery });
             return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory, pitId, searchAfter);
         }
 

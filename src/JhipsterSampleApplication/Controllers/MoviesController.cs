@@ -26,8 +26,9 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IMapper _mapper;
         private readonly ILogger<MoviesController> _logger;
         private readonly IViewService _viewService;
+        private readonly IHistoryService _historyService;
 
-        public MoviesController(IMovieService movieService, IElasticClient elasticClient, IMovieBqlService bqlService, IMapper mapper, IViewService viewService, ILogger<MoviesController> logger)
+        public MoviesController(IMovieService movieService, IElasticClient elasticClient, IMovieBqlService bqlService, IMapper mapper, IViewService viewService, ILogger<MoviesController> logger, IHistoryService historyService)
         {
             _movieService = movieService;
             _elasticClient = elasticClient;
@@ -35,6 +36,7 @@ namespace JhipsterSampleApplication.Controllers
             _mapper = mapper;
             _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
             _logger = logger;
+            _historyService = historyService;
         }
 
         public class RawSearchRequestDto
@@ -186,6 +188,7 @@ namespace JhipsterSampleApplication.Controllers
             var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _movieService.ConvertRulesetToElasticSearch(ruleset);
+            await _historyService.Save(new History { User = User?.Identity?.Name, Domain = "movie", Text = bqlQuery });
             return await Search(queryObject, pageSize, from, sort, includeDescriptive, view, category, secondaryCategory, pitId, searchAfter);
         }
 
