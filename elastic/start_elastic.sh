@@ -5,6 +5,8 @@ ES_VERSION="${ES_VERSION:-7.17.23}"   # any 7.17.x
 ES_PORT="${ES_PORT:-9200}"
 ES_HEAP="${ES_HEAP:-256m}"            # 128m/256m/512m are good in Codespaces
 
+start_dir=$(pwd)
+
 log(){ printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 
 arch() {
@@ -73,6 +75,15 @@ main() {
     tail -n 100 "logs/elasticsearch.log" || true
     exit 1
   fi
+
+  cd "$start_dir"
+
+  log "Loading birthday data into Elasticsearch"
+  ./load_birthdays.sh
+
+  log "loading movie data into Elasticsearch"
+  ./load_movies.sh
+
 }
 
 main "$@"
