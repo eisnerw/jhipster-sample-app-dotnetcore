@@ -26,7 +26,7 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<HistoryDto>>> GetAll([FromQuery] string domain)
+        public async Task<ActionResult<IEnumerable<HistoryDto>>> GetAll([FromQuery] string? domain = null)
         {
             var user = User?.Identity?.Name;
             if (string.IsNullOrEmpty(user))
@@ -59,7 +59,7 @@ namespace JhipsterSampleApplication.Controllers
             {
                 return Unauthorized();
             }
-            var histories = await _historyService.FindByUserAndDomain(user, string.Empty);
+            var histories = await _historyService.FindByUserAndDomain(user, null);
             var history = histories.FirstOrDefault(h => h.Id == id);
             if (history == null)
             {
@@ -77,7 +77,7 @@ namespace JhipsterSampleApplication.Controllers
             {
                 return Unauthorized();
             }
-            var histories = await _historyService.FindByUserAndDomain(user, string.Empty);
+            var histories = await _historyService.FindByUserAndDomain(user, null);
             var history = histories.FirstOrDefault(h => h.Id == id);
             if (history == null)
             {

@@ -12,8 +12,16 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
         {
         }
 
-        public async Task<IEnumerable<History>> FindByUserAndDomain(string user, string domain)
+        public async Task<IEnumerable<History>> FindByUserAndDomain(string user, string? domain = null)
         {
+            if (string.IsNullOrEmpty(domain))
+            {
+                return await QueryHelper()
+                    .Filter(h => h.User == user)
+                    .OrderBy(q => q.OrderByDescending(h => h.Id))
+                    .GetAllAsync();
+            }
+
             return await QueryHelper()
                 .Filter(h => h.User == user && h.Domain == domain)
                 .OrderBy(q => q.OrderByDescending(h => h.Id))

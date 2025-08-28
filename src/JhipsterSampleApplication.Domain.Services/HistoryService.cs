@@ -22,7 +22,7 @@ namespace JhipsterSampleApplication.Domain.Services
             return history;
         }
 
-        public async Task<IEnumerable<History>> FindByUserAndDomain(string user, string domain)
+        public async Task<IEnumerable<History>> FindByUserAndDomain(string user, string? domain = null)
         {
             return await _historyRepository.FindByUserAndDomain(user, domain);
         }

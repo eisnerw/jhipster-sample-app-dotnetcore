@@ -6,6 +6,6 @@ namespace JhipsterSampleApplication.Domain.Repositories.Interfaces
 {
     public interface IHistoryRepository : IGenericRepository<History, long>
     {
-        Task<IEnumerable<History>> FindByUserAndDomain(string user, string domain);
+        Task<IEnumerable<History>> FindByUserAndDomain(string user, string? domain = null);
     }
 }
