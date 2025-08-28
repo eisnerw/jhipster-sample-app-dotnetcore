@@ -2,6 +2,7 @@
   <h2 id="page-heading" data-cy="BirthdayHeading" class="d-flex align-items-center gap-2">
     <span>Birthdays...</span>
     <lib-query-input
+      #queryInput
       [(query)]="currentQuery"
       (queryChange)="onQueryChange($event)"
       placeholder="click search icon for widget or click to edit"
@@ -14,13 +15,19 @@
         class="btn btn-info me-2"
         (click)="refreshData()"
         [title]="(dataLoader.loading$ | async) ? 'Refresh (cancel current and restart)' : 'Refresh List'"
+        [disabled]="queryInput.editing && !queryInput.validQuery"
       >
         <fa-icon icon="sync" [spin]="dataLoader.loading$ | async"></fa-icon>
         <span>Refresh List</span>
       </button>
 
       <div class="d-flex align-items-center ms-2">
-        <select class="form-select w-auto" [(ngModel)]="viewName" (ngModelChange)="onViewChange($event)">
+        <select
+          class="form-select w-auto"
+          [(ngModel)]="viewName"
+          (ngModelChange)="onViewChange($event)"
+          [disabled]="queryInput.editing && !queryInput.validQuery"
+        >
           <option [ngValue]="null">Select a view</option>
           @for (v of views; track v) {
             <option [ngValue]="v.value">
@@ -29,7 +36,13 @@
           }
         </select>
         @if (viewName) {
-          <button type="button" class="btn btn-link p-0 ms-1" aria-label="Clear selected view" (click)="onViewChange(null)">
+          <button
+            type="button"
+            class="btn btn-link p-0 ms-1"
+            aria-label="Clear selected view"
+            (click)="onViewChange(null)"
+            [disabled]="queryInput.editing && !queryInput.validQuery"
+          >
             <fa-icon icon="times"></fa-icon>
           </button>
         }
