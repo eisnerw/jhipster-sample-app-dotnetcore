@@ -75,7 +75,7 @@ public class UnitOfWork : IUnitOfWork
                 throw;
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Catch any other exceptions and rethrow them.
             throw;
