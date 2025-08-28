@@ -48,7 +48,38 @@ public class UnitOfWork : IUnitOfWork
 
     public DbSet<T> Set<T>(string name = null) where T : class
     {
-        return _context.Set<T>(name);
+        // TODO: Temporary debugging fix for SQLite throwing the exception
+        try
+        {
+            // The code that is currently throwing the exception
+            return _context.Set<T>(name);
+        }
+        catch (Microsoft.Data.Sqlite.SqliteException ex)
+        {
+            // Check for the specific error code for 'database is locked'
+            if (ex.SqliteErrorCode == 5)
+            {
+                // **Temporary Debugging Fix**
+                // You should never do this in production code.
+                Console.WriteLine("DEBUGGING: SQLite Error 5 (Database is locked). Temporarily ignoring to continue debugging.");
+
+                // You can add a small delay and a retry here if you want to be a bit more robust
+                // For a simple debug fix, a direct return is sufficient.
+
+                return _context.Set<T>(name); // Retrying the call once
+            }
+            else
+            {
+                // If it's a different SQLite error, rethrow it.
+                // This indicates a different, more serious issue.
+                throw;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Catch any other exceptions and rethrow them.
+            throw;
+        }
     }
 
     public void AddOrUpdateGraph<TEntiy>(TEntiy entity, ICollection<Type> entitiesToBeUpdated = null) where TEntiy : class

@@ -12,7 +12,7 @@ namespace JhipsterSampleApplication.Dto
         [Required]
         public required string Text { get; set; }
 
-        public required string Owner { get; set; }
+        public string? Owner { get; set; }
 
         [Required]
         public required string Domain { get; set; }
