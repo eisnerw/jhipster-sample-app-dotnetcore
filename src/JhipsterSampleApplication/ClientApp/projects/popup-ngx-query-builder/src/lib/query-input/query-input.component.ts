@@ -1,4 +1,12 @@
-import { Component, EventEmitter, Input, Output, OnInit, inject } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  OnInit,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams, HttpClientModule } from '@angular/common/http';
@@ -13,6 +21,7 @@ import {
   RuleSet,
   Rule,
   QueryLanguageSpec,
+  QueryBuilderComponent,
 } from 'ngx-query-builder';
 import {
   bqlToRuleset,
@@ -52,6 +61,8 @@ interface NamedQuery {
 export class QueryInputComponent implements OnInit {
   private dialog = inject(MatDialog);
   private http = inject(HttpClient);
+
+  @ViewChild('builder') builder?: QueryBuilderComponent;
 
   @Input() placeholder = 'BQL';
   @Input() query = '';
@@ -201,9 +212,20 @@ export class QueryInputComponent implements OnInit {
   }
 
   acceptEdit() {
+    if (!this.validQuery) {
+      return;
+    }
     this.editing = false;
     this.previousQuery = this.query;
     this.queryChange.emit(this.query);
+  }
+
+  onEnter(event: KeyboardEvent) {
+    if (this.validQuery) {
+      this.acceptEdit();
+    } else {
+      event.preventDefault();
+    }
   }
 
   parseQuery(text: string): RuleSet {

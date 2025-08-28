@@ -14,7 +14,7 @@
       pInputText
       [(ngModel)]="query"
       (ngModelChange)="onQueryChange()"
-      (keyup.enter)="acceptEdit()"
+      (keydown.enter)="onEnter($event)"
       [ngClass]="{ invalid: !validQuery }"
     />
   }
@@ -22,7 +22,11 @@
   @if (editing) {
     <div class="btn-group">
       <i class="pi pi-times action-icon" (click)="cancelEdit()"></i>
-      <i class="pi pi-check action-icon" (click)="acceptEdit()" [ngClass]="{ disabled: !validQuery }"></i>
+      <i
+        class="pi pi-check action-icon"
+        (click)="acceptEdit()"
+        [ngClass]="{ disabled: !validQuery }"
+      ></i>
     </div>
   }
 </div>
@@ -50,6 +54,7 @@
   [baseZIndex]="10000"
 >
   <ngx-query-builder
+    #builder
     [(ngModel)]="builderQuery"
     [config]="queryBuilderConfig"
     [spec]="spec"
@@ -64,7 +69,13 @@
   <ng-template pTemplate="footer">
     <div class="dialog-footer">
       <button pButton label="Cancel" (click)="cancelQuery()" class="p-button-secondary"></button>
-      <button pButton label="Apply" (click)="applyQuery()" class="p-button-primary"></button>
+      <button
+        pButton
+        label="Apply"
+        (click)="applyQuery()"
+        class="p-button-primary"
+        [disabled]="builder?.namingRuleset"
+      ></button>
     </div>
   </ng-template>
 </p-dialog>
