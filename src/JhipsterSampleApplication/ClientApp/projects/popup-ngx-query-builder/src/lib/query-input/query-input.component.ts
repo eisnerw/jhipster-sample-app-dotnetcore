@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpParams, HttpClientModule } from '@angular/common/http';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -23,12 +24,21 @@ import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
 import { EditRulesetDialogComponent } from './edit-ruleset-dialog.component';
 
+interface NamedQuery {
+  id?: number;
+  name: string;
+  text: string;
+  owner?: string;
+  domain?: string;
+}
+
 @Component({
   selector: 'lib-query-input',
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
+    HttpClientModule,
     DialogModule,
     ButtonModule,
     InputTextModule,
@@ -41,6 +51,7 @@ import { EditRulesetDialogComponent } from './edit-ruleset-dialog.component';
 })
 export class QueryInputComponent implements OnInit {
   private dialog = inject(MatDialog);
+  private http = inject(HttpClient);
 
   @Input() placeholder = 'BQL';
   @Input() query = '';
@@ -53,17 +64,41 @@ export class QueryInputComponent implements OnInit {
   @Input() ruleName = 'Rule';
   @Input() rulesetName = 'Ruleset';
   @Input() defaultRuleAttribute: string | null = null;
+  @Input() namedQueryDomain: string | null = null;
   @Output() queryChange = new EventEmitter<string>();
 
   editing = false;
   showBuilder = false;
   builderQuery: RuleSet = { condition: 'and', rules: [] };
   namedRulesets: Record<string, RuleSet> = {};
+  private namedQueryIds: Record<string, number> = {};
   validQuery = true;
   private previousQuery = '';
 
   ngOnInit(): void {
     this.onQueryChange();
+    this.loadNamedQueries();
+  }
+
+  private loadNamedQueries(): void {
+    let params = new HttpParams();
+    if (this.namedQueryDomain) {
+      params = params.set('domain', this.namedQueryDomain);
+    }
+    this.http
+      .get<NamedQuery[]>('/api/NamedQueries', { params })
+      .subscribe(queries => {
+        queries.forEach(q => {
+          try {
+            this.namedRulesets[q.name] = bqlToRuleset(q.text, this.queryBuilderConfig);
+            if (q.id !== undefined) {
+              this.namedQueryIds[q.name] = q.id;
+            }
+          } catch {
+            // Ignore malformed queries
+          }
+        });
+      });
   }
 
   startEdit() {
@@ -275,11 +310,32 @@ export class QueryInputComponent implements OnInit {
   saveNamedRuleset(rs: RuleSet) {
     if (rs.name) {
       this.namedRulesets[rs.name] = JSON.parse(JSON.stringify(rs));
+      const bql = rulesetToBql(rs, this.queryBuilderConfig);
+      const payload: NamedQuery = {
+        name: rs.name,
+        text: bql,
+        domain: this.namedQueryDomain ?? undefined,
+      };
+      const id = this.namedQueryIds[rs.name];
+      if (id) {
+        this.http.put(`/api/NamedQueries/${id}`, { ...payload, id }).subscribe();
+      } else {
+        this.http.post<NamedQuery>('/api/NamedQueries', payload).subscribe(res => {
+          if (res.id !== undefined) {
+            this.namedQueryIds[rs.name!] = res.id;
+          }
+        });
+      }
     }
   }
 
   deleteNamedRuleset(name: string) {
     delete this.namedRulesets[name];
+    const id = this.namedQueryIds[name];
+    if (id !== undefined) {
+      this.http.delete(`/api/NamedQueries/${id}`).subscribe();
+      delete this.namedQueryIds[name];
+    }
   }
 
   async editNamedRuleset(

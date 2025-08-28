@@ -18,7 +18,7 @@ namespace JhipsterSampleApplication.Domain.Entities
 
         [Required]
         [StringLength(50)]
-        public required string Owner { get; set; }
+        public string? Owner { get; set; }
 
         [Required]
         [StringLength(50)]
