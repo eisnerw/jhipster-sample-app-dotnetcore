@@ -48,12 +48,12 @@ namespace JhipsterSampleApplication.Domain.Services
                     namedQuery.IsSystem = null;
                     namedQuery.Owner = string.IsNullOrEmpty(namedQuery.Owner) ? (currentUser?.Login ?? namedQuery.Owner) : namedQuery.Owner;
                 }
-                NamedQuery? existing = await FindByNameAndOwner(namedQuery.Name, namedQuery.Owner.Replace("SYSTEM", "GLOBAL"), namedQuery.Domain);
-                if (existing != null && existing.Id != namedQuery.Id && existing.Owner.Replace("SYSTEM", "GLOBAL") == namedQuery.Owner.Replace("SYSTEM", "GLOBAL"))
+                NamedQuery? existing = await FindByNameAndOwner(namedQuery.Name, namedQuery.Owner!.Replace("SYSTEM", "GLOBAL"), namedQuery.Domain);
+                if (existing != null && existing.Id != namedQuery.Id && existing.Owner!.Replace("SYSTEM", "GLOBAL") == namedQuery.Owner.Replace("SYSTEM", "GLOBAL"))
                 {
                     throw new InvalidOperationException("A query by that name already exists");
                 }
-                if (existing != null && existing.Owner.Replace("SYSTEM","GLOBAL") != namedQuery.Owner.Replace("SYSTEM", "GLOBAL"))
+                if (existing != null && existing.Owner!.Replace("SYSTEM","GLOBAL") != namedQuery.Owner.Replace("SYSTEM", "GLOBAL"))
                 {
                     namedQuery.Id = 0; // force insert
                 }
