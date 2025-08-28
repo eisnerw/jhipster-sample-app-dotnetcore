@@ -14,7 +14,7 @@
       pInputText
       [(ngModel)]="query"
       (ngModelChange)="onQueryChange()"
-      (keydown.enter)="onEnter($event as KeyboardEvent)"
+      (keydown.enter)="onEnter($any($event))"
       [ngClass]="{ invalid: !validQuery }"
     />
   }
