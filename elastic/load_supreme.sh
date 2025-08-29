@@ -2,199 +2,42 @@
 # Delete the "supreme" index (safe if it doesn't exist)
 curl -X DELETE "http://localhost:9200/supreme?ignore_unavailable=true&expand_wildcards=all&pretty"
 
-curl -X PUT "http://localhost:9200/supreme" -H 'Content-Type: application/json' -d'
+curl -sS -X PUT "http://localhost:9200/supreme" \
+  -H 'Content-Type: application/json' \
+  --data-binary @- <<'JSON'
 {
   "settings": {
-      "dynamic" : "true",
-      "properties" : {
-        "Appellant" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "Appellee" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "Petitioner" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "Respondent" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "advocates" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "argument2_url" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "conclusion" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "decision" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "description" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "docket_number" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "facts_of_the_case" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "heard_by" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "justia_url" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "lower_court" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "majority" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "manner_of_jurisdiction" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "minority" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "name" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "question" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "recused" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
-        },
-        "term" : {
-          "type" : "integer",
-          "coerce" : true
-        }
-      }
+    "number_of_shards": 1,
+    "number_of_replicas": 0
+  },
+  "mappings": {
+    "dynamic": true,
+    "properties": {
+      "Appellant":   { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "Appellee":    { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "Petitioner":  { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "Respondent":  { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "advocates":   { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "argument2_url": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "conclusion":  { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "decision":    { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "description": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "docket_number": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "facts_of_the_case": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "heard_by":    { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "justia_url":  { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "lower_court": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "majority":    { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "manner_of_jurisdiction": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "minority":    { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "name":        { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "question":    { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "recused":     { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "term":        { "type": "integer", "coerce": true }
     }
   }
-}'
+}
+JSON
 
 set -euo pipefail
 
