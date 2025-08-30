@@ -27,5 +27,11 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
                 .OrderBy(q => q.OrderByDescending(h => h.Id))
                 .GetAllAsync();
         }
+
+        public async Task<History?> FindLatestByUserAndDomain(string user, string? domain = null)
+        {
+            var histories = await FindByUserAndDomain(user, domain);
+            return histories.FirstOrDefault();
+        }
     }
 }

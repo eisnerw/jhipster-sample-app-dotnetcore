@@ -224,8 +224,10 @@ export class QueryInputComponent implements OnInit {
     this.previousQuery = this.query;
     this.queryChange.emit(this.query);
     if (this.historyDomain && this.query) {
-      this.http.post('/api/Histories', { domain: this.historyDomain, text: this.query }).subscribe();
-      this.history.unshift(this.query);
+      if (this.history[0] !== this.query) {
+        this.http.post('/api/Histories', { domain: this.historyDomain, text: this.query }).subscribe();
+        this.history.unshift(this.query);
+      }
       this.historyIndex = -1;
     }
   }
@@ -247,6 +249,7 @@ export class QueryInputComponent implements OnInit {
       this.historyIndex++;
       this.query = this.history[this.historyIndex];
     }
+    this.onQueryChange();
   }
 
   showNextHistory(event: any) {
@@ -261,6 +264,7 @@ export class QueryInputComponent implements OnInit {
       this.historyIndex = -1;
       this.query = '';
     }
+    this.onQueryChange();
   }
 
   private loadHistory(): void {
