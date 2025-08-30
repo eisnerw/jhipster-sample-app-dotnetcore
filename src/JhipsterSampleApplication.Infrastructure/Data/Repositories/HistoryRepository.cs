@@ -27,5 +27,31 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
                 .OrderBy(q => q.OrderByDescending(h => h.Id))
                 .GetAllAsync();
         }
+
+        public async Task<History?> FindLatestByUserAndDomain(string? user, string? domain = null)
+        {
+            if (string.IsNullOrEmpty(user))
+            {
+                return null;
+            }
+
+            IEnumerable<History> histories;
+            if (string.IsNullOrEmpty(domain))
+            {
+                histories = await QueryHelper()
+                    .Filter(h => h.User == user)
+                    .OrderBy(q => q.OrderByDescending(h => h.Id))
+                    .GetAllAsync();
+            }
+            else
+            {
+                histories = await QueryHelper()
+                    .Filter(h => h.User == user && h.Domain == domain)
+                    .OrderBy(q => q.OrderByDescending(h => h.Id))
+                    .GetAllAsync();
+            }
+
+            return histories.FirstOrDefault();
+        }
     }
 }

@@ -246,6 +246,8 @@ export class QueryInputComponent implements OnInit {
     if (this.historyIndex < this.history.length - 1) {
       this.historyIndex++;
       this.query = this.history[this.historyIndex];
+      this.onQueryChange();
+      this.queryChange.emit(this.query);
     }
   }
 
@@ -257,9 +259,13 @@ export class QueryInputComponent implements OnInit {
     if (this.historyIndex > 0) {
       this.historyIndex--;
       this.query = this.history[this.historyIndex];
+      this.onQueryChange();
+      this.queryChange.emit(this.query);
     } else {
       this.historyIndex = -1;
       this.query = '';
+      this.onQueryChange();
+      this.queryChange.emit(this.query);
     }
   }
 

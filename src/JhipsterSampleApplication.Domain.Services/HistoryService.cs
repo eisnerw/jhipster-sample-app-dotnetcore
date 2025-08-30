@@ -17,6 +17,12 @@ namespace JhipsterSampleApplication.Domain.Services
 
         public async Task<History> Save(History history)
         {
+            var latest = await _historyRepository.FindLatestByUserAndDomain(history.User, history.Domain);
+            if (latest != null && latest.Text == history.Text)
+            {
+                return latest;
+            }
+
             await _historyRepository.CreateOrUpdateAsync(history);
             await _historyRepository.SaveChangesAsync();
             return history;
