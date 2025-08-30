@@ -84,6 +84,10 @@ main() {
   log "loading movie data into Elasticsearch"
   ./load_movies.sh
 
+  log "loading supreme data into Elasticsearch"
+  ./load_supreme.sh
+
+
 }
 
 main "$@"
