@@ -22,10 +22,11 @@ namespace JhipsterSampleApplication.Controllers
 	{
 		private readonly ISupremeService _supremeService;
 		private readonly IElasticClient _elasticClient;
-		private readonly ISupremeBqlService _bqlService;
-		private readonly IMapper _mapper;
-		private readonly IViewService _viewService;
-		private readonly ILogger<SupremesController> _logger;
+                private readonly ISupremeBqlService _bqlService;
+                private readonly IMapper _mapper;
+                private readonly IViewService _viewService;
+                private readonly ILogger<SupremesController> _logger;
+                private readonly IHistoryService _historyService;
 
 		public SupremesController(
 			ISupremeService supremeService,
@@ -33,15 +34,17 @@ namespace JhipsterSampleApplication.Controllers
 			ISupremeBqlService bqlService,
 			IMapper mapper,
 			IViewService viewService,
-			ILogger<SupremesController> logger)
-		{
-			_supremeService = supremeService;
-			_elasticClient = elasticClient;
-			_bqlService = bqlService;
-			_mapper = mapper;
-			_viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
-			_logger = logger;
-		}
+                        ILogger<SupremesController> logger,
+                        IHistoryService historyService)
+                {
+                        _supremeService = supremeService;
+                        _elasticClient = elasticClient;
+                        _bqlService = bqlService;
+                        _mapper = mapper;
+                        _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
+                        _logger = logger;
+                        _historyService = historyService;
+                }
 
                 public class RawSearchRequestDto
                 {
@@ -498,6 +501,7 @@ namespace JhipsterSampleApplication.Controllers
                         var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
                         var ruleset = _mapper.Map<Ruleset>(rulesetDto);
                         var queryObject = await _supremeService.ConvertRulesetToElasticSearch(ruleset);
+                        await _historyService.Save(new History { User = User?.Identity?.Name, Domain = "supreme", Text = bqlQuery });
                         return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter, includeDescriptive);
                 }
 

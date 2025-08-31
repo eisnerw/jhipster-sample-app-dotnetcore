@@ -76,6 +76,7 @@ export class QueryInputComponent implements OnInit {
   @Input() rulesetName = 'Ruleset';
   @Input() defaultRuleAttribute: string | null = null;
   @Input() namedQueryDomain: string | null = null;
+  @Input() historyDomain: string | null = null;
   @Output() queryChange = new EventEmitter<string>();
 
   editing = false;
@@ -85,10 +86,14 @@ export class QueryInputComponent implements OnInit {
   private namedQueryIds: Record<string, number> = {};
   validQuery = true;
   private previousQuery = '';
+  private history: string[] = [];
+  private historyIndex = -1;
 
   ngOnInit(): void {
     this.onQueryChange();
     this.loadNamedQueries();
+    // Pre-load history so arrow navigation is responsive when editing starts
+    this.loadHistory();
   }
 
   private loadNamedQueries(): void {
@@ -218,15 +223,61 @@ export class QueryInputComponent implements OnInit {
     this.editing = false;
     this.previousQuery = this.query;
     this.queryChange.emit(this.query);
+    if (this.historyDomain && this.query) {
+      if (this.history[0] !== this.query) {
+        this.http.post('/api/Histories', { domain: this.historyDomain, text: this.query }).subscribe();
+        this.history.unshift(this.query);
+      }
+      this.historyIndex = -1;
+    }
   }
 
-  onEnter(event: KeyboardEvent) {
+  onEnter(event: any) {
     if (this.validQuery) {
       this.acceptEdit();
     } else {
       event.preventDefault();
     }
   }
+
+  showPrevHistory(event: any) {
+    event.preventDefault();
+    if (!this.history.length) {
+      return;
+    }
+    if (this.historyIndex < this.history.length - 1) {
+      this.historyIndex++;
+      this.query = this.history[this.historyIndex];
+    }
+    this.onQueryChange();
+  }
+
+  showNextHistory(event: any) {
+    event.preventDefault();
+    if (!this.history.length) {
+      return;
+    }
+    if (this.historyIndex > 0) {
+      this.historyIndex--;
+      this.query = this.history[this.historyIndex];
+    } else {
+      this.historyIndex = -1;
+      this.query = '';
+    }
+    this.onQueryChange();
+  }
+
+  private loadHistory(): void {
+    if (!this.historyDomain) {
+      return;
+    }
+    this.http
+      .get<HistoryDto[]>('/api/Histories', { params: new HttpParams().set('domain', this.historyDomain) })
+      .subscribe(res => {
+        this.history = res.map(h => h.text);
+        this.historyIndex = -1;
+      });
+    }
 
   parseQuery(text: string): RuleSet {
     const trimmed = text.trim();
@@ -405,4 +456,16 @@ export class QueryInputComponent implements OnInit {
     walk(ruleset);
     return Array.from(names).join(', ');
   }
+}
+
+interface HistoryDto {
+  id?: number;
+  domain?: string;
+  text: string;
+}
+
+interface HistoryDto {
+  id?: number;
+  domain?: string;
+  text: string;
 }
