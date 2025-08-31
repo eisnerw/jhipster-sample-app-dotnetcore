@@ -61,11 +61,11 @@ namespace JhipsterSampleApplication.Domain.Services
                     var valStr = r.value?.ToString() ?? string.Empty;
                     if (!Regex.IsMatch(valStr, "^[a-zA-Z\\d]+$"))
                     {
-                        result.Append("\"" + Regex.Replace(valStr, "([\\\"])", "\\$1") + "\"");
+                        result.Append("\"" + Regex.Replace(valStr.ToLowerInvariant(), "([\\\"])", "\\$1") + "\"");
                     }
                     else
                     {
-                        result.Append(valStr.ToLower());
+                        result.Append(valStr.ToLowerInvariant());
                     }
                 }
                 else
@@ -76,16 +76,16 @@ namespace JhipsterSampleApplication.Domain.Services
                     if (op == "IN" || op == "!IN")
                     {
                         var values = (r.value as IEnumerable<object>)?.Select(v => v?.ToString() ?? string.Empty).ToArray() ?? Array.Empty<string>();
-                        var escaped = values.Select(v => Regex.IsMatch(v, "^[A-Za-z0-9]+$") ? v : "\"" + Regex.Replace(v, "([\\\"])", "\\$1") + "\"");
+                        var escaped = values.Select(v => Regex.IsMatch(v, "^[A-Za-z0-9]+$") ? v.ToLowerInvariant() : "\"" + Regex.Replace(v.ToLowerInvariant(), "([\\\"])", "\\$1") + "\"");
                         result.Append($"{field} {op} (" + string.Join(", ", escaped) + ")");
                     }
                     else if (!Regex.IsMatch(valStr, "^[A-Za-z0-9]+$"))
                     {
-                        result.Append($"{field} {op} \"" + Regex.Replace(valStr, "([\\\"])", "\\$1") + "\"");
+                        result.Append($"{field} {op} \"" + Regex.Replace(valStr.ToLowerInvariant(), "([\\\"])", "\\$1") + "\"");
                     }
                     else
                     {
-                        result.Append($"{field} {op} {valStr.ToLower()}");
+                        result.Append($"{field} {op} {valStr.ToLowerInvariant()}");
                     }
                 }
             }

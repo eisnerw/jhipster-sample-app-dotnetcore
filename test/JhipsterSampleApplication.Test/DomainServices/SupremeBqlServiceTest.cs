@@ -9,33 +9,14 @@ using Xunit;
 
 namespace JhipsterSampleApplication.Test.DomainServices;
 
-public class BirthdayBqlServiceTest
+public class SupremeBqlServiceTest
 {
-    private readonly BirthdayBqlService _service;
+    private readonly SupremeBqlService _service;
 
-    public BirthdayBqlServiceTest()
+    public SupremeBqlServiceTest()
     {
         var namedQueryService = new Mock<INamedQueryService>().Object;
-        _service = new BirthdayBqlService(NullLogger<BirthdayBqlService>.Instance, namedQueryService);
-    }
-
-    [Theory]
-    [InlineData("/ani/")]
-    [InlineData("/dani/i")]
-    public async Task Ruleset2Bql_ShouldReturnRegexWithoutQuotes(string pattern)
-    {
-        var ruleset = new RulesetDto
-        {
-            condition = "and",
-            rules = new List<RulesetDto>
-            {
-                new RulesetDto { field = "document", @operator = "like", value = pattern }
-            }
-        };
-
-        var result = await _service.Ruleset2Bql(ruleset);
-
-        Assert.Equal(pattern, result);
+        _service = new SupremeBqlService(NullLogger<SupremeBqlService>.Instance, namedQueryService);
     }
 
     [Fact]
