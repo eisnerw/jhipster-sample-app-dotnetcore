@@ -2,6 +2,24 @@
     "name": "birthday",
     "title": "Birthday",
     "elasticSearchIndex": "birthdays",
+    "descriptiveFieds": ["wikipedia"],
+    "dto": {
+      "allOf": [
+        { "$ref": "#/definitions/BaseDto" },
+        {
+          "type": "object",
+          "properties": {
+            "Lname": { "type": ["string", "null"] },
+            "Fname": { "type": ["string", "null"] },
+            "Sign": { "type": ["string", "null"] },
+            "Dob": { "type": ["string", "null"], "format": "date-time" },
+            "IsAlive": { "type": ["boolean", "null"] },
+            "Text": { "type": ["string", "null"] },
+            "Wikipedia": { "type": ["string", "null"] }
+          }
+        }
+      ]
+    },
     "queryBuilder": {
         "fields": {
           "document": {

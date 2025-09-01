@@ -2,6 +2,34 @@
     "name": "supreme",
     "title": "Supreme",
     "elasticSearchIndex": "supreme",
+    "descriptiveFieds": ["facts_of_the_case","question","conclusion"],
+    "dto": {
+      "allOf": [
+        { "$ref": "#/definitions/BaseDto" },
+        {
+          "type": "object",
+          "properties": {
+            "CaseName": { "type": ["string", "null"] },
+            "DecisionDate": { "type": ["string", "null"], "format": "date" },
+            "DocketNumber": { "type": ["string", "null"] },
+            "Citation": { "type": ["string", "null"] },
+            "Summary": { "type": ["string", "null"] },
+            "Justices": {
+              "type": ["array", "null"],
+              "items": { "type": "string" }
+            },
+            "Majority": {
+              "type": ["array", "null"],
+              "items": { "type": "string" }
+            },
+            "Dissent": {
+              "type": ["array", "null"],
+              "items": { "type": "string" }
+            }
+          }
+        }
+      ]
+    },
     "queryBuilder": {
         "fields": {
           "document": {

@@ -2,6 +2,47 @@
     "name": "movie",
     "title": "Movie",
     "elasticSearchIndex": "movies",
+    "descriptiveFieds": ["synopsis"],
+    "dto": {
+      "allOf": [
+        { "$ref": "#/definitions/BaseDto" },
+        {
+          "type": "object",
+          "properties": {
+            "Title": { "type": ["string", "null"] },
+            "ReleaseYear": { "type": ["integer", "null"] },
+            "Genres": {
+              "type": ["array", "null"],
+              "items": { "type": "string" }
+            },
+            "RuntimeMinutes": { "type": ["integer", "null"] },
+            "Country": { "type": ["string", "null"] },
+            "Languages": {
+              "type": ["array", "null"],
+              "items": { "type": "string" }
+            },
+            "Directors": {
+              "type": ["array", "null"],
+              "items": { "type": "string" }
+            },
+            "Producers": {
+              "type": ["array", "null"],
+              "items": { "type": "string" }
+            },
+            "Writers": {
+              "type": ["array", "null"],
+              "items": { "type": "string" }
+            },
+            "Cast": {
+              "type": ["array", "null"],
+              "items": { "type": "string" }
+            },
+            "BudgetUsd": { "type": ["integer", "null"] },
+            "GrossUsd": { "type": ["integer", "null"] }
+          }
+        }
+      ]
+    },
     "queryBuilder": {
         "fields": {
           "document": {
