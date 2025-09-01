@@ -1,0 +1,127 @@
+{
+    "name": "birthday",
+    "title": "Birthday",
+    "elasticSearchIndex": "birthdays",
+    "queryBuilder": {
+        "fields": {
+          "document": {
+            "name": "Document",
+            "type": "string",
+            "operators": ["contains", "!contains", "like", "!like"]
+          },
+          "lname": {
+            "name": "Last Name",
+            "type": "string",
+            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in"]
+          },
+          "fname": {
+            "name": "First Name",
+            "type": "string",
+            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"]
+          },
+          "isAlive": {
+            "name": "Alive?",
+            "type": "boolean"
+          },
+          "categories": {
+            "name": "Category",
+            "type": "string",
+            "operators": ["contains", "!contains", "like", "!like", "exists"]
+          },
+          "dob": {
+            "name": "Birthday",
+            "type": "date",
+            "operators": ["=", "<=", ">", "<", ">="]
+          },
+          "sign": {
+            "name": "Astrological Sign",
+            "type": "category",
+            "options": [
+              { "name": "Aries", "value": "aries" },
+              { "name": "Taurus", "value": "taurus" },
+              { "name": "Gemini", "value": "gemini" },
+              { "name": "Cancer", "value": "cancer" },
+              { "name": "Leo", "value": "leo" },
+              { "name": "Virgo", "value": "virgo" },
+              { "name": "Libra", "value": "libra" },
+              { "name": "Scorpio", "value": "scorpio" },
+              { "name": "Sagittarius", "value": "sagittarius" },
+              { "name": "Capricorn", "value": "capricorn" },
+              { "name": "Aquarius", "value": "aquarius" },
+              { "name": "Pisces", "value": "pisces" }
+            ]
+          }
+        },
+        "operatorMap": {
+          "string": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in"],
+          "number": ["=", "!=", ">", ">=", "<", "<=", "in", "!in"],
+          "time": ["=", "!=", ">", ">=", "<", "<="],
+          "date": ["=", "!=", ">", ">=", "<", "<="],
+          "category": ["=", "!=", "in", "!in"],
+          "boolean": ["="]
+        }
+    },
+    "views": [
+        {
+          "id": "category",
+          "name": "Category",
+          "field": "categories",
+          "aggregation": "categories.keyword",
+          "query": "categories:*",
+          "categoryQuery": "",
+          "script": "",
+          "domain": "birthdays"
+        },
+        {
+          "id": "birth year",
+          "name": "Birth Year",
+          "field": "dob",
+          "aggregation": "dob",
+          "query": "*",
+          "categoryQuery": "dob:[{}-01-01 TO {}-12-31]",
+          "script": "if (doc['dob'].size() == 0) {return '';}\nString st = doc['dob'].value.getYear().toString();\nreturn st.substring(0, 4);",
+          "domain": "birthdays"
+        },
+        {
+          "id": "sign",
+          "name": "Sign",
+          "field": "sign",
+          "aggregation": "sign.keyword",
+          "query": "sign:*",
+          "categoryQuery": "",
+          "script": "",
+          "domain": "birthdays"
+        },
+        {
+          "id": "first name",
+          "name": "First Name",
+          "field": "fname",
+          "aggregation": "fname.keyword",
+          "query": "fname:*",
+          "categoryQuery": "",
+          "script": "",
+          "domain": "birthdays"
+        },
+        {
+          "id": "sign/birth year",
+          "name": "Sign/Birth Year",
+          "field": "sign",
+          "aggregation": "sign.keyword",
+          "query": "sign:*",
+          "categoryQuery": "",
+          "script": "",
+          "domain": "birthdays"
+        },
+        {
+          "id": "sign/birth year.year of birth",
+          "name": "Year of Birth",
+          "field": "dob",
+          "aggregation": "dob",
+          "query": "*",
+          "categoryQuery": "dob:[{}-01-01 TO {}-12-31]",
+          "script": "if (doc['dob'].size() == 0) {return '';}\nString st = doc['dob'].value.getYear().toString();\nreturn st.substring(0, 4);",
+          "parentViewId": "sign/birth year",
+          "domain": "birthdays"
+        }
+      ]
+}

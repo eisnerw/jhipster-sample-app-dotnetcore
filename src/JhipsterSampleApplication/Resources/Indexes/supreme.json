@@ -1,0 +1,201 @@
+{
+    "name": "supreme",
+    "title": "Supreme",
+    "elasticSearchIndex": "supreme",
+    "queryBuilder": {
+        "fields": {
+          "document": {
+            "name": "Document",
+            "type": "string",
+            "operators": ["contains", "!contains", "like", "!like"]
+          },
+          "name": {
+            "name": "Case Name",
+            "type": "string",
+            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"]
+          },
+          "term": {
+            "name": "Term",
+            "type": "number",
+            "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"]
+          },
+          "docket_number": {
+            "name": "Docket #",
+            "type": "string",
+            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+          },
+          "petitioner": {
+            "name": "Petitioner",
+            "type": "string",
+            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+          },
+          "respondent": {
+            "name": "Respondent",
+            "type": "string",
+            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+          },
+          "heard_by": {
+            "name": "Heard By",
+            "type": "string",
+            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+          },
+          "lower_court": {
+            "name": "Lower Court",
+            "type": "string",
+            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+          },
+          "manner_of_jurisdiction": {
+            "name": "Jurisdiction",
+            "type": "string",
+            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+          },
+          "majority": {
+            "name": "Majority",
+            "type": "string",
+            "operators": ["contains", "!contains", "like", "!like", "exists"]
+          },
+          "minority": {
+            "name": "Minority",
+            "type": "string",
+            "operators": ["contains", "!contains", "like", "!like", "exists"]
+          },
+          "advocates": {
+            "name": "Advocates",
+            "type": "string",
+            "operators": ["contains", "!contains", "like", "!like", "exists"]
+          },
+          "question": {
+            "name": "Question",
+            "type": "string",
+            "operators": ["contains", "!contains", "like", "!like", "exists"]
+          },
+          "facts_of_the_case": {
+            "name": "Facts",
+            "type": "string",
+            "operators": ["contains", "!contains", "like", "!like", "exists"]
+          },
+          "conclusion": {
+            "name": "Conclusion",
+            "type": "string",
+            "operators": ["contains", "!contains", "like", "!like", "exists"]
+          },
+          "description": {
+            "name": "Description",
+            "type": "string",
+            "operators": ["contains", "!contains", "like", "!like", "exists"]
+          }
+        },
+        "operatorMap": {
+          "string": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in"],
+          "number": ["=", "!=", ">", ">=", "<", "<=", "in", "!in"],
+          "time": ["=", "!=", ">", ">=", "<", "<="],
+          "date": ["=", "!=", ">", ">=", "<", "<="],
+          "category": ["=", "!=", "in", "!in"],
+          "boolean": ["="]
+        }
+    },
+    "views": [
+        {
+            "id": "heard_term",
+            "name": "Term/heard by",
+            "field": "term",
+            "aggregation": "term",
+            "query": "term:*",
+            "categoryQuery": "",
+            "script": "",
+            "domain": "supreme"
+        },
+        {
+            "id": "term_heard by",
+            "name": "Heard By",
+            "field": "heard_by",
+            "aggregation": "heard_by.keyword",
+            "query": "heard_by:*",
+            "categoryQuery": "",
+            "script": "",
+            "parentViewId": "heard_term",
+            "domain": "supreme"
+        },
+        {
+            "id": "advocates",
+            "name": "Advocates",
+            "field": "advocates",
+            "aggregation": "advocates.keyword",
+            "query": "advocates:*",
+            "categoryQuery": "",
+            "script": "",
+            "domain": "supreme"
+        },
+        {
+            "id": "lower court",
+            "name": "Lower Court",
+            "field": "lower_court",
+            "aggregation": "lower_court.keyword",
+            "query": "lower_court:*",
+            "categoryQuery": "",
+            "script": "",
+            "domain": "supreme"
+        },
+        {
+            "id": "decision_term",
+            "name": "Term/decision",
+            "field": "term",
+            "aggregation": "term",
+            "query": "term:*",
+            "categoryQuery": "",
+            "script": "",
+            "domain": "supreme"
+        },	
+        {
+            "id": "decision",
+            "name": "Decision",
+            "field": "decision",
+            "aggregation": "decision.keyword",
+            "query": "decision:*",
+            "categoryQuery": "",
+            "script": "",
+            "parentViewId": "decision_term",
+            "domain": "supreme"
+        },
+        {
+            "id": "term",
+            "name": "Term",
+            "field": "term",
+            "aggregation": "term",
+            "query": "term:*",
+            "categoryQuery": "",
+            "script": "",
+            "domain": "supreme"
+        },
+        {
+            "id": "majority",
+            "name": "Majority",
+            "field": "majority",
+            "aggregation": "majority.keyword",
+            "query": "majority:*",
+            "categoryQuery": "",
+            "script": "",
+            "domain": "supreme"
+        },
+        {
+            "id": "minority",
+            "name": "Minority",
+            "field": "minority",
+            "aggregation": "minority.keyword",
+            "query": "minority:*",
+            "categoryQuery": "",
+            "script": "",
+            "domain": "supreme"
+        },
+        {
+            "id": "recused",
+            "name": "Recused",
+            "field": "recused",
+            "aggregation": "recused.keyword",
+            "query": "recused:*",
+            "categoryQuery": "",
+            "script": "",
+            "domain": "supreme"
+        }
+    ]
+}

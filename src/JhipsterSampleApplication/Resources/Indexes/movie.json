@@ -1,0 +1,171 @@
+{
+    "name": "movie",
+    "title": "Movie",
+    "elasticSearchIndex": "movies",
+    "queryBuilder": {
+        "fields": {
+          "document": {
+            "name": "Document",
+            "type": "string",
+            "operators": ["contains", "!contains", "like", "!like"]
+          },
+          "title": {
+            "name": "Title",
+            "type": "string",
+            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"]
+          },
+          "release_year": {
+            "name": "Release Year",
+            "type": "number",
+            "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"]
+          },
+          "genres": {
+            "name": "Genres",
+            "type": "string",
+            "operators": ["contains", "!contains", "in", "!in", "exists"]
+          },
+          "country": {
+            "name": "Country",
+            "type": "string",
+            "operators": ["=", "!=", "in", "!in", "exists"]
+          },
+          "languages": {
+            "name": "Language",
+            "type": "string",
+            "operators": ["=", "!=", "in", "!in", "exists"]
+          },
+          "directors": {
+            "name": "Director",
+            "type": "string",
+            "operators": ["contains", "!contains", "in", "!in", "exists"]
+          },
+          "producers": {
+            "name": "Producer",
+            "type": "string",
+            "operators": ["contains", "!contains", "in", "!in", "exists"]
+          },
+          "writers": {
+            "name": "Producer",
+            "type": "string",
+            "operators": ["contains", "!contains", "in", "!in", "exists"]
+          },
+          "cast": {
+            "name": "Cast",
+            "type": "string",
+            "operators": ["contains", "!contains", "in", "!in", "exists"]
+          },
+          "budget_usd": {
+            "name": "Budget",
+            "type": "number",
+            "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"]
+          },
+          "gross_usd": {
+            "name": "Gross",
+            "type": "number",
+            "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"]
+          },
+          "rotten_tomatoes_score": {
+            "name": "Rotten Tomatoes Score",
+            "type": "number",
+            "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"]
+          }
+        },
+        "operatorMap": {
+          "string": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in"],
+          "number": ["=", "!=", ">", ">=", "<", "<=", "in", "!in"],
+          "boolean": ["="]
+        }
+    },
+    "views": [
+        {
+          "id": "directors",
+          "name": "Directors",
+          "field": "directors",
+          "aggregation": "directors.keyword",
+          "query": "directors:*",
+          "categoryQuery": "",
+          "script": "",
+          "domain": "movie"
+        },
+        {
+          "id": "producers",
+          "name": "Producers",
+          "field": "producers",
+          "aggregation": "producers.keyword",
+          "query": "producers:*",
+          "categoryQuery": "",
+          "script": "",
+          "domain": "movie"
+        },
+        {
+          "id": "writers",
+          "name": "Writers",
+          "field": "writers",
+          "aggregation": "writers.keyword",
+          "query": "writers:*",
+          "categoryQuery": "",
+          "script": "",
+          "domain": "movie"
+        },
+        {
+          "id": "cast",
+          "name": "Cast",
+          "field": "cast",
+          "aggregation": "cast.keyword",
+          "query": "cast:*",
+          "categoryQuery": "",
+          "script": "",
+          "domain": "movie"
+        },
+        {
+          "id": "year",
+          "name": "Year",
+          "field": "year",
+          "aggregation": "year",
+          "query": "year:*",
+          "categoryQuery": "",
+          "script": "",
+          "domain": "movie"
+        },
+        {
+          "id": "genres",
+          "name": "Genres",
+          "field": "genres",
+          "aggregation": "genres.keyword",
+          "query": "genres:*",
+          "categoryQuery": "",
+          "script": "",
+          "domain": "movie"
+        },
+        {
+          "id": "languages",
+          "name": "Language",
+          "field": "languages",
+          "aggregation": "languages.keyword",
+          "query": "languages:*",
+          "categoryQuery": "",
+          "script": "",
+          "domain": "movie"
+        },
+        {
+          "id": "country",
+          "name": "Country",
+          "field": "country",
+          "aggregation": "country.keyword",
+          "query": "country:*",
+          "categoryQuery": "",
+          "script": "",
+          "domain": "movie"
+        },
+        {
+          "id": "rotten_tomatoes_score",
+          "name": "Rotten Tomatoes",
+          "field": "rotten_tomatoes_score",
+          "aggregation": "rotten_tomatoes_score",
+          "query": "rotten_tomatoes_score:*",
+          "categoryQuery": "",
+          "script": "",
+          "domain": "movie"
+        }
+    ]
+}
