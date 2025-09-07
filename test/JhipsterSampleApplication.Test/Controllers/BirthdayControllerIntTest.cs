@@ -103,7 +103,7 @@ namespace JhipsterSampleApplication.Test.Controllers
 
             };
             var rawResponse = await _client.PostAsync(
-                "/api/Birthdays/search/elasticsearch?pageSize=20&from=0&includeWikipedia=false",
+                "/api/Birthdays/search/elasticsearch?pageSize=20&from=0&includeDetails=false",
                 TestUtil.ToJsonContent(rawQuery));
             rawResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var rawContent = await rawResponse.Content.ReadAsStringAsync();

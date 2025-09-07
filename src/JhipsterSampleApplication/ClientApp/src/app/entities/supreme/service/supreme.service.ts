@@ -44,14 +44,14 @@ export class SupremeService {
       queryString += '*';
     }
 
-    const includeDescriptive = req?.includeDescriptive === true;
+    const includeDetails = req?.includeDetails === true;
     return this.http.get<{
       hits: ISupreme[] | any[];
       hitType: string;
       totalHits: number;
       searchAfter: string[];
       pitId: string | null;
-    }>(`${this.searchUrl}?${queryString}&includeDescriptive=${includeDescriptive}`, {
+    }>(`${this.searchUrl}?${queryString}&includeDetails=${includeDetails}`, {
       params: options,
       observe: 'response',
     });
@@ -59,14 +59,14 @@ export class SupremeService {
 
   searchWithRuleset(ruleset: any, req?: any): Observable<EntityArrayResponseType> {
     const options = createRequestOption(req);
-    const includeDescriptive = req?.includeDescriptive === true;
+    const includeDetails = req?.includeDetails === true;
     return this.http.post<{
       hits: ISupreme[] | any[];
       hitType: string;
       totalHits: number;
       searchAfter: string[];
       pitId: string | null;
-    }>(`${this.rulesetSearchUrl}?includeDescriptive=${includeDescriptive}`, ruleset, {
+    }>(`${this.rulesetSearchUrl}?includeDetails=${includeDetails}`, ruleset, {
       params: options,
       observe: 'response',
     });
@@ -74,14 +74,14 @@ export class SupremeService {
 
   searchWithBql(bqlQuery: string, req?: any): Observable<EntityArrayResponseType> {
     const options = createRequestOption(req);
-    const includeDescriptive = req?.includeDescriptive === true;
+    const includeDetails = req?.includeDetails === true;
     return this.http.post<{
       hits: ISupreme[] | any[];
       hitType: string;
       totalHits: number;
       searchAfter: string[];
       pitId: string | null;
-    }>(`${this.bqlSearchUrl}?includeDescriptive=${includeDescriptive}`, bqlQuery, {
+    }>(`${this.bqlSearchUrl}?includeDetails=${includeDetails}`, bqlQuery, {
       params: options,
       headers: { 'Content-Type': 'text/plain' },
       observe: 'response',

@@ -131,7 +131,7 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? sort = null,
             [FromQuery] string? pitId = null,
             [FromQuery] string[]? searchAfter = null,
-            [FromQuery] bool includeWikipedia = false,
+            [FromQuery] bool includeDetails = false,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
             [FromQuery] string? secondaryCategory = null)
@@ -146,7 +146,7 @@ namespace JhipsterSampleApplication.Controllers
             JObject queryObject = new JObject(
                 new JProperty("query_string", queryStringObject)
             );
-            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory, pitId, searchAfter);
+            return await Search(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
         }
 
         /// <summary>
@@ -162,14 +162,14 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? sort = null,
             [FromQuery] string? pitId = null,
             [FromQuery] string[]? searchAfter = null,
-            [FromQuery] bool includeWikipedia = false,
+            [FromQuery] bool includeDetails = false,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
             [FromQuery] string? secondaryCategory = null)
         {
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
-            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory, pitId, searchAfter);
+            return await Search(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
         }
 
         /// <summary>
@@ -183,7 +183,7 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] int pageSize = 20,
             [FromQuery] int from = 0,
             [FromQuery] string? sort = null,
-            [FromQuery] bool includeWikipedia = false,
+            [FromQuery] bool includeDetails = false,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
             [FromQuery] string? secondaryCategory = null,
@@ -363,7 +363,7 @@ namespace JhipsterSampleApplication.Controllers
                     Dob = b.Dob,
                     IsAlive = b.IsAlive,
                     Text = b.Text,
-                    Wikipedia = includeWikipedia ? b.Wikipedia : null,
+                    Wikipedia = includeDetails ? b.Wikipedia : null,
                     Categories = b.Categories
                 });
             }
@@ -387,7 +387,7 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? sort = null,
             [FromQuery] string? pitId = null,
             [FromQuery] string[]? searchAfter = null,
-            [FromQuery] bool includeWikipedia = false,
+            [FromQuery] bool includeDetails = false,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
             [FromQuery] string? secondaryCategory = null)
@@ -399,12 +399,12 @@ namespace JhipsterSampleApplication.Controllers
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
             await _historyService.Save(new History { User = User?.Identity?.Name, Domain = "birthday", Text = bqlQuery });
-            return await Search(queryObject, pageSize, from, sort, includeWikipedia, view, category, secondaryCategory, pitId, searchAfter);
+            return await Search(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
         }
 
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(BirthdayDto), 200)]
-        public async Task<IActionResult> GetById(string id, [FromQuery] bool includeWikipedia = false)
+        public async Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
         {
             var searchRequest = new SearchRequest<Birthday>
             {
@@ -427,7 +427,7 @@ namespace JhipsterSampleApplication.Controllers
                 Sign = birthday.Sign,
                 Dob = birthday.Dob,
                 IsAlive = birthday.IsAlive ?? false,
-                Wikipedia = includeWikipedia ? birthday.Wikipedia : null,
+                Wikipedia = includeDetails ? birthday.Wikipedia : null,
                 Categories = birthday.Categories
             };
 
