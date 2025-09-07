@@ -26,14 +26,5 @@ namespace JhipsterSampleApplication.Domain.Services
         public MovieBqlService(ILogger<MovieBqlService> logger, INamedQueryService namedQueryService) : base(logger, namedQueryService, LoadSpec(), "movies")
         {
         }
-
-        public override Task<string> Ruleset2Bql(RulesetDto ruleset)
-        {
-            if (ruleset == null)
-            {
-                throw new ArgumentNullException(nameof(ruleset));
-            }
-            return Task.FromResult(QueryAsString(ruleset));
-        }
     }
 }

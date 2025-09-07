@@ -23,18 +23,8 @@ namespace JhipsterSampleApplication.Domain.Services
 			return JObject.Parse(json);
 		}
 
-                public SupremeBqlService(ILogger<SupremeBqlService> logger, INamedQueryService namedQueryService) : base(logger, namedQueryService, LoadSpec(), "supreme")
-                {
-                }
-
-
-                public override Task<string> Ruleset2Bql(RulesetDto ruleset)
-                {
-                        if (ruleset == null)
-                        {
-                                throw new ArgumentNullException(nameof(ruleset));
-                        }
-                        return Task.FromResult(QueryAsString(ruleset));
-                }
-        }
+		public SupremeBqlService(ILogger<SupremeBqlService> logger, INamedQueryService namedQueryService) : base(logger, namedQueryService, LoadSpec(), "supreme")
+		{
+		}
+	}
 }
