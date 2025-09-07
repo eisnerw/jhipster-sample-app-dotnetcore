@@ -55,7 +55,7 @@ namespace JhipsterSampleApplication.Controllers
             {
                 Query = new QueryContainerDescriptor<Movie>().Term(t => t.Field("_id").Value(id))
             };
-            var response = await _movieService.SearchAsync(searchRequest, includeDescriptive: true);
+            var response = await _movieService.SearchAsync(searchRequest, includeDetails: true);
             if (!response.IsValid || !response.Documents.Any())
             {
                 return NotFound();
@@ -128,7 +128,7 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] int from = 0,
             [FromQuery] int pageSize = 20,
             [FromQuery] string? sort = null,
-            [FromQuery] bool includeDescriptive = false,
+            [FromQuery] bool includeDetails = false,
             [FromQuery] string? pitId = null,
             [FromQuery] string[]? searchAfter = null,
             [FromQuery] string? view = null,
@@ -142,7 +142,7 @@ namespace JhipsterSampleApplication.Controllers
             JObject queryStringObject = new JObject(new JProperty("query", query));
             JObject queryObject = new JObject(new JProperty("query_string", queryStringObject));
             var overrideSort = "release_year:desc";
-            return await Search(queryObject, pageSize, from, overrideSort, includeDescriptive, view, category, secondaryCategory, pitId, searchAfter);
+            return await Search(queryObject, pageSize, from, overrideSort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
         }
 
         [HttpPost("search/ruleset")]
@@ -153,7 +153,7 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] int from = 0,
             [FromQuery] int pageSize = 20,
             [FromQuery] string? sort = null,
-            [FromQuery] bool includeDescriptive = false,
+            [FromQuery] bool includeDetails = false,
             [FromQuery] string? pitId = null,
             [FromQuery] string[]? searchAfter = null,
             [FromQuery] string? view = null,
@@ -162,7 +162,7 @@ namespace JhipsterSampleApplication.Controllers
         {
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _movieService.ConvertRulesetToElasticSearch(ruleset);
-            return await Search(queryObject, pageSize, from, sort, includeDescriptive, view, category, secondaryCategory, pitId, searchAfter);
+            return await Search(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
         }
 
         [HttpPost("search/bql")]
@@ -174,7 +174,7 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] int from = 0,
             [FromQuery] int pageSize = 20,
             [FromQuery] string? sort = null,
-            [FromQuery] bool includeDescriptive = false,
+            [FromQuery] bool includeDetails = false,
             [FromQuery] string? pitId = null,
             [FromQuery] string[]? searchAfter = null,
             [FromQuery] string? view = null,
@@ -189,7 +189,7 @@ namespace JhipsterSampleApplication.Controllers
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _movieService.ConvertRulesetToElasticSearch(ruleset);
             await _historyService.Save(new History { User = User?.Identity?.Name, Domain = "movie", Text = bqlQuery });
-            return await Search(queryObject, pageSize, from, sort, includeDescriptive, view, category, secondaryCategory, pitId, searchAfter);
+            return await Search(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
         }
 
         [HttpPost("search/elasticsearch")]
@@ -199,7 +199,7 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] int pageSize = 20,
             [FromQuery] int from = 0,
             [FromQuery] string? sort = null,
-            [FromQuery] bool includeDescriptive = false,
+            [FromQuery] bool includeDetails = false,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
             [FromQuery] string? secondaryCategory = null,
@@ -366,13 +366,13 @@ namespace JhipsterSampleApplication.Controllers
             searchRequest.Sort = sortDescriptor;
             searchRequest.Query = new QueryContainerDescriptor<Movie>().Raw(elasticsearchQuery.ToString());
 
-            var response = await _movieService.SearchAsync(searchRequest, includeDescriptive, pitId);
+            var response = await _movieService.SearchAsync(searchRequest, includeDetails, pitId);
             var movieDtos = new List<MovieDto>();
             foreach (var hit in response.Hits)
             {
                 var m = hit.Source;
                 var dto = _mapper.Map<MovieDto>(m);
-                if (!includeDescriptive)
+                if (!includeDetails)
                 {
                     dto.Synopsis = null;
                 }
@@ -385,21 +385,21 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(MovieDto), 200)]
-        public async Task<IActionResult> GetById(string id, [FromQuery] bool includeDescriptive = false)
+        public async Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
         {
             var searchRequest = new SearchRequest<Movie>
             {
                 Query = new QueryContainerDescriptor<Movie>().Term(t => t.Field("_id").Value(id)),
-                Source = includeDescriptive ? null : new SourceFilter { Excludes = new[] { "synopsis" } }
+                Source = includeDetails ? null : new SourceFilter { Excludes = new[] { "synopsis" } }
             };
-            var response = await _movieService.SearchAsync(searchRequest, includeDescriptive);
+            var response = await _movieService.SearchAsync(searchRequest, includeDetails);
             if (!response.IsValid || !response.Documents.Any())
             {
                 return NotFound();
             }
             var m = response.Documents.First();
             var dto = _mapper.Map<MovieDto>(m);
-            if (!includeDescriptive)
+            if (!includeDetails)
             {
                 dto.Synopsis = null;
             }

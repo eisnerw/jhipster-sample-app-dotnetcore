@@ -185,9 +185,9 @@ namespace JhipsterSampleApplication.Controllers
 			[FromQuery] string? view = null,
 			[FromQuery] string? category = null,
 			[FromQuery] string? secondaryCategory = null,
-			[FromQuery] bool includeDescriptive = false)
+			[FromQuery] bool includeDetails = false)
 		{
-			_logger.LogInformation("Supreme lucene search called. query='{Query}', from={From}, pageSize={PageSize}, sort='{Sort}', view='{View}', category='{Category}', secondaryCategory='{SecondaryCategory}', includeDescriptive={IncludeDescriptive}", query, from, pageSize, sort, view, category, secondaryCategory, includeDescriptive);
+			_logger.LogInformation("Supreme lucene search called. query='{Query}', from={From}, pageSize={PageSize}, sort='{Sort}', view='{View}', category='{Category}', secondaryCategory='{SecondaryCategory}', includeDetails={IncludeDetails}", query, from, pageSize, sort, view, category, secondaryCategory, includeDetails);
 			if (string.IsNullOrWhiteSpace(query))
 			{
 				return BadRequest("Query cannot be empty");
@@ -196,7 +196,7 @@ namespace JhipsterSampleApplication.Controllers
 			JObject queryObject = new JObject(new JProperty("query_string", queryStringObject));
 			try
 			{
-				return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter, includeDescriptive);
+				return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter, includeDetails);
 			}
 			catch (Exception ex)
 			{
@@ -217,11 +217,11 @@ namespace JhipsterSampleApplication.Controllers
 			[FromQuery] string? view = null,
 			[FromQuery] string? category = null,
 			[FromQuery] string? secondaryCategory = null,
-			[FromQuery] bool includeDescriptive = false)
+			[FromQuery] bool includeDetails = false)
 		{
 			var ruleset = _mapper.Map<Ruleset>(rulesetDto);
 			var queryObject = await _supremeService.ConvertRulesetToElasticSearch(ruleset);
-			return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter, includeDescriptive);
+			return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter, includeDetails);
 		}
 
 		[HttpPost("search/elasticsearch")]
@@ -236,7 +236,7 @@ namespace JhipsterSampleApplication.Controllers
 			[FromQuery] string? secondaryCategory = null,
 			[FromQuery] string? pitId = null,
 			[FromQuery] string[]? searchAfter = null,
-			[FromQuery] bool includeDescriptive = false)
+			[FromQuery] bool includeDetails = false)
 		{
 			if (!string.IsNullOrEmpty(view))
 			{
@@ -369,7 +369,7 @@ namespace JhipsterSampleApplication.Controllers
                         {
                                 Size = pageSize,
                                 From = from,
-                                Source = includeDescriptive
+                                Source = includeDetails
                                         ? true
                                         : new SourceFilter
                                         {
@@ -492,7 +492,7 @@ namespace JhipsterSampleApplication.Controllers
 			[FromQuery] string? view = null,
                         [FromQuery] string? category = null,
                         [FromQuery] string? secondaryCategory = null,
-                        [FromQuery] bool includeDescriptive = false)
+                        [FromQuery] bool includeDetails = false)
 		{
 			if (string.IsNullOrWhiteSpace(bqlQuery))
 			{
@@ -502,18 +502,18 @@ namespace JhipsterSampleApplication.Controllers
                         var ruleset = _mapper.Map<Ruleset>(rulesetDto);
                         var queryObject = await _supremeService.ConvertRulesetToElasticSearch(ruleset);
                         await _historyService.Save(new History { User = User?.Identity?.Name, Domain = "supreme", Text = bqlQuery });
-                        return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter, includeDescriptive);
+                        return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter, includeDetails);
                 }
 
 
                 [HttpGet("{id}")]
                 [ProducesResponseType(typeof(SupremeDto), 200)]
-                public async Task<IActionResult> GetById(string id, [FromQuery] bool includeDescriptive = false)
+                public async Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
                 {
                         var searchRequest = new SearchRequest<Supreme>
                         {
                                 Query = new QueryContainerDescriptor<Supreme>().Term(t => t.Field("_id").Value(id)),
-                                Source = includeDescriptive ? null : new SourceFilter
+                                Source = includeDetails ? null : new SourceFilter
                                 {
                                         Excludes = new[] { "justia_url", "facts_of_the_case", "question", "conclusion" }
                                 }
@@ -533,15 +533,15 @@ namespace JhipsterSampleApplication.Controllers
                                 Docket_Number = s.Docket_Number,
                                 Manner_Of_Jurisdiction = s.Manner_Of_Jurisdiction,
                                 Lower_Court = s.Lower_Court,
-                                Facts_Of_The_Case = includeDescriptive ? s.Facts_Of_The_Case : null,
-                                Question = includeDescriptive ? s.Question : null,
-                                Conclusion = includeDescriptive ? s.Conclusion : null,
+                                Facts_Of_The_Case = includeDetails ? s.Facts_Of_The_Case : null,
+                                Question = includeDetails ? s.Question : null,
+                                Conclusion = includeDetails ? s.Conclusion : null,
                                 Decision = s.Decision,
                                 Description = s.Description,
                                 Dissent = s.Dissent,
                                 Heard_By = s.Heard_By,
                                 Term = s.Term,
-                                Justia_Url = includeDescriptive ? s.Justia_Url : null,
+                                Justia_Url = includeDetails ? s.Justia_Url : null,
                                 Opinion = s.Opinion,
                                 Argument2_Url = s.Argument2_Url,
                                 Appellant = s.Appellant,

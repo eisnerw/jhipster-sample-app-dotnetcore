@@ -29,9 +29,9 @@ namespace JhipsterSampleApplication.Domain.Services
             return SearchAsync(request, false, pitId);
         }
 
-        public async Task<ISearchResponse<Movie>> SearchAsync(ISearchRequest request, bool includeDescriptive, string? pitId = null)
+        public async Task<ISearchResponse<Movie>> SearchAsync(ISearchRequest request, bool includeDetails, string? pitId = null)
         {
-            if (!includeDescriptive)
+            if (!includeDetails)
             {
                 request.Source = new SourceFilter { Excludes = new[] { "synopsis" } };
             }
@@ -144,7 +144,7 @@ namespace JhipsterSampleApplication.Domain.Services
             return SearchWithRulesetAsync(ruleset, size, from, sort, false);
         }
 
-        public async Task<ISearchResponse<Movie>> SearchWithRulesetAsync(Ruleset ruleset, int size = 20, int from = 0, IList<ISort>? sort = null, bool includeDescriptive = false)
+        public async Task<ISearchResponse<Movie>> SearchWithRulesetAsync(Ruleset ruleset, int size = 20, int from = 0, IList<ISort>? sort = null, bool includeDetails = false)
         {
             var queryObject = await ConvertRulesetToElasticSearch(ruleset);
             var searchRequest = new SearchRequest<Movie>
@@ -153,7 +153,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 From = from,
                 Query = new QueryContainerDescriptor<Movie>().Raw(queryObject.ToString())
             };
-            if (!includeDescriptive)
+            if (!includeDetails)
             {
                 searchRequest.Source = new SourceFilter { Excludes = new[] { "synopsis" } };
             }

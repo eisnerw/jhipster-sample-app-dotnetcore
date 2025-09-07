@@ -112,8 +112,8 @@ export class MovieComponent implements OnInit, AfterViewInit {
   constructor() {
     const fetchFunction: FetchFunction<IMovie> = (queryParams: any) => {
       // Exclude large descriptive fields by default for grid
-      if (queryParams.includeDescriptive === undefined) {
-        queryParams.includeDescriptive = false;
+      if (queryParams.includeDetails === undefined) {
+        queryParams.includeDetails = false;
       }
       if (queryParams.bqlQuery) {
         const bql = queryParams.bqlQuery;
@@ -493,8 +493,8 @@ export class MovieComponent implements OnInit, AfterViewInit {
             groupData.mode = 'group';
             } else {
               const fetch: FetchFunction<IMovie> = (queryParams: any) => {
-                if (queryParams.includeDescriptive === undefined) {
-                  queryParams.includeDescriptive = false;
+                if (queryParams.includeDetails === undefined) {
+                  queryParams.includeDetails = false;
                 }
                 if (queryParams.bqlQuery) {
                   const bql = queryParams.bqlQuery;
@@ -527,8 +527,8 @@ export class MovieComponent implements OnInit, AfterViewInit {
             groupData.mode = 'group';
             } else {
               const fetch: FetchFunction<IMovie> = (queryParams: any) => {
-                if (queryParams.includeDescriptive === undefined) {
-                  queryParams.includeDescriptive = false;
+                if (queryParams.includeDetails === undefined) {
+                  queryParams.includeDetails = false;
                 }
                 if (queryParams.bqlQuery) {
                   const bql = queryParams.bqlQuery;
