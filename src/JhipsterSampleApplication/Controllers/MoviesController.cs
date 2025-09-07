@@ -22,13 +22,13 @@ namespace JhipsterSampleApplication.Controllers
     {
         private readonly IMovieService _movieService;
         private readonly IElasticClient _elasticClient;
-        private readonly IMovieBqlService _bqlService;
+        private readonly IBqlService<Movie> _bqlService;
         private readonly IMapper _mapper;
         private readonly ILogger<MoviesController> _logger;
         private readonly IViewService _viewService;
         private readonly IHistoryService _historyService;
 
-        public MoviesController(IMovieService movieService, IElasticClient elasticClient, IMovieBqlService bqlService, IMapper mapper, IViewService viewService, ILogger<MoviesController> logger, IHistoryService historyService)
+        public MoviesController(IMovieService movieService, IElasticClient elasticClient, IBqlService<Movie> bqlService, IMapper mapper, IViewService viewService, ILogger<MoviesController> logger, IHistoryService historyService)
         {
             _movieService = movieService;
             _elasticClient = elasticClient;

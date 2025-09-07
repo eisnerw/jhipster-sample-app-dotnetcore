@@ -25,7 +25,7 @@ public class BirthdayService : IBirthdayService
 {
     private readonly IElasticClient _elasticClient;
     private const string IndexName = "birthdays";
-    private readonly IBirthdayBqlService _bqlService;
+    private readonly IBqlService<Birthday> _bqlService;
     private readonly IViewService _viewService;
 
     /// <summary>
@@ -34,7 +34,7 @@ public class BirthdayService : IBirthdayService
     /// <param name="elasticClient">The Elasticsearch client</param>
     /// <param name="bqlService">The BQL service</param>
     /// <param name="viewService">The View service</param>
-    public BirthdayService(IElasticClient elasticClient, IBirthdayBqlService bqlService, IViewService viewService)
+    public BirthdayService(IElasticClient elasticClient, IBqlService<Birthday> bqlService, IViewService viewService)
     {
         _elasticClient = elasticClient ?? throw new ArgumentNullException(nameof(elasticClient));
         _bqlService = bqlService ?? throw new ArgumentNullException(nameof(bqlService));

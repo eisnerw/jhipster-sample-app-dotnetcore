@@ -15,16 +15,11 @@ public class BirthdayServiceRangeQueryTest
 {
     private readonly BirthdayService _service;
 
-    private class TestBirthdayBqlService : GenericBqlService<Birthday>, IBirthdayBqlService
-    {
-        public TestBirthdayBqlService() : base(new Mock<ILogger<BirthdayBqlService>>().Object,
-            new Mock<INamedQueryService>().Object, new JObject(), "birthdays") { }
-    }
-
     public BirthdayServiceRangeQueryTest()
     {
         var elasticClient = new Mock<IElasticClient>().Object;
-        var bqlService = new TestBirthdayBqlService();
+        var bqlService = new BqlService<Birthday>(new Mock<ILogger<BqlService<Birthday>>>().Object,
+            new Mock<INamedQueryService>().Object, new JObject(), "birthdays");
         var viewService = new Mock<IViewService>().Object;
         _service = new BirthdayService(elasticClient, bqlService, viewService);
     }

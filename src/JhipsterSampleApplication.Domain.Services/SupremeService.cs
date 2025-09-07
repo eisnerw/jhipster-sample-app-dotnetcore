@@ -16,10 +16,10 @@ namespace JhipsterSampleApplication.Domain.Services
 	{
 		private readonly IElasticClient _elasticClient;
 		private const string IndexName = "supreme";
-		private readonly ISupremeBqlService _bqlService;
+                private readonly IBqlService<Supreme> _bqlService;
 		private readonly IViewService _viewService;
 
-		public SupremeService(IElasticClient elasticClient, ISupremeBqlService bqlService, IViewService viewService)
+                public SupremeService(IElasticClient elasticClient, IBqlService<Supreme> bqlService, IViewService viewService)
 		{
 			_elasticClient = elasticClient ?? throw new ArgumentNullException(nameof(elasticClient));
 			_bqlService = bqlService ?? throw new ArgumentNullException(nameof(bqlService));

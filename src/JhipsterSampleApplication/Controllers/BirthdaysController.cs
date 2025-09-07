@@ -24,7 +24,7 @@ namespace JhipsterSampleApplication.Controllers
     {
         private readonly IBirthdayService _birthdayService;       
         private readonly IElasticClient _elasticClient;
-        private readonly IBirthdayBqlService _bqlService;
+        private readonly IBqlService<Birthday> _bqlService;
         private readonly ILogger<BirthdaysController> _log;
         private readonly IMapper _mapper;
         private readonly IHistoryService _historyService;
@@ -32,7 +32,7 @@ namespace JhipsterSampleApplication.Controllers
         public BirthdaysController(
             IBirthdayService birthdayService,
             IElasticClient elasticClient,
-            IBirthdayBqlService bqlService,
+            IBqlService<Birthday> bqlService,
             ILogger<BirthdaysController> log,
             IMapper mapper,
             IHistoryService historyService)
