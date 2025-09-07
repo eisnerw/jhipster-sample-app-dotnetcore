@@ -1054,7 +1054,7 @@ namespace JhipsterSampleApplication.Domain.Services
             }
         }
 
-        private static string QueryAsString(RulesetDto query, bool recurse = false)
+        protected static string QueryAsString(RulesetDto query, bool recurse = false)
         {
             ArgumentNullException.ThrowIfNull(query);
             var result = new StringBuilder();
@@ -1086,39 +1086,41 @@ namespace JhipsterSampleApplication.Domain.Services
                         result.Append(QueryAsString(ruleQuery, query.rules.Count > 1));
                     }
                 }
-                else if (r.field == "document" && r.value != null)
+                else if (r.field == "document")
                 {
-                    var valStr = r.value.ToString();
-                    if (valStr != null && Regex.IsMatch(valStr, @"^/.*/i?$", RegexOptions.IgnoreCase))
+                    var valStr = r.value?.ToString() ?? string.Empty;
+                    if (Regex.IsMatch(valStr, @"^/.*/i?$", RegexOptions.IgnoreCase))
                     {
                         result.Append(valStr);
                     }
-                    else if (valStr != null && !Regex.IsMatch(valStr, "^[a-zA-Z\\d]+$"))
+                    else if (!Regex.IsMatch(valStr, "^[a-zA-Z\\d]+$"))
                     {
                         result.Append("\"" + Regex.Replace(valStr, "([\\\"])", "\\$1") + "\"");
                     }
                     else
                     {
-                        result.Append(valStr?.ToLowerInvariant() ?? "");
+                        result.Append(valStr.ToLowerInvariant());
                     }
                 }
-                else if (r.field != null)
+                else
                 {
-                    result.Append(r.field);
+                    var field = r.field ?? "document";
+                    var op = (r.@operator ?? "=").ToUpperInvariant();
+                    result.Append(field);
 
-                    if (r.@operator == "exists")
+                    if (op == "EXISTS")
                     {
-                        result.Append(" " + (r.value is bool b && !b ? "!" : "") + "EXISTS ");
+                        result.Append(" " + (r.value is bool b && !b ? "!" : string.Empty) + "EXISTS");
                     }
-                    else if (r.@operator == "in" || r.@operator == "!in")
+                    else if (op == "IN" || op == "!IN")
                     {
-                        var values = r.value as IEnumerable<string> ?? new List<string>();
-                        var quoted = values.Select(v => Regex.IsMatch(v, "^[a-zA-Z\\d]+$") ? v : "\"" + Regex.Replace(v ?? string.Empty, "([\\\"])", "\\$1") + "\"");
-                        result.Append(" " + (r.@operator == "in" ? string.Empty : "!") + "IN (" + string.Join(", ", quoted) + ") ");
+                        var values = (r.value as IEnumerable<object>)?.Select(v => v?.ToString() ?? string.Empty) ?? Enumerable.Empty<string>();
+                        var quoted = values.Select(v => Regex.IsMatch(v, "^[a-zA-Z\\d]+$") ? v : "\"" + Regex.Replace(v, "([\\\"])", "\\$1") + "\"");
+                        result.Append(" " + op + " (" + string.Join(", ", quoted) + ")");
                     }
-                    else if (!string.IsNullOrWhiteSpace(r.@operator))
+                    else if (!string.IsNullOrWhiteSpace(op))
                     {
-                        result.Append(" " + r.@operator.ToUpperInvariant() + " ");
+                        result.Append(" " + op + " ");
                         if (r.value != null)
                         {
                             var valStr = r.value.ToString();
@@ -1126,13 +1128,13 @@ namespace JhipsterSampleApplication.Domain.Services
                             {
                                 result.Append(valStr);
                             }
-                            else if (valStr != null && Regex.IsMatch(valStr, "[\\s\\\"]"))
+                            else if (valStr != null && !Regex.IsMatch(valStr, "^[A-Za-z0-9]+$"))
                             {
                                 result.Append("\"" + Regex.Replace(valStr, "([\\\"])", "\\$1") + "\"");
                             }
                             else
                             {
-                                result.Append(valStr?.ToLowerInvariant() ?? "");
+                                result.Append(valStr?.ToLowerInvariant() ?? string.Empty);
                             }
                         }
                     }

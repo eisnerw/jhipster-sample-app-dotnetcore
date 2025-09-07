@@ -31,13 +31,5 @@ namespace JhipsterSampleApplication.Domain.Services
         {
         }
 
-        protected override bool ValidateRuleset(RulesetDto ruleset)
-        {
-            if (!base.ValidateRuleset(ruleset))
-            {
-                return false;
-            }
-            return true;
-        }
     }
 } 
