@@ -12,10 +12,10 @@ using Newtonsoft.Json.Linq;
 
 namespace JhipsterSampleApplication.Domain.Services
 {
-    public abstract class GenericBqlService<TDomain> : IGenericBqlService<TDomain> where TDomain : class
+    public class BqlService<TDomain> : IBqlService<TDomain> where TDomain : class
     {
-        protected readonly ILogger _logger;
-        protected readonly INamedQueryService _namedQueryService;
+        private readonly ILogger<BqlService<TDomain>> _logger;
+        private readonly INamedQueryService _namedQueryService;
         private readonly JObject _qbSpec;
         private readonly string _domain;
 
@@ -30,7 +30,7 @@ namespace JhipsterSampleApplication.Domain.Services
         		private string? _defaultFullTextField;
 		private readonly Regex _tokenizer;
 
-        protected GenericBqlService(ILogger logger, INamedQueryService namedQueryService, JObject qbSpec, string domain)
+        public BqlService(ILogger<BqlService<TDomain>> logger, INamedQueryService namedQueryService, JObject qbSpec, string domain)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _namedQueryService = namedQueryService ?? throw new ArgumentNullException(nameof(namedQueryService));
@@ -39,6 +39,18 @@ namespace JhipsterSampleApplication.Domain.Services
 
             BuildSpecCaches();
             _tokenizer = BuildTokenizer();
+        }
+
+        public static JObject LoadSpec(string entity)
+        {
+            var baseDir = AppContext.BaseDirectory;
+            var specPath = Path.Combine(baseDir, "Resources", "query-builder", $"{entity}-qb-spec.json");
+            if (!File.Exists(specPath))
+            {
+                throw new FileNotFoundException($"BQL spec file not found at {specPath}");
+            }
+            var json = File.ReadAllText(specPath);
+            return JObject.Parse(json);
         }
 
         public virtual async Task<RulesetDto> Bql2Ruleset(string bqlQuery)

@@ -22,7 +22,7 @@ namespace JhipsterSampleApplication.Controllers
 	{
 		private readonly ISupremeService _supremeService;
 		private readonly IElasticClient _elasticClient;
-                private readonly ISupremeBqlService _bqlService;
+                private readonly IBqlService<Supreme> _bqlService;
                 private readonly IMapper _mapper;
                 private readonly IViewService _viewService;
                 private readonly ILogger<SupremesController> _logger;
@@ -31,7 +31,7 @@ namespace JhipsterSampleApplication.Controllers
 		public SupremesController(
 			ISupremeService supremeService,
 			IElasticClient elasticClient,
-			ISupremeBqlService bqlService,
+                     IBqlService<Supreme> bqlService,
 			IMapper mapper,
 			IViewService viewService,
                         ILogger<SupremesController> logger,

@@ -15,10 +15,10 @@ namespace JhipsterSampleApplication.Domain.Services
     public class MovieService : IMovieService
     {
         private readonly IElasticClient _elasticClient;
-        private readonly IMovieBqlService _bqlService;
+        private readonly IBqlService<Movie> _bqlService;
         private const string IndexName = "movies";
 
-        public MovieService(IElasticClient elasticClient, IMovieBqlService bqlService)
+        public MovieService(IElasticClient elasticClient, IBqlService<Movie> bqlService)
         {
             _elasticClient = elasticClient ?? throw new ArgumentNullException(nameof(elasticClient));
             _bqlService = bqlService ?? throw new ArgumentNullException(nameof(bqlService));

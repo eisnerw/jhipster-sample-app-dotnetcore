@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Dto;
@@ -9,14 +10,15 @@ using Xunit;
 
 namespace JhipsterSampleApplication.Test.DomainServices;
 
-public class BirthdayBqlServiceTest
+public class BqlServiceTest
 {
-    private readonly BirthdayBqlService _service;
+    private readonly BqlService<Birthday> _service;
 
-    public BirthdayBqlServiceTest()
+    public BqlServiceTest()
     {
         var namedQueryService = new Mock<INamedQueryService>().Object;
-        _service = new BirthdayBqlService(NullLogger<BirthdayBqlService>.Instance, namedQueryService);
+        _service = new BqlService<Birthday>(NullLogger<BqlService<Birthday>>.Instance, namedQueryService,
+            BqlService<Birthday>.LoadSpec("birthday"), "birthdays");
     }
 
     [Theory]

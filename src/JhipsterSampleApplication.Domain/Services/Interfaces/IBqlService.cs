@@ -3,7 +3,7 @@ using JhipsterSampleApplication.Dto;
 
 namespace JhipsterSampleApplication.Domain.Services.Interfaces
 {
-    public interface IGenericBqlService<TDomain>
+    public interface IBqlService<TDomain>
     {
         /// <summary>
         /// Converts a BQL query string to a Ruleset
