@@ -14,6 +14,7 @@ using System.Threading;
 using System.IO;
 using System.Text;
 using System.Collections.Specialized;
+using System.Net;
 
 namespace JhipsterSampleApplication.Domain.Services;
 
@@ -403,4 +404,418 @@ private static RulesetDto MapToDto(Ruleset rr)
         };
         return await SearchUsingViewAsync(request, uncategorizedRequest);
     }
-} 
+
+    public async Task<string?> GetHtmlByIdAsync(string id)
+    {
+        var searchRequest = new SearchRequest<Birthday>
+        {
+            Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
+        };
+        var response = await SearchAsync(searchRequest, "");
+        if (!response.IsValid || !response.Documents.Any())
+        {
+            return null;
+        }
+        var birthday = response.Documents.First();
+        var fullName = ($"{birthday.Fname} {birthday.Lname}").Trim();
+        var wikipediaHtml = birthday.Wikipedia ?? string.Empty;
+        var title = string.IsNullOrWhiteSpace(fullName) ? "Birthday" : fullName;
+        var html = "<!doctype html>" +
+                   "<html><head>" +
+                   "<meta charset=\"utf-8\">" +
+                   "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
+                   "<base target=\"_blank\">" +
+                   "<title>" + WebUtility.HtmlEncode(title) + "</title>" +
+                   "<style>body{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial,\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111} .empty{color:#666}</style>" +
+                   "</head><body>" +
+                   (string.IsNullOrWhiteSpace(wikipediaHtml)
+                       ? ("<div class=\"empty\">No Wikipedia content available." + (string.IsNullOrWhiteSpace(fullName) ? string.Empty : (" for " + WebUtility.HtmlEncode(fullName))) + "</div>")
+                       : wikipediaHtml)
+                   + "</body></html>";
+        return html;
+    }
+
+    public async Task<object> Search(JObject elasticsearchQuery, int pageSize = 20, int from = 0, string? sort = null,
+        bool includeDetails = false, string? view = null, string? category = null, string? secondaryCategory = null,
+        string? pitId = null, string[]? searchAfter = null)
+    {
+        bool isHitFromViewDrilldown = false;
+        if (!string.IsNullOrEmpty(view))
+        {
+            var viewDto = await _viewService.GetByIdAsync(view);
+            if (viewDto == null)
+            {
+                throw new ArgumentException($"view '{view}' not found");
+            }
+            if (category == null)
+            {
+                if (secondaryCategory != null)
+                {
+                    throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
+                }
+                var viewResult = await SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, from, pageSize);
+                return new SearchResultDto<ViewResultDto> { Hits = viewResult, HitType = "view", ViewName = view };
+            }
+            if (category == "(Uncategorized)")
+            {
+                var baseField = (viewDto.Aggregation ?? string.Empty).Replace(".keyword", string.Empty);
+                var missingFilter = new JObject(
+                    new JProperty("bool", new JObject(
+                        new JProperty("should", new JArray(
+                            new JObject(
+                                new JProperty("bool", new JObject(
+                                    new JProperty("must_not", new JArray(
+                                        new JObject(
+                                            new JProperty("exists", new JObject(
+                                                new JProperty("field", baseField)
+                                            ))
+                                        )
+                                    ))
+                                ))
+                            ),
+                            new JObject(
+                                new JProperty("term", new JObject(
+                                    new JProperty(viewDto.Aggregation ?? string.Empty, "")
+                                ))
+                            )
+                        )),
+                        new JProperty("minimum_should_match", 1)
+                    ))
+                );
+                elasticsearchQuery = new JObject(
+                    new JProperty("bool", new JObject(
+                        new JProperty("must", new JArray(
+                            missingFilter,
+                            elasticsearchQuery
+                        ))
+                    ))
+                );
+            }
+            else
+            {
+                string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ? $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);
+                elasticsearchQuery = new JObject(
+                    new JProperty("bool", new JObject(
+                        new JProperty("must", new JArray(
+                            new JObject(
+                                new JProperty("query_string", new JObject(
+                                    new JProperty("query", categoryQuery)
+                                ))
+                            ),
+                            elasticsearchQuery
+                        ))
+                    ))
+                );
+            }
+            var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
+            if (secondaryViewDto != null)
+            {
+                if (secondaryCategory == null)
+                {
+                    var viewSecondaryResult = await SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, from, pageSize);
+                    return new SearchResultDto<ViewResultDto> { Hits = viewSecondaryResult, HitType = "view", ViewName = view, viewCategory = category };
+                }
+                if (secondaryCategory == "(Uncategorized)")
+                {
+                    isHitFromViewDrilldown = true;
+                    var secondaryBaseField = (secondaryViewDto.Aggregation ?? string.Empty).Replace(".keyword", string.Empty);
+                    var secondaryMissing = new JObject(
+                        new JProperty("bool", new JObject(
+                            new JProperty("should", new JArray(
+                                new JObject(
+                                    new JProperty("bool", new JObject(
+                                        new JProperty("must_not", new JArray(
+                                            new JObject(
+                                                new JProperty("exists", new JObject(
+                                                    new JProperty("field", secondaryBaseField)
+                                                ))
+                                            )
+                                        ))
+                                    ))
+                                ),
+                                new JObject(
+                                    new JProperty("term", new JObject(
+                                        new JProperty(secondaryViewDto.Aggregation ?? string.Empty, "")
+                                    ))
+                                )
+                            )),
+                            new JProperty("minimum_should_match", 1)
+                        ))
+                    );
+                    elasticsearchQuery = new JObject(
+                        new JProperty("bool", new JObject(
+                            new JProperty("must", new JArray(
+                                secondaryMissing,
+                                elasticsearchQuery
+                            ))
+                        ))
+                    );
+                }
+                else
+                {
+                    isHitFromViewDrilldown = true;
+                    string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ? $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
+                    elasticsearchQuery = new JObject(
+                        new JProperty("bool", new JObject(
+                            new JProperty("must", new JArray(
+                                new JObject(
+                                    new JProperty("query_string", new JObject(
+                                        new JProperty("query", secondaryCategoryQuery)
+                                    ))
+                                ),
+                                elasticsearchQuery
+                            ))
+                        ))
+                    );
+                }
+            }
+        }
+
+        var searchRequest = new SearchRequest<Birthday>
+        {
+            Size = pageSize,
+            From = from
+        };
+
+        if (searchAfter != null && searchAfter.Length > 0)
+        {
+            searchRequest.SearchAfter = searchAfter.Cast<object>().ToList();
+            searchRequest.From = null;
+        }
+
+        var sortDescriptor = new List<ISort>();
+        if (!string.IsNullOrEmpty(sort))
+        {
+            var sortParts = sort.Split(':');
+            if (sortParts.Length == 2)
+            {
+                var field = sortParts[0];
+                var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
+                sortDescriptor.Add(new FieldSort { Field = field, Order = order });
+            }
+        }
+        sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
+
+        searchRequest.Query = new QueryContainerDescriptor<Birthday>().Raw(elasticsearchQuery.ToString());
+        searchRequest.Sort = sortDescriptor;
+        var response = await SearchAsync(searchRequest, pitId);
+
+        var birthdayDtos = new List<BirthdayDto>();
+        foreach (var hit in response.Hits)
+        {
+            var b = hit.Source;
+            birthdayDtos.Add(new BirthdayDto
+            {
+                Id = b.Id!,
+                Lname = b.Lname,
+                Fname = b.Fname,
+                Sign = b.Sign,
+                Dob = b.Dob,
+                IsAlive = b.IsAlive,
+                Text = b.Text,
+                Wikipedia = includeDetails ? b.Wikipedia : null,
+                Categories = b.Categories
+            });
+        }
+        List<object>? searchAfterResponse = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null;
+        var hitType = isHitFromViewDrilldown ? "hit" : "birthday";
+        return new SearchResultDto<BirthdayDto>
+        {
+            Hits = birthdayDtos,
+            TotalHits = response.Total,
+            HitType = hitType,
+            PitId = searchRequest.PointInTime?.Id,
+            searchAfter = searchAfterResponse
+        };
+    }
+
+    public async Task<BirthdayDto?> GetByIdAsync(string id, bool includeDetails = false)
+    {
+        var searchRequest = new SearchRequest<Birthday>
+        {
+            Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
+        };
+        var response = await SearchAsync(searchRequest, "");
+        if (!response.IsValid || !response.Documents.Any())
+        {
+            return null;
+        }
+        var birthday = response.Documents.First();
+        var dto = new BirthdayDto
+        {
+            Id = id,
+            Text = birthday.Text,
+            Lname = birthday.Lname,
+            Fname = birthday.Fname,
+            Sign = birthday.Sign,
+            Dob = birthday.Dob,
+            IsAlive = birthday.IsAlive ?? false,
+            Wikipedia = includeDetails ? birthday.Wikipedia : null,
+            Categories = birthday.Categories
+        };
+        return dto;
+    }
+
+    public async Task<SimpleApiResponse> CategorizeAsync(CategorizeRequestDto request)
+    {
+        var searchRequest = new SearchRequest<Birthday>
+        {
+            Query = new QueryContainerDescriptor<Birthday>().Terms(t => t.Field("_id").Terms(request.Ids))
+        };
+        var response = await SearchAsync(searchRequest, "");
+        if (!response.IsValid)
+        {
+            return new SimpleApiResponse { Success = false, Message = "Failed to search for birthdays" };
+        }
+        var successCount = 0;
+        var errorCount = 0;
+        var errorMessages = new List<string>();
+
+        foreach (var birthday in response.Documents)
+        {
+            try
+            {
+                if (request.RemoveCategory)
+                {
+                    if (birthday.Categories != null)
+                    {
+                        var categoryToRemove = birthday.Categories.FirstOrDefault(c => string.Equals(c, request.Category, StringComparison.OrdinalIgnoreCase));
+                        if (categoryToRemove != null)
+                        {
+                            birthday.Categories.Remove(categoryToRemove);
+                            var updateResponse = await UpdateAsync(birthday.Id!, birthday);
+                            if (updateResponse.IsValid)
+                            {
+                                successCount++;
+                            }
+                            else
+                            {
+                                errorCount++;
+                                errorMessages.Add($"Failed to update birthday {birthday.Id}: {updateResponse.DebugInformation}");
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (birthday.Categories == null)
+                    {
+                        birthday.Categories = new List<string>();
+                    }
+                    if (!birthday.Categories.Any(c => string.Equals(c, request.Category, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        birthday.Categories.Add(request.Category);
+                        var updateResponse = await UpdateAsync(birthday.Id!, birthday);
+                        if (updateResponse.IsValid)
+                        {
+                            successCount++;
+                        }
+                        else
+                        {
+                            errorCount++;
+                            errorMessages.Add($"Failed to update birthday {birthday.Id}: {updateResponse.DebugInformation}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                errorCount++;
+                errorMessages.Add($"Error processing birthday {birthday.Id}: {ex.Message}");
+            }
+        }
+
+        var message = $"Processed {request.Ids.Count} birthdays. Success: {successCount}, Errors: {errorCount}";
+        if (errorMessages.Any())
+        {
+            message += $". Error details: {string.Join("; ", errorMessages)}";
+        }
+        return new SimpleApiResponse
+        {
+            Success = errorCount == 0,
+            Message = message
+        };
+    }
+
+    public async Task<SimpleApiResponse> CategorizeMultipleAsync(CategorizeMultipleRequestDto request)
+    {
+        var toAdd = (request.Add ?? new List<string>())
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var toRemove = (request.Remove ?? new List<string>())
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (!toAdd.Any() && !toRemove.Any())
+        {
+            return new SimpleApiResponse { Success = false, Message = "Nothing to add or remove" };
+        }
+
+        var searchRequest = new SearchRequest<Birthday>
+        {
+            Query = new QueryContainerDescriptor<Birthday>().Terms(t => t.Field("_id").Terms(request.Rows))
+        };
+        var response = await SearchAsync(searchRequest, "");
+        if (!response.IsValid)
+        {
+            return new SimpleApiResponse { Success = false, Message = "Failed to search for birthdays" };
+        }
+
+        var successCount = 0;
+        var errorCount = 0;
+        var errorMessages = new List<string>();
+
+        foreach (var birthday in response.Documents)
+        {
+            try
+            {
+                var current = birthday.Categories ?? new List<string>();
+                if (toRemove.Any() && current.Any())
+                {
+                    current = current.Where(c => !toRemove.Any(r => string.Equals(c, r, StringComparison.OrdinalIgnoreCase))).ToList();
+                }
+
+                foreach (var add in toAdd)
+                {
+                    if (!current.Any(c => string.Equals(c, add, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        current.Add(add);
+                    }
+                }
+
+                birthday.Categories = current;
+                var updateResponse = await UpdateAsync(birthday.Id!, birthday);
+                if (updateResponse.IsValid)
+                {
+                    successCount++;
+                }
+                else
+                {
+                    errorCount++;
+                    errorMessages.Add($"Failed to update birthday {birthday.Id}: {updateResponse.DebugInformation}");
+                }
+            }
+            catch (Exception ex)
+            {
+                errorCount++;
+                errorMessages.Add($"Error processing birthday {birthday.Id}: {ex.Message}");
+            }
+        }
+
+        var message = $"Processed {request.Rows.Count} birthdays. Success: {successCount}, Errors: {errorCount}";
+        if (errorMessages.Any())
+        {
+            message += $". Error details: {string.Join("; ", errorMessages)}";
+        }
+
+        return new SimpleApiResponse
+        {
+            Success = errorCount == 0,
+            Message = message
+        };
+    }
+}
