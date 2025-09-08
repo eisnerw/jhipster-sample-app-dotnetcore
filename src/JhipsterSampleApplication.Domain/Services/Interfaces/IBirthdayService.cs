@@ -7,7 +7,7 @@ using JhipsterSampleApplication.Dto;
 
 namespace JhipsterSampleApplication.Domain.Services.Interfaces
 {
-    public interface IBirthdayService : IGenericElasticSearchService<Birthday>
+    public interface IBirthdayService : IEntityService<Birthday>
     {
         Task<string?> GetHtmlByIdAsync(string id);
         Task<object> Search(JObject elasticsearchQuery, int pageSize = 20, int from = 0, string? sort = null,

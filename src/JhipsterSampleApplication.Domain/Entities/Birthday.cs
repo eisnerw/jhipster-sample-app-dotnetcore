@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 namespace JhipsterSampleApplication.Domain.Entities
 {
     [Table("birthday")]
-    public class Birthday : BaseEntity<string>
+    public class Birthday : CategorizedEntity<string>
     {
         public string? Lname { get; set; }
         public string? Fname { get; set; }
@@ -16,7 +16,6 @@ namespace JhipsterSampleApplication.Domain.Entities
         public bool? IsAlive { get; set; }
         public string? Text { get; set; }
         public string? Wikipedia { get; set; }
-        public List<string> Categories { get; set; } = new List<string>();
 
         // jhipster-needle-entity-add-field - JHipster will add fields here, do not remove
 

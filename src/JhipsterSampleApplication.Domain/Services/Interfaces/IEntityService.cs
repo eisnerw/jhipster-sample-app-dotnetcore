@@ -7,7 +7,7 @@ using JhipsterSampleApplication.Dto;
 
 namespace JhipsterSampleApplication.Domain.Services.Interfaces
 {
-    public interface IGenericElasticSearchService<T> where T : class
+    public interface IEntityService<T> where T : class
     {
         Task<ISearchResponse<T>> SearchAsync(ISearchRequest request, string? pitId = null);
         Task<IndexResponse> IndexAsync(T document);
@@ -20,7 +20,7 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
         Task<List<ViewResultDto>> SearchUsingViewAsync(ISearchRequest request, ISearchRequest uncategorizedRequest);
     }
 
-    public interface IGenericElasticSearchService : IGenericElasticSearchService<Birthday>
+    public interface IEntityService : IEntityService<Birthday>
     {
     }
 } 
