@@ -284,3 +284,26 @@ docker compose -f .\docker\app.yml up
 [Leaflet]: https://leafletjs.com/
 [DefinitelyTyped]: https://definitelytyped.org/
 [Angular CLI]: https://cli.angular.io/
+## UI Artifacts + Playwright Helpers
+
+To keep UI test captures organized and out of git, this repo includes small helper scripts that save screenshots and JSON into `artifacts/` (already ignored by `.gitignore`).
+
+What’s included
+- `scripts/artifacts.sh`: Moves any `*.png` / `*.json` outputs into `artifacts/`. Can run a command in a temp dir and collect its outputs.
+- `scripts/examples/playwright-supreme.js`: Example Playwright flow (login → Supreme → filter an exact query → expand detail, saving screenshots and a detail JSON when applicable).
+- `scripts/run-playwright-supreme.sh`: One‑liner wrapper that runs the example and stores artifacts via `artifacts.sh`.
+
+Usage
+- Default run (BASE_URL defaults to `http://localhost:5000`):
+  - `scripts/run-playwright-supreme.sh`
+- With a prefix for filenames:
+  - `scripts/run-playwright-supreme.sh --prefix demo`
+- Override environment:
+  - `QUERY='"Mark R. Freeman"' BASE_URL=http://localhost:5000 USERNAME=admin PASSWORD=admin scripts/run-playwright-supreme.sh`
+
+Outputs
+- Saved under `artifacts/` with your prefix, for example: `demo-home.png`, `demo-login.png`, `demo-supreme.png`, `demo-typed.png`, `demo-filtered.png`, and sometimes `detail.json`.
+
+Notes
+- `artifacts/` and internal `.code/` logs are ignored by git (see `.gitignore`).
+- The runner installs Playwright in a temporary workspace each time, so the repo doesn’t carry Node dependencies.

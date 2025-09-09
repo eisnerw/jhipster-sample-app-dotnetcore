@@ -132,6 +132,15 @@ Desktop.ini
 .merge_file*
 
 ######################
+# Local Artifacts (screenshots, scraped logs, exec-call dumps)
+######################
+# Central place for temporary run artifacts
+artifacts/
+
+# Internal agent logs from this tooling
+.code/
+
+######################
 # Gradle Wrapper
 ######################
 !gradle/wrapper/gradle-wrapper.jar
