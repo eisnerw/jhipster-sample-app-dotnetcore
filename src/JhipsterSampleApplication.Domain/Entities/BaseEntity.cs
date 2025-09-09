@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace JhipsterSampleApplication.Domain.Entities;
 
-public class BaseEntity<TKey>
+public abstract class BaseEntity<TKey>
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

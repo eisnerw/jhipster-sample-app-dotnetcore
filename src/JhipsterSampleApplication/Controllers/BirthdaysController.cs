@@ -273,7 +273,7 @@ namespace JhipsterSampleApplication.Controllers
                 Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
             };
             
-            var existingResponse = await _birthdayService.SearchAsync(searchRequest, "");
+            var existingResponse = await _birthdayService.SearchAsync(searchRequest, includeDetails: true, "");
             if (!existingResponse.IsValid || !existingResponse.Documents.Any())
             {
                 return NotFound($"Document with ID {id} not found");

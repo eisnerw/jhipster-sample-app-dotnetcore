@@ -26,6 +26,7 @@ public class EntityService<T> : IEntityService<T> where T : class
 {
     private readonly IElasticClient _elasticClient;
     private readonly string _indexName = "";
+    private readonly string _detailFields = "";
     private readonly IBqlService<T> _bqlService;
     private readonly IViewService _viewService;
 
@@ -35,9 +36,10 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// <param name="elasticClient">The Elasticsearch client</param>
     /// <param name="bqlService">The BQL service</param>
     /// <param name="viewService">The View service</param>
-    public EntityService(string indexName, IElasticClient elasticClient, IBqlService<T> bqlService, IViewService viewService)
+    public EntityService(string indexName, string detailFields, IElasticClient elasticClient, IBqlService<T> bqlService, IViewService viewService)
     {
         _indexName = indexName ?? throw new ArgumentNullException(nameof(indexName));
+        _detailFields = detailFields ?? throw new ArgumentNullException(nameof(detailFields));
         _elasticClient = elasticClient ?? throw new ArgumentNullException(nameof(elasticClient));
         _bqlService = bqlService ?? throw new ArgumentNullException(nameof(bqlService));
         _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
@@ -48,8 +50,12 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// </summary>
     /// <param name="request">The search request to execute</param>
     /// <returns>The search response containing Birthday documents</returns>
-    public async Task<ISearchResponse<T>> SearchAsync(ISearchRequest request, string? pitId = null) 
-    {
+    public async Task<ISearchResponse<T>> SearchAsync(ISearchRequest request, bool includeDetails, string? pitId = null) 
+    {            
+        if (!includeDetails)
+        {
+            request.Source = new SourceFilter { Excludes = _detailFields.Split(',') };
+        }
         if (pitId == null)
         {
             var pitResponse = await _elasticClient.OpenPointInTimeAsync(new OpenPointInTimeRequest(_indexName)
@@ -89,8 +95,8 @@ public class EntityService<T> : IEntityService<T> where T : class
             {
                 if (hit.Source != null)
                 {
-                    var source = hit.Source as CategorizedEntity<string>;
-                    source!.Id = hit.Id;
+                    var source = (CategorizedEntity<string>)(object)hit.Source;
+                    source.Id = hit.Id;
                 }
             }
         }
@@ -291,7 +297,7 @@ public class EntityService<T> : IEntityService<T> where T : class
             };
         }
 
-        return await SearchAsync(searchRequest);     
+        return await SearchAsync(searchRequest, false);     
     }
 
     /// <summary>
@@ -414,7 +420,7 @@ private static RulesetDto MapToDto(Ruleset rr)
         {
             Query = new QueryContainerDescriptor<T>().Terms(t => t.Field("_id").Terms(request.Ids))
         };
-        var response = await SearchAsync(searchRequest, "");
+        var response = await SearchAsync(searchRequest, true, "");
         if (!response.IsValid)
         {
             return new SimpleApiResponse { Success = false, Message = "Failed to search for the entities" };
@@ -512,7 +518,7 @@ private static RulesetDto MapToDto(Ruleset rr)
         {
             Query = new QueryContainerDescriptor<T>().Terms(t => t.Field("_id").Terms(request.Rows))
         };
-        var response = await SearchAsync(searchRequest, "");
+        var response = await SearchAsync(searchRequest, true, "");
         if (!response.IsValid)
         {
             return new SimpleApiResponse { Success = false, Message = "Failed to search for birthdays" };

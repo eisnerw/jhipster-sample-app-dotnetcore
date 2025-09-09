@@ -14,7 +14,5 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
             bool includeDetails = false, string? view = null, string? category = null,
             string? secondaryCategory = null, string? pitId = null, string[]? searchAfter = null);
         Task<BirthdayDto?> GetByIdAsync(string id, bool includeDetails = false);
-        Task<SimpleApiResponse> CategorizeAsync(CategorizeRequestDto request);
-        Task<SimpleApiResponse> CategorizeMultipleAsync(CategorizeMultipleRequestDto request);
     }
 }

@@ -6,7 +6,7 @@ using Nest;
 namespace JhipsterSampleApplication.Domain.Entities
 {
     [Table("movies")]
-    public class Movie : BaseEntity<string>
+    public class Movie : CategorizedEntity<string>
     {
         public string? Title { get; set; }
         [PropertyName("release_year")] public int? ReleaseYear { get; set; }
@@ -23,7 +23,6 @@ namespace JhipsterSampleApplication.Domain.Entities
         [PropertyName("rotten_tomatoes_score")] public int? RottenTomatoesScore { get; set; }
         public string? Summary { get; set; }
         public string? Synopsis { get; set; }
-        [PropertyName("categories")] public List<string> Categories { get; set; } = new List<string>();
 
         public override bool Equals(object? obj)
         {

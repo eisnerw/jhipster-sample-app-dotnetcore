@@ -66,7 +66,7 @@ namespace JhipsterSampleApplication.Controllers
                                 Query = new QueryContainerDescriptor<Supreme>().Term(t => t.Field("_id").Value(id))
                         };
 
-                        var response = await _supremeService.SearchAsync(searchRequest);
+                        var response = await _supremeService.SearchAsync(searchRequest, false);
                         if (!response.IsValid || !response.Documents.Any())
                         {
                                 return NotFound();
@@ -440,7 +440,7 @@ namespace JhipsterSampleApplication.Controllers
 
 			searchRequest.Query = new QueryContainerDescriptor<Supreme>().Raw(elasticsearchQuery.ToString());
 			searchRequest.Sort = sortDescriptor;
-			var response = await _supremeService.SearchAsync(searchRequest, pitId);
+			var response = await _supremeService.SearchAsync(searchRequest, includeDetails, pitId);
 
 			var supremeDtos = new List<object>();
 			foreach (var hit in response.Hits)
@@ -519,7 +519,7 @@ namespace JhipsterSampleApplication.Controllers
                                 }
                         };
 
-                        var response = await _supremeService.SearchAsync(searchRequest, "");
+                        var response = await _supremeService.SearchAsync(searchRequest, includeDetails: true, "");
                         if (!response.IsValid || !response.Documents.Any())
                         {
                                 return NotFound();
@@ -612,7 +612,7 @@ namespace JhipsterSampleApplication.Controllers
                                 Query = new QueryContainerDescriptor<Supreme>().Term(t => t.Field("_id").Value(id))
                         };
 
-                        var existing = await _supremeService.SearchAsync(searchRequest, "");
+                        var existing = await _supremeService.SearchAsync(searchRequest, includeDetails: true, "");
                         if (!existing.IsValid || !existing.Documents.Any())
                         {
                                 return NotFound($"Document with ID {id} not found");
@@ -781,7 +781,7 @@ namespace JhipsterSampleApplication.Controllers
                                 Query = new QueryContainerDescriptor<Supreme>().Terms(t => t.Field("_id").Terms(request.Ids))
                         };
 
-                        var response = await _supremeService.SearchAsync(searchRequest, "");
+                        var response = await _supremeService.SearchAsync(searchRequest, includeDetails: true, "");
                         if (!response.IsValid)
                         {
                                 return BadRequest("Failed to search for supremes");
@@ -889,7 +889,7 @@ namespace JhipsterSampleApplication.Controllers
                                 Query = new QueryContainerDescriptor<Supreme>().Terms(t => t.Field("_id").Terms(request.Rows))
                         };
 
-                        var response = await _supremeService.SearchAsync(searchRequest, "");
+                        var response = await _supremeService.SearchAsync(searchRequest, includeDetails: true, "");
                         if (!response.IsValid)
                         {
                                 return BadRequest("Failed to search for supremes");

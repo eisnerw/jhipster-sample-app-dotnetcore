@@ -24,7 +24,6 @@ namespace JhipsterSampleApplication.Domain.Services;
 public class BirthdayService : EntityService<Birthday>, IBirthdayService
 {
     private readonly IElasticClient _elasticClient;
-    private const string IndexName = "birthdays";
     private readonly IBqlService<Birthday> _bqlService;
     private readonly IViewService _viewService;
 
@@ -35,35 +34,34 @@ public class BirthdayService : EntityService<Birthday>, IBirthdayService
     /// <param name="bqlService">The BQL service</param>
     /// <param name="viewService">The View service</param>
     public BirthdayService(IElasticClient elasticClient, IBqlService<Birthday> bqlService, IViewService viewService)
-    : base("birthdays", elasticClient, bqlService, viewService)
+    : base("birthdays", "wikipedia", elasticClient, bqlService, viewService)
     {
         _elasticClient = elasticClient ?? throw new ArgumentNullException(nameof(elasticClient));
         _bqlService = bqlService ?? throw new ArgumentNullException(nameof(bqlService));
         _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
     }
 
-
-private static bool ValidateRuleset(Ruleset rr)
-{
-    if (rr.rules == null || rr.rules.Count == 0)
+    private static bool ValidateRuleset(Ruleset rr)
     {
-        return !string.IsNullOrWhiteSpace(rr.field);
+        if (rr.rules == null || rr.rules.Count == 0)
+        {
+            return !string.IsNullOrWhiteSpace(rr.field);
+        }
+        return rr.rules.All(ValidateRuleset);
     }
-    return rr.rules.All(ValidateRuleset);
-}
 
-private static RulesetDto MapToDto(Ruleset rr)
-{
-    return new RulesetDto
+    private static RulesetDto MapToDto(Ruleset rr)
     {
-        field = rr.field,
-        @operator = rr.@operator,
-        value = rr.value,
-        condition = rr.condition,
-        @not = rr.@not,
-        rules = rr.rules?.Select(MapToDto).ToList() ?? new List<RulesetDto>()
-    };
-}
+        return new RulesetDto
+        {
+            field = rr.field,
+            @operator = rr.@operator,
+            value = rr.value,
+            condition = rr.condition,
+            @not = rr.@not,
+            rules = rr.rules?.Select(MapToDto).ToList() ?? new List<RulesetDto>()
+        };
+    }
 
     public async Task<string?> GetHtmlByIdAsync(string id)
     {
@@ -71,7 +69,7 @@ private static RulesetDto MapToDto(Ruleset rr)
         {
             Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
         };
-        var response = await SearchAsync(searchRequest, "");
+        var response = await SearchAsync(searchRequest, includeDetails: true, "");
         if (!response.IsValid || !response.Documents.Any())
         {
             return null;
@@ -258,7 +256,7 @@ private static RulesetDto MapToDto(Ruleset rr)
 
         searchRequest.Query = new QueryContainerDescriptor<Birthday>().Raw(elasticsearchQuery.ToString());
         searchRequest.Sort = sortDescriptor;
-        var response = await SearchAsync(searchRequest, pitId);
+        var response = await SearchAsync(searchRequest, includeDetails, pitId);
 
         var birthdayDtos = new List<BirthdayDto>();
         foreach (var hit in response.Hits)
@@ -295,7 +293,7 @@ private static RulesetDto MapToDto(Ruleset rr)
         {
             Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
         };
-        var response = await SearchAsync(searchRequest, "");
+        var response = await SearchAsync(searchRequest, includeDetails: true, "");
         if (!response.IsValid || !response.Documents.Any())
         {
             return null;

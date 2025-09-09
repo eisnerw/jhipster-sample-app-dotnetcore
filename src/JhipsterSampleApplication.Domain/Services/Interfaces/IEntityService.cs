@@ -9,7 +9,7 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
 {
     public interface IEntityService<T> where T : class
     {
-        Task<ISearchResponse<T>> SearchAsync(ISearchRequest request, string? pitId = null);
+        Task<ISearchResponse<T>> SearchAsync(ISearchRequest request, bool includeDetails, string? pitId = null);
         Task<IndexResponse> IndexAsync(T document);
         Task<UpdateResponse<T>> UpdateAsync(string id, T document);
         Task<DeleteResponse> DeleteAsync(string id);
@@ -18,6 +18,8 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
         Task<JObject> ConvertRulesetToElasticSearch(Ruleset rr);
         Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(JObject queryObject, ViewDto view, int size = 20, int from = 0, IList<ISort>? sort = null);
         Task<List<ViewResultDto>> SearchUsingViewAsync(ISearchRequest request, ISearchRequest uncategorizedRequest);
+        Task<SimpleApiResponse> CategorizeAsync(CategorizeRequestDto request);
+        Task<SimpleApiResponse> CategorizeMultipleAsync(CategorizeMultipleRequestDto request);
     }
 
     public interface IEntityService : IEntityService<Birthday>
