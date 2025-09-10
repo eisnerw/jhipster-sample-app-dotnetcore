@@ -776,86 +776,8 @@ namespace JhipsterSampleApplication.Controllers
                                 return BadRequest("Category cannot be empty");
                         }
 
-                        var searchRequest = new SearchRequest<Supreme>
-                        {
-                                Query = new QueryContainerDescriptor<Supreme>().Terms(t => t.Field("_id").Terms(request.Ids))
-                        };
-
-                        var response = await _supremeService.SearchAsync(searchRequest, includeDetails: true, "");
-                        if (!response.IsValid)
-                        {
-                                return BadRequest("Failed to search for supremes");
-                        }
-
-                        var successCount = 0;
-                        var errorCount = 0;
-                        var errorMessages = new List<string>();
-
-                        foreach (var supreme in response.Documents)
-                        {
-                                try
-                                {
-                                        if (request.RemoveCategory)
-                                        {
-                                                if (supreme.Categories != null)
-                                                {
-                                                        var toRemove = supreme.Categories.FirstOrDefault(c => string.Equals(c, request.Category, StringComparison.OrdinalIgnoreCase));
-                                                        if (toRemove != null)
-                                                        {
-                                                                supreme.Categories.Remove(toRemove);
-                                                                var updateResponse = await _supremeService.UpdateAsync(supreme.Id!, supreme);
-                                                                if (updateResponse.IsValid)
-                                                                {
-                                                                        successCount++;
-                                                                }
-                                                                else
-                                                                {
-                                                                        errorCount++;
-                                                                        errorMessages.Add($"Failed to update supreme {supreme.Id}: {updateResponse.DebugInformation}");
-                                                                }
-                                                        }
-                                                }
-                                        }
-                                        else
-                                        {
-                                                if (supreme.Categories == null)
-                                                {
-                                                        supreme.Categories = new List<string>();
-                                                }
-                                                if (!supreme.Categories.Any(c => string.Equals(c, request.Category, StringComparison.OrdinalIgnoreCase)))
-                                                {
-                                                        supreme.Categories.Add(request.Category);
-                                                        var updateResponse = await _supremeService.UpdateAsync(supreme.Id!, supreme);
-                                                        if (updateResponse.IsValid)
-                                                        {
-                                                                successCount++;
-                                                        }
-                                                        else
-                                                        {
-                                                                errorCount++;
-                                                                errorMessages.Add($"Failed to update supreme {supreme.Id}: {updateResponse.DebugInformation}");
-                                                        }
-                                                }
-                                        }
-                                }
-                                catch (Exception ex)
-                                {
-                                        errorCount++;
-                                        errorMessages.Add($"Error processing supreme {supreme.Id}: {ex.Message}");
-                                }
-                        }
-
-                        var message = $"Processed {request.Ids.Count} supremes. Success: {successCount}, Errors: {errorCount}";
-                        if (errorMessages.Any())
-                        {
-                                message += $". Error details: {string.Join("; ", errorMessages)}";
-                        }
-
-                        return Ok(new SimpleApiResponse
-                        {
-                                Success = errorCount == 0,
-                                Message = message
-                        });
+                        var result = await _supremeService.CategorizeAsync(request);
+                        return Ok(result);
                 }
 
                 [HttpPost("categorize-multiple")]
@@ -868,86 +790,8 @@ namespace JhipsterSampleApplication.Controllers
                                 return BadRequest("At least one row ID must be provided");
                         }
 
-                        var toAdd = (request.Add ?? new List<string>())
-                                .Where(s => !string.IsNullOrWhiteSpace(s))
-                                .Select(s => s.Trim())
-                                .Distinct(StringComparer.OrdinalIgnoreCase)
-                                .ToList();
-                        var toRemove = (request.Remove ?? new List<string>())
-                                .Where(s => !string.IsNullOrWhiteSpace(s))
-                                .Select(s => s.Trim())
-                                .Distinct(StringComparer.OrdinalIgnoreCase)
-                                .ToList();
-
-                        if (!toAdd.Any() && !toRemove.Any())
-                        {
-                                return BadRequest("Nothing to add or remove");
-                        }
-
-                        var searchRequest = new SearchRequest<Supreme>
-                        {
-                                Query = new QueryContainerDescriptor<Supreme>().Terms(t => t.Field("_id").Terms(request.Rows))
-                        };
-
-                        var response = await _supremeService.SearchAsync(searchRequest, includeDetails: true, "");
-                        if (!response.IsValid)
-                        {
-                                return BadRequest("Failed to search for supremes");
-                        }
-
-                        var successCount = 0;
-                        var errorCount = 0;
-                        var errorMessages = new List<string>();
-
-                        foreach (var supreme in response.Documents)
-                        {
-                                try
-                                {
-                                        var current = supreme.Categories ?? new List<string>();
-
-                                        if (toRemove.Any() && current.Any())
-                                        {
-                                                current = current.Where(c => !toRemove.Any(r => string.Equals(c, r, StringComparison.OrdinalIgnoreCase))).ToList();
-                                        }
-
-                                        foreach (var add in toAdd)
-                                        {
-                                                if (!current.Any(c => string.Equals(c, add, StringComparison.OrdinalIgnoreCase)))
-                                                {
-                                                        current.Add(add);
-                                                }
-                                        }
-
-                                        supreme.Categories = current;
-                                        var updateResponse = await _supremeService.UpdateAsync(supreme.Id!, supreme);
-                                        if (updateResponse.IsValid)
-                                        {
-                                                successCount++;
-                                        }
-                                        else
-                                        {
-                                                errorCount++;
-                                                errorMessages.Add($"Failed to update supreme {supreme.Id}: {updateResponse.DebugInformation}");
-                                        }
-                                }
-                                catch (Exception ex)
-                                {
-                                        errorCount++;
-                                        errorMessages.Add($"Error processing supreme {supreme.Id}: {ex.Message}");
-                                }
-                        }
-
-                        var message = $"Processed {request.Rows.Count} supremes. Success: {successCount}, Errors: {errorCount}";
-                        if (errorMessages.Any())
-                        {
-                                message += $". Error details: {string.Join("; ", errorMessages)}";
-                        }
-
-                        return Ok(new SimpleApiResponse
-                        {
-                                Success = errorCount == 0,
-                                Message = message
-                        });
+                        var result = await _supremeService.CategorizeMultipleAsync(request);
+                        return Ok(result);
                 }
         }
 }

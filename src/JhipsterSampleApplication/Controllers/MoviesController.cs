@@ -448,83 +448,8 @@ namespace JhipsterSampleApplication.Controllers
                 return BadRequest("Category cannot be empty");
             }
 
-            var searchRequest = new SearchRequest<Movie>
-            {
-                Query = new QueryContainerDescriptor<Movie>().Terms(t => t.Field("_id").Terms(request.Ids))
-            };
-
-            var response = await _movieService.SearchAsync(searchRequest, false);
-            if (!response.IsValid)
-            {
-                return BadRequest("Failed to search for movies");
-            }
-
-            var successCount = 0;
-            var errorCount = 0;
-            var errorMessages = new List<string>();
-
-            foreach (var movie in response.Documents)
-            {
-                try
-                {
-                    if (request.RemoveCategory)
-                    {
-                        if (movie.Categories != null)
-                        {
-                            var cat = movie.Categories.FirstOrDefault(c => string.Equals(c, request.Category, StringComparison.OrdinalIgnoreCase));
-                            if (cat != null)
-                            {
-                                movie.Categories.Remove(cat);
-                                var updateResponse = await _movieService.UpdateAsync(movie.Id!, movie);
-                                if (updateResponse.IsValid)
-                                {
-                                    successCount++;
-                                }
-                                else
-                                {
-                                    errorCount++;
-                                    errorMessages.Add($"Failed to update movie {movie.Id}: {updateResponse.DebugInformation}");
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        movie.Categories ??= new List<string>();
-                        if (!movie.Categories.Any(c => string.Equals(c, request.Category, StringComparison.OrdinalIgnoreCase)))
-                        {
-                            movie.Categories.Add(request.Category);
-                            var updateResponse = await _movieService.UpdateAsync(movie.Id!, movie);
-                            if (updateResponse.IsValid)
-                            {
-                                successCount++;
-                            }
-                            else
-                            {
-                                errorCount++;
-                                errorMessages.Add($"Failed to update movie {movie.Id}: {updateResponse.DebugInformation}");
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    errorCount++;
-                    errorMessages.Add($"Error processing movie {movie.Id}: {ex.Message}");
-                }
-            }
-
-            var message = $"Processed {request.Ids.Count} movies. Success: {successCount}, Errors: {errorCount}";
-            if (errorMessages.Any())
-            {
-                message += $". Error details: {string.Join("; ", errorMessages)}";
-            }
-
-            return Ok(new SimpleApiResponse
-            {
-                Success = errorCount == 0,
-                Message = message
-            });
+            var result = await _movieService.CategorizeAsync(request);
+            return Ok(result);
         }
 
         [HttpPost("categorize-multiple")]
@@ -536,87 +461,8 @@ namespace JhipsterSampleApplication.Controllers
                 return BadRequest("At least one row ID must be provided");
             }
 
-            var toAdd = (request.Add ?? new List<string>())
-                .Where(s => !string.IsNullOrWhiteSpace(s))
-                .Select(s => s.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            var toRemove = (request.Remove ?? new List<string>())
-                .Where(s => !string.IsNullOrWhiteSpace(s))
-                .Select(s => s.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            if (!toAdd.Any() && !toRemove.Any())
-            {
-                return BadRequest("Nothing to add or remove");
-            }
-
-            var searchRequest = new SearchRequest<Movie>
-            {
-                Query = new QueryContainerDescriptor<Movie>().Terms(t => t.Field("_id").Terms(request.Rows))
-            };
-
-            var response = await _movieService.SearchAsync(searchRequest, false);
-            if (!response.IsValid)
-            {
-                return BadRequest("Failed to search for movies");
-            }
-
-            var successCount = 0;
-            var errorCount = 0;
-            var errorMessages = new List<string>();
-
-            foreach (var movie in response.Documents)
-            {
-                try
-                {
-                    var current = movie.Categories ?? new List<string>();
-
-                    if (toRemove.Any() && current.Any())
-                    {
-                        current = current.Where(c => !toRemove.Any(r => string.Equals(c, r, StringComparison.OrdinalIgnoreCase))).ToList();
-                    }
-
-                    foreach (var add in toAdd)
-                    {
-                        if (!current.Any(c => string.Equals(c, add, StringComparison.OrdinalIgnoreCase)))
-                        {
-                            current.Add(add);
-                        }
-                    }
-
-                    movie.Categories = current;
-                    var updateResponse = await _movieService.UpdateAsync(movie.Id!, movie);
-                    if (updateResponse.IsValid)
-                    {
-                        successCount++;
-                    }
-                    else
-                    {
-                        errorCount++;
-                        errorMessages.Add($"Failed to update movie {movie.Id}: {updateResponse.DebugInformation}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    errorCount++;
-                    errorMessages.Add($"Error processing movie {movie.Id}: {ex.Message}");
-                }
-            }
-
-            var message = $"Processed {request.Rows.Count} movies. Success: {successCount}, Errors: {errorCount}";
-            if (errorMessages.Any())
-            {
-                message += $". Error details: {string.Join("; ", errorMessages)}";
-            }
-
-            return Ok(new SimpleApiResponse
-            {
-                Success = errorCount == 0,
-                Message = message
-            });
+            var result = await _movieService.CategorizeMultipleAsync(request);
+            return Ok(result);
         }
 
         [HttpGet("unique-values/{field}")]
