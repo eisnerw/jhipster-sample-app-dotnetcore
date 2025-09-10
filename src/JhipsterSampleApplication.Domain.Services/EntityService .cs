@@ -109,51 +109,78 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// </summary>
     /// <param name="request">The aggregation request to execute</param>
     /// <returns>The search response containing ViewResults</returns>
-    public async Task<List<ViewResultDto>> SearchUsingViewAsync(ISearchRequest request, ISearchRequest uncategorizedRequest)
+    public async Task<List<ViewResultDto>> SearchUsingViewAsync(string query, ViewDto viewDto, int from, int size)
     {
         List<ViewResultDto> content = new();
-        var result = await _elasticClient.SearchAsync<Aggregation>(request);
-        // DEBUG var curl = ToCurl(_elasticClient, result, request);  // inspect `curl` in debugger
-        // DEBUG System.Console.WriteLine(curl);
-        var aggList = result.Aggregations?.ToList();
-        if (aggList == null || aggList.Count == 0)
+
+        // Primary aggregation over the selected view
+        var searchAggResponse = await _elasticClient.SearchAsync<T>(s =>
+            s.Index(_indexName)
+             .From(from)
+             .Size(0)
+             .Query(q => q.Raw(query))
+             .Aggregations(a => a
+                .Terms("distinct", t =>
+                    string.IsNullOrEmpty(viewDto.Script)
+                        ? t.Field(viewDto.Aggregation).Size(10000)
+                        : t.Script(ss => ss.Source(viewDto.Script)).Size(10000)
+                ))
+        );
+
+        var bucketAggregate = searchAggResponse.Aggregations["distinct"] as BucketAggregate;
+        if (bucketAggregate != null)
         {
-            return content;
-        }
-        var bucketAggregate = aggList[0].Value as BucketAggregate;
-        if (bucketAggregate == null)
-        {
-            return content;
-        }
-        foreach (var it in bucketAggregate.Items.OfType<KeyedBucket<object>>())
-        {
-            string categoryName = it.KeyAsString ?? (it.Key?.ToString() ?? string.Empty);
-            bool notCategorized = false;
-            if (Regex.IsMatch(categoryName, @"\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z"))
+            foreach (var it in bucketAggregate.Items.OfType<KeyedBucket<object>>())
             {
-                categoryName = Regex.Replace(categoryName, @"(\d{4,4})-(\d{2,2})-(\d{2,2})T\d{2,2}:\d{2,2}:\d{2,2}.\d{3,3}Z", "$1-$2-$3");
+                string categoryName = it.KeyAsString ?? (it.Key?.ToString() ?? string.Empty);
+                bool notCategorized = false;
+                if (Regex.IsMatch(categoryName, @"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z"))
+                {
+                    categoryName = Regex.Replace(categoryName, @"(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}.\d{3}Z", "$1-$2-$3");
+                }
+                if (string.IsNullOrEmpty(categoryName))
+                {
+                    categoryName = "(Uncategorized)";
+                    notCategorized = true;
+                }
+                content.Add(new ViewResultDto
+                {
+                    CategoryName = categoryName,
+                    Count = it.DocCount,
+                    NotCategorized = notCategorized
+                });
             }
-            if (string.IsNullOrEmpty(categoryName))
-            {
-                categoryName = "(Uncategorized)";
-                notCategorized = true;
-            }
-            content.Add(new ViewResultDto
-            {
-                CategoryName = categoryName,
-                Count = it.DocCount,
-                NotCategorized = notCategorized
-            });
         }
+
         content = content.OrderBy(cat => cat.CategoryName).ToList();
-        var uncategorizedResponse = await _elasticClient.SearchAsync<T>(uncategorizedRequest);
-        var uncatetgorizedCount = uncategorizedResponse.Aggregations.Filter("uncategorized").DocCount;
-        if (uncatetgorizedCount > 0)
+
+        // Count uncategorized explicitly (missing or empty)
+        var baseField = (viewDto.Aggregation ?? string.Empty).Replace(".keyword", string.Empty);
+        var uncategorizedResponse = await _elasticClient.SearchAsync<T>(s =>
+            s.Index(_indexName)
+             .From(from)
+             .Size(0)
+             .Query(q => q.Raw(query))
+             .Aggregations(a => a
+                .Filter("uncategorized", f => f
+                    .Filter(b => b.Bool(bl => bl
+                        .Should(
+                            sh => sh.Bool(bb => bb.MustNot(mn => mn.Exists(e => e.Field(baseField)))),
+                            sh => sh.Term(t => t.Field(viewDto.Aggregation).Value(string.Empty))
+                        )
+                        .MinimumShouldMatch(1)
+                    ))
+                )
+             )
+        );
+
+        var uncatCount = uncategorizedResponse.Aggregations.Filter("uncategorized").DocCount;
+        if (uncatCount > 0)
         {
             var existingUncategorized = content.FirstOrDefault(c => c.NotCategorized == true);
             if (existingUncategorized != null)
             {
-                existingUncategorized.Count = (existingUncategorized.Count ?? 0) + uncatetgorizedCount;
+                existingUncategorized.Count = (existingUncategorized.Count ?? 0) + uncatCount;
             }
             else
             {
@@ -162,10 +189,67 @@ public class EntityService<T> : IEntityService<T> where T : class
                     CategoryName = "(Uncategorized)",
                     Selected = false,
                     NotCategorized = true,
-                    Count = uncatetgorizedCount
+                    Count = uncatCount
                 });
             }
         }
+        return content;
+    }
+
+    // Back-compat implementation to satisfy interface; not used by new flow but kept for callers
+    public async Task<List<ViewResultDto>> SearchUsingViewAsync(ISearchRequest request, ISearchRequest uncategorizedRequest)
+    {
+        List<ViewResultDto> content = new();
+
+        var result = await _elasticClient.SearchAsync<T>(request);
+        var distinctAgg = result.Aggregations?["distinct"] as BucketAggregate;
+        if (distinctAgg != null)
+        {
+            foreach (var it in distinctAgg.Items.OfType<KeyedBucket<object>>())
+            {
+                string categoryName = it.KeyAsString ?? (it.Key?.ToString() ?? string.Empty);
+                bool notCategorized = false;
+                if (Regex.IsMatch(categoryName, @"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z"))
+                {
+                    categoryName = Regex.Replace(categoryName, @"(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}.\d{3}Z", "$1-$2-$3");
+                }
+                if (string.IsNullOrEmpty(categoryName))
+                {
+                    categoryName = "(Uncategorized)";
+                    notCategorized = true;
+                }
+                content.Add(new ViewResultDto
+                {
+                    CategoryName = categoryName,
+                    Count = it.DocCount,
+                    NotCategorized = notCategorized
+                });
+            }
+        }
+
+        content = content.OrderBy(cat => cat.CategoryName).ToList();
+
+        var uncategorizedResponse = await _elasticClient.SearchAsync<T>(uncategorizedRequest);
+        var uncatCount = uncategorizedResponse.Aggregations.Filter("uncategorized").DocCount;
+        if (uncatCount > 0)
+        {
+            var existingUncategorized = content.FirstOrDefault(c => c.NotCategorized == true);
+            if (existingUncategorized != null)
+            {
+                existingUncategorized.Count = (existingUncategorized.Count ?? 0) + uncatCount;
+            }
+            else
+            {
+                content.Add(new ViewResultDto
+                {
+                    CategoryName = "(Uncategorized)",
+                    Selected = false,
+                    NotCategorized = true,
+                    Count = uncatCount
+                });
+            }
+        }
+
         return content;
     }
 
@@ -358,60 +442,7 @@ private static RulesetDto MapToDto(Ruleset rr)
     public async Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(JObject queryObject, ViewDto viewDto, int size = 20, int from = 0, IList<ISort>? sort = null)
     {
         string query = queryObject.ToString();        
-        var request = new SearchRequest<T>
-        {
-            Size = 0,
-            From = from,
-            Query = new QueryContainerDescriptor<T>().Raw(query),
-            Aggregations = new AggregationDictionary{
-                {
-                    "distinct",
-                    new TermsAggregation("distinct")
-                    {
-                        Size = 10000,
-                        Field = string.IsNullOrEmpty(viewDto.Script) ? viewDto.Aggregation : null,
-                        Script = !string.IsNullOrEmpty(viewDto.Script) ? new InlineScript(viewDto.Script) : null
-                    }
-                }
-            }
-        };
-        var uncategorizedRequest = new SearchRequest<T>
-        {
-            Size = 0,
-            From = from,
-            Query = new QueryContainerDescriptor<T>().Raw(query),
-            Aggregations = new AggregationDictionary{
-                {
-                    "uncategorized", new FilterAggregation("uncategorized")
-                    {
-                        Filter = new BoolQuery
-                        {
-                            Should = new List<QueryContainer>
-                            {
-                                new BoolQuery
-                                {
-                                    MustNot = new List<QueryContainer>
-                                    {
-                                        new ExistsQuery
-                                        {
-                                            Field = viewDto.Aggregation
-                                        }
-                                    }
-                                },
-                                new TermQuery
-                                {
-                                    Field = viewDto.Aggregation,
-                                    Value = string.Empty
-                                }
-                            },
-                            MinimumShouldMatch = 1
-                        }
-                    }
-
-                }
-            }
-        };
-        return await SearchUsingViewAsync(request, uncategorizedRequest);
+        return await SearchUsingViewAsync(query, viewDto, from, size);
     }
 
     public async Task<SimpleApiResponse> CategorizeAsync(CategorizeRequestDto request)
