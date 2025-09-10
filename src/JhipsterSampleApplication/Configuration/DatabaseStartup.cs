@@ -8,6 +8,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using JhipsterSampleApplication.Infrastructure.Configuration;
+using System.Linq;
+using System.Collections.Generic;
+using System.Text.Json;
+using System.IO;
+using System.Linq;
 
 namespace JhipsterSampleApplication.Configuration;
 
@@ -71,9 +76,51 @@ public static class DatabaseConfiguration
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDatabaseContext>();
                 context.Database.OpenConnection();
                 context.Database.EnsureCreated();
+
+                // Seed all views from resources (idempotent)
+                try { SeedViewsFromResources(context); } catch { /* best-effort */ }
             }
         }
 
         return app;
+    }
+    private static void SeedViewsFromResources(ApplicationDatabaseContext context)
+    {
+        var baseDir = AppContext.BaseDirectory;
+        var viewsDir = Path.Combine(baseDir, "Resources", "Views");
+        if (!Directory.Exists(viewsDir)) return;
+
+        foreach (var file in Directory.EnumerateFiles(viewsDir, "*.json"))
+        {
+            List<JhipsterSampleApplication.Dto.ViewDto>? dtos = null;
+            try
+            {
+                dtos = JsonSerializer.Deserialize<List<JhipsterSampleApplication.Dto.ViewDto>>(File.ReadAllText(file), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch { continue; }
+            if (dtos == null) continue;
+
+            foreach (var dto in dtos)
+            {
+                if (dto == null || string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Domain)) continue;
+                var id = !string.IsNullOrWhiteSpace(dto.Id)
+                    ? dto.Id!
+                    : (string.IsNullOrWhiteSpace(dto.parentViewId) ? dto.Name!.ToLowerInvariant() : ($"{dto.parentViewId.ToLowerInvariant()}/{dto.Name!.ToLowerInvariant()}"));
+                if (context.Views.Any(v => v.Id == id)) continue;
+                context.Views.Add(new JhipsterSampleApplication.Domain.Entities.View
+                {
+                    Id = id,
+                    Name = dto.Name!,
+                    Field = dto.Field,
+                    Aggregation = dto.Aggregation,
+                    Query = dto.Query,
+                    CategoryQuery = dto.CategoryQuery,
+                    Script = dto.Script,
+                    parentViewId = dto.parentViewId,
+                    Domain = dto.Domain!
+                });
+            }
+        }
+        context.SaveChanges();
     }
 }

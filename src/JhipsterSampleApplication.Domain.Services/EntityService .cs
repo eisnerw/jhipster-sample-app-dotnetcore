@@ -127,7 +127,7 @@ public class EntityService<T> : IEntityService<T> where T : class
                 ))
         );
 
-        var bucketAggregate = searchAggResponse.Aggregations["distinct"] as BucketAggregate;
+        var bucketAggregate = searchAggResponse.IsValid ? (searchAggResponse.Aggregations["distinct"] as BucketAggregate) : null;
         if (bucketAggregate != null)
         {
             foreach (var it in bucketAggregate.Items.OfType<KeyedBucket<object>>())
@@ -163,18 +163,20 @@ public class EntityService<T> : IEntityService<T> where T : class
              .Query(q => q.Raw(query))
              .Aggregations(a => a
                 .Filter("uncategorized", f => f
-                    .Filter(b => b.Bool(bl => bl
-                        .Should(
-                            sh => sh.Bool(bb => bb.MustNot(mn => mn.Exists(e => e.Field(baseField)))),
-                            sh => sh.Term(t => t.Field(viewDto.Aggregation).Value(string.Empty))
-                        )
-                        .MinimumShouldMatch(1)
-                    ))
+                    .Filter(b => b.Bool(bl => bl.MustNot(mn => mn.Exists(e => e.Field(baseField)))))
                 )
              )
         );
 
-        var uncatCount = uncategorizedResponse.Aggregations.Filter("uncategorized").DocCount;
+        long uncatCount = 0;
+        if (uncategorizedResponse != null && uncategorizedResponse.IsValid && uncategorizedResponse.Aggregations != null)
+        {
+            var filterAgg = uncategorizedResponse.Aggregations.Filter("uncategorized");
+            if (filterAgg != null)
+            {
+                uncatCount = filterAgg.DocCount;
+            }
+        }
         if (uncatCount > 0)
         {
             var existingUncategorized = content.FirstOrDefault(c => c.NotCategorized == true);
@@ -286,7 +288,7 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// <returns>The index response</returns>
     public async Task<IndexResponse> IndexAsync(T entity)
     {
-        return await _elasticClient.IndexDocumentAsync(entity);
+        return await _elasticClient.IndexAsync(entity, i => i.Index(_indexName).Refresh(Refresh.WaitFor));
     }
 
     /// <summary>
@@ -298,8 +300,10 @@ public class EntityService<T> : IEntityService<T> where T : class
     public async Task<UpdateResponse<T>> UpdateAsync(string id, T entity)
     {
         return await _elasticClient.UpdateAsync<T>(id, u => u
+            .Index(_indexName)
             .Doc(entity)
             .DocAsUpsert()
+            .Refresh(Refresh.WaitFor)
         );
     }
 
@@ -520,6 +524,8 @@ private static RulesetDto MapToDto(Ruleset rr)
         {
             message += $". Error details: {string.Join("; ", errorMessages)}";
         }
+        // Ensure readers see the latest category changes
+        await _elasticClient.Indices.RefreshAsync(_indexName);
         return new SimpleApiResponse
         {
             Success = errorCount == 0,
@@ -531,12 +537,12 @@ private static RulesetDto MapToDto(Ruleset rr)
     {
         var toAdd = (request.Add ?? new List<string>())
             .Where(s => !string.IsNullOrWhiteSpace(s))
-            .Select(s => s.Trim())
+            .Select(s => s.Trim().ToUpperInvariant())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
         var toRemove = (request.Remove ?? new List<string>())
             .Where(s => !string.IsNullOrWhiteSpace(s))
-            .Select(s => s.Trim())
+            .Select(s => s.Trim().ToUpperInvariant())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -603,6 +609,8 @@ private static RulesetDto MapToDto(Ruleset rr)
             message += $". Error details: {string.Join("; ", errorMessages)}";
         }
 
+        // Ensure readers see the latest category changes
+        await _elasticClient.Indices.RefreshAsync(_indexName);
         return new SimpleApiResponse
         {
             Success = errorCount == 0,
