@@ -53,7 +53,7 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public async Task<IActionResult> Create([FromBody] MovieCreateUpdateDto dto)
+        public async Task<IActionResult> Create([FromBody] MovieDto dto)
         {
             var movie = _mapper.Map<Movie>(dto);
             movie.Id = dto.Id;
@@ -149,7 +149,7 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public async Task<IActionResult> Update(string id, [FromBody] MovieCreateUpdateDto dto)
+        public async Task<IActionResult> Update(string id, [FromBody] MovieDto dto)
         {
             var movie = _mapper.Map<Movie>(dto);
             movie.Id = id;

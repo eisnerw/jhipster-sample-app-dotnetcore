@@ -53,7 +53,7 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public async Task<IActionResult> Create([FromBody] SupremeCreateUpdateDto dto)
+        public async Task<IActionResult> Create([FromBody] SupremeDto dto)
         {
             var supreme = new Supreme
             {
@@ -245,7 +245,7 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public async Task<IActionResult> Update(string id, [FromBody] SupremeCreateUpdateDto dto)
+        public async Task<IActionResult> Update(string id, [FromBody] SupremeDto dto)
         {
             var searchRequest = new SearchRequest<Supreme>
             {

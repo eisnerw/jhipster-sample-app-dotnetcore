@@ -53,7 +53,7 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public async Task<IActionResult> Create([FromBody] BirthdayCreateUpdateDto dto)
+        public async Task<IActionResult> Create([FromBody] BirthdayDto dto)
         {
             var birthday = new Birthday
             {
@@ -136,7 +136,7 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public async Task<IActionResult> Update(string id, [FromBody] BirthdayCreateUpdateDto dto)
+        public async Task<IActionResult> Update(string id, [FromBody] BirthdayDto dto)
         {
             // Check if document exists using the service layer
             var searchRequest = new SearchRequest<Birthday>
