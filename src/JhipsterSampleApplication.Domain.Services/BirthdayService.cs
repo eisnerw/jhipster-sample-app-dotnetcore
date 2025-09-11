@@ -100,19 +100,56 @@ public class BirthdayService : EntityService<Birthday>, IBirthdayService
         bool isHitFromViewDrilldown = false;
         if (!string.IsNullOrEmpty(view))
         {
-            var viewDto = await _viewService.GetByIdAsync(view);
-            if (viewDto == null)
+            try
             {
-                throw new ArgumentException($"view '{view}' not found");
-            }
+                var viewDto = await _viewService.GetByIdAsync(view);
+                if (viewDto == null)
+                {
+                    throw new ArgumentException($"view '{view}' not found");
+                }
             if (category == null)
             {
                 if (secondaryCategory != null)
                 {
                     throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
                 }
-                var viewResult = await SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, from, pageSize);
-                return new SearchResultDto<ViewResultDto> { Hits = viewResult, HitType = "view", ViewName = view };
+                try
+                {
+                    var viewResult = await SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, pageSize, from);
+                    return new SearchResultDto<ViewResultDto> { Hits = viewResult, HitType = "view", ViewName = view };
+                }
+                catch
+                {
+                    // Fallback: compute only the (Uncategorized) bucket defensively to avoid 500
+                    var baseField = (viewDto.Aggregation ?? string.Empty).Replace(".keyword", string.Empty);
+                    var missingQuery = new JObject(
+                        new JProperty("bool", new JObject(
+                            new JProperty("must", new JArray(
+                                elasticsearchQuery,
+                                new JObject(
+                                    new JProperty("bool", new JObject(
+                                        new JProperty("must_not", new JArray(
+                                            new JObject(new JProperty("exists", new JObject(new JProperty("field", baseField))))
+                                        ))
+                                    ))
+                                )
+                            ))
+                        ))
+                    );
+                    var missingSearch = new SearchRequest<Birthday>
+                    {
+                        Size = 0,
+                        Query = new QueryContainerDescriptor<Birthday>().Raw(missingQuery.ToString())
+                    };
+                    var missResp = await SearchAsync(missingSearch, includeDetails: false, pitId: "");
+                    long missingCount = missResp.IsValid ? missResp.Total : 0;
+                    var hits = new List<ViewResultDto>();
+                    if (missingCount > 0)
+                    {
+                        hits.Add(new ViewResultDto { CategoryName = "(Uncategorized)", Count = missingCount, NotCategorized = true });
+                    }
+                    return new SearchResultDto<ViewResultDto> { Hits = hits, HitType = "view", ViewName = view };
+                }
             }
             if (category == "(Uncategorized)")
             {
@@ -165,67 +202,100 @@ public class BirthdayService : EntityService<Birthday>, IBirthdayService
                     ))
                 );
             }
-            var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
-            if (secondaryViewDto != null)
-            {
-                if (secondaryCategory == null)
+                var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
+                if (secondaryViewDto != null)
                 {
-                    var viewSecondaryResult = await SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, from, pageSize);
-                    return new SearchResultDto<ViewResultDto> { Hits = viewSecondaryResult, HitType = "view", ViewName = view, viewCategory = category };
-                }
-                if (secondaryCategory == "(Uncategorized)")
-                {
-                    isHitFromViewDrilldown = true;
-                    var secondaryBaseField = (secondaryViewDto.Aggregation ?? string.Empty).Replace(".keyword", string.Empty);
-                    var secondaryMissing = new JObject(
-                        new JProperty("bool", new JObject(
-                            new JProperty("should", new JArray(
-                                new JObject(
-                                    new JProperty("bool", new JObject(
-                                        new JProperty("must_not", new JArray(
-                                            new JObject(
-                                                new JProperty("exists", new JObject(
-                                                    new JProperty("field", secondaryBaseField)
-                                                ))
-                                            )
+                    if (secondaryCategory == null)
+                    {
+                        var viewSecondaryResult = await SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, pageSize, from);
+                        return new SearchResultDto<ViewResultDto> { Hits = viewSecondaryResult, HitType = "view", ViewName = view, viewCategory = category };
+                    }
+                    if (secondaryCategory == "(Uncategorized)")
+                    {
+                        isHitFromViewDrilldown = true;
+                        var secondaryBaseField = (secondaryViewDto.Aggregation ?? string.Empty).Replace(".keyword", string.Empty);
+                        var secondaryMissing = new JObject(
+                            new JProperty("bool", new JObject(
+                                new JProperty("should", new JArray(
+                                    new JObject(
+                                        new JProperty("bool", new JObject(
+                                            new JProperty("must_not", new JArray(
+                                                new JObject(
+                                                    new JProperty("exists", new JObject(
+                                                        new JProperty("field", secondaryBaseField)
+                                                    ))
+                                                )
+                                            ))
                                         ))
-                                    ))
-                                ),
-                                new JObject(
-                                    new JProperty("term", new JObject(
-                                        new JProperty(secondaryViewDto.Aggregation ?? string.Empty, "")
-                                    ))
-                                )
-                            )),
-                            new JProperty("minimum_should_match", 1)
-                        ))
-                    );
-                    elasticsearchQuery = new JObject(
-                        new JProperty("bool", new JObject(
-                            new JProperty("must", new JArray(
-                                secondaryMissing,
-                                elasticsearchQuery
+                                    ),
+                                    new JObject(
+                                        new JProperty("term", new JObject(
+                                            new JProperty(secondaryViewDto.Aggregation ?? string.Empty, "")
+                                        ))
+                                    )
+                                )),
+                                new JProperty("minimum_should_match", 1)
                             ))
-                        ))
-                    );
+                        );
+                        elasticsearchQuery = new JObject(
+                            new JProperty("bool", new JObject(
+                                new JProperty("must", new JArray(
+                                    secondaryMissing,
+                                    elasticsearchQuery
+                                ))
+                            ))
+                        );
+                    }
+                    else
+                    {
+                        isHitFromViewDrilldown = true;
+                        string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ? $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
+                        elasticsearchQuery = new JObject(
+                            new JProperty("bool", new JObject(
+                                new JProperty("must", new JArray(
+                                    new JObject(
+                                        new JProperty("query_string", new JObject(
+                                            new JProperty("query", secondaryCategoryQuery)
+                                        ))
+                                    ),
+                                    elasticsearchQuery
+                                ))
+                            ))
+                        );
+                    }
                 }
-                else
+            }
+            catch
+            {
+                // Absolute fallback for view path: return safe view response with only (Uncategorized) computed
+                var baseField = "fname"; // for First Name default
+                var missingQuery = new JObject(
+                    new JProperty("bool", new JObject(
+                        new JProperty("must", new JArray(
+                            elasticsearchQuery,
+                            new JObject(
+                                new JProperty("bool", new JObject(
+                                    new JProperty("must_not", new JArray(
+                                        new JObject(new JProperty("exists", new JObject(new JProperty("field", baseField))))
+                                    ))
+                                ))
+                            )
+                        ))
+                    ))
+                );
+                var missingSearch = new SearchRequest<Birthday>
                 {
-                    isHitFromViewDrilldown = true;
-                    string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ? $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
-                    elasticsearchQuery = new JObject(
-                        new JProperty("bool", new JObject(
-                            new JProperty("must", new JArray(
-                                new JObject(
-                                    new JProperty("query_string", new JObject(
-                                        new JProperty("query", secondaryCategoryQuery)
-                                    ))
-                                ),
-                                elasticsearchQuery
-                            ))
-                        ))
-                    );
+                    Size = 0,
+                    Query = new QueryContainerDescriptor<Birthday>().Raw(missingQuery.ToString())
+                };
+                var missResp = await SearchAsync(missingSearch, includeDetails: false, pitId: "");
+                long missingCount = missResp.IsValid ? missResp.Total : 0;
+                var hits = new List<ViewResultDto>();
+                if (missingCount > 0)
+                {
+                    hits.Add(new ViewResultDto { CategoryName = "(Uncategorized)", Count = missingCount, NotCategorized = true });
                 }
+                return new SearchResultDto<ViewResultDto> { Hits = hits, HitType = "view", ViewName = view };
             }
         }
 
@@ -262,7 +332,7 @@ public class BirthdayService : EntityService<Birthday>, IBirthdayService
         foreach (var hit in response.Hits)
         {
             var b = hit.Source;
-            birthdayDtos.Add(new BirthdayDto
+            var dto = new BirthdayDto
             {
                 Id = b.Id!,
                 Lname = b.Lname,
@@ -273,7 +343,17 @@ public class BirthdayService : EntityService<Birthday>, IBirthdayService
                 Text = b.Text,
                 Wikipedia = includeDetails ? b.Wikipedia : null,
                 Categories = b.Categories
-            });
+            };
+            // Normalize display only: distinct case-insensitive; single-letter categories uppercase
+            if (dto.Categories != null && dto.Categories.Count > 0)
+            {
+                dto.Categories = dto.Categories
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Select(s => s.Length == 1 ? s.ToUpperInvariant() : s)
+                    .ToList();
+            }
+            birthdayDtos.Add(dto);
         }
         List<object>? searchAfterResponse = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null;
         var hitType = isHitFromViewDrilldown ? "hit" : "birthday";
