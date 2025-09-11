@@ -7,6 +7,8 @@ using JhipsterSampleApplication.Dto;
 using AutoMapper;
 using System;
 using System.Linq;
+using System.IO;
+using System.Text.Json;
 
 namespace JhipsterSampleApplication.Domain.Services
 {
@@ -39,55 +41,7 @@ namespace JhipsterSampleApplication.Domain.Services
                     string.Equals(v.Id, id, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(v.Name, id, StringComparison.OrdinalIgnoreCase));
             }
-            if (view == null)
-            {
-                // As a last resort, load from resource JSON under Resources/Views
-                var loaded = LoadFromResources(id);
-                if (loaded != null)
-                {
-                    // Persist for future lookups
-                    try
-                    {
-                        var created = await _viewRepository.AddAsync(loaded);
-                        return _mapper.Map<ViewDto>(created);
-                    }
-                    catch
-                    {
-                        return _mapper.Map<ViewDto>(loaded);
-                    }
-                }
-            }
             return _mapper.Map<ViewDto>(view);
-        }
-
-        private View? LoadFromResources(string idOrName)
-        {
-            try
-            {
-                var baseDir = AppContext.BaseDirectory;
-                var viewsDir = System.IO.Path.Combine(baseDir, "Resources", "Views");
-                if (!System.IO.Directory.Exists(viewsDir)) return null;
-                foreach (var file in System.IO.Directory.EnumerateFiles(viewsDir, "*.json"))
-                {
-                    var json = System.IO.File.ReadAllText(file);
-                    var dtos = System.Text.Json.JsonSerializer.Deserialize<List<JhipsterSampleApplication.Dto.ViewDto>>(json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    if (dtos == null) continue;
-                    var match = dtos.FirstOrDefault(v =>
-                        string.Equals(v.Id, idOrName, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(v.Name, idOrName, StringComparison.OrdinalIgnoreCase));
-                    if (match != null)
-                    {
-                        var entity = _mapper.Map<View>(match);
-                        entity.EnsureId();
-                        return entity;
-                    }
-                }
-            }
-            catch
-            {
-                // ignore resource load errors
-            }
-            return null;
         }
 
         public async Task<ViewDto?> GetChildByParentIdAsync(string id)

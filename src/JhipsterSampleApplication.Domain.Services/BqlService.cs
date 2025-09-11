@@ -1050,10 +1050,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 case "boolean":
                     return string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) || string.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
                 case "category":
-                    if (_categoryAllowedValuesByField.TryGetValue(field, out var allowed))
-                    {
-                        return allowed.Contains(value);
-                    }
+                    // Be permissive: allow any non-empty category value even if not pre-declared
                     return !string.IsNullOrWhiteSpace(value);
                 case "date":
                 case "time":

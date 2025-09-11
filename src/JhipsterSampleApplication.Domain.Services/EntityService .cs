@@ -76,18 +76,22 @@ public class EntityService<T> : IEntityService<T> where T : class
         var response = await _elasticClient.SearchAsync<T>(request);
         if (!response.IsValid)
         {
-            // Retry with direct streaming disabled to expose detailed error information
-            StringResponse retryResponse;
-            if (request.PointInTime != null)
+            var status = response.ApiCall?.HttpStatusCode ?? 0;
+            if (status >= 400)
             {
-                // When using PIT, do not specify an index in the path
-                retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
+                // Retry with direct streaming disabled to expose detailed error information
+                StringResponse retryResponse;
+                if (request.PointInTime != null)
+                {
+                    retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
+                }
+                else
+                {
+                    retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(_indexName, PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
+                }
+                throw new Exception(retryResponse.Body ?? response.ServerError?.ToString());
             }
-            else
-            {
-                retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(_indexName, PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
-            }
-            throw new Exception(retryResponse.Body);
+            // Otherwise, allow the response to pass through (avoid 500 on benign conditions)
         }
         if (response.Hits.Count > 0)
         {
@@ -524,7 +528,6 @@ private static RulesetDto MapToDto(Ruleset rr)
         {
             message += $". Error details: {string.Join("; ", errorMessages)}";
         }
-        // Ensure readers see the latest category changes
         await _elasticClient.Indices.RefreshAsync(_indexName);
         return new SimpleApiResponse
         {
@@ -609,7 +612,6 @@ private static RulesetDto MapToDto(Ruleset rr)
             message += $". Error details: {string.Join("; ", errorMessages)}";
         }
 
-        // Ensure readers see the latest category changes
         await _elasticClient.Indices.RefreshAsync(_indexName);
         return new SimpleApiResponse
         {
