@@ -3,6 +3,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Nest;
+using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Entities;
 using System.Collections.Generic;
@@ -20,7 +21,7 @@ namespace JhipsterSampleApplication.Controllers
 	[Route("api/supreme")]
 	public class SupremesController : ControllerBase
 	{
-		private readonly ISupremeService _supremeService;
+                private readonly IEntityService<Supreme> _supremeService;
 		private readonly IElasticClient _elasticClient;
                 private readonly IBqlService<Supreme> _bqlService;
                 private readonly IMapper _mapper;
@@ -28,16 +29,15 @@ namespace JhipsterSampleApplication.Controllers
                 private readonly ILogger<SupremesController> _logger;
                 private readonly IHistoryService _historyService;
 
-		public SupremesController(
-			ISupremeService supremeService,
-			IElasticClient elasticClient,
+                public SupremesController(
+                        IElasticClient elasticClient,
                      IBqlService<Supreme> bqlService,
-			IMapper mapper,
-			IViewService viewService,
+                        IMapper mapper,
+                        IViewService viewService,
                         ILogger<SupremesController> logger,
                         IHistoryService historyService)
                 {
-                        _supremeService = supremeService;
+                        _supremeService = new EntityService<Supreme>("supreme","justia_url,argument2_url,facts_of_the_case,conclusion", elasticClient, bqlService, viewService);
                         _elasticClient = elasticClient;
                         _bqlService = bqlService;
                         _mapper = mapper;
