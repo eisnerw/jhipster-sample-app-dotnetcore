@@ -51,19 +51,6 @@ namespace JhipsterSampleApplication.Controllers
             _viewService = viewService;
         }
 
-        public class RawSearchRequestDto
-        {
-            public string? Query { get; set; }
-            public int? From { get; set; }
-            public int? Size { get; set; }
-            public string? Sort { get; set; }
-        }
-
-        public class BqlQueryDto
-        {
-            public string Query { get; set; } = string.Empty;
-        }
-
         /// <summary>
         /// Returns an HTML page constructed from the Wikipedia attribute for a given Birthday document
         /// </summary>

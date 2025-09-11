@@ -51,14 +51,6 @@ namespace JhipsterSampleApplication.Controllers
                         _historyService = historyService;
                 }
 
-                public class RawSearchRequestDto
-                {
-                        public string? Query { get; set; }
-                        public int? From { get; set; }
-                        public int? Size { get; set; }
-                        public string? Sort { get; set; }
-                }
-
                 /// <summary>
                 /// Returns an HTML page constructed from various fields for a given Supreme document
                 /// </summary>
