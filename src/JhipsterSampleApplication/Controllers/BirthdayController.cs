@@ -19,21 +19,21 @@ namespace JhipsterSampleApplication.Controllers
 {
     [ApiController]
     [Route("api/birthdays")]
-    public class BirthdaysController : ControllerBase
+    public class BirthdayController : ControllerBase
     {
         private readonly IEntityService<Birthday> _birthdayService;
         private readonly IElasticClient _elasticClient;
         private readonly IBqlService<Birthday> _bqlService;
-        private readonly ILogger<BirthdaysController> _log;
+        private readonly ILogger<BirthdayController> _log;
         private readonly IMapper _mapper;
         private readonly IHistoryService _historyService;
         private readonly IViewService _viewService;
 
-        public BirthdaysController(
+        public BirthdayController(
             IElasticClient elasticClient,
             INamedQueryService namedQueryService,
             ILogger<BqlService<Birthday>> bqlLogger,
-            ILogger<BirthdaysController> log,
+            ILogger<BirthdayController> log,
             IMapper mapper,
             IHistoryService historyService,
             IViewService viewService)
@@ -51,6 +51,96 @@ namespace JhipsterSampleApplication.Controllers
             _viewService = viewService;
         }
 
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(BirthdayDto), 200)]
+        public async Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
+        {
+            var searchRequest = new SearchRequest<Birthday>
+            {
+                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id)),
+                Source = includeDetails ? null : new SourceFilter { Excludes = new[] { "wikipedia" } }
+            };
+            var response = await _birthdayService.SearchAsync(searchRequest, includeDetails, pitId: "");
+            if (!response.IsValid || !response.Documents.Any())
+            {
+                return NotFound();
+            }
+            var b = response.Documents.First();
+            var dto = _mapper.Map<BirthdayDto>(b);
+            if (!includeDetails)
+            {
+                dto.Wikipedia = null;
+            }
+            return Ok(dto);
+        }
+        /// <summary>
+        /// Search birthdays using a Lucene query
+        /// </summary>
+        [HttpGet("search/lucene")]
+        [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
+        public async Task<IActionResult> SearchWithLuceneQuery(
+            [FromQuery] string query,
+            [FromQuery] int from = 0,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? sort = null,
+            [FromQuery] string? pitId = null,
+            [FromQuery] string[]? searchAfter = null,
+            [FromQuery] bool includeDetails = false,
+            [FromQuery] string? view = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? secondaryCategory = null)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return BadRequest("Query cannot be empty");
+            }
+            JObject queryStringObject = new JObject(
+                new JProperty("query", query)
+            );
+            JObject queryObject = new JObject(
+                new JProperty("query_string", queryStringObject)
+            );
+            var result = await PerformSearch(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
+            return Ok(result);
+        }
+        [HttpPut("{id}")]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        public async Task<IActionResult> Update(string id, [FromBody] BirthdayCreateUpdateDto dto)
+        {
+            // Check if document exists using the service layer
+            var searchRequest = new SearchRequest<Birthday>
+            {
+                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
+            };
+            
+            var existingResponse = await _birthdayService.SearchAsync(searchRequest, includeDetails: true, "");
+            if (!existingResponse.IsValid || !existingResponse.Documents.Any())
+            {
+                return NotFound($"Document with ID {id} not found");
+            }
+            
+            var birthday = new Birthday
+            {
+                Id = id,
+                Lname = dto.Lname,
+                Fname = dto.Fname,
+                Sign = dto.Sign,
+                Dob = dto.Dob,
+                IsAlive = dto.IsAlive,
+                Text = dto.Text,
+                Wikipedia = dto.Wikipedia,
+                Categories = dto.Categories ?? new List<string>()
+            };
+
+            var updateResponse = await _birthdayService.UpdateAsync(id, birthday);
+            var simpleResponse = new SimpleApiResponse
+            {
+                Success = updateResponse.IsValid,
+                Message = updateResponse.DebugInformation.Split('\n')[0]
+            };
+            return Ok(simpleResponse);
+        }
         /// <summary>
         /// Returns an HTML page constructed from the Wikipedia attribute for a given Birthday document
         /// </summary>
@@ -85,55 +175,18 @@ namespace JhipsterSampleApplication.Controllers
                        + "</body></html>";
             return Content(html, "text/html");
         }
-
-        /// <summary>
-        /// Returns the Query Builder specification for Birthdays
-        /// </summary>
-        [HttpGet("query-builder-spec")]
-        [Produces("application/json")]
-        public IActionResult GetQueryBuilderSpec()
+        [HttpDelete("{id}")]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        public async Task<IActionResult> Delete(string id)
         {
-            var path = Path.Combine(AppContext.BaseDirectory, "Resources", "query-builder", "birthday-qb-spec.json");
-            if (!System.IO.File.Exists(path))
+            var response = await _birthdayService.DeleteAsync(id);
+            var simpleResponse = new SimpleApiResponse
             {
-                return NotFound("Spec file not found");
-            }
-            var json = System.IO.File.ReadAllText(path);
-            return Content(json, "application/json");
+                Success = response.IsValid,
+                Message = response.DebugInformation.Split('\n')[0]
+            };
+            return Ok(simpleResponse);
         }
-
-        /// <summary>
-        /// Search birthdays using a Lucene query
-        /// </summary>
-        [HttpGet("search/lucene")]
-        [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
-        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
-        public async Task<IActionResult> SearchWithLuceneQuery(
-            [FromQuery] string query,
-            [FromQuery] int from = 0,
-            [FromQuery] int pageSize = 20,
-            [FromQuery] string? sort = null,
-            [FromQuery] string? pitId = null,
-            [FromQuery] string[]? searchAfter = null,
-            [FromQuery] bool includeDetails = false,
-            [FromQuery] string? view = null,
-            [FromQuery] string? category = null,
-            [FromQuery] string? secondaryCategory = null)
-        {
-            if (string.IsNullOrWhiteSpace(query))
-            {
-                return BadRequest("Query cannot be empty");
-            }
-            JObject queryStringObject = new JObject(
-                new JProperty("query", query)
-            );
-            JObject queryObject = new JObject(
-                new JProperty("query_string", queryStringObject)
-            );
-            var result = await PerformSearch(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
-            return Ok(result);
-        }
-
         /// <summary>
         /// Search birthdays using a ruleset
         /// </summary>
@@ -157,7 +210,6 @@ namespace JhipsterSampleApplication.Controllers
             var result = await PerformSearch(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
             return Ok(result);
         }
-
         /// <summary>
         /// Search birthdays using a raw Elasticsearch query
         /// </summary>
@@ -178,8 +230,7 @@ namespace JhipsterSampleApplication.Controllers
         {
             var result = await PerformSearch(elasticsearchQuery, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
             return Ok(result);
-        }
-        /// <summary>
+        }        /// <summary>
         /// Search birthdays using a BQL query with pagination
         /// </summary>
         [HttpPost("search/bql")]
@@ -208,6 +259,185 @@ namespace JhipsterSampleApplication.Controllers
             await _historyService.Save(new History { User = User?.Identity?.Name, Domain = "birthday", Text = bqlQuery });
             var result = await PerformSearch(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
             return Ok(result);
+        }
+        [HttpGet("unique-values/{field}")]
+        [ProducesResponseType(typeof(IReadOnlyCollection<string>), 200)]
+        public async Task<IActionResult> GetUniqueFieldValues(string field)
+        {
+            var values = await _birthdayService.GetUniqueFieldValuesAsync(field+".keyword");
+            return Ok(values);
+        }
+        /// <summary>
+        /// Returns the Query Builder specification for Birthdays
+        /// </summary>
+        [HttpGet("query-builder-spec")]
+        [Produces("application/json")]
+        public IActionResult GetQueryBuilderSpec()
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "Resources", "query-builder", "birthday-qb-spec.json");
+            if (!System.IO.File.Exists(path))
+            {
+                return NotFound("Spec file not found");
+            }
+            var json = System.IO.File.ReadAllText(path);
+            return Content(json, "application/json");
+        }
+        /// <summary>
+        /// Converts a BQL query string to a Ruleset
+        /// </summary>
+        /// <returns>The converted Ruleset</returns>
+        /// <response code="200">Returns the converted Ruleset</response>
+        /// <response code="400">If the query is invalid or empty</response>
+        [HttpPost("bql-to-ruleset")]
+        [Consumes("text/plain")]
+        [ProducesResponseType(typeof(RulesetDto), 200)]
+        [ProducesResponseType(400)]
+        [Produces("application/json")]
+        public async Task<ActionResult<RulesetDto>> ConvertBqlToRuleset([FromBody] string query)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(query))
+                {
+                    return BadRequest("Query cannot be empty");
+                }
+
+                var ruleset = await _bqlService.Bql2Ruleset(query.Trim());
+                return Ok(ruleset);
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Error converting BQL to ruleset");
+                return BadRequest(ex.Message);
+            }
+        }
+        /// <summary>
+        /// Converts a Ruleset to a BQL query string
+        /// </summary>
+        /// <param name="ruleset">The Ruleset to convert</param>
+        /// <returns>The converted BQL query string</returns>
+        [HttpPost("ruleset-to-bql")]
+        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(400)]
+        public async Task<ActionResult<string>> ConvertRulesetToBql([FromBody] RulesetDto ruleset)
+        {
+            _log.LogDebug("REST request to convert Ruleset to BQL");
+            try
+            {
+                var bqlQuery = await _bqlService.Ruleset2Bql(ruleset);
+                return Ok(bqlQuery);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Error converting Ruleset to BQL");
+                return StatusCode(500, "An error occurred while converting Ruleset to BQL");
+            }
+        }
+        /// <summary>
+        /// Converts a Ruleset to an Elasticsearch query
+        /// </summary>
+        /// <param name="ruleset">The Ruleset to convert</param>
+        /// <returns>The converted Elasticsearch query</returns>
+        [HttpPost("ruleset-to-elasticsearch")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(400)]
+        public async Task<ActionResult<object>> ConvertRulesetToElasticSearch([FromBody] RulesetDto rulesetDto)
+        {
+            _log.LogDebug("REST request to convert Ruleset to Elasticsearch query");
+        
+            try
+            {
+                var ruleset = _mapper.Map<Ruleset>(rulesetDto);
+                var elasticQuery = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
+                return Ok(elasticQuery);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Error converting Ruleset to Elasticsearch query");
+                return StatusCode(500, "An error occurred while converting Ruleset to Elasticsearch query");
+            }
+        }
+        /// <summary>
+        /// Add or remove a category from multiple birthdays
+        /// </summary>
+        [HttpPost("categorize")]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> Categorize([FromBody] CategorizeRequestDto request)
+        {
+            if (request.Ids == null || !request.Ids.Any())
+            {
+                return BadRequest("At least one ID must be provided");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Category))
+            {
+                return BadRequest("Category cannot be empty");
+            }
+            var result = await _birthdayService.CategorizeAsync(request);
+            return Ok(result);
+        }
+        /// <summary>
+        /// Add and/or remove multiple categories across multiple birthdays
+        /// </summary>
+        [HttpPost("categorize-multiple")]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> CategorizeMultiple([FromBody] CategorizeMultipleRequestDto request)
+        {
+            if (request.Rows == null || !request.Rows.Any())
+            {
+                return BadRequest("At least one row ID must be provided");
+            }
+            var result = await _birthdayService.CategorizeMultipleAsync(request);
+            return Ok(result);
+        }
+        [HttpGet("health")]
+        [ProducesResponseType(typeof(ClusterHealthDto), 200)]
+        public async Task<IActionResult> GetHealth()
+        {
+            var res = await _elasticClient.Cluster.HealthAsync();
+            var dto = new ClusterHealthDto
+            {
+                Status = res.Status.ToString(),
+                NumberOfNodes = res.NumberOfNodes,
+                NumberOfDataNodes = res.NumberOfDataNodes,
+                ActiveShards = res.ActiveShards,
+                ActivePrimaryShards = res.ActivePrimaryShards
+            };
+            return Ok(dto);
+        }
+        [HttpPost]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        public async Task<IActionResult> Create([FromBody] BirthdayCreateUpdateDto dto)
+        {
+            var birthday = new Birthday
+            {
+                Id = dto.Id,
+                Lname = dto.Lname,
+                Fname = dto.Fname,
+                Sign = dto.Sign,
+                Dob = dto.Dob,
+                IsAlive = dto.IsAlive,
+                Text = dto.Text,
+                Wikipedia = dto.Wikipedia
+            };
+
+            var response = await _birthdayService.IndexAsync(birthday);
+            var simpleResponse = new SimpleApiResponse
+            {
+                Success = response.IsValid,
+                Message = response.DebugInformation.Split('\n')[0]
+            };
+            return Ok(simpleResponse);
         }
 
         private async Task<object> PerformSearch(JObject elasticsearchQuery, int pageSize = 20, int from = 0, string? sort = null,
@@ -400,292 +630,24 @@ namespace JhipsterSampleApplication.Controllers
             }
             sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
 
-            searchRequest.Query = new QueryContainerDescriptor<Birthday>().Raw(elasticsearchQuery.ToString());
             searchRequest.Sort = sortDescriptor;
+            searchRequest.Query = new QueryContainerDescriptor<Birthday>().Raw(elasticsearchQuery.ToString());
 
             var response = await _birthdayService.SearchAsync(searchRequest, includeDetails, pitId);
             var birthdayDtos = new List<BirthdayDto>();
             foreach (var hit in response.Hits)
             {
                 var b = hit.Source;
-                var dto = new BirthdayDto
+                var dto = _mapper.Map<BirthdayDto>(b);
+                if (!includeDetails)
                 {
-                    Id = b.Id!,
-                    Lname = b.Lname,
-                    Fname = b.Fname,
-                    Sign = b.Sign,
-                    Dob = b.Dob,
-                    IsAlive = b.IsAlive,
-                    Text = b.Text,
-                    Wikipedia = includeDetails ? b.Wikipedia : null,
-                    Categories = b.Categories
-                };
-                if (dto.Categories != null && dto.Categories.Count > 0)
-                {
-                    dto.Categories = dto.Categories
-                        .Where(s => !string.IsNullOrWhiteSpace(s))
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .Select(s => s.Length == 1 ? s.ToUpperInvariant() : s)
-                        .ToList();
+                    dto.Wikipedia = null;
                 }
                 birthdayDtos.Add(dto);
             }
             List<object>? searchAfterResponse = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null;
             var hitType = isHitFromViewDrilldown ? "hit" : "birthday";
-            return new SearchResultDto<BirthdayDto>
-            {
-                Hits = birthdayDtos,
-                TotalHits = response.Total,
-                HitType = hitType,
-                PitId = searchRequest.PointInTime?.Id,
-                searchAfter = searchAfterResponse
-            };
-        }
-
-        [HttpGet("{id}")]
-        [ProducesResponseType(typeof(BirthdayDto), 200)]
-        public async Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
-        {
-            var searchRequest = new SearchRequest<Birthday>
-            {
-                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id)),
-                Source = includeDetails ? null : new SourceFilter { Excludes = new[] { "wikipedia" } }
-            };
-            var response = await _birthdayService.SearchAsync(searchRequest, includeDetails, pitId: "");
-            if (!response.IsValid || !response.Documents.Any())
-            {
-                return NotFound();
-            }
-            var b = response.Documents.First();
-            var dto = _mapper.Map<BirthdayDto>(b);
-            if (!includeDetails)
-            {
-                dto.Wikipedia = null;
-            }
-            return Ok(dto);
-        }
-
-        [HttpPost]
-        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public async Task<IActionResult> Create([FromBody] BirthdayCreateUpdateDto dto)
-        {
-            var birthday = new Birthday
-            {
-                Id = dto.Id,
-                Lname = dto.Lname,
-                Fname = dto.Fname,
-                Sign = dto.Sign,
-                Dob = dto.Dob,
-                IsAlive = dto.IsAlive,
-                Text = dto.Text,
-                Wikipedia = dto.Wikipedia
-            };
-
-            var response = await _birthdayService.IndexAsync(birthday);
-            var simpleResponse = new SimpleApiResponse
-            {
-                Success = response.IsValid,
-                Message = response.DebugInformation.Split('\n')[0]
-            };
-            return Ok(simpleResponse);
-        }
-
-        [HttpDelete("{id}")]
-        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public async Task<IActionResult> Delete(string id)
-        {
-            var response = await _birthdayService.DeleteAsync(id);
-            var simpleResponse = new SimpleApiResponse
-            {
-                Success = response.IsValid,
-                Message = response.DebugInformation.Split('\n')[0]
-            };
-            return Ok(simpleResponse);
-        }
-
-        [HttpPut("{id}")]
-        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public async Task<IActionResult> Update(string id, [FromBody] BirthdayCreateUpdateDto dto)
-        {
-            // Check if document exists using the service layer
-            var searchRequest = new SearchRequest<Birthday>
-            {
-                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
-            };
-            
-            var existingResponse = await _birthdayService.SearchAsync(searchRequest, includeDetails: true, "");
-            if (!existingResponse.IsValid || !existingResponse.Documents.Any())
-            {
-                return NotFound($"Document with ID {id} not found");
-            }
-            
-            var birthday = new Birthday
-            {
-                Id = id,
-                Lname = dto.Lname,
-                Fname = dto.Fname,
-                Sign = dto.Sign,
-                Dob = dto.Dob,
-                IsAlive = dto.IsAlive,
-                Text = dto.Text,
-                Wikipedia = dto.Wikipedia,
-                Categories = dto.Categories ?? new List<string>()
-            };
-
-            var updateResponse = await _birthdayService.UpdateAsync(id, birthday);
-            var simpleResponse = new SimpleApiResponse
-            {
-                Success = updateResponse.IsValid,
-                Message = updateResponse.DebugInformation.Split('\n')[0]
-            };
-            return Ok(simpleResponse);
-        }
-
-        [HttpGet("unique-values/{field}")]
-        [ProducesResponseType(typeof(IReadOnlyCollection<string>), 200)]
-        public async Task<IActionResult> GetUniqueFieldValues(string field)
-        {
-            var values = await _birthdayService.GetUniqueFieldValuesAsync(field+".keyword");
-            return Ok(values);
-        }
-
-        [HttpGet("health")]
-        [ProducesResponseType(typeof(ClusterHealthDto), 200)]
-        public async Task<IActionResult> GetHealth()
-        {
-            var res = await _elasticClient.Cluster.HealthAsync();
-            var dto = new ClusterHealthDto
-            {
-                Status = res.Status.ToString(),
-                NumberOfNodes = res.NumberOfNodes,
-                NumberOfDataNodes = res.NumberOfDataNodes,
-                ActiveShards = res.ActiveShards,
-                ActivePrimaryShards = res.ActivePrimaryShards
-            };
-            return Ok(dto);
-        }
-
-        /// <summary>
-        /// Converts a BQL query string to a Ruleset
-        /// </summary>
-        /// <returns>The converted Ruleset</returns>
-        /// <response code="200">Returns the converted Ruleset</response>
-        /// <response code="400">If the query is invalid or empty</response>
-        [HttpPost("bql-to-ruleset")]
-        [Consumes("text/plain")]
-        [ProducesResponseType(typeof(RulesetDto), 200)]
-        [ProducesResponseType(400)]
-        [Produces("application/json")]
-        public async Task<ActionResult<RulesetDto>> ConvertBqlToRuleset([FromBody] string query)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(query))
-                {
-                    return BadRequest("Query cannot be empty");
-                }
-
-                var ruleset = await _bqlService.Bql2Ruleset(query.Trim());
-                return Ok(ruleset);
-            }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, "Error converting BQL to ruleset");
-                return BadRequest(ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Converts a Ruleset to a BQL query string
-        /// </summary>
-        /// <param name="ruleset">The Ruleset to convert</param>
-        /// <returns>The converted BQL query string</returns>
-        [HttpPost("ruleset-to-bql")]
-        [ProducesResponseType(typeof(string), 200)]
-        [ProducesResponseType(400)]
-        public async Task<ActionResult<string>> ConvertRulesetToBql([FromBody] RulesetDto ruleset)
-        {
-            _log.LogDebug("REST request to convert Ruleset to BQL");
-            try
-            {
-                var bqlQuery = await _bqlService.Ruleset2Bql(ruleset);
-                return Ok(bqlQuery);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, "Error converting Ruleset to BQL");
-                return StatusCode(500, "An error occurred while converting Ruleset to BQL");
-            }
-        }
-
-        /// <summary>
-        /// Converts a Ruleset to an Elasticsearch query
-        /// </summary>
-        /// <param name="ruleset">The Ruleset to convert</param>
-        /// <returns>The converted Elasticsearch query</returns>
-        [HttpPost("ruleset-to-elasticsearch")]
-        [ProducesResponseType(typeof(object), 200)]
-        [ProducesResponseType(400)]
-        public async Task<ActionResult<object>> ConvertRulesetToElasticSearch([FromBody] RulesetDto rulesetDto)
-        {
-            _log.LogDebug("REST request to convert Ruleset to Elasticsearch query");
-        
-            try
-            {
-                var ruleset = _mapper.Map<Ruleset>(rulesetDto);
-                var elasticQuery = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
-                return Ok(elasticQuery);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, "Error converting Ruleset to Elasticsearch query");
-                return StatusCode(500, "An error occurred while converting Ruleset to Elasticsearch query");
-            }
-        }
-
-        /// <summary>
-        /// Add or remove a category from multiple birthdays
-        /// </summary>
-        [HttpPost("categorize")]
-        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        [ProducesResponseType(400)]
-        public async Task<IActionResult> Categorize([FromBody] CategorizeRequestDto request)
-        {
-            if (request.Ids == null || !request.Ids.Any())
-            {
-                return BadRequest("At least one ID must be provided");
-            }
-
-            if (string.IsNullOrWhiteSpace(request.Category))
-            {
-                return BadRequest("Category cannot be empty");
-            }
-            var result = await _birthdayService.CategorizeAsync(request);
-            return Ok(result);
-        }
-
-        /// <summary>
-        /// Add and/or remove multiple categories across multiple birthdays
-        /// </summary>
-        [HttpPost("categorize-multiple")]
-        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        [ProducesResponseType(400)]
-        public async Task<IActionResult> CategorizeMultiple([FromBody] CategorizeMultipleRequestDto request)
-        {
-            if (request.Rows == null || !request.Rows.Any())
-            {
-                return BadRequest("At least one row ID must be provided");
-            }
-            var result = await _birthdayService.CategorizeMultipleAsync(request);
-            return Ok(result);
+            return new SearchResultDto<BirthdayDto> { Hits = birthdayDtos, TotalHits = response.Total, HitType = hitType, PitId = searchRequest.PointInTime?.Id, searchAfter = searchAfterResponse };
         }
     }
 }

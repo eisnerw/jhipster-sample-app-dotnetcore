@@ -18,14 +18,14 @@ using System.Collections.Generic;
 
 namespace JhipsterSampleApplication.Test.Controllers
 {
-    public class BirthdaysControllerIntTest : IClassFixture<WebApplicationFactory<Startup>>
+    public class BirthdayControllerIntTest : IClassFixture<WebApplicationFactory<Startup>>
     {
         private readonly WebApplicationFactory<Startup> _factory;
         private readonly HttpClient _client;
         private readonly IElasticClient _elasticClient;
         private readonly BirthdayDto _birthdayDto;
 
-        public BirthdaysControllerIntTest(WebApplicationFactory<Startup> factory)
+        public BirthdayControllerIntTest(WebApplicationFactory<Startup> factory)
         {
             _factory = factory;
             _client = factory.CreateClient();

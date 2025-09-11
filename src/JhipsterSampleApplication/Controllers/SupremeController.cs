@@ -19,23 +19,23 @@ namespace JhipsterSampleApplication.Controllers
 {
 	[ApiController]
 	[Route("api/supreme")]
-	public class SupremesController : ControllerBase
+	public class SupremeController : ControllerBase
 	{
                 private readonly IEntityService<Supreme> _supremeService;
                 private readonly IElasticClient _elasticClient;
                 private readonly IBqlService<Supreme> _bqlService;
                 private readonly IMapper _mapper;
                 private readonly IViewService _viewService;
-                private readonly ILogger<SupremesController> _logger;
+                private readonly ILogger<SupremeController> _logger;
                 private readonly IHistoryService _historyService;
 
-                public SupremesController(
+                public SupremeController(
                         IElasticClient elasticClient,
                         INamedQueryService namedQueryService,
                         ILogger<BqlService<Supreme>> bqlLogger,
                         IMapper mapper,
                         IViewService viewService,
-                        ILogger<SupremesController> logger,
+                        ILogger<SupremeController> logger,
                         IHistoryService historyService)
                 {
                         _bqlService = new BqlService<Supreme>(
@@ -51,6 +51,136 @@ namespace JhipsterSampleApplication.Controllers
                         _historyService = historyService;
                 }
 
+
+                [HttpGet("{id}")]
+                [ProducesResponseType(typeof(SupremeDto), 200)]
+                public async Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
+                {
+                        var searchRequest = new SearchRequest<Supreme>
+                        {
+                                Query = new QueryContainerDescriptor<Supreme>().Term(t => t.Field("_id").Value(id)),
+                                Source = includeDetails ? null : new SourceFilter
+                                {
+                                        Excludes = new[] { "justia_url", "facts_of_the_case", "question", "conclusion" }
+                                }
+                        };
+
+                        var response = await _supremeService.SearchAsync(searchRequest, includeDetails: true, "");
+                        if (!response.IsValid || !response.Documents.Any())
+                        {
+                                return NotFound();
+                        }
+
+                        var s = response.Documents.First();
+                        var dto = new SupremeDto
+                        {
+                                Id = id,
+                                Name = s.Name,
+                                Docket_Number = s.Docket_Number,
+                                Manner_Of_Jurisdiction = s.Manner_Of_Jurisdiction,
+                                Lower_Court = s.Lower_Court,
+                                Facts_Of_The_Case = includeDetails ? s.Facts_Of_The_Case : null,
+                                Question = includeDetails ? s.Question : null,
+                                Conclusion = includeDetails ? s.Conclusion : null,
+                                Decision = s.Decision,
+                                Description = s.Description,
+                                Dissent = s.Dissent,
+                                Heard_By = s.Heard_By,
+                                Term = s.Term,
+                                Justia_Url = includeDetails ? s.Justia_Url : null,
+                                Opinion = s.Opinion,
+                                Argument2_Url = s.Argument2_Url,
+                                Appellant = s.Appellant,
+                                Appellee = s.Appellee,
+                                Petitioner = s.Petitioner,
+                                Respondent = s.Respondent,
+                                Recused = s.Recused,
+                                Majority = s.Majority,
+                                Minority = s.Minority,
+                                Advocates = s.Advocates,
+                                Categories = s.Categories ?? new List<string>()
+                        };
+
+                        return Ok(dto);
+                }
+		[HttpGet("search/lucene")]
+		[ProducesResponseType(typeof(SearchResultDto<object>), 200)]
+		public async Task<IActionResult> SearchWithLuceneQuery(
+			[FromQuery] string query,
+			[FromQuery] int from = 0,
+			[FromQuery] int pageSize = 20,
+			[FromQuery] string? sort = null,
+			[FromQuery] string? pitId = null,
+			[FromQuery] string[]? searchAfter = null,
+			[FromQuery] string? view = null,
+			[FromQuery] string? category = null,
+			[FromQuery] string? secondaryCategory = null,
+			[FromQuery] bool includeDetails = false)
+		{
+			_logger.LogInformation("Supreme lucene search called. query='{Query}', from={From}, pageSize={PageSize}, sort='{Sort}', view='{View}', category='{Category}', secondaryCategory='{SecondaryCategory}', includeDetails={IncludeDetails}", query, from, pageSize, sort, view, category, secondaryCategory, includeDetails);
+			if (string.IsNullOrWhiteSpace(query))
+			{
+				return BadRequest("Query cannot be empty");
+			}
+			JObject queryStringObject = new JObject(new JProperty("query", query));
+			JObject queryObject = new JObject(new JProperty("query_string", queryStringObject));
+			try
+			{
+				return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter, includeDetails);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Supreme lucene search failed");
+				return StatusCode(500, ex.Message);
+			}
+		}
+                [HttpPut("{id}")]
+                [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+                public async Task<IActionResult> Update(string id, [FromBody] SupremeCreateUpdateDto dto)
+                {
+                        var searchRequest = new SearchRequest<Supreme>
+                        {
+                                Query = new QueryContainerDescriptor<Supreme>().Term(t => t.Field("_id").Value(id))
+                        };
+
+                        var existing = await _supremeService.SearchAsync(searchRequest, includeDetails: true, "");
+                        if (!existing.IsValid || !existing.Documents.Any())
+                        {
+                                return NotFound($"Document with ID {id} not found");
+                        }
+
+                        var supreme = new Supreme
+                        {
+                                Id = id,
+                                Name = dto.Name,
+                                Docket_Number = dto.Docket_Number,
+                                Manner_Of_Jurisdiction = dto.Manner_Of_Jurisdiction,
+                                Lower_Court = dto.Lower_Court,
+                                Facts_Of_The_Case = dto.Facts_Of_The_Case,
+                                Question = dto.Question,
+                                Conclusion = dto.Conclusion,
+                                Decision = dto.Decision,
+                                Description = dto.Description,
+                                Dissent = dto.Dissent,
+                                Heard_By = dto.Heard_By,
+                                Term = dto.Term,
+                                Justia_Url = dto.Justia_Url,
+                                Opinion = dto.Opinion,
+                                Argument2_Url = dto.Argument2_Url,
+                                Appellant = dto.Appellant,
+                                Appellee = dto.Appellee,
+                                Petitioner = dto.Petitioner,
+                                Respondent = dto.Respondent,
+                                Recused = dto.Recused,
+                                Majority = dto.Majority,
+                                Minority = dto.Minority,
+                                Advocates = dto.Advocates,
+                                Categories = dto.Categories ?? new List<string>()
+                        };
+
+                        var updateResponse = await _supremeService.UpdateAsync(id, supreme);
+                        return Ok(new SimpleApiResponse { Success = updateResponse.IsValid, Message = updateResponse.DebugInformation.Split('\n')[0] });
+                }
                 /// <summary>
                 /// Returns an HTML page constructed from various fields for a given Supreme document
                 /// </summary>
@@ -156,52 +286,13 @@ namespace JhipsterSampleApplication.Controllers
                         sb.Append("</body></html>");
                         return Content(sb.ToString(), "text/html");
                 }
-
-		[HttpGet("query-builder-spec")]
-		[Produces("application/json")]
-		public IActionResult GetQueryBuilderSpec()
-		{
-			var path = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "query-builder", "supreme-qb-spec.json");
-			if (!System.IO.File.Exists(path))
-			{
-				return NotFound("Spec file not found");
-			}
-			var json = System.IO.File.ReadAllText(path);
-			return Content(json, "application/json");
-		}
-
-		[HttpGet("search/lucene")]
-		[ProducesResponseType(typeof(SearchResultDto<object>), 200)]
-		public async Task<IActionResult> SearchWithLuceneQuery(
-			[FromQuery] string query,
-			[FromQuery] int from = 0,
-			[FromQuery] int pageSize = 20,
-			[FromQuery] string? sort = null,
-			[FromQuery] string? pitId = null,
-			[FromQuery] string[]? searchAfter = null,
-			[FromQuery] string? view = null,
-			[FromQuery] string? category = null,
-			[FromQuery] string? secondaryCategory = null,
-			[FromQuery] bool includeDetails = false)
-		{
-			_logger.LogInformation("Supreme lucene search called. query='{Query}', from={From}, pageSize={PageSize}, sort='{Sort}', view='{View}', category='{Category}', secondaryCategory='{SecondaryCategory}', includeDetails={IncludeDetails}", query, from, pageSize, sort, view, category, secondaryCategory, includeDetails);
-			if (string.IsNullOrWhiteSpace(query))
-			{
-				return BadRequest("Query cannot be empty");
-			}
-			JObject queryStringObject = new JObject(new JProperty("query", query));
-			JObject queryObject = new JObject(new JProperty("query_string", queryStringObject));
-			try
-			{
-				return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter, includeDetails);
-			}
-			catch (Exception ex)
-			{
-				_logger.LogError(ex, "Supreme lucene search failed");
-				return StatusCode(500, ex.Message);
-			}
-		}
-
+                [HttpDelete("{id}")]
+                [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+                public async Task<IActionResult> Delete(string id)
+                {
+                        var response = await _supremeService.DeleteAsync(id);
+                        return Ok(new SimpleApiResponse { Success = response.IsValid, Message = response.DebugInformation.Split('\n')[0] });
+                }
 		[HttpPost("search/ruleset")]
 		[ProducesResponseType(typeof(SearchResultDto<object>), 200)]
 		[ProducesResponseType(400)]
@@ -220,7 +311,6 @@ namespace JhipsterSampleApplication.Controllers
 			var queryObject = await _supremeService.ConvertRulesetToElasticSearch(ruleset);
 			return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter, includeDetails);
 		}
-
 		[HttpPost("search/elasticsearch")]
 		[ProducesResponseType(typeof(SearchResultDto<object>), 200)]
 		[ProducesResponseType(400)]
@@ -474,7 +564,6 @@ namespace JhipsterSampleApplication.Controllers
 			List<object>? searchAfterResponse = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null;
 			return Ok(new SearchResultDto<object> { Hits = supremeDtos.Cast<object>().ToList(), TotalHits = response.Total, HitType = "supreme", PitId = searchRequest.PointInTime?.Id, searchAfter = searchAfterResponse });
 		}
-
 		[HttpPost("search/bql")]
 		[Consumes("text/plain")]
 		[ProducesResponseType(typeof(SearchResultDto<object>), 200)]
@@ -501,60 +590,133 @@ namespace JhipsterSampleApplication.Controllers
                         await _historyService.Save(new History { User = User?.Identity?.Name, Domain = "supreme", Text = bqlQuery });
                         return await Search(queryObject, pageSize, from, sort, view, category, secondaryCategory, pitId, searchAfter, includeDetails);
                 }
-
-
-                [HttpGet("{id}")]
-                [ProducesResponseType(typeof(SupremeDto), 200)]
-                public async Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
+                [HttpGet("unique-values/{field}")]
+                [ProducesResponseType(typeof(IReadOnlyCollection<string>), 200)]
+                public async Task<IActionResult> GetUniqueFieldValues(string field)
                 {
-                        var searchRequest = new SearchRequest<Supreme>
+                        var esField = field == "term" ? field : field + ".keyword";
+                        var values = await _supremeService.GetUniqueFieldValuesAsync(esField);
+                        return Ok(values);
+                }
+		[HttpGet("query-builder-spec")]
+		[Produces("application/json")]
+		public IActionResult GetQueryBuilderSpec()
+		{
+			var path = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "query-builder", "supreme-qb-spec.json");
+			if (!System.IO.File.Exists(path))
+			{
+				return NotFound("Spec file not found");
+			}
+			var json = System.IO.File.ReadAllText(path);
+			return Content(json, "application/json");
+		}
+                [HttpPost("bql-to-ruleset")]
+                [Consumes("text/plain")]
+                [ProducesResponseType(typeof(RulesetDto), 200)]
+                [ProducesResponseType(400)]
+                [Produces("application/json")]
+                public async Task<ActionResult<RulesetDto>> ConvertBqlToRuleset([FromBody] string query)
+                {
+                        try
                         {
-                                Query = new QueryContainerDescriptor<Supreme>().Term(t => t.Field("_id").Value(id)),
-                                Source = includeDetails ? null : new SourceFilter
+                                if (string.IsNullOrWhiteSpace(query))
                                 {
-                                        Excludes = new[] { "justia_url", "facts_of_the_case", "question", "conclusion" }
+                                        return BadRequest("Query cannot be empty");
                                 }
-                        };
 
-                        var response = await _supremeService.SearchAsync(searchRequest, includeDetails: true, "");
-                        if (!response.IsValid || !response.Documents.Any())
+                                var ruleset = await _bqlService.Bql2Ruleset(query.Trim());
+                                return Ok(ruleset);
+                        }
+                        catch (Exception ex)
                         {
-                                return NotFound();
+                                return BadRequest(ex.Message);
+                        }
+                }
+                [HttpPost("ruleset-to-bql")]
+                [ProducesResponseType(typeof(string), 200)]
+                [ProducesResponseType(400)]
+                public async Task<ActionResult<string>> ConvertRulesetToBql([FromBody] RulesetDto ruleset)
+                {
+                        try
+                        {
+                                var bqlQuery = await _bqlService.Ruleset2Bql(ruleset);
+                                return Ok(bqlQuery);
+                        }
+                        catch (ArgumentException ex)
+                        {
+                                return BadRequest(ex.Message);
+                        }
+                        catch (Exception)
+                        {
+                                return StatusCode(500, "An error occurred while converting Ruleset to BQL");
+                        }
+                }
+                [HttpPost("ruleset-to-elasticsearch")]
+                [ProducesResponseType(typeof(object), 200)]
+                [ProducesResponseType(400)]
+                public async Task<ActionResult<object>> ConvertRulesetToElasticSearch([FromBody] RulesetDto rulesetDto)
+                {
+                        try
+                        {
+                                var ruleset = _mapper.Map<Ruleset>(rulesetDto);
+                                var elasticQuery = await _supremeService.ConvertRulesetToElasticSearch(ruleset);
+                                return Ok(elasticQuery);
+                        }
+                        catch (ArgumentException ex)
+                        {
+                                return BadRequest(ex.Message);
+                        }
+                        catch (Exception)
+                        {
+                                return StatusCode(500, "An error occurred while converting Ruleset to Elasticsearch query");
+                        }
+                }
+                [HttpPost("categorize")]
+                [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+                [ProducesResponseType(400)]
+                public async Task<IActionResult> Categorize([FromBody] CategorizeRequestDto request)
+                {
+                        if (request.Ids == null || !request.Ids.Any())
+                        {
+                                return BadRequest("At least one ID must be provided");
                         }
 
-                        var s = response.Documents.First();
-                        var dto = new SupremeDto
+                        if (string.IsNullOrWhiteSpace(request.Category))
                         {
-                                Id = id,
-                                Name = s.Name,
-                                Docket_Number = s.Docket_Number,
-                                Manner_Of_Jurisdiction = s.Manner_Of_Jurisdiction,
-                                Lower_Court = s.Lower_Court,
-                                Facts_Of_The_Case = includeDetails ? s.Facts_Of_The_Case : null,
-                                Question = includeDetails ? s.Question : null,
-                                Conclusion = includeDetails ? s.Conclusion : null,
-                                Decision = s.Decision,
-                                Description = s.Description,
-                                Dissent = s.Dissent,
-                                Heard_By = s.Heard_By,
-                                Term = s.Term,
-                                Justia_Url = includeDetails ? s.Justia_Url : null,
-                                Opinion = s.Opinion,
-                                Argument2_Url = s.Argument2_Url,
-                                Appellant = s.Appellant,
-                                Appellee = s.Appellee,
-                                Petitioner = s.Petitioner,
-                                Respondent = s.Respondent,
-                                Recused = s.Recused,
-                                Majority = s.Majority,
-                                Minority = s.Minority,
-                                Advocates = s.Advocates,
-                                Categories = s.Categories ?? new List<string>()
-                        };
+                                return BadRequest("Category cannot be empty");
+                        }
 
+                        var result = await _supremeService.CategorizeAsync(request);
+                        return Ok(result);
+                }
+                [HttpPost("categorize-multiple")]
+                [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+                [ProducesResponseType(400)]
+                public async Task<IActionResult> CategorizeMultiple([FromBody] CategorizeMultipleRequestDto request)
+                {
+                        if (request.Rows == null || !request.Rows.Any())
+                        {
+                                return BadRequest("At least one row ID must be provided");
+                        }
+
+                        var result = await _supremeService.CategorizeMultipleAsync(request);
+                        return Ok(result);
+                }
+                [HttpGet("health")]
+                [ProducesResponseType(typeof(ClusterHealthDto), 200)]
+                public async Task<IActionResult> GetHealth()
+                {
+                        var res = await _elasticClient.Cluster.HealthAsync();
+                        var dto = new ClusterHealthDto
+                        {
+                                Status = res.Status.ToString(),
+                                NumberOfNodes = res.NumberOfNodes,
+                                NumberOfDataNodes = res.NumberOfDataNodes,
+                                ActiveShards = res.ActiveShards,
+                                ActivePrimaryShards = res.ActivePrimaryShards
+                        };
                         return Ok(dto);
                 }
-
                 [HttpPost]
                 [ProducesResponseType(typeof(SimpleApiResponse), 200)]
                 public async Task<IActionResult> Create([FromBody] SupremeCreateUpdateDto dto)
@@ -591,131 +753,6 @@ namespace JhipsterSampleApplication.Controllers
                         var response = await _supremeService.IndexAsync(supreme);
                         return Ok(new SimpleApiResponse { Success = response.IsValid, Message = response.DebugInformation.Split('\n')[0] });
                 }
-
-                [HttpDelete("{id}")]
-                [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-                public async Task<IActionResult> Delete(string id)
-                {
-                        var response = await _supremeService.DeleteAsync(id);
-                        return Ok(new SimpleApiResponse { Success = response.IsValid, Message = response.DebugInformation.Split('\n')[0] });
-                }
-
-                [HttpPut("{id}")]
-                [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-                public async Task<IActionResult> Update(string id, [FromBody] SupremeCreateUpdateDto dto)
-                {
-                        var searchRequest = new SearchRequest<Supreme>
-                        {
-                                Query = new QueryContainerDescriptor<Supreme>().Term(t => t.Field("_id").Value(id))
-                        };
-
-                        var existing = await _supremeService.SearchAsync(searchRequest, includeDetails: true, "");
-                        if (!existing.IsValid || !existing.Documents.Any())
-                        {
-                                return NotFound($"Document with ID {id} not found");
-                        }
-
-                        var supreme = new Supreme
-                        {
-                                Id = id,
-                                Name = dto.Name,
-                                Docket_Number = dto.Docket_Number,
-                                Manner_Of_Jurisdiction = dto.Manner_Of_Jurisdiction,
-                                Lower_Court = dto.Lower_Court,
-                                Facts_Of_The_Case = dto.Facts_Of_The_Case,
-                                Question = dto.Question,
-                                Conclusion = dto.Conclusion,
-                                Decision = dto.Decision,
-                                Description = dto.Description,
-                                Dissent = dto.Dissent,
-                                Heard_By = dto.Heard_By,
-                                Term = dto.Term,
-                                Justia_Url = dto.Justia_Url,
-                                Opinion = dto.Opinion,
-                                Argument2_Url = dto.Argument2_Url,
-                                Appellant = dto.Appellant,
-                                Appellee = dto.Appellee,
-                                Petitioner = dto.Petitioner,
-                                Respondent = dto.Respondent,
-                                Recused = dto.Recused,
-                                Majority = dto.Majority,
-                                Minority = dto.Minority,
-                                Advocates = dto.Advocates,
-                                Categories = dto.Categories ?? new List<string>()
-                        };
-
-                        var updateResponse = await _supremeService.UpdateAsync(id, supreme);
-                        return Ok(new SimpleApiResponse { Success = updateResponse.IsValid, Message = updateResponse.DebugInformation.Split('\n')[0] });
-                }
-
-                [HttpGet("unique-values/{field}")]
-                [ProducesResponseType(typeof(IReadOnlyCollection<string>), 200)]
-                public async Task<IActionResult> GetUniqueFieldValues(string field)
-                {
-                        var esField = field == "term" ? field : field + ".keyword";
-                        var values = await _supremeService.GetUniqueFieldValuesAsync(esField);
-                        return Ok(values);
-                }
-
-                [HttpGet("health")]
-                [ProducesResponseType(typeof(ClusterHealthDto), 200)]
-                public async Task<IActionResult> GetHealth()
-                {
-                        var res = await _elasticClient.Cluster.HealthAsync();
-                        var dto = new ClusterHealthDto
-                        {
-                                Status = res.Status.ToString(),
-                                NumberOfNodes = res.NumberOfNodes,
-                                NumberOfDataNodes = res.NumberOfDataNodes,
-                                ActiveShards = res.ActiveShards,
-                                ActivePrimaryShards = res.ActivePrimaryShards
-                        };
-                        return Ok(dto);
-                }
-
-                [HttpPost("bql-to-ruleset")]
-                [Consumes("text/plain")]
-                [ProducesResponseType(typeof(RulesetDto), 200)]
-                [ProducesResponseType(400)]
-                [Produces("application/json")]
-                public async Task<ActionResult<RulesetDto>> ConvertBqlToRuleset([FromBody] string query)
-                {
-                        try
-                        {
-                                if (string.IsNullOrWhiteSpace(query))
-                                {
-                                        return BadRequest("Query cannot be empty");
-                                }
-
-                                var ruleset = await _bqlService.Bql2Ruleset(query.Trim());
-                                return Ok(ruleset);
-                        }
-                        catch (Exception ex)
-                        {
-                                return BadRequest(ex.Message);
-                        }
-                }
-
-                [HttpPost("ruleset-to-bql")]
-                [ProducesResponseType(typeof(string), 200)]
-                [ProducesResponseType(400)]
-                public async Task<ActionResult<string>> ConvertRulesetToBql([FromBody] RulesetDto ruleset)
-                {
-                        try
-                        {
-                                var bqlQuery = await _bqlService.Ruleset2Bql(ruleset);
-                                return Ok(bqlQuery);
-                        }
-                        catch (ArgumentException ex)
-                        {
-                                return BadRequest(ex.Message);
-                        }
-                        catch (Exception)
-                        {
-                                return StatusCode(500, "An error occurred while converting Ruleset to BQL");
-                        }
-                }
-
                 [HttpPost("ruleset-to-bql-to-ruleset")]
                 [ProducesResponseType(typeof(RulesetDto), 200)]
                 [ProducesResponseType(400)]
@@ -735,60 +772,6 @@ namespace JhipsterSampleApplication.Controllers
                         {
                                 return StatusCode(500, "An error occurred while converting Ruleset");
                         }
-                }
-
-                [HttpPost("ruleset-to-elasticsearch")]
-                [ProducesResponseType(typeof(object), 200)]
-                [ProducesResponseType(400)]
-                public async Task<ActionResult<object>> ConvertRulesetToElasticSearch([FromBody] RulesetDto rulesetDto)
-                {
-                        try
-                        {
-                                var ruleset = _mapper.Map<Ruleset>(rulesetDto);
-                                var elasticQuery = await _supremeService.ConvertRulesetToElasticSearch(ruleset);
-                                return Ok(elasticQuery);
-                        }
-                        catch (ArgumentException ex)
-                        {
-                                return BadRequest(ex.Message);
-                        }
-                        catch (Exception)
-                        {
-                                return StatusCode(500, "An error occurred while converting Ruleset to Elasticsearch query");
-                        }
-                }
-
-                [HttpPost("categorize")]
-                [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-                [ProducesResponseType(400)]
-                public async Task<IActionResult> Categorize([FromBody] CategorizeRequestDto request)
-                {
-                        if (request.Ids == null || !request.Ids.Any())
-                        {
-                                return BadRequest("At least one ID must be provided");
-                        }
-
-                        if (string.IsNullOrWhiteSpace(request.Category))
-                        {
-                                return BadRequest("Category cannot be empty");
-                        }
-
-                        var result = await _supremeService.CategorizeAsync(request);
-                        return Ok(result);
-                }
-
-                [HttpPost("categorize-multiple")]
-                [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-                [ProducesResponseType(400)]
-                public async Task<IActionResult> CategorizeMultiple([FromBody] CategorizeMultipleRequestDto request)
-                {
-                        if (request.Rows == null || !request.Rows.Any())
-                        {
-                                return BadRequest("At least one row ID must be provided");
-                        }
-
-                        var result = await _supremeService.CategorizeMultipleAsync(request);
-                        return Ok(result);
                 }
         }
 }
