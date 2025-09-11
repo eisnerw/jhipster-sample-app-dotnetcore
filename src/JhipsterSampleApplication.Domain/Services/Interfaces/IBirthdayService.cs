@@ -9,10 +9,5 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
 {
     public interface IBirthdayService : IEntityService<Birthday>
     {
-        Task<string?> GetHtmlByIdAsync(string id);
-        Task<object> Search(JObject elasticsearchQuery, int pageSize = 20, int from = 0, string? sort = null,
-            bool includeDetails = false, string? view = null, string? category = null,
-            string? secondaryCategory = null, string? pitId = null, string[]? searchAfter = null);
-        Task<BirthdayDto?> GetByIdAsync(string id, bool includeDetails = false);
     }
 }
