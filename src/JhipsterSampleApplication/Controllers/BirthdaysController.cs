@@ -3,6 +3,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Nest;
+using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Entities;
 using System.Collections.Generic;
@@ -20,7 +21,7 @@ namespace JhipsterSampleApplication.Controllers
     [Route("api/birthdays")]
     public class BirthdaysController : ControllerBase
     {
-        private readonly IBirthdayService _birthdayService;       
+        private readonly IEntityService<Birthday> _birthdayService;
         private readonly IElasticClient _elasticClient;
         private readonly IBqlService<Birthday> _bqlService;
         private readonly ILogger<BirthdaysController> _log;
@@ -29,7 +30,6 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IViewService _viewService;
 
         public BirthdaysController(
-            IBirthdayService birthdayService,
             IElasticClient elasticClient,
             IBqlService<Birthday> bqlService,
             ILogger<BirthdaysController> log,
@@ -37,7 +37,7 @@ namespace JhipsterSampleApplication.Controllers
             IHistoryService historyService,
             IViewService viewService)
         {
-            _birthdayService = birthdayService;
+            _birthdayService = new EntityService<Birthday>("birthdays", "wikipedia", elasticClient, bqlService, viewService);
             _elasticClient = elasticClient;
             _bqlService = bqlService;
             _log = log;

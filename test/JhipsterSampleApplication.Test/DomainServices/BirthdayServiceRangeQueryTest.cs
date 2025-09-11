@@ -13,7 +13,7 @@ namespace JhipsterSampleApplication.Test.DomainServices;
 
 public class BirthdayServiceRangeQueryTest
 {
-    private readonly BirthdayService _service;
+    private readonly EntityService<Birthday> _service;
 
     public BirthdayServiceRangeQueryTest()
     {
@@ -21,7 +21,7 @@ public class BirthdayServiceRangeQueryTest
         var bqlService = new BqlService<Birthday>(new Mock<ILogger<BqlService<Birthday>>>().Object,
             new Mock<INamedQueryService>().Object, new JObject(), "birthdays");
         var viewService = new Mock<IViewService>().Object;
-        _service = new BirthdayService(elasticClient, bqlService, viewService);
+        _service = new EntityService<Birthday>("birthdays", "wikipedia", elasticClient, bqlService, viewService);
     }
 
     [Theory]
