@@ -213,22 +213,6 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         public async Task<IActionResult> Create([FromBody] BirthdayCreateUpdateDto dto)
         {
-            // Best-effort de-duplication to keep test/index state deterministic across runs:
-            // if both last and first names are provided, remove any existing docs matching that pair.
-            if (!string.IsNullOrWhiteSpace(dto.Lname) && !string.IsNullOrWhiteSpace(dto.Fname))
-            {
-                try
-                {
-                    var deleteResponse = await _elasticClient.DeleteByQueryAsync<Birthday>(d => d
-                        .Index("birthdays")
-                        .Query(q => q.Bool(b => b.Must(
-                            m => m.Term(t => t.Field("lname.keyword").Value(dto.Lname)),
-                            m => m.Term(t => t.Field("fname.keyword").Value(dto.Fname))
-                        )))
-                    );
-                }
-                catch { /* ignore cleanup errors */ }
-            }
             var birthday = new Birthday
             {
                 Id = dto.Id,

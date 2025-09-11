@@ -7,6 +7,8 @@ using JhipsterSampleApplication.Dto;
 using AutoMapper;
 using System;
 using System.Linq;
+using System.IO;
+using System.Text.Json;
 
 namespace JhipsterSampleApplication.Domain.Services
 {
@@ -39,7 +41,72 @@ namespace JhipsterSampleApplication.Domain.Services
                     string.Equals(v.Id, id, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(v.Name, id, StringComparison.OrdinalIgnoreCase));
             }
+            if (view == null)
+            {
+                // Last-resort: load from Resources/Views/*.json
+                var loaded = LoadFromResources(id);
+                if (loaded != null)
+                {
+                    try
+                    {
+                        // Persist for next time
+                        var created = await _viewRepository.AddAsync(loaded);
+                        return _mapper.Map<ViewDto>(created);
+                    }
+                    catch
+                    {
+                        // If persistence fails, still return the loaded definition
+                        return _mapper.Map<ViewDto>(loaded);
+                    }
+                }
+            }
             return _mapper.Map<ViewDto>(view);
+        }
+
+        private View? LoadFromResources(string idOrName)
+        {
+            try
+            {
+                var baseDir = AppContext.BaseDirectory;
+                var viewsDir = Path.Combine(baseDir, "Resources", "Views");
+                if (!Directory.Exists(viewsDir)) return null;
+                foreach (var file in Directory.EnumerateFiles(viewsDir, "*.json"))
+                {
+                    List<JhipsterSampleApplication.Dto.ViewDto>? dtos = null;
+                    try
+                    {
+                        dtos = JsonSerializer.Deserialize<List<JhipsterSampleApplication.Dto.ViewDto>>(File.ReadAllText(file), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    }
+                    catch { continue; }
+                    if (dtos == null) continue;
+
+                    var match = dtos.FirstOrDefault(d =>
+                        string.Equals(d.Id, idOrName, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(d.Name, idOrName, StringComparison.OrdinalIgnoreCase));
+                    if (match != null)
+                    {
+                        var entity = new View
+                        {
+                            Id = match.Id ?? string.Empty,
+                            Name = match.Name ?? string.Empty,
+                            Field = match.Field,
+                            Aggregation = match.Aggregation,
+                            Query = match.Query,
+                            CategoryQuery = match.CategoryQuery,
+                            Script = match.Script,
+                            parentViewId = match.parentViewId,
+                            Domain = match.Domain ?? string.Empty
+                        };
+                        entity.EnsureId();
+                        return entity;
+                    }
+                }
+            }
+            catch
+            {
+                // ignore resource failures
+            }
+            return null;
         }
 
         public async Task<ViewDto?> GetChildByParentIdAsync(string id)
