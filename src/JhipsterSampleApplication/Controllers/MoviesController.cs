@@ -29,11 +29,22 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IViewService _viewService;
         private readonly IHistoryService _historyService;
 
-        public MoviesController(IElasticClient elasticClient, IBqlService<Movie> bqlService, IMapper mapper, IViewService viewService, ILogger<MoviesController> logger, IHistoryService historyService)
+        public MoviesController(
+            IElasticClient elasticClient,
+            INamedQueryService namedQueryService,
+            ILogger<BqlService<Movie>> bqlLogger,
+            IMapper mapper,
+            IViewService viewService,
+            ILogger<MoviesController> logger,
+            IHistoryService historyService)
         {
-            _movieService = new EntityService<Movie>("movies", "synopsis", elasticClient, bqlService, viewService);
+            _bqlService = new BqlService<Movie>(
+                bqlLogger,
+                namedQueryService,
+                BqlService<Movie>.LoadSpec("movie"),
+                "movies");
+            _movieService = new EntityService<Movie>("movies", "synopsis", elasticClient, _bqlService, viewService);
             _elasticClient = elasticClient;
-            _bqlService = bqlService;
             _mapper = mapper;
             _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
             _logger = logger;

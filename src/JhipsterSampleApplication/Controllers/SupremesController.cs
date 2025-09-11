@@ -22,7 +22,7 @@ namespace JhipsterSampleApplication.Controllers
 	public class SupremesController : ControllerBase
 	{
                 private readonly IEntityService<Supreme> _supremeService;
-		private readonly IElasticClient _elasticClient;
+                private readonly IElasticClient _elasticClient;
                 private readonly IBqlService<Supreme> _bqlService;
                 private readonly IMapper _mapper;
                 private readonly IViewService _viewService;
@@ -31,15 +31,20 @@ namespace JhipsterSampleApplication.Controllers
 
                 public SupremesController(
                         IElasticClient elasticClient,
-                     IBqlService<Supreme> bqlService,
+                        INamedQueryService namedQueryService,
+                        ILogger<BqlService<Supreme>> bqlLogger,
                         IMapper mapper,
                         IViewService viewService,
                         ILogger<SupremesController> logger,
                         IHistoryService historyService)
                 {
-                        _supremeService = new EntityService<Supreme>("supreme","justia_url,argument2_url,facts_of_the_case,conclusion", elasticClient, bqlService, viewService);
+                        _bqlService = new BqlService<Supreme>(
+                                bqlLogger,
+                                namedQueryService,
+                                BqlService<Supreme>.LoadSpec("supreme"),
+                                "supreme");
+                        _supremeService = new EntityService<Supreme>("supreme","justia_url,argument2_url,facts_of_the_case,conclusion", elasticClient, _bqlService, viewService);
                         _elasticClient = elasticClient;
-                        _bqlService = bqlService;
                         _mapper = mapper;
                         _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
                         _logger = logger;
