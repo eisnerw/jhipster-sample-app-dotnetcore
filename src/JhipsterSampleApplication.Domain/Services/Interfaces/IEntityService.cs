@@ -21,8 +21,4 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
         Task<SimpleApiResponse> CategorizeAsync(CategorizeRequestDto request);
         Task<SimpleApiResponse> CategorizeMultipleAsync(CategorizeMultipleRequestDto request);
     }
-
-    public interface IEntityService : IEntityService<Birthday>
-    {
-    }
 } 

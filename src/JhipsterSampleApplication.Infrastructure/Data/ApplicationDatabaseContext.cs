@@ -23,7 +23,6 @@ namespace JhipsterSampleApplication.Infrastructure.Data
     {
         private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
-        public required DbSet<Birthday> Birthdays { get; set; }
         public required DbSet<View> Views { get; set; }
         public required DbSet<NamedQuery> NamedQueries { get; set; }
         public required DbSet<Selector> Selectors { get; set; }
@@ -63,25 +62,6 @@ namespace JhipsterSampleApplication.Infrastructure.Data
                 .HasForeignKey(e => e.UserId)
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade);
-
-            builder.Entity<Birthday>(entity =>
-            {
-                entity.ToTable("birthday");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Id).ValueGeneratedOnAdd();
-                entity.Property(e => e.Text).IsRequired();
-                entity.Property(e => e.Lname).IsRequired();
-                entity.Property(e => e.Fname).IsRequired();
-                entity.Property(e => e.Sign).IsRequired();
-                entity.Property(e => e.Dob).IsRequired();
-                entity.Property(e => e.IsAlive).IsRequired();
-                entity.Property(e => e.Wikipedia).IsRequired();
-                entity.Property(e => e.Categories)
-                    .HasConversion(
-                        v => string.Join(',', v),
-                        v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList()
-                    );
-            });
 
             builder.Entity<View>(entity =>
             {

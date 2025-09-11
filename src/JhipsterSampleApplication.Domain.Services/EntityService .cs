@@ -20,7 +20,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 namespace JhipsterSampleApplication.Domain.Services;
 
 /// <summary>
-/// Service for interacting with Elasticsearch for Birthday operations
+/// Service for interacting with Elasticsearch for Entity operations
 /// </summary>
 public class EntityService<T> : IEntityService<T> where T : class
 {
@@ -31,7 +31,7 @@ public class EntityService<T> : IEntityService<T> where T : class
     private readonly IViewService _viewService;
 
     /// <summary>
-    /// Initializes a new instance of the BirthdayService
+    /// Initializes a new instance of the EntityService
     /// </summary>
     /// <param name="elasticClient">The Elasticsearch client</param>
     /// <param name="bqlService">The BQL service</param>
@@ -46,10 +46,10 @@ public class EntityService<T> : IEntityService<T> where T : class
     }
 
     /// <summary>
-    /// Searches for Birthday documents using the provided search request
+    /// Searches for Entity documents using the provided search request
     /// </summary>
     /// <param name="request">The search request to execute</param>
-    /// <returns>The search response containing Birthday documents</returns>
+    /// <returns>The search response containing Entity documents</returns>
     public async Task<ISearchResponse<T>> SearchAsync(ISearchRequest request, bool includeDetails, string? pitId = null) 
     {            
         if (!includeDetails)
@@ -286,9 +286,9 @@ public class EntityService<T> : IEntityService<T> where T : class
     }
 
     /// <summary>
-    /// Indexes a new Birthday document
+    /// Indexes a new Entity document
     /// </summary>
-    /// <param name="birthday">The Birthday document to index</param>
+    /// <param name="Entity">The Entity document to index</param>
     /// <returns>The index response</returns>
     public async Task<IndexResponse> IndexAsync(T entity)
     {
@@ -296,10 +296,10 @@ public class EntityService<T> : IEntityService<T> where T : class
     }
 
     /// <summary>
-    /// Updates an existing Birthday document
+    /// Updates an existing Entity document
     /// </summary>
     /// <param name="id">The ID of the document to update</param>
-    /// <param name="birthday">The updated Birthday document</param>
+    /// <param name="Entity">The updated Entity document</param>
     /// <returns>The update response</returns>
     public async Task<UpdateResponse<T>> UpdateAsync(string id, T entity)
     {
@@ -561,7 +561,7 @@ private static RulesetDto MapToDto(Ruleset rr)
         var response = await SearchAsync(searchRequest, true, "");
         if (!response.IsValid)
         {
-            return new SimpleApiResponse { Success = false, Message = "Failed to search for birthdays" };
+            return new SimpleApiResponse { Success = false, Message = "Failed to search for Entitys" };
         }
 
         var successCount = 0;
