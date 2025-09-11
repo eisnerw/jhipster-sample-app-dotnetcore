@@ -1,7 +1,5 @@
 using Scrutor;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 
@@ -31,24 +29,6 @@ public static class ServiceStartup
                     .AsImplementedInterfaces()
                     .WithScopedLifetime()
         );
-        services.AddScoped<IBqlService<Birthday>>(sp => new BqlService<Birthday>(
-            sp.GetRequiredService<ILogger<BqlService<Birthday>>>(),
-            sp.GetRequiredService<INamedQueryService>(),
-            BqlService<Birthday>.LoadSpec("birthday"),
-            "birthdays"));
-
-        services.AddScoped<IBqlService<Movie>>(sp => new BqlService<Movie>(
-            sp.GetRequiredService<ILogger<BqlService<Movie>>>(),
-            sp.GetRequiredService<INamedQueryService>(),
-            BqlService<Movie>.LoadSpec("movie"),
-            "movies"));
-
-        services.AddScoped<IBqlService<Supreme>>(sp => new BqlService<Supreme>(
-            sp.GetRequiredService<ILogger<BqlService<Supreme>>>(),
-            sp.GetRequiredService<INamedQueryService>(),
-            BqlService<Supreme>.LoadSpec("supreme"),
-            "supreme"));
-
         return services;
     }
 }

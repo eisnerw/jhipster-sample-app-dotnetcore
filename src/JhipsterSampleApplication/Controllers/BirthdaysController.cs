@@ -31,15 +31,20 @@ namespace JhipsterSampleApplication.Controllers
 
         public BirthdaysController(
             IElasticClient elasticClient,
-            IBqlService<Birthday> bqlService,
+            INamedQueryService namedQueryService,
+            ILogger<BqlService<Birthday>> bqlLogger,
             ILogger<BirthdaysController> log,
             IMapper mapper,
             IHistoryService historyService,
             IViewService viewService)
         {
-            _birthdayService = new EntityService<Birthday>("birthdays", "wikipedia", elasticClient, bqlService, viewService);
+            _bqlService = new BqlService<Birthday>(
+                bqlLogger,
+                namedQueryService,
+                BqlService<Birthday>.LoadSpec("birthday"),
+                "birthdays");
+            _birthdayService = new EntityService<Birthday>("birthdays", "wikipedia", elasticClient, _bqlService, viewService);
             _elasticClient = elasticClient;
-            _bqlService = bqlService;
             _log = log;
             _mapper = mapper;
             _historyService = historyService;
