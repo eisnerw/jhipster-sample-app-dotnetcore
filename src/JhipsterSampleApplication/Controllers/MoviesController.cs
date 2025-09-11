@@ -1,19 +1,19 @@
 #nullable enable
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
 using System.Threading.Tasks;
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Nest;
-using Newtonsoft.Json.Linq;
-using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
+using JhipsterSampleApplication.Domain.Entities;
+using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
+using System.Linq;
+using System.Net;
 using JhipsterSampleApplication.Dto;
+using AutoMapper;
+using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -25,18 +25,18 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IElasticClient _elasticClient;
         private readonly IBqlService<Movie> _bqlService;
         private readonly IMapper _mapper;
-        private readonly ILogger<MoviesController> _logger;
         private readonly IViewService _viewService;
+        private readonly ILogger<MoviesController> _logger;
         private readonly IHistoryService _historyService;
 
         public MoviesController(
             IElasticClient elasticClient,
             INamedQueryService namedQueryService,
             ILogger<BqlService<Movie>> bqlLogger,
-            IMapper mapper,
-            IViewService viewService,
             ILogger<MoviesController> logger,
-            IHistoryService historyService)
+            IMapper mapper,
+            IHistoryService historyService,
+            IViewService viewService)
         {
             _bqlService = new BqlService<Movie>(
                 bqlLogger,
@@ -49,6 +49,42 @@ namespace JhipsterSampleApplication.Controllers
             _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
             _logger = logger;
             _historyService = historyService;
+        }
+
+        [HttpPost]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        public async Task<IActionResult> Create([FromBody] MovieCreateUpdateDto dto)
+        {
+            var movie = _mapper.Map<Movie>(dto);
+            movie.Id = dto.Id;
+            var response = await _movieService.IndexAsync(movie);
+            return Ok(new SimpleApiResponse { Success = response.IsValid, Message = response.DebugInformation.Split('\n')[0] });
+        }
+
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(MovieDto), 200)]
+        public async Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
+        {
+            var searchRequest = new SearchRequest<Movie>
+            {
+                Query = new QueryContainerDescriptor<Movie>().Term(t => t.Field("_id").Value(id)),
+                Source = includeDetails ? null : new SourceFilter 
+                {
+                    Excludes = new[] { "synopsis" } 
+                }
+            };
+            var response = await _movieService.SearchAsync(searchRequest, includeDetails);
+            if (!response.IsValid || !response.Documents.Any())
+            {
+                return NotFound();
+            }
+            var m = response.Documents.First();
+            var dto = _mapper.Map<MovieDto>(m);
+            if (!includeDetails)
+            {
+                dto.Synopsis = null;
+            }
+            return Ok(dto);
         }
 
         [HttpGet("html/{id}")]
@@ -111,62 +147,22 @@ namespace JhipsterSampleApplication.Controllers
             return Content(sb.ToString(), "text/html");
         }
 
-        [HttpGet("query-builder-spec")]
-        [Produces("application/json")]
-        public IActionResult GetQueryBuilderSpec()
+        [HttpPut("{id}")]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        public async Task<IActionResult> Update(string id, [FromBody] MovieCreateUpdateDto dto)
         {
-            var path = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "query-builder", "movie-qb-spec.json");
-            if (!System.IO.File.Exists(path))
-            {
-                return NotFound("Spec file not found");
-            }
-            var json = System.IO.File.ReadAllText(path);
-            return Content(json, "application/json");
+            var movie = _mapper.Map<Movie>(dto);
+            movie.Id = id;
+            var response = await _movieService.UpdateAsync(id, movie);
+            return Ok(new SimpleApiResponse { Success = response.IsValid, Message = response.DebugInformation.Split('\n')[0] });
         }
 
-        [HttpGet("search/lucene")]
-        [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
-        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
-        public async Task<IActionResult> SearchWithLuceneQuery(
-            [FromQuery] string query,
-            [FromQuery] int from = 0,
-            [FromQuery] int pageSize = 20,
-            [FromQuery] string? sort = null,
-            [FromQuery] bool includeDetails = false,
-            [FromQuery] string? pitId = null,
-            [FromQuery] string[]? searchAfter = null,
-            [FromQuery] string? view = null,
-            [FromQuery] string? category = null,
-            [FromQuery] string? secondaryCategory = null)
+        [HttpDelete("{id}")]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        public async Task<IActionResult> Delete(string id)
         {
-            if (string.IsNullOrWhiteSpace(query))
-            {
-                return BadRequest("Query cannot be empty");
-            }
-            JObject queryStringObject = new JObject(new JProperty("query", query));
-            JObject queryObject = new JObject(new JProperty("query_string", queryStringObject));
-            var overrideSort = "release_year:desc";
-            return await Search(queryObject, pageSize, from, overrideSort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
-        }
-
-        [HttpPost("search/ruleset")]
-        [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
-        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
-        public async Task<IActionResult> SearchWithRuleset(
-            [FromBody] RulesetDto rulesetDto,
-            [FromQuery] int from = 0,
-            [FromQuery] int pageSize = 20,
-            [FromQuery] string? sort = null,
-            [FromQuery] bool includeDetails = false,
-            [FromQuery] string? pitId = null,
-            [FromQuery] string[]? searchAfter = null,
-            [FromQuery] string? view = null,
-            [FromQuery] string? category = null,
-            [FromQuery] string? secondaryCategory = null)
-        {
-            var ruleset = _mapper.Map<Ruleset>(rulesetDto);
-            var queryObject = await _movieService.ConvertRulesetToElasticSearch(ruleset);
-            return await Search(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
+            var response = await _movieService.DeleteAsync(id);
+            return Ok(new SimpleApiResponse { Success = response.IsValid, Message = response.DebugInformation.Split('\n')[0] });
         }
 
         [HttpPost("search/bql")]
@@ -175,15 +171,15 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         public async Task<IActionResult> SearchWithBql(
             [FromBody] string bqlQuery,
+            [FromQuery] string? view = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? secondaryCategory = null,
+            [FromQuery] bool includeDetails = false,
             [FromQuery] int from = 0,
             [FromQuery] int pageSize = 20,
             [FromQuery] string? sort = null,
-            [FromQuery] bool includeDetails = false,
             [FromQuery] string? pitId = null,
-            [FromQuery] string[]? searchAfter = null,
-            [FromQuery] string? view = null,
-            [FromQuery] string? category = null,
-            [FromQuery] string? secondaryCategory = null)
+            [FromQuery] string[]? searchAfter = null)
         {
             if (string.IsNullOrWhiteSpace(bqlQuery))
             {
@@ -193,20 +189,41 @@ namespace JhipsterSampleApplication.Controllers
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _movieService.ConvertRulesetToElasticSearch(ruleset);
             await _historyService.Save(new History { User = User?.Identity?.Name, Domain = "movie", Text = bqlQuery });
-            return await Search(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
+            return await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
+        }
+
+        [HttpPost("search/ruleset")]
+        [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
+        public async Task<IActionResult> SearchWithRuleset(
+            [FromBody] RulesetDto rulesetDto,
+            [FromQuery] string? view = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? secondaryCategory = null,
+            [FromQuery] bool includeDetails = false,
+            [FromQuery] int from = 0,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? sort = null,
+            [FromQuery] string? pitId = null,
+            [FromQuery] string[]? searchAfter = null)
+        {
+            var ruleset = _mapper.Map<Ruleset>(rulesetDto);
+            var queryObject = await _movieService.ConvertRulesetToElasticSearch(ruleset);
+            return await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
         }
 
         [HttpPost("search/elasticsearch")]
         [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
-        public async Task<IActionResult> Search([FromBody] JObject elasticsearchQuery,
-            [FromQuery] int pageSize = 20,
-            [FromQuery] int from = 0,
-            [FromQuery] string? sort = null,
-            [FromQuery] bool includeDetails = false,
+        public async Task<IActionResult> Search(
+            [FromBody] JObject elasticsearchQuery,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
             [FromQuery] string? secondaryCategory = null,
+            [FromQuery] bool includeDetails = false,
+            [FromQuery] int from = 0,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? sort = null,
             [FromQuery] string? pitId = null,
             [FromQuery] string[]? searchAfter = null)
         {
@@ -387,55 +404,90 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(new SearchResultDto<MovieDto> { Hits = movieDtos, TotalHits = response.Total, HitType = hitType, PitId = searchRequest.PointInTime?.Id, searchAfter = searchAfterResponse });
         }
 
-        [HttpGet("{id}")]
-        [ProducesResponseType(typeof(MovieDto), 200)]
-        public async Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
+        [HttpGet("search/lucene")]
+        [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
+        public async Task<IActionResult> SearchWithLuceneQuery(
+            [FromQuery] string query,
+            [FromQuery] string? view = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? secondaryCategory = null,
+            [FromQuery] bool includeDetails = false,
+            [FromQuery] int from = 0,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? sort = null,
+            [FromQuery] string? pitId = null,
+            [FromQuery] string[]? searchAfter = null)
         {
-            var searchRequest = new SearchRequest<Movie>
+            if (string.IsNullOrWhiteSpace(query))
             {
-                Query = new QueryContainerDescriptor<Movie>().Term(t => t.Field("_id").Value(id)),
-                Source = includeDetails ? null : new SourceFilter { Excludes = new[] { "synopsis" } }
-            };
-            var response = await _movieService.SearchAsync(searchRequest, includeDetails);
-            if (!response.IsValid || !response.Documents.Any())
-            {
-                return NotFound();
+                return BadRequest("Query cannot be empty");
             }
-            var m = response.Documents.First();
-            var dto = _mapper.Map<MovieDto>(m);
-            if (!includeDetails)
+            JObject queryStringObject = new JObject(new JProperty("query", query));
+            JObject queryObject = new JObject(new JProperty("query_string", queryStringObject));
+            var overrideSort = "release_year:desc";
+            return await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, overrideSort, pitId, searchAfter);
+        }
+
+        [HttpGet("unique-values/{field}")]
+        [ProducesResponseType(typeof(IReadOnlyCollection<string>), 200)]
+        public async Task<IActionResult> GetUniqueFieldValues(string field)
+        {
+            var esField = field == "release_year" ? field : field + ".keyword";
+            var values = await _movieService.GetUniqueFieldValuesAsync(esField);
+            return Ok(values);
+        }
+
+        [HttpGet("query-builder-spec")]
+        [Produces("application/json")]
+        public IActionResult GetQueryBuilderSpec()
+        {
+            var path = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "query-builder", "movie-qb-spec.json");
+            if (!System.IO.File.Exists(path))
             {
-                dto.Synopsis = null;
+                return NotFound("Spec file not found");
             }
-            return Ok(dto);
+            var json = System.IO.File.ReadAllText(path);
+            return Content(json, "application/json");
         }
 
-        [HttpPost]
-        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public async Task<IActionResult> Create([FromBody] MovieCreateUpdateDto dto)
+        [HttpPost("bql-to-ruleset")]
+        [Consumes("text/plain")]
+        [ProducesResponseType(typeof(RulesetDto), 200)]
+        public async Task<ActionResult<RulesetDto>> ConvertBqlToRuleset([FromBody] string query)
         {
-            var movie = _mapper.Map<Movie>(dto);
-            movie.Id = dto.Id;
-            var response = await _movieService.IndexAsync(movie);
-            return Ok(new SimpleApiResponse { Success = response.IsValid, Message = response.DebugInformation.Split('\n')[0] });
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return BadRequest("Query cannot be empty");
+            }
+            var ruleset = await _bqlService.Bql2Ruleset(query.Trim());
+            return Ok(ruleset);
         }
 
-        [HttpPut("{id}")]
-        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public async Task<IActionResult> Update(string id, [FromBody] MovieCreateUpdateDto dto)
+        [HttpPost("ruleset-to-bql")]
+        [ProducesResponseType(typeof(string), 200)]
+        public async Task<ActionResult<string>> ConvertRulesetToBql([FromBody] RulesetDto ruleset)
         {
-            var movie = _mapper.Map<Movie>(dto);
-            movie.Id = id;
-            var response = await _movieService.UpdateAsync(id, movie);
-            return Ok(new SimpleApiResponse { Success = response.IsValid, Message = response.DebugInformation.Split('\n')[0] });
+            var bqlQuery = await _bqlService.Ruleset2Bql(ruleset);
+            return Ok(bqlQuery);
         }
 
-        [HttpDelete("{id}")]
-        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public async Task<IActionResult> Delete(string id)
+        [HttpPost("ruleset-to-elasticsearch")]
+        [ProducesResponseType(typeof(object), 200)]
+        public async Task<ActionResult<object>> ConvertRulesetToElasticSearch([FromBody] RulesetDto rulesetDto)
         {
-            var response = await _movieService.DeleteAsync(id);
-            return Ok(new SimpleApiResponse { Success = response.IsValid, Message = response.DebugInformation.Split('\n')[0] });
+            var ruleset = _mapper.Map<Ruleset>(rulesetDto);
+            var elasticQuery = await _movieService.ConvertRulesetToElasticSearch(ruleset);
+            return Ok(elasticQuery);
+        }
+
+        [HttpPost("ruleset-to-bql-to-ruleset")]
+        [ProducesResponseType(typeof(RulesetDto), 200)]
+        public async Task<ActionResult<RulesetDto>> ConvertRulesetToBqlToRuleset([FromBody] RulesetDto ruleset)
+        {
+            var bqlQuery = await _bqlService.Ruleset2Bql(ruleset);
+            var roundTrip = await _bqlService.Bql2Ruleset(bqlQuery);
+            return Ok(roundTrip);
         }
 
         [HttpPost("categorize")]
@@ -469,15 +521,6 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(result);
         }
 
-        [HttpGet("unique-values/{field}")]
-        [ProducesResponseType(typeof(IReadOnlyCollection<string>), 200)]
-        public async Task<IActionResult> GetUniqueFieldValues(string field)
-        {
-            var esField = field == "release_year" ? field : field + ".keyword";
-            var values = await _movieService.GetUniqueFieldValuesAsync(esField);
-            return Ok(values);
-        }
-
         [HttpGet("health")]
         [ProducesResponseType(typeof(ClusterHealthDto), 200)]
         public async Task<IActionResult> GetHealth()
@@ -492,45 +535,6 @@ namespace JhipsterSampleApplication.Controllers
                 ActivePrimaryShards = res.ActivePrimaryShards
             };
             return Ok(dto);
-        }
-
-        [HttpPost("bql-to-ruleset")]
-        [Consumes("text/plain")]
-        [ProducesResponseType(typeof(RulesetDto), 200)]
-        public async Task<ActionResult<RulesetDto>> ConvertBqlToRuleset([FromBody] string query)
-        {
-            if (string.IsNullOrWhiteSpace(query))
-            {
-                return BadRequest("Query cannot be empty");
-            }
-            var ruleset = await _bqlService.Bql2Ruleset(query.Trim());
-            return Ok(ruleset);
-        }
-
-        [HttpPost("ruleset-to-bql")]
-        [ProducesResponseType(typeof(string), 200)]
-        public async Task<ActionResult<string>> ConvertRulesetToBql([FromBody] RulesetDto ruleset)
-        {
-            var bqlQuery = await _bqlService.Ruleset2Bql(ruleset);
-            return Ok(bqlQuery);
-        }
-
-        [HttpPost("ruleset-to-bql-to-ruleset")]
-        [ProducesResponseType(typeof(RulesetDto), 200)]
-        public async Task<ActionResult<RulesetDto>> ConvertRulesetToBqlToRuleset([FromBody] RulesetDto ruleset)
-        {
-            var bqlQuery = await _bqlService.Ruleset2Bql(ruleset);
-            var roundTrip = await _bqlService.Bql2Ruleset(bqlQuery);
-            return Ok(roundTrip);
-        }
-
-        [HttpPost("ruleset-to-elasticsearch")]
-        [ProducesResponseType(typeof(object), 200)]
-        public async Task<ActionResult<object>> ConvertRulesetToElasticSearch([FromBody] RulesetDto rulesetDto)
-        {
-            var ruleset = _mapper.Map<Ruleset>(rulesetDto);
-            var elasticQuery = await _movieService.ConvertRulesetToElasticSearch(ruleset);
-            return Ok(elasticQuery);
         }
     }
 }

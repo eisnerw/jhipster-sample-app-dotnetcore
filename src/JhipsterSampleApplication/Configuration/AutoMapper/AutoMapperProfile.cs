@@ -19,6 +19,8 @@ namespace JhipsterSampleApplication.Configuration.AutoMapper
                 .ReverseMap();
             CreateMap<NamedQuery, NamedQueryDto>().ReverseMap();
             CreateMap<Selector, SelectorDto>().ReverseMap();
+            CreateMap<Movie, MovieDto>().ReverseMap();
+            CreateMap<MovieCreateUpdateDto, Movie>().ReverseMap();
         }
     }
 }

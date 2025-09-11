@@ -11,9 +11,9 @@ using Newtonsoft.Json.Linq;
 using System.Linq;
 using System.IO;
 using JhipsterSampleApplication.Dto;
-using Microsoft.Extensions.Logging;
 using AutoMapper;
 using System.Net;
+using Microsoft.Extensions.Logging;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -51,6 +51,54 @@ namespace JhipsterSampleApplication.Controllers
             _viewService = viewService;
         }
 
+        [HttpPost]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        public async Task<IActionResult> Create([FromBody] BirthdayCreateUpdateDto dto)
+        {
+            var birthday = new Birthday
+            {
+                Id = dto.Id,
+                Lname = dto.Lname,
+                Fname = dto.Fname,
+                Sign = dto.Sign,
+                Dob = dto.Dob,
+                IsAlive = dto.IsAlive,
+                Text = dto.Text,
+                Wikipedia = dto.Wikipedia
+            };
+
+            var response = await _birthdayService.IndexAsync(birthday);
+            var simpleResponse = new SimpleApiResponse
+            {
+                Success = response.IsValid,
+                Message = response.DebugInformation.Split('\n')[0]
+            };
+            return Ok(simpleResponse);
+        }
+
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(BirthdayDto), 200)]
+        public async Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
+        {
+            var searchRequest = new SearchRequest<Birthday>
+            {
+                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id)),
+                Source = includeDetails ? null : new SourceFilter { Excludes = new[] { "wikipedia" } }
+            };
+            var response = await _birthdayService.SearchAsync(searchRequest, includeDetails, pitId: "");
+            if (!response.IsValid || !response.Documents.Any())
+            {
+                return NotFound();
+            }
+            var b = response.Documents.First();
+            var dto = _mapper.Map<BirthdayDto>(b);
+            if (!includeDetails)
+            {
+                dto.Wikipedia = null;
+            }
+            return Ok(dto);
+        }
+
         /// <summary>
         /// Returns an HTML page constructed from the Wikipedia attribute for a given Birthday document
         /// </summary>
@@ -86,50 +134,85 @@ namespace JhipsterSampleApplication.Controllers
             return Content(html, "text/html");
         }
 
-        /// <summary>
-        /// Returns the Query Builder specification for Birthdays
-        /// </summary>
-        [HttpGet("query-builder-spec")]
-        [Produces("application/json")]
-        public IActionResult GetQueryBuilderSpec()
+        [HttpPut("{id}")]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        public async Task<IActionResult> Update(string id, [FromBody] BirthdayCreateUpdateDto dto)
         {
-            var path = Path.Combine(AppContext.BaseDirectory, "Resources", "query-builder", "birthday-qb-spec.json");
-            if (!System.IO.File.Exists(path))
+            // Check if document exists using the service layer
+            var searchRequest = new SearchRequest<Birthday>
             {
-                return NotFound("Spec file not found");
+                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
+            };
+            
+            var existingResponse = await _birthdayService.SearchAsync(searchRequest, includeDetails: true, "");
+            if (!existingResponse.IsValid || !existingResponse.Documents.Any())
+            {
+                return NotFound($"Document with ID {id} not found");
             }
-            var json = System.IO.File.ReadAllText(path);
-            return Content(json, "application/json");
+
+            var birthday = new Birthday
+            {
+                Id = id,
+                Lname = dto.Lname,
+                Fname = dto.Fname,
+                Sign = dto.Sign,
+                Dob = dto.Dob,
+                IsAlive = dto.IsAlive,
+                Text = dto.Text,
+                Wikipedia = dto.Wikipedia,
+                Categories = dto.Categories ?? new List<string>()
+            };
+
+            var updateResponse = await _birthdayService.UpdateAsync(id, birthday);
+            var simpleResponse = new SimpleApiResponse
+            {
+                Success = updateResponse.IsValid,
+                Message = updateResponse.DebugInformation.Split('\n')[0]
+            };
+            return Ok(simpleResponse);
+        }
+
+        [HttpDelete("{id}")]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        public async Task<IActionResult> Delete(string id)
+        {
+            var response = await _birthdayService.DeleteAsync(id);
+            var simpleResponse = new SimpleApiResponse
+            {
+                Success = response.IsValid,
+                Message = response.DebugInformation.Split('\n')[0]
+            };
+            return Ok(simpleResponse);
         }
 
         /// <summary>
-        /// Search birthdays using a Lucene query
+        /// Search birthdays using a BQL query with pagination
         /// </summary>
-        [HttpGet("search/lucene")]
+        [HttpPost("search/bql")]
+        [Consumes("text/plain")]
         [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
-        public async Task<IActionResult> SearchWithLuceneQuery(
-            [FromQuery] string query,
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> SearchWithBqlPlainText(
+            [FromQuery] string bqlQuery,
+            [FromQuery] string? view = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? secondaryCategory = null,
+            [FromQuery] bool includeDetails = false,
             [FromQuery] int from = 0,
             [FromQuery] int pageSize = 20,
             [FromQuery] string? sort = null,
             [FromQuery] string? pitId = null,
-            [FromQuery] string[]? searchAfter = null,
-            [FromQuery] bool includeDetails = false,
-            [FromQuery] string? view = null,
-            [FromQuery] string? category = null,
-            [FromQuery] string? secondaryCategory = null)
+            [FromQuery] string[]? searchAfter = null)
         {
-            if (string.IsNullOrWhiteSpace(query))
+            if (string.IsNullOrWhiteSpace(bqlQuery))
             {
                 return BadRequest("Query cannot be empty");
             }
-            JObject queryStringObject = new JObject(
-                new JProperty("query", query)
-            );
-            JObject queryObject = new JObject(
-                new JProperty("query_string", queryStringObject)
-            );
+            var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
+            var ruleset = _mapper.Map<Ruleset>(rulesetDto);
+            var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
+            await _historyService.Save(new History { User = User?.Identity?.Name, Domain = "birthday", Text = bqlQuery });
             var result = await PerformSearch(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
             return Ok(result);
         }
@@ -141,16 +224,17 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> SearchRuleset([FromBody] RulesetDto rulesetDto,
-            [FromQuery] int pageSize = 20,
-            [FromQuery] int from = 0,
-            [FromQuery] string? sort = null,
-            [FromQuery] string? pitId = null,
-            [FromQuery] string[]? searchAfter = null,
-            [FromQuery] bool includeDetails = false,
+        public async Task<IActionResult> SearchRuleset(
+            [FromBody] RulesetDto rulesetDto,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
-            [FromQuery] string? secondaryCategory = null)
+            [FromQuery] string? secondaryCategory = null,
+            [FromQuery] bool includeDetails = false,
+            [FromQuery] int from = 0,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? sort = null,
+            [FromQuery] string? pitId = null,
+            [FromQuery] string[]? searchAfter = null)
         {
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
@@ -165,48 +249,19 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> Search([FromBody] JObject elasticsearchQuery,
-            [FromQuery] int pageSize = 20,
-            [FromQuery] int from = 0,
-            [FromQuery] string? sort = null,
-            [FromQuery] bool includeDetails = false,
+        public async Task<IActionResult> Search(
+            [FromBody] JObject elasticsearchQuery,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
             [FromQuery] string? secondaryCategory = null,
+            [FromQuery] bool includeDetails = false,
+            [FromQuery] int from = 0,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? sort = null,
             [FromQuery] string? pitId = null,
             [FromQuery] string[]? searchAfter = null)
         {
             var result = await PerformSearch(elasticsearchQuery, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
-            return Ok(result);
-        }
-        /// <summary>
-        /// Search birthdays using a BQL query with pagination
-        /// </summary>
-        [HttpPost("search/bql")]
-        [Consumes("text/plain")]
-        [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
-        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
-        [ProducesResponseType(400)]
-        public async Task<IActionResult> SearchWithBqlPlainText(
-            [FromBody] string bqlQuery,
-            [FromQuery] int pageSize = 20,
-            [FromQuery] int from = 0,
-            [FromQuery] string? sort = null,
-            [FromQuery] string? pitId = null,
-            [FromQuery] string[]? searchAfter = null,
-            [FromQuery] bool includeDetails = false,
-            [FromQuery] string? view = null,
-            [FromQuery] string? category = null,
-            [FromQuery] string? secondaryCategory = null)
-        {
-            if (string.IsNullOrWhiteSpace(bqlQuery)){
-                return BadRequest("Query cannot be empty");
-            }
-            var rulesetDto = await _bqlService.Bql2Ruleset(bqlQuery.Trim());
-            var ruleset = _mapper.Map<Ruleset>(rulesetDto);
-            var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
-            await _historyService.Save(new History { User = User?.Identity?.Name, Domain = "birthday", Text = bqlQuery });
-            var result = await PerformSearch(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
             return Ok(result);
         }
 
@@ -440,105 +495,38 @@ namespace JhipsterSampleApplication.Controllers
                 PitId = searchRequest.PointInTime?.Id,
                 searchAfter = searchAfterResponse
             };
-        }
-
-        [HttpGet("{id}")]
-        [ProducesResponseType(typeof(BirthdayDto), 200)]
-        public async Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
-        {
-            var searchRequest = new SearchRequest<Birthday>
-            {
-                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id)),
-                Source = includeDetails ? null : new SourceFilter { Excludes = new[] { "wikipedia" } }
-            };
-            var response = await _birthdayService.SearchAsync(searchRequest, includeDetails, pitId: "");
-            if (!response.IsValid || !response.Documents.Any())
-            {
-                return NotFound();
-            }
-            var b = response.Documents.First();
-            var dto = _mapper.Map<BirthdayDto>(b);
-            if (!includeDetails)
-            {
-                dto.Wikipedia = null;
-            }
-            return Ok(dto);
-        }
-
-        [HttpPost]
-        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public async Task<IActionResult> Create([FromBody] BirthdayCreateUpdateDto dto)
-        {
-            var birthday = new Birthday
-            {
-                Id = dto.Id,
-                Lname = dto.Lname,
-                Fname = dto.Fname,
-                Sign = dto.Sign,
-                Dob = dto.Dob,
-                IsAlive = dto.IsAlive,
-                Text = dto.Text,
-                Wikipedia = dto.Wikipedia
-            };
-
-            var response = await _birthdayService.IndexAsync(birthday);
-            var simpleResponse = new SimpleApiResponse
-            {
-                Success = response.IsValid,
-                Message = response.DebugInformation.Split('\n')[0]
-            };
-            return Ok(simpleResponse);
-        }
-
-        [HttpDelete("{id}")]
-        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public async Task<IActionResult> Delete(string id)
-        {
-            var response = await _birthdayService.DeleteAsync(id);
-            var simpleResponse = new SimpleApiResponse
-            {
-                Success = response.IsValid,
-                Message = response.DebugInformation.Split('\n')[0]
-            };
-            return Ok(simpleResponse);
-        }
-
-        [HttpPut("{id}")]
-        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public async Task<IActionResult> Update(string id, [FromBody] BirthdayCreateUpdateDto dto)
-        {
-            // Check if document exists using the service layer
-            var searchRequest = new SearchRequest<Birthday>
-            {
-                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
-            };
             
-            var existingResponse = await _birthdayService.SearchAsync(searchRequest, includeDetails: true, "");
-            if (!existingResponse.IsValid || !existingResponse.Documents.Any())
+        }
+        /// <summary>
+        /// Search birthdays using a Lucene query
+        /// </summary>
+        [HttpGet("search/lucene")]
+        [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
+        public async Task<IActionResult> SearchWithLuceneQuery(
+            [FromQuery] string query,
+            [FromQuery] string? view = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? secondaryCategory = null,
+            [FromQuery] bool includeDetails = false,
+            [FromQuery] int from = 0,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? sort = null,
+            [FromQuery] string? pitId = null,
+            [FromQuery] string[]? searchAfter = null)
+        {
+            if (string.IsNullOrWhiteSpace(query))
             {
-                return NotFound($"Document with ID {id} not found");
+                return BadRequest("Query cannot be empty");
             }
-            
-            var birthday = new Birthday
-            {
-                Id = id,
-                Lname = dto.Lname,
-                Fname = dto.Fname,
-                Sign = dto.Sign,
-                Dob = dto.Dob,
-                IsAlive = dto.IsAlive,
-                Text = dto.Text,
-                Wikipedia = dto.Wikipedia,
-                Categories = dto.Categories ?? new List<string>()
-            };
-
-            var updateResponse = await _birthdayService.UpdateAsync(id, birthday);
-            var simpleResponse = new SimpleApiResponse
-            {
-                Success = updateResponse.IsValid,
-                Message = updateResponse.DebugInformation.Split('\n')[0]
-            };
-            return Ok(simpleResponse);
+            JObject queryStringObject = new JObject(
+                new JProperty("query", query)
+            );
+            JObject queryObject = new JObject(
+                new JProperty("query_string", queryStringObject)
+            );
+            var result = await PerformSearch(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
+            return Ok(result);
         }
 
         [HttpGet("unique-values/{field}")]
@@ -549,20 +537,20 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(values);
         }
 
-        [HttpGet("health")]
-        [ProducesResponseType(typeof(ClusterHealthDto), 200)]
-        public async Task<IActionResult> GetHealth()
+        /// <summary>
+        /// Returns the Query Builder specification for Birthdays
+        /// </summary>
+        [HttpGet("query-builder-spec")]
+        [Produces("application/json")]
+        public IActionResult GetQueryBuilderSpec()
         {
-            var res = await _elasticClient.Cluster.HealthAsync();
-            var dto = new ClusterHealthDto
+            var path = Path.Combine(AppContext.BaseDirectory, "Resources", "query-builder", "birthday-qb-spec.json");
+            if (!System.IO.File.Exists(path))
             {
-                Status = res.Status.ToString(),
-                NumberOfNodes = res.NumberOfNodes,
-                NumberOfDataNodes = res.NumberOfDataNodes,
-                ActiveShards = res.ActiveShards,
-                ActivePrimaryShards = res.ActivePrimaryShards
-            };
-            return Ok(dto);
+                return NotFound("Spec file not found");
+            }
+            var json = System.IO.File.ReadAllText(path);
+            return Content(json, "application/json");
         }
 
         /// <summary>
@@ -686,6 +674,22 @@ namespace JhipsterSampleApplication.Controllers
             }
             var result = await _birthdayService.CategorizeMultipleAsync(request);
             return Ok(result);
+        }
+
+        [HttpGet("health")]
+        [ProducesResponseType(typeof(ClusterHealthDto), 200)]
+        public async Task<IActionResult> GetHealth()
+        {
+            var res = await _elasticClient.Cluster.HealthAsync();
+            var dto = new ClusterHealthDto
+            {
+                Status = res.Status.ToString(),
+                NumberOfNodes = res.NumberOfNodes,
+                NumberOfDataNodes = res.NumberOfDataNodes,
+                ActiveShards = res.ActiveShards,
+                ActivePrimaryShards = res.ActivePrimaryShards
+            };
+            return Ok(dto);
         }
     }
 }
