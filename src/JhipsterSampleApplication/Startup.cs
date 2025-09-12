@@ -63,10 +63,6 @@ public class Startup : IStartup
         }
 
         var client = new ElasticClient(settings);
-        var SearchResponse = client.Search<Birthday>(s => s
-            .Query(q => q.MatchAll())
-        );
-        Console.WriteLine($"Got {SearchResponse.Hits.Count} hits");    
         services.AddSingleton<IElasticClient>(client);
         services.AddScoped<IViewRepository, ViewRepository>();
         services.AddScoped<IViewService, ViewService>();
