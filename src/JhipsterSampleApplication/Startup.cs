@@ -45,10 +45,7 @@ public class Startup : IStartup
 
         // Add ElasticSearch services
         var elasticsearchSettings = configuration.GetSection("Elasticsearch").Get<ElasticsearchSettings>();
-        bool useBonsai = configuration.GetValue<bool>("Elasticsearch:UseBonsai");
-        string url = useBonsai ? configuration.GetValue<string>("Bonsai:Url")! : configuration.GetValue<string>("Elasticsearch:Url")!;
-        string username = useBonsai ? configuration.GetValue<string>("Bonsai:Username")! : configuration.GetValue<string>("Elasticsearch:Username")!;
-        string password = useBonsai ? configuration.GetValue<string>("Bonsai:Password")! : configuration.GetValue<string>("Elasticsearch:Password")!;
+        string url = configuration.GetValue<string>("Elasticsearch:Url")!;
         string defaultIndex = configuration.GetValue<string>("Elasticsearch:DefaultIndex")!;    
 
         var node = new Uri(url);
@@ -64,10 +61,7 @@ public class Startup : IStartup
                 .RequestTimeout(TimeSpan.FromMinutes(2))
                 .DisablePing();
         }
-        if (useBonsai && !string.IsNullOrEmpty(username))
-        {
-            settings = settings.BasicAuthentication(username, password);
-        }
+
         var client = new ElasticClient(settings);
         var SearchResponse = client.Search<Birthday>(s => s
             .Query(q => q.MatchAll())

@@ -10,12 +10,6 @@ using JhipsterSampleApplication;
 using JhipsterSampleApplication.Configuration;
 using IStartup = JhipsterSampleApplication.IStartup;
 using static JHipsterNet.Core.Boot.BannerPrinter;
-using Microsoft.Extensions.Hosting;
-using JhipsterSampleApplication.Domain;
-using System.Globalization;
-using Nest;
-using System.Numerics;
-using JhipsterSampleApplication.Domain.Entities;
 
 PrintBanner(10 * 1000);
 

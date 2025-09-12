@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
-using Nest;
 
 namespace JhipsterSampleApplication.Domain.Entities
 {
@@ -9,18 +8,18 @@ namespace JhipsterSampleApplication.Domain.Entities
     public class Movie : CategorizedEntity<string>
     {
         public string? Title { get; set; }
-        [PropertyName("release_year")] public int? ReleaseYear { get; set; }
+        public int? ReleaseYear { get; set; }
         public List<string>? Genres { get; set; }
-        [PropertyName("runtime_minutes")] public int? RuntimeMinutes { get; set; }
+        public int? RuntimeMinutes { get; set; }
         public string? Country { get; set; }
         public List<string>? Languages { get; set; }
         public List<string>? Directors { get; set; }
         public List<string>? Producers { get; set; }
         public List<string>? Writers { get; set; }
         public List<string>? Cast { get; set; }
-        [PropertyName("budget_usd")] public long? BudgetUsd { get; set; }
-        [PropertyName("gross_usd")] public long? GrossUsd { get; set; }
-        [PropertyName("rotten_tomatoes_score")] public int? RottenTomatoesScore { get; set; }
+        public long? BudgetUsd { get; set; }
+        public long? GrossUsd { get; set; }
+        public int? RottenTomatoesScore { get; set; }
         public string? Summary { get; set; }
         public string? Synopsis { get; set; }
 
