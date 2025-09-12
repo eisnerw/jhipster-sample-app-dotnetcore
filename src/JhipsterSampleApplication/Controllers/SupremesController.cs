@@ -3,6 +3,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Nest;
+using Elasticsearch.Net;
 using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Entities;
@@ -22,7 +23,7 @@ namespace JhipsterSampleApplication.Controllers
     public class SupremesController : ControllerBase
     {
         private readonly IEntityService<Supreme> _supremeService;
-        private readonly IElasticClient _elasticClient;
+        private readonly ElasticLowLevelClient _elasticClient;
         private readonly IBqlService<Supreme> _bqlService;
         private readonly ILogger<SupremesController> _log;
         private readonly IMapper _mapper;
@@ -30,7 +31,7 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IHistoryService _historyService;
 
         public SupremesController(
-            IElasticClient elasticClient,
+            ElasticLowLevelClient elasticClient,
             INamedQueryService namedQueryService,
             ILogger<BqlService<Supreme>> bqlLogger,
             ILogger<SupremesController> logger,
@@ -732,14 +733,16 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(ClusterHealthDto), 200)]
         public async Task<IActionResult> GetHealth()
         {
-            var res = await _elasticClient.Cluster.HealthAsync();
+            var res = await _elasticClient.Cluster.HealthAsync<StringResponse>();
+            var body = res.Body ?? string.Empty;
+            var json = string.IsNullOrEmpty(body) ? new JObject() : JObject.Parse(body);
             var dto = new ClusterHealthDto
             {
-                Status = res.Status.ToString(),
-                NumberOfNodes = res.NumberOfNodes,
-                NumberOfDataNodes = res.NumberOfDataNodes,
-                ActiveShards = res.ActiveShards,
-                ActivePrimaryShards = res.ActivePrimaryShards
+                Status = json.Value<string>("status") ?? string.Empty,
+                NumberOfNodes = json.Value<int?>("number_of_nodes") ?? 0,
+                NumberOfDataNodes = json.Value<int?>("number_of_data_nodes") ?? 0,
+                ActiveShards = json.Value<int?>("active_shards") ?? 0,
+                ActivePrimaryShards = json.Value<int?>("active_primary_shards") ?? 0
             };
             return Ok(dto);
         }

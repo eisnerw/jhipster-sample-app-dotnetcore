@@ -8,6 +8,7 @@ using JhipsterSampleApplication.Test.Setup;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Newtonsoft.Json;
 using Xunit;
+using Elasticsearch.Net;
 using Nest;
 using JhipsterSampleApplication.Dto;
 using JhipsterSampleApplication.Controllers;
@@ -29,7 +30,8 @@ namespace JhipsterSampleApplication.Test.Controllers
         {
             _factory = factory;
             _client = factory.CreateClient();
-            _elasticClient = factory.Services.GetRequiredService<IElasticClient>();
+            var lowLevel = factory.Services.GetRequiredService<ElasticLowLevelClient>();
+            _elasticClient = new ElasticClient(new ConnectionSettings(lowLevel.Settings.ConnectionPool, lowLevel.Settings.Connection));
 
             // Create a test birthday entity
             _birthdayDto = new BirthdayDto

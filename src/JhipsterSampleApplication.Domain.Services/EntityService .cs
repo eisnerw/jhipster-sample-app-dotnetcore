@@ -33,14 +33,16 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// <summary>
     /// Initializes a new instance of the EntityService
     /// </summary>
-    /// <param name="elasticClient">The Elasticsearch client</param>
+    /// <param name="elasticClient">The low-level Elasticsearch client</param>
     /// <param name="bqlService">The BQL service</param>
     /// <param name="viewService">The View service</param>
-    public EntityService(string indexName, string detailFields, IElasticClient elasticClient, IBqlService<T> bqlService, IViewService viewService)
+    public EntityService(string indexName, string detailFields, ElasticLowLevelClient elasticClient, IBqlService<T> bqlService, IViewService viewService)
     {
         _indexName = indexName ?? throw new ArgumentNullException(nameof(indexName));
         _detailFields = detailFields ?? throw new ArgumentNullException(nameof(detailFields));
-        _elasticClient = elasticClient ?? throw new ArgumentNullException(nameof(elasticClient));
+        if (elasticClient == null) throw new ArgumentNullException(nameof(elasticClient));
+        var settings = new ConnectionSettings(elasticClient.Settings.ConnectionPool, elasticClient.Settings.Connection);
+        _elasticClient = new ElasticClient(settings);
         _bqlService = bqlService ?? throw new ArgumentNullException(nameof(bqlService));
         _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
     }

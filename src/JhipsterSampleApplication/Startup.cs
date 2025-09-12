@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Services;
-using Nest;
+using Elasticsearch.Net;
 using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Domain.Repositories;
 using JhipsterSampleApplication.Infrastructure.Data.Repositories;
@@ -49,21 +49,10 @@ public class Startup : IStartup
         string defaultIndex = configuration.GetValue<string>("Elasticsearch:DefaultIndex")!;    
 
         var node = new Uri(url);
-        var settings = new ConnectionSettings(node).DefaultIndex(defaultIndex);
-        bool bDebugging = false;
-        if (bDebugging)
-        {
-            // Enable debugging for Elasticsearch
-            settings = settings.EnableDebugMode()
-                .DisableDirectStreaming()
-                .PrettyJson()
-                .MaximumRetries(2)
-                .RequestTimeout(TimeSpan.FromMinutes(2))
-                .DisablePing();
-        }
-
-        var client = new ElasticClient(settings);
-        services.AddSingleton<IElasticClient>(client);
+        var settings = new ConnectionConfiguration(node).RequestTimeout(TimeSpan.FromMinutes(2));
+        // Additional configuration options can be applied to settings as needed
+        var client = new ElasticLowLevelClient(settings);
+        services.AddSingleton<ElasticLowLevelClient>(client);
         services.AddScoped<IViewRepository, ViewRepository>();
         services.AddScoped<IViewService, ViewService>();
         services.AddScoped<ViewInitializationService>();
