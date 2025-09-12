@@ -375,6 +375,7 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? pitId = null,
             [FromQuery] string[]? searchAfter = null)
         {
+            bool isHitFromViewDrilldown = false;
             if (!string.IsNullOrEmpty(view))
             {
                 var viewDto = await _viewService.GetByIdAsync(view);
@@ -393,6 +394,7 @@ namespace JhipsterSampleApplication.Controllers
                 }
                 if (category == "(Uncategorized)")
                 {
+                    var baseField = (viewDto.Aggregation ?? string.Empty).Replace(".keyword", string.Empty);
                     var missingFilter = new JObject(
                         new JProperty("bool", new JObject(
                             new JProperty("should", new JArray(
@@ -401,7 +403,7 @@ namespace JhipsterSampleApplication.Controllers
                                         new JProperty("must_not", new JArray(
                                             new JObject(
                                                 new JProperty("exists", new JObject(
-                                                    new JProperty("field", viewDto.Aggregation)
+                                                    new JProperty("field", baseField)
                                                 ))
                                             )
                                         ))
@@ -446,11 +448,13 @@ namespace JhipsterSampleApplication.Controllers
                 {
                     if (secondaryCategory == null)
                     {
-                        var viewSecondaryResult = await _supremeService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, from, pageSize);
+                        var viewSecondaryResult = await _supremeService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, pageSize, from);
                         return Ok(new SearchResultDto<ViewResultDto> { Hits = viewSecondaryResult, HitType = "view", ViewName = view, viewCategory = category });
                     }
                     if (secondaryCategory == "(Uncategorized)")
                     {
+                        isHitFromViewDrilldown = true;
+                        var secondaryBaseField = (secondaryViewDto.Aggregation ?? string.Empty).Replace(".keyword", string.Empty);
                         var secondaryMissing = new JObject(
                             new JProperty("bool", new JObject(
                                 new JProperty("should", new JArray(
@@ -459,7 +463,7 @@ namespace JhipsterSampleApplication.Controllers
                                             new JProperty("must_not", new JArray(
                                                 new JObject(
                                                     new JProperty("exists", new JObject(
-                                                        new JProperty("field", secondaryViewDto.Aggregation)
+                                                        new JProperty("field", secondaryBaseField)
                                                     ))
                                                 )
                                             ))
@@ -485,6 +489,7 @@ namespace JhipsterSampleApplication.Controllers
                     }
                     else
                     {
+                        isHitFromViewDrilldown = true;
                         string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ?  $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
                         elasticsearchQuery = new JObject(
                             new JProperty("bool", new JObject(
@@ -610,8 +615,9 @@ namespace JhipsterSampleApplication.Controllers
                     conclusion = s.Conclusion
                 });
             }
+            var hitType = isHitFromViewDrilldown ? "hit" : "supreme";
             List<object>? searchAfterResponse = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null;
-            return Ok(new SearchResultDto<object> { Hits = supremeDtos.Cast<object>().ToList(), TotalHits = response.Total, HitType = "supreme", PitId = searchRequest.PointInTime?.Id, searchAfter = searchAfterResponse });
+            return Ok(new SearchResultDto<object> { Hits = supremeDtos.Cast<object>().ToList(), TotalHits = response.Total, HitType = hitType, PitId = searchRequest.PointInTime?.Id, searchAfter = searchAfterResponse });
         }
 
         [HttpGet("search/lucene")]
