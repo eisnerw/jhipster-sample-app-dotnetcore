@@ -2,11 +2,12 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Nest;
+using Elasticsearch.Net;
 using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Entities;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using System.Net;
@@ -21,7 +22,7 @@ namespace JhipsterSampleApplication.Controllers
     public class BirthdaysController : ControllerBase
     {
         private readonly IEntityService<Birthday> _birthdayService;
-        private readonly IElasticClient _elasticClient;
+        private readonly ElasticLowLevelClient _elasticClient;
         private readonly IBqlService<Birthday> _bqlService;
         private readonly ILogger<BirthdaysController> _log;
         private readonly IMapper _mapper;
@@ -29,7 +30,8 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IHistoryService _historyService;
 
         public BirthdaysController(
-            IElasticClient elasticClient,
+            ElasticLowLevelClient elasticClient,
+            Nest.IElasticClient highLevelClient,
             INamedQueryService namedQueryService,
             ILogger<BqlService<Birthday>> bqlLogger,
             ILogger<BirthdaysController> logger,
@@ -42,7 +44,7 @@ namespace JhipsterSampleApplication.Controllers
                 namedQueryService,
                 BqlService<Birthday>.LoadSpec("birthday"),
                 "birthdays");
-            _birthdayService = new EntityService<Birthday>("birthdays", "wikipedia", elasticClient, _bqlService, viewService);
+            _birthdayService = new EntityService<Birthday>("birthdays", "wikipedia", highLevelClient, _bqlService, viewService);
             _elasticClient = elasticClient;
             _log = logger;
             _mapper = mapper;
@@ -78,10 +80,10 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(BirthdayDto), 200)]
         public async Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
         {
-            var searchRequest = new SearchRequest<Birthday>
+            var searchRequest = new Nest.SearchRequest<Birthday>
             {
-                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id)),
-                Source = includeDetails ? null : new SourceFilter
+                Query = new Nest.QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id)),
+                Source = includeDetails ? null : new Nest.SourceFilter
                 {
                     Excludes = new[] { "wikipedia" }
                 }
@@ -104,9 +106,9 @@ namespace JhipsterSampleApplication.Controllers
         [Produces("text/html")]
         public async Task<IActionResult> GetHtmlById(string id)
         {
-            var searchRequest = new SearchRequest<Birthday>
+            var searchRequest = new Nest.SearchRequest<Birthday>
             {
-                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
+                Query = new Nest.QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
             };
             var response = await _birthdayService.SearchAsync(searchRequest, includeDetails: true, pitId: "");
             if (!response.IsValid || !response.Documents.Any())
@@ -137,9 +139,9 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<IActionResult> Update(string id, [FromBody] BirthdayDto dto)
         {
             // Check if document exists using the service layer
-            var searchRequest = new SearchRequest<Birthday>
+            var searchRequest = new Nest.SearchRequest<Birthday>
             {
-                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
+                Query = new Nest.QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
             };
 
             var existingResponse = await _birthdayService.SearchAsync(searchRequest, includeDetails: true, "");
@@ -377,7 +379,7 @@ namespace JhipsterSampleApplication.Controllers
                     }
                 }
             }
-            var searchRequest = new SearchRequest<Birthday>
+            var searchRequest = new Nest.SearchRequest<Birthday>
             {
                 Size = pageSize,
                 From = from
@@ -389,20 +391,20 @@ namespace JhipsterSampleApplication.Controllers
                 searchRequest.From = null;
             }
 
-            var sortDescriptor = new List<ISort>();
+            var sortDescriptor = new List<Nest.ISort>();
             if (!string.IsNullOrEmpty(sort))
             {
                 var sortParts = sort.Contains(',') ? sort.Split(',') : sort.Split(':');
                 if (sortParts.Length == 2)
                 {
                     var field = sortParts[0];
-                    var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
-                    sortDescriptor.Add(new FieldSort { Field = field, Order = order });
+                    var order = sortParts[1].ToLower() == "desc" ? Nest.SortOrder.Descending : Nest.SortOrder.Ascending;
+                    sortDescriptor.Add(new Nest.FieldSort { Field = field, Order = order });
                 }
             }
-            sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
+            sortDescriptor.Add(new Nest.FieldSort { Field = "_id", Order = Nest.SortOrder.Ascending });
 
-            searchRequest.Query = new QueryContainerDescriptor<Birthday>().Raw(elasticsearchQuery.ToString());
+            searchRequest.Query = new Nest.QueryContainerDescriptor<Birthday>().Raw(elasticsearchQuery.ToString());
             searchRequest.Sort = sortDescriptor;
 
             var response = await _birthdayService.SearchAsync(searchRequest, includeDetails, pitId);
@@ -562,16 +564,26 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(ClusterHealthDto), 200)]
         public async Task<IActionResult> GetHealth()
         {
-            var res = await _elasticClient.Cluster.HealthAsync();
+            var res = await _elasticClient.Cluster.HealthAsync<StringResponse>();
+            var data = JsonConvert.DeserializeObject<ClusterHealthResponse>(res.Body);
             var dto = new ClusterHealthDto
             {
-                Status = res.Status.ToString(),
-                NumberOfNodes = res.NumberOfNodes,
-                NumberOfDataNodes = res.NumberOfDataNodes,
-                ActiveShards = res.ActiveShards,
-                ActivePrimaryShards = res.ActivePrimaryShards
+                Status = data?.Status ?? string.Empty,
+                NumberOfNodes = data?.NumberOfNodes ?? 0,
+                NumberOfDataNodes = data?.NumberOfDataNodes ?? 0,
+                ActiveShards = data?.ActiveShards ?? 0,
+                ActivePrimaryShards = data?.ActivePrimaryShards ?? 0
             };
             return Ok(dto);
+        }
+
+        private class ClusterHealthResponse
+        {
+            [JsonProperty("status")] public string Status { get; set; } = string.Empty;
+            [JsonProperty("number_of_nodes")] public int NumberOfNodes { get; set; }
+            [JsonProperty("number_of_data_nodes")] public int NumberOfDataNodes { get; set; }
+            [JsonProperty("active_shards")] public int ActiveShards { get; set; }
+            [JsonProperty("active_primary_shards")] public int ActivePrimaryShards { get; set; }
         }
     }
 }

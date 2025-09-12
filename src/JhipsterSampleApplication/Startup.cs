@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Services;
 using Nest;
+using Elasticsearch.Net;
 using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Domain.Repositories;
 using JhipsterSampleApplication.Infrastructure.Data.Repositories;
@@ -64,6 +65,7 @@ public class Startup : IStartup
 
         var client = new ElasticClient(settings);
         services.AddSingleton<IElasticClient>(client);
+        services.AddSingleton((ElasticLowLevelClient)client.LowLevel);
         services.AddScoped<IViewRepository, ViewRepository>();
         services.AddScoped<IViewService, ViewService>();
         services.AddScoped<ViewInitializationService>();
