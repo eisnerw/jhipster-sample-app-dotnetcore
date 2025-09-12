@@ -3,6 +3,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Nest;
+using Elasticsearch.Net;
 using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Entities;
@@ -43,7 +44,7 @@ namespace JhipsterSampleApplication.Controllers
                 namedQueryService,
                 BqlService<Supreme>.LoadSpec("supreme"),
                 "supreme");
-            _supremeService = new EntityService<Supreme>("supreme","justia_url,argument2_url,facts_of_the_case,conclusion", elasticClient, _bqlService, viewService);
+            _supremeService = new EntityService<Supreme>("supreme","justia_url,argument2_url,facts_of_the_case,conclusion", (ElasticLowLevelClient)elasticClient.LowLevel, _bqlService, viewService);
             _elasticClient = elasticClient;
             _log = logger;
             _mapper = mapper;

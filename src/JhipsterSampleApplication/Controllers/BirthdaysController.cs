@@ -3,6 +3,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Nest;
+using Elasticsearch.Net;
 using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Entities;
@@ -42,7 +43,7 @@ namespace JhipsterSampleApplication.Controllers
                 namedQueryService,
                 BqlService<Birthday>.LoadSpec("birthday"),
                 "birthdays");
-            _birthdayService = new EntityService<Birthday>("birthdays", "wikipedia", elasticClient, _bqlService, viewService);
+            _birthdayService = new EntityService<Birthday>("birthdays", "wikipedia", (ElasticLowLevelClient)elasticClient.LowLevel, _bqlService, viewService);
             _elasticClient = elasticClient;
             _log = logger;
             _mapper = mapper;
