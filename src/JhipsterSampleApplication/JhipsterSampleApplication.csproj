@@ -24,7 +24,7 @@
         <PackageReference Include="AutoMapper" />
         <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" />
         <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" />
-        <PackageReference Include="NEST" />
+        <PackageReference Include="Elasticsearch.Net" />
         <PackageReference Include="Scrutor" />
         <PackageReference Include="Serilog.AspNetCore" />
         <PackageReference Include="Serilog.Settings.Configuration" />

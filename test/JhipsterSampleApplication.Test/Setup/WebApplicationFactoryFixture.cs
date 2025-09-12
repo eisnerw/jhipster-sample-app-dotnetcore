@@ -2,7 +2,6 @@ using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using Nest;
 using JhipsterSampleApplication;
 
 namespace JhipsterSampleApplication.Test.Setup

@@ -9,7 +9,7 @@
 
     <ItemGroup>
         <PackageReference Include="AutoMapper" />
-        <PackageReference Include="NEST" />
+        <PackageReference Include="NEST" VersionOverride="7.13.0" />
         <PackageReference Include="Elasticsearch.Net" />
         <PackageReference Include="Serilog" />
         <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
