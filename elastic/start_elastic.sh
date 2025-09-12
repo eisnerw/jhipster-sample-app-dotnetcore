@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-ES_VERSION="${ES_VERSION:-7.17.23}"   # any 7.17.x
+ES_VERSION="${ES_VERSION:-8.19.3}"
 ES_PORT="${ES_PORT:-9200}"
-ES_HEAP="${ES_HEAP:-256m}"            # 128m/256m/512m are good in Codespaces
+ES_HEAP="${ES_HEAP:-256m}"
 
 start_dir=$(pwd)
 
@@ -24,6 +24,28 @@ waitfor() {
     sleep 1
   done
   return 1
+}
+
+# New function to configure cluster settings dynamically
+configure_settings() {
+    log "Configuring dynamic cluster settings..."
+    local ES_URL="http://127.0.0.1:${ES_PORT}"
+    
+    # Use curl to set the cluster setting. This should run after ES is UP.
+    curl -fL -X PUT "$ES_URL/_cluster/settings" \
+      -H 'Content-Type: application/json' \
+      -d '{
+        "persistent": {
+          "indices.id_field_data.enabled": true
+        }
+      }' >/dev/null 2>&1
+
+    if [ $? -eq 0 ]; then
+      log "Successfully set indices.id_field_data.enabled to true."
+    else
+      log "Failed to set indices.id_field_data.enabled."
+      exit 1
+    fi
 }
 
 main() {
@@ -54,11 +76,15 @@ main() {
     sleep 3
   fi
 
+  log "Removing old data to avoid security conflicts"
+  rm -rf data/*
+
   log "Starting Elasticsearch ${ES_VERSION} on 127.0.0.1:${ES_PORT} (heap ${ES_HEAP})"
   nohup ./bin/elasticsearch \
     -d -p run/es.pid \
     -Ediscovery.type=single-node \
     -Expack.security.enabled=false \
+    -Expack.security.http.ssl.enabled=false \
     -Enetwork.host=127.0.0.1 \
     -Ehttp.port="${ES_PORT}" \
     -Epath.data="$(pwd)/data" \
@@ -75,6 +101,9 @@ main() {
     tail -n 100 "logs/elasticsearch.log" || true
     exit 1
   fi
+  
+  # Call the new function to set the cluster settings
+  configure_settings
 
   cd "$start_dir"
 
@@ -86,8 +115,6 @@ main() {
 
   log "loading supreme data into Elasticsearch"
   ./load_supreme.sh
-
-
 }
 
 main "$@"
