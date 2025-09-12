@@ -154,9 +154,9 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         public async Task<IActionResult> Update(string id, [FromBody] MovieDto dto)
         {
-            var searchRequest = new SearchRequest<Birthday>
+            var searchRequest = new SearchRequest<Movie>
             {
-                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
+                Query = new QueryContainerDescriptor<Movie>().Term(t => t.Field("_id").Value(id))
             };
 
             var existingResponse = await _movieService.SearchAsync(searchRequest, includeDetails: true, "");
@@ -192,7 +192,7 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> SearchWithBql(
-            [FromBody] string bqlQuery,
+            [FromQuery] string bqlQuery,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
             [FromQuery] string? secondaryCategory = null,
@@ -402,7 +402,7 @@ namespace JhipsterSampleApplication.Controllers
                 {
                     var field = sortParts[0];
                     var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
-                    sortDescriptor.Add(new FieldSort { Field = "release_year", Order = SortOrder.Ascending });
+                    sortDescriptor.Add(new FieldSort { Field = field, Order = order });
                 }
             }
             sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
@@ -459,8 +459,7 @@ namespace JhipsterSampleApplication.Controllers
             JObject queryObject = new JObject(
                 new JProperty("query_string", queryStringObject)
             );
-            var overrideSort = "release_year:desc";
-            return await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, overrideSort, pitId, searchAfter);
+            return await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
         }
 
         [HttpGet("unique-values/{field}")]
