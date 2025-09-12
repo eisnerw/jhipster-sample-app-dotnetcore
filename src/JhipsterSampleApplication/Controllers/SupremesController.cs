@@ -12,8 +12,8 @@ using System.Linq;
 using System.Net;
 using JhipsterSampleApplication.Dto;
 using AutoMapper;
-using System.Text;
 using Microsoft.Extensions.Logging;
+using System.Text;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -24,9 +24,9 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IEntityService<Supreme> _supremeService;
         private readonly IElasticClient _elasticClient;
         private readonly IBqlService<Supreme> _bqlService;
+        private readonly ILogger<SupremesController> _log;
         private readonly IMapper _mapper;
         private readonly IViewService _viewService;
-        private readonly ILogger<SupremesController> _logger;
         private readonly IHistoryService _historyService;
 
         public SupremesController(
@@ -45,9 +45,9 @@ namespace JhipsterSampleApplication.Controllers
                 "supreme");
             _supremeService = new EntityService<Supreme>("supreme","justia_url,argument2_url,facts_of_the_case,conclusion", elasticClient, _bqlService, viewService);
             _elasticClient = elasticClient;
+            _log = logger;
             _mapper = mapper;
             _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
-            _logger = logger;
             _historyService = historyService;
         }
 
@@ -85,7 +85,11 @@ namespace JhipsterSampleApplication.Controllers
             };
 
             var response = await _supremeService.IndexAsync(supreme);
-            return Ok(new SimpleApiResponse { Success = response.IsValid, Message = response.DebugInformation.Split('\n')[0] });
+            return Ok(new SimpleApiResponse
+            {
+                Success = response.IsValid,
+                Message = response.DebugInformation.Split('\n')[0]
+            });
         }
 
         [HttpGet("{id}")]
@@ -100,7 +104,6 @@ namespace JhipsterSampleApplication.Controllers
                     Excludes = new[] { "justia_url", "facts_of_the_case", "question", "conclusion" }
                 }
             };
-
             var response = await _supremeService.SearchAsync(searchRequest, includeDetails: true, "");
             if (!response.IsValid || !response.Documents.Any())
             {
@@ -139,9 +142,6 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(dto);
         }
 
-        /// <summary>
-        /// Returns an HTML page constructed from various fields for a given Supreme document
-        /// </summary>
         [HttpGet("html/{id}")]
         [Produces("text/html")]
         public async Task<IActionResult> GetHtmlById(string id)
@@ -150,18 +150,20 @@ namespace JhipsterSampleApplication.Controllers
             {
                 Query = new QueryContainerDescriptor<Supreme>().Term(t => t.Field("_id").Value(id))
             };
-            var response = await _supremeService.SearchAsync(searchRequest, false);
+            var response = await _supremeService.SearchAsync(searchRequest, includeDetails: true);
             if (!response.IsValid || !response.Documents.Any())
             {
                 return NotFound();
             }
             var s = response.Documents.First();
+
             string? Join(IEnumerable<string>? list)
             {
                 if (list == null) return null;
                 var vals = list.Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => WebUtility.HtmlEncode(v.Trim())).ToList();
                 return vals.Count > 0 ? string.Join(", ", vals) : null;
             }
+
             string? JoinDissent(string? dissent)
             {
                 if (string.IsNullOrWhiteSpace(dissent)) return null;
@@ -252,8 +254,8 @@ namespace JhipsterSampleApplication.Controllers
                 Query = new QueryContainerDescriptor<Supreme>().Term(t => t.Field("_id").Value(id))
             };
 
-            var existing = await _supremeService.SearchAsync(searchRequest, includeDetails: true, "");
-            if (!existing.IsValid || !existing.Documents.Any())
+            var existingResponse = await _supremeService.SearchAsync(searchRequest, includeDetails: true, "");
+            if (!existingResponse.IsValid || !existingResponse.Documents.Any())
             {
                 return NotFound($"Document with ID {id} not found");
             }
@@ -288,7 +290,11 @@ namespace JhipsterSampleApplication.Controllers
             };
 
             var updateResponse = await _supremeService.UpdateAsync(id, supreme);
-            return Ok(new SimpleApiResponse { Success = updateResponse.IsValid, Message = updateResponse.DebugInformation.Split('\n')[0] });
+            return Ok(new SimpleApiResponse
+            {
+                Success = updateResponse.IsValid,
+                Message = updateResponse.DebugInformation.Split('\n')[0]
+            });
         }
 
         [HttpDelete("{id}")]
@@ -296,14 +302,19 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<IActionResult> Delete(string id)
         {
             var response = await _supremeService.DeleteAsync(id);
-            return Ok(new SimpleApiResponse { Success = response.IsValid, Message = response.DebugInformation.Split('\n')[0] });
+            return Ok(new SimpleApiResponse
+            {
+                Success = response.IsValid,
+                Message = response.DebugInformation.Split('\n')[0]
+            });
         }
 
         [HttpPost("search/bql")]
         [Consumes("text/plain")]
         [ProducesResponseType(typeof(SearchResultDto<object>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> SearchWithBqlPlainText(
+        public async Task<IActionResult> SearchWithBql(
             [FromBody] string bqlQuery,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
@@ -323,13 +334,15 @@ namespace JhipsterSampleApplication.Controllers
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _supremeService.ConvertRulesetToElasticSearch(ruleset);
             await _historyService.Save(new History { User = User?.Identity?.Name, Domain = "supreme", Text = bqlQuery });
-            return await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
+            var result = await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
+            return Ok(result);
         }
 
         [HttpPost("search/ruleset")]
-        [ProducesResponseType(typeof(SearchResultDto<object>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<SupremeDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> SearchRuleset(
+        public async Task<IActionResult> SearchWithRuleset(
             [FromBody] RulesetDto rulesetDto,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
@@ -347,7 +360,8 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpPost("search/elasticsearch")]
-        [ProducesResponseType(typeof(SearchResultDto<object>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<SupremeDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> Search(
             [FromBody] JObject elasticsearchQuery,
@@ -374,7 +388,7 @@ namespace JhipsterSampleApplication.Controllers
                     {
                         throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
                     }
-                    var viewResult = await _supremeService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, from, pageSize);
+                    var viewResult = await _supremeService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, pageSize, from);
                     return Ok(new SearchResultDto<ViewResultDto> { Hits = viewResult, HitType = "view", ViewName = view });
                 }
                 if (category == "(Uncategorized)")
@@ -394,9 +408,9 @@ namespace JhipsterSampleApplication.Controllers
                                     ))
                                 ),
                                 new JObject(
-                            new JProperty("term", new JObject(
-                                new JProperty(viewDto.Aggregation ?? string.Empty, "")
-                            ))
+                                    new JProperty("term", new JObject(
+                                        new JProperty(viewDto.Aggregation ?? string.Empty, "")
+                                    ))
                                 )
                             )),
                             new JProperty("minimum_should_match", 1)
@@ -413,7 +427,7 @@ namespace JhipsterSampleApplication.Controllers
                 }
                 else
                 {
-                    string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ?  $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);
+                    string categoryQuery = string.IsNullOrEmpty(viewDto.CategoryQuery) ? $"{viewDto.Aggregation}:\"{category}\"" : viewDto.CategoryQuery.Replace("{}", category);
                     elasticsearchQuery = new JObject(
                         new JProperty("bool", new JObject(
                             new JProperty("must", new JArray(
@@ -515,7 +529,7 @@ namespace JhipsterSampleApplication.Controllers
                     var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
                     if (field == "docket_number")
                     {
-                        _logger.LogInformation("Using docket_number script sort. order={Order}", order);
+                        _log.LogInformation("Using docket_number script sort. order={Order}", order);
                         var script =
                             @"def dn = params._source.containsKey('docket_number') ? params._source.docket_number : null;" +
                             @"if (dn == null) return 0L;" +
@@ -542,11 +556,11 @@ namespace JhipsterSampleApplication.Controllers
                     {
                         if (field.Equals("name", StringComparison.OrdinalIgnoreCase))
                         {
-                            _logger.LogInformation("Skipping sort on text field 'name'; falling back to _id only");
+                            _log.LogInformation("Skipping sort on text field 'name'; falling back to _id only");
                         }
                         else
                         {
-                            _logger.LogInformation("Using field sort. field={Field}, order={Order}", field, order);
+                            _log.LogInformation("Using field sort. field={Field}, order={Order}", field, order);
                             sortDescriptor.Add(new FieldSort { Field = field, Order = order });
                         }
                     }
@@ -555,7 +569,7 @@ namespace JhipsterSampleApplication.Controllers
             else
             {
                 // Default: rely on _id only (added below) to avoid mapping issues
-                _logger.LogInformation("Using default sort by _id only");
+                _log.LogInformation("Using default sort by _id only");
             }
             // Always add _id as the last sort field for consistent pagination
             sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
@@ -601,7 +615,8 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpGet("search/lucene")]
-        [ProducesResponseType(typeof(SearchResultDto<object>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<SupremeDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         public async Task<IActionResult> SearchWithLuceneQuery(
             [FromQuery] string query,
             [FromQuery] string? view = null,
@@ -614,30 +629,24 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? pitId = null,
             [FromQuery] string[]? searchAfter = null)
         {
-            _logger.LogInformation("Supreme lucene search called. query='{Query}', from={From}, pageSize={PageSize}, sort='{Sort}', view='{View}', category='{Category}', secondaryCategory='{SecondaryCategory}', includeDetails={IncludeDetails}", query, from, pageSize, sort, view, category, secondaryCategory, includeDetails);
             if (string.IsNullOrWhiteSpace(query))
             {
                 return BadRequest("Query cannot be empty");
             }
-            JObject queryStringObject = new JObject(new JProperty("query", query));
-            JObject queryObject = new JObject(new JProperty("query_string", queryStringObject));
-            try
-            {
-                return await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Supreme lucene search failed");
-                return StatusCode(500, ex.Message);
-            }
+            JObject queryStringObject = new JObject(
+                new JProperty("query", query)
+            );
+            JObject queryObject = new JObject(
+                new JProperty("query_string", queryStringObject)
+            );
+            return await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
         }
 
         [HttpGet("unique-values/{field}")]
         [ProducesResponseType(typeof(IReadOnlyCollection<string>), 200)]
         public async Task<IActionResult> GetUniqueFieldValues(string field)
         {
-            var esField = field == "term" ? field : field + ".keyword";
-            var values = await _supremeService.GetUniqueFieldValuesAsync(esField);
+            var values = await _supremeService.GetUniqueFieldValuesAsync(field+".keyword");
             return Ok(values);
         }
 
@@ -661,20 +670,12 @@ namespace JhipsterSampleApplication.Controllers
         [Produces("application/json")]
         public async Task<ActionResult<RulesetDto>> ConvertBqlToRuleset([FromBody] string query)
         {
-            try
+            if (string.IsNullOrWhiteSpace(query))
             {
-                if (string.IsNullOrWhiteSpace(query))
-                {
-                        return BadRequest("Query cannot be empty");
-                }
-
-                var ruleset = await _bqlService.Bql2Ruleset(query.Trim());
-                return Ok(ruleset);
+                return BadRequest("Query cannot be empty");
             }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var ruleset = await _bqlService.Bql2Ruleset(query.Trim());
+            return Ok(ruleset);
         }
 
         [HttpPost("ruleset-to-bql")]
@@ -682,19 +683,8 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(400)]
         public async Task<ActionResult<string>> ConvertRulesetToBql([FromBody] RulesetDto ruleset)
         {
-            try
-            {
-                var bqlQuery = await _bqlService.Ruleset2Bql(ruleset);
-                return Ok(bqlQuery);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, "An error occurred while converting Ruleset to BQL");
-            }
+            var bqlQuery = await _bqlService.Ruleset2Bql(ruleset);
+            return Ok(bqlQuery);
         }
 
         [HttpPost("ruleset-to-elasticsearch")]
@@ -702,43 +692,11 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(400)]
         public async Task<ActionResult<object>> ConvertRulesetToElasticSearch([FromBody] RulesetDto rulesetDto)
         {
-            try
-            {
-                var ruleset = _mapper.Map<Ruleset>(rulesetDto);
-                var elasticQuery = await _supremeService.ConvertRulesetToElasticSearch(ruleset);
-                return Ok(elasticQuery);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, "An error occurred while converting Ruleset to Elasticsearch query");
-            }
+            var ruleset = _mapper.Map<Ruleset>(rulesetDto);
+            var elasticQuery = await _supremeService.ConvertRulesetToElasticSearch(ruleset);
+            return Ok(elasticQuery);
         }
 
-        [HttpPost("ruleset-to-bql-to-ruleset")]
-        [ProducesResponseType(typeof(RulesetDto), 200)]
-        [ProducesResponseType(400)]
-        public async Task<ActionResult<RulesetDto>> ConvertRulesetToBqlToRuleset([FromBody] RulesetDto ruleset)
-        {
-            try
-            {
-                var bqlQuery = await _bqlService.Ruleset2Bql(ruleset);
-                var roundTrip = await _bqlService.Bql2Ruleset(bqlQuery);
-                return Ok(roundTrip);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, "An error occurred while converting Ruleset");
-            }
-        }
- 
         [HttpPost("categorize")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         [ProducesResponseType(400)]
@@ -746,14 +704,13 @@ namespace JhipsterSampleApplication.Controllers
         {
             if (request.Ids == null || !request.Ids.Any())
             {
-                    return BadRequest("At least one ID must be provided");
+                return BadRequest("At least one ID must be provided");
             }
 
             if (string.IsNullOrWhiteSpace(request.Category))
             {
-                    return BadRequest("Category cannot be empty");
+                return BadRequest("Category cannot be empty");
             }
-
             var result = await _supremeService.CategorizeAsync(request);
             return Ok(result);
         }
@@ -765,9 +722,8 @@ namespace JhipsterSampleApplication.Controllers
         {
             if (request.Rows == null || !request.Rows.Any())
             {
-                    return BadRequest("At least one row ID must be provided");
+                return BadRequest("At least one row ID must be provided");
             }
-
             var result = await _supremeService.CategorizeMultipleAsync(request);
             return Ok(result);
         }

@@ -12,8 +12,8 @@ using System.Linq;
 using System.Net;
 using JhipsterSampleApplication.Dto;
 using AutoMapper;
-using System.Text;
 using Microsoft.Extensions.Logging;
+using System.Text;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -24,9 +24,9 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IEntityService<Movie> _movieService;
         private readonly IElasticClient _elasticClient;
         private readonly IBqlService<Movie> _bqlService;
+        private readonly ILogger<MoviesController> _log;
         private readonly IMapper _mapper;
         private readonly IViewService _viewService;
-        private readonly ILogger<MoviesController> _logger;
         private readonly IHistoryService _historyService;
 
         public MoviesController(
@@ -45,9 +45,9 @@ namespace JhipsterSampleApplication.Controllers
                 "movies");
             _movieService = new EntityService<Movie>("movies", "synopsis", elasticClient, _bqlService, viewService);
             _elasticClient = elasticClient;
+            _log = logger;
             _mapper = mapper;
             _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
-            _logger = logger;
             _historyService = historyService;
         }
 
@@ -58,7 +58,11 @@ namespace JhipsterSampleApplication.Controllers
             var movie = _mapper.Map<Movie>(dto);
             movie.Id = dto.Id;
             var response = await _movieService.IndexAsync(movie);
-            return Ok(new SimpleApiResponse { Success = response.IsValid, Message = response.DebugInformation.Split('\n')[0] });
+            return Ok(new SimpleApiResponse
+            {
+                Success = response.IsValid,
+                Message = response.DebugInformation.Split('\n')[0]
+            });
         }
 
         [HttpGet("{id}")]
@@ -68,9 +72,9 @@ namespace JhipsterSampleApplication.Controllers
             var searchRequest = new SearchRequest<Movie>
             {
                 Query = new QueryContainerDescriptor<Movie>().Term(t => t.Field("_id").Value(id)),
-                Source = includeDetails ? null : new SourceFilter 
+                Source = includeDetails ? null : new SourceFilter
                 {
-                    Excludes = new[] { "synopsis" } 
+                    Excludes = new[] { "synopsis" }
                 }
             };
             var response = await _movieService.SearchAsync(searchRequest, includeDetails);
@@ -78,8 +82,8 @@ namespace JhipsterSampleApplication.Controllers
             {
                 return NotFound();
             }
-            var m = response.Documents.First();
-            var dto = _mapper.Map<MovieDto>(m);
+            var r = response.Documents.First();
+            var dto = _mapper.Map<MovieDto>(r);
             if (!includeDetails)
             {
                 dto.Synopsis = null;
@@ -100,7 +104,6 @@ namespace JhipsterSampleApplication.Controllers
             {
                 return NotFound();
             }
-
             var m = response.Documents.First();
 
             string? Join(IEnumerable<string>? list)
@@ -151,10 +154,24 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         public async Task<IActionResult> Update(string id, [FromBody] MovieDto dto)
         {
+            var searchRequest = new SearchRequest<Birthday>
+            {
+                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
+            };
+
+            var existingResponse = await _movieService.SearchAsync(searchRequest, includeDetails: true, "");
+            if (!existingResponse.IsValid || !existingResponse.Documents.Any())
+            {
+                return NotFound($"Document with ID {id} not found");
+            }
             var movie = _mapper.Map<Movie>(dto);
             movie.Id = id;
-            var response = await _movieService.UpdateAsync(id, movie);
-            return Ok(new SimpleApiResponse { Success = response.IsValid, Message = response.DebugInformation.Split('\n')[0] });
+            var updateResponse = await _movieService.UpdateAsync(id, movie);
+            return Ok(new SimpleApiResponse
+            {
+                Success = updateResponse.IsValid,
+                Message = updateResponse.DebugInformation.Split('\n')[0]
+            });
         }
 
         [HttpDelete("{id}")]
@@ -162,13 +179,18 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<IActionResult> Delete(string id)
         {
             var response = await _movieService.DeleteAsync(id);
-            return Ok(new SimpleApiResponse { Success = response.IsValid, Message = response.DebugInformation.Split('\n')[0] });
+            return Ok(new SimpleApiResponse
+            {
+                Success = response.IsValid,
+                Message = response.DebugInformation.Split('\n')[0]
+            });
         }
 
         [HttpPost("search/bql")]
         [Consumes("text/plain")]
         [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
+        [ProducesResponseType(400)]
         public async Task<IActionResult> SearchWithBql(
             [FromBody] string bqlQuery,
             [FromQuery] string? view = null,
@@ -189,12 +211,14 @@ namespace JhipsterSampleApplication.Controllers
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _movieService.ConvertRulesetToElasticSearch(ruleset);
             await _historyService.Save(new History { User = User?.Identity?.Name, Domain = "movie", Text = bqlQuery });
-            return await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
+            var result = await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
+            return Ok(result);
         }
 
         [HttpPost("search/ruleset")]
         [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
+        [ProducesResponseType(400)]
         public async Task<IActionResult> SearchWithRuleset(
             [FromBody] RulesetDto rulesetDto,
             [FromQuery] string? view = null,
@@ -215,6 +239,7 @@ namespace JhipsterSampleApplication.Controllers
         [HttpPost("search/elasticsearch")]
         [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
+        [ProducesResponseType(400)]
         public async Task<IActionResult> Search(
             [FromBody] JObject elasticsearchQuery,
             [FromQuery] string? view = null,
@@ -241,12 +266,11 @@ namespace JhipsterSampleApplication.Controllers
                     {
                         throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
                     }
-                    var viewResult = await _movieService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, from, pageSize);
+                    var viewResult = await _movieService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, pageSize, from);
                     return Ok(new SearchResultDto<ViewResultDto> { Hits = viewResult, HitType = "view", ViewName = view });
                 }
                 if (category == "(Uncategorized)")
                 {
-                    var baseField = (viewDto.Aggregation ?? string.Empty).Replace(".keyword", string.Empty);
                     var missingFilter = new JObject(
                         new JProperty("bool", new JObject(
                             new JProperty("should", new JArray(
@@ -255,7 +279,7 @@ namespace JhipsterSampleApplication.Controllers
                                         new JProperty("must_not", new JArray(
                                             new JObject(
                                                 new JProperty("exists", new JObject(
-                                                    new JProperty("field", baseField)
+                                                    new JProperty("field", viewDto.Aggregation)
                                                 ))
                                             )
                                         ))
@@ -315,7 +339,7 @@ namespace JhipsterSampleApplication.Controllers
                                             new JProperty("must_not", new JArray(
                                                 new JObject(
                                                     new JProperty("exists", new JObject(
-                                                        new JProperty("field", secondaryBaseField)
+                                                        new JProperty("field", secondaryViewDto.Aggregation)
                                                     ))
                                                 )
                                             ))
@@ -342,7 +366,7 @@ namespace JhipsterSampleApplication.Controllers
                     else
                     {
                         isHitFromViewDrilldown = true;
-                        string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ? $"{secondaryViewDto.Aggregation}:\\\"{secondaryCategory}\\\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
+                        string secondaryCategoryQuery = string.IsNullOrEmpty(secondaryViewDto.CategoryQuery) ? $"{secondaryViewDto.Aggregation}:\"{secondaryCategory}\"" : secondaryViewDto.CategoryQuery.Replace("{}", secondaryCategory);
                         elasticsearchQuery = new JObject(
                             new JProperty("bool", new JObject(
                                 new JProperty("must", new JArray(
@@ -378,14 +402,13 @@ namespace JhipsterSampleApplication.Controllers
                 {
                     var field = sortParts[0];
                     var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
-                    // sortDescriptor.Add(new FieldSort { Field = field, Order = order });
                     sortDescriptor.Add(new FieldSort { Field = "release_year", Order = SortOrder.Ascending });
                 }
             }
             sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
 
-            searchRequest.Sort = sortDescriptor;
             searchRequest.Query = new QueryContainerDescriptor<Movie>().Raw(elasticsearchQuery.ToString());
+            searchRequest.Sort = sortDescriptor;
 
             var response = await _movieService.SearchAsync(searchRequest, includeDetails, pitId);
             var movieDtos = new List<MovieDto>();
@@ -401,7 +424,14 @@ namespace JhipsterSampleApplication.Controllers
             }
             List<object>? searchAfterResponse = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null;
             var hitType = isHitFromViewDrilldown ? "hit" : "movie";
-            return Ok(new SearchResultDto<MovieDto> { Hits = movieDtos, TotalHits = response.Total, HitType = hitType, PitId = searchRequest.PointInTime?.Id, searchAfter = searchAfterResponse });
+            return Ok(new SearchResultDto<MovieDto>
+            {
+                Hits = movieDtos,
+                TotalHits = response.Total,
+                HitType = hitType,
+                PitId = searchRequest.PointInTime?.Id,
+                searchAfter = searchAfterResponse
+            });
         }
 
         [HttpGet("search/lucene")]
@@ -423,8 +453,12 @@ namespace JhipsterSampleApplication.Controllers
             {
                 return BadRequest("Query cannot be empty");
             }
-            JObject queryStringObject = new JObject(new JProperty("query", query));
-            JObject queryObject = new JObject(new JProperty("query_string", queryStringObject));
+            JObject queryStringObject = new JObject(
+                new JProperty("query", query)
+            );
+            JObject queryObject = new JObject(
+                new JProperty("query_string", queryStringObject)
+            );
             var overrideSort = "release_year:desc";
             return await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, overrideSort, pitId, searchAfter);
         }
@@ -433,8 +467,7 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(IReadOnlyCollection<string>), 200)]
         public async Task<IActionResult> GetUniqueFieldValues(string field)
         {
-            var esField = field == "release_year" ? field : field + ".keyword";
-            var values = await _movieService.GetUniqueFieldValuesAsync(esField);
+             var values = await _movieService.GetUniqueFieldValuesAsync(field+".keyword");
             return Ok(values);
         }
 
@@ -454,6 +487,8 @@ namespace JhipsterSampleApplication.Controllers
         [HttpPost("bql-to-ruleset")]
         [Consumes("text/plain")]
         [ProducesResponseType(typeof(RulesetDto), 200)]
+        [ProducesResponseType(400)]
+        [Produces("application/json")]
         public async Task<ActionResult<RulesetDto>> ConvertBqlToRuleset([FromBody] string query)
         {
             if (string.IsNullOrWhiteSpace(query))
@@ -466,6 +501,7 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpPost("ruleset-to-bql")]
         [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(400)]
         public async Task<ActionResult<string>> ConvertRulesetToBql([FromBody] RulesetDto ruleset)
         {
             var bqlQuery = await _bqlService.Ruleset2Bql(ruleset);
@@ -474,6 +510,7 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpPost("ruleset-to-elasticsearch")]
         [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(400)]
         public async Task<ActionResult<object>> ConvertRulesetToElasticSearch([FromBody] RulesetDto rulesetDto)
         {
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
@@ -481,17 +518,9 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(elasticQuery);
         }
 
-        [HttpPost("ruleset-to-bql-to-ruleset")]
-        [ProducesResponseType(typeof(RulesetDto), 200)]
-        public async Task<ActionResult<RulesetDto>> ConvertRulesetToBqlToRuleset([FromBody] RulesetDto ruleset)
-        {
-            var bqlQuery = await _bqlService.Ruleset2Bql(ruleset);
-            var roundTrip = await _bqlService.Bql2Ruleset(bqlQuery);
-            return Ok(roundTrip);
-        }
-
         [HttpPost("categorize")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        [ProducesResponseType(400)]
         public async Task<IActionResult> Categorize([FromBody] CategorizeRequestDto request)
         {
             if (request.Ids == null || !request.Ids.Any())
@@ -503,20 +532,19 @@ namespace JhipsterSampleApplication.Controllers
             {
                 return BadRequest("Category cannot be empty");
             }
-
             var result = await _movieService.CategorizeAsync(request);
             return Ok(result);
         }
 
         [HttpPost("categorize-multiple")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        [ProducesResponseType(400)]
         public async Task<IActionResult> CategorizeMultiple([FromBody] CategorizeMultipleRequestDto request)
         {
             if (request.Rows == null || !request.Rows.Any())
             {
                 return BadRequest("At least one row ID must be provided");
             }
-
             var result = await _movieService.CategorizeMultipleAsync(request);
             return Ok(result);
         }

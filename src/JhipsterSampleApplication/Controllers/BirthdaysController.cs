@@ -9,10 +9,9 @@ using JhipsterSampleApplication.Domain.Entities;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using System.Linq;
-using System.IO;
+using System.Net;
 using JhipsterSampleApplication.Dto;
 using AutoMapper;
-using System.Net;
 using Microsoft.Extensions.Logging;
 
 namespace JhipsterSampleApplication.Controllers
@@ -26,14 +25,14 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IBqlService<Birthday> _bqlService;
         private readonly ILogger<BirthdaysController> _log;
         private readonly IMapper _mapper;
-        private readonly IHistoryService _historyService;
         private readonly IViewService _viewService;
+        private readonly IHistoryService _historyService;
 
         public BirthdaysController(
             IElasticClient elasticClient,
             INamedQueryService namedQueryService,
             ILogger<BqlService<Birthday>> bqlLogger,
-            ILogger<BirthdaysController> log,
+            ILogger<BirthdaysController> logger,
             IMapper mapper,
             IHistoryService historyService,
             IViewService viewService)
@@ -45,10 +44,10 @@ namespace JhipsterSampleApplication.Controllers
                 "birthdays");
             _birthdayService = new EntityService<Birthday>("birthdays", "wikipedia", elasticClient, _bqlService, viewService);
             _elasticClient = elasticClient;
-            _log = log;
+            _log = logger;
             _mapper = mapper;
+            _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
             _historyService = historyService;
-            _viewService = viewService;
         }
 
         [HttpPost]
@@ -68,12 +67,11 @@ namespace JhipsterSampleApplication.Controllers
             };
 
             var response = await _birthdayService.IndexAsync(birthday);
-            var simpleResponse = new SimpleApiResponse
+            return Ok(new SimpleApiResponse
             {
                 Success = response.IsValid,
                 Message = response.DebugInformation.Split('\n')[0]
-            };
-            return Ok(simpleResponse);
+            });
         }
 
         [HttpGet("{id}")]
@@ -83,15 +81,18 @@ namespace JhipsterSampleApplication.Controllers
             var searchRequest = new SearchRequest<Birthday>
             {
                 Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id)),
-                Source = includeDetails ? null : new SourceFilter { Excludes = new[] { "wikipedia" } }
+                Source = includeDetails ? null : new SourceFilter
+                {
+                    Excludes = new[] { "wikipedia" }
+                }
             };
-            var response = await _birthdayService.SearchAsync(searchRequest, includeDetails, pitId: "");
+            var response = await _birthdayService.SearchAsync(searchRequest, includeDetails);
             if (!response.IsValid || !response.Documents.Any())
             {
                 return NotFound();
             }
-            var b = response.Documents.First();
-            var dto = _mapper.Map<BirthdayDto>(b);
+            var r = response.Documents.First();
+            var dto = _mapper.Map<BirthdayDto>(r);
             if (!includeDetails)
             {
                 dto.Wikipedia = null;
@@ -99,9 +100,6 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(dto);
         }
 
-        /// <summary>
-        /// Returns an HTML page constructed from the Wikipedia attribute for a given Birthday document
-        /// </summary>
         [HttpGet("html/{id}")]
         [Produces("text/html")]
         public async Task<IActionResult> GetHtmlById(string id)
@@ -143,13 +141,12 @@ namespace JhipsterSampleApplication.Controllers
             {
                 Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
             };
-            
+
             var existingResponse = await _birthdayService.SearchAsync(searchRequest, includeDetails: true, "");
             if (!existingResponse.IsValid || !existingResponse.Documents.Any())
             {
                 return NotFound($"Document with ID {id} not found");
             }
-
             var birthday = new Birthday
             {
                 Id = id,
@@ -164,12 +161,11 @@ namespace JhipsterSampleApplication.Controllers
             };
 
             var updateResponse = await _birthdayService.UpdateAsync(id, birthday);
-            var simpleResponse = new SimpleApiResponse
+            return Ok(new SimpleApiResponse
             {
                 Success = updateResponse.IsValid,
                 Message = updateResponse.DebugInformation.Split('\n')[0]
-            };
-            return Ok(simpleResponse);
+            });
         }
 
         [HttpDelete("{id}")]
@@ -177,23 +173,19 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<IActionResult> Delete(string id)
         {
             var response = await _birthdayService.DeleteAsync(id);
-            var simpleResponse = new SimpleApiResponse
+            return Ok(new SimpleApiResponse
             {
                 Success = response.IsValid,
                 Message = response.DebugInformation.Split('\n')[0]
-            };
-            return Ok(simpleResponse);
+            });
         }
 
-        /// <summary>
-        /// Search birthdays using a BQL query with pagination
-        /// </summary>
         [HttpPost("search/bql")]
         [Consumes("text/plain")]
         [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> SearchWithBqlPlainText(
+        public async Task<IActionResult> SearchWithBql(
             [FromQuery] string bqlQuery,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
@@ -213,18 +205,15 @@ namespace JhipsterSampleApplication.Controllers
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
             await _historyService.Save(new History { User = User?.Identity?.Name, Domain = "birthday", Text = bqlQuery });
-            var result = await PerformSearch(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
+            var result = await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
             return Ok(result);
         }
 
-        /// <summary>
-        /// Search birthdays using a ruleset
-        /// </summary>
         [HttpPost("search/ruleset")]
         [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> SearchRuleset(
+        public async Task<IActionResult> SearchWithRuleset(
             [FromBody] RulesetDto rulesetDto,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
@@ -238,13 +227,9 @@ namespace JhipsterSampleApplication.Controllers
         {
             var ruleset = _mapper.Map<Ruleset>(rulesetDto);
             var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
-            var result = await PerformSearch(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
-            return Ok(result);
+            return await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
         }
 
-        /// <summary>
-        /// Search birthdays using a raw Elasticsearch query
-        /// </summary>
         [HttpPost("search/elasticsearch")]
         [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
@@ -261,60 +246,22 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? pitId = null,
             [FromQuery] string[]? searchAfter = null)
         {
-            var result = await PerformSearch(elasticsearchQuery, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
-            return Ok(result);
-        }
-
-        private async Task<object> PerformSearch(JObject elasticsearchQuery, int pageSize = 20, int from = 0, string? sort = null,
-            bool includeDetails = false, string? view = null, string? category = null, string? secondaryCategory = null,
-            string? pitId = null, string[]? searchAfter = null)
-        {
             bool isHitFromViewDrilldown = false;
             if (!string.IsNullOrEmpty(view))
             {
-                var viewDto = await _viewService.GetByIdAsync(view) ?? throw new ArgumentException($"view '{view}' not found");
+                var viewDto = await _viewService.GetByIdAsync(view);
+                if (viewDto == null)
+                {
+                    throw new ArgumentException($"view '{view}' not found");
+                }
                 if (category == null)
                 {
                     if (secondaryCategory != null)
                     {
                         throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
                     }
-                    try
-                    {
-                        var viewResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, pageSize, from);
-                        return new SearchResultDto<ViewResultDto> { Hits = viewResult, HitType = "view", ViewName = view };
-                    }
-                    catch
-                    {
-                        var baseField = (viewDto.Aggregation ?? string.Empty).Replace(".keyword", string.Empty);
-                        var missingQuery = new JObject(
-                            new JProperty("bool", new JObject(
-                                new JProperty("must", new JArray(
-                                    elasticsearchQuery,
-                                    new JObject(
-                                        new JProperty("bool", new JObject(
-                                            new JProperty("must_not", new JArray(
-                                                new JObject(new JProperty("exists", new JObject(new JProperty("field", baseField))))
-                                            ))
-                                        ))
-                                    )
-                                ))
-                            ))
-                        );
-                        var missingSearch = new SearchRequest<Birthday>
-                        {
-                            Size = 0,
-                            Query = new QueryContainerDescriptor<Birthday>().Raw(missingQuery.ToString())
-                        };
-                        var missResp = await _birthdayService.SearchAsync(missingSearch, includeDetails: false, pitId: "");
-                        long missingCount = missResp.IsValid ? missResp.Total : 0;
-                        var hits = new List<ViewResultDto>();
-                        if (missingCount > 0)
-                        {
-                            hits.Add(new ViewResultDto { CategoryName = "(Uncategorized)", Count = missingCount, NotCategorized = true });
-                        }
-                        return new SearchResultDto<ViewResultDto> { Hits = hits, HitType = "view", ViewName = view };
-                    }
+                    var viewResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, viewDto, pageSize, from);
+                    return Ok(new SearchResultDto<ViewResultDto> { Hits = viewResult, HitType = "view", ViewName = view });
                 }
                 if (category == "(Uncategorized)")
                 {
@@ -373,7 +320,7 @@ namespace JhipsterSampleApplication.Controllers
                     if (secondaryCategory == null)
                     {
                         var viewSecondaryResult = await _birthdayService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, pageSize, from);
-                        return new SearchResultDto<ViewResultDto> { Hits = viewSecondaryResult, HitType = "view", ViewName = view, viewCategory = category };
+                        return Ok(new SearchResultDto<ViewResultDto> { Hits = viewSecondaryResult, HitType = "view", ViewName = view, viewCategory = category });
                     }
                     if (secondaryCategory == "(Uncategorized)")
                     {
@@ -445,7 +392,7 @@ namespace JhipsterSampleApplication.Controllers
             var sortDescriptor = new List<ISort>();
             if (!string.IsNullOrEmpty(sort))
             {
-                var sortParts = sort.Split(':');
+                var sortParts = sort.Contains(',') ? sort.Split(',') : sort.Split(':');
                 if (sortParts.Length == 2)
                 {
                     var field = sortParts[0];
@@ -487,19 +434,16 @@ namespace JhipsterSampleApplication.Controllers
             }
             List<object>? searchAfterResponse = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null;
             var hitType = isHitFromViewDrilldown ? "hit" : "birthday";
-            return new SearchResultDto<BirthdayDto>
+            return Ok(new SearchResultDto<BirthdayDto>
             {
                 Hits = birthdayDtos,
                 TotalHits = response.Total,
                 HitType = hitType,
                 PitId = searchRequest.PointInTime?.Id,
                 searchAfter = searchAfterResponse
-            };
-            
+            });
         }
-        /// <summary>
-        /// Search birthdays using a Lucene query
-        /// </summary>
+
         [HttpGet("search/lucene")]
         [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
@@ -525,8 +469,7 @@ namespace JhipsterSampleApplication.Controllers
             JObject queryObject = new JObject(
                 new JProperty("query_string", queryStringObject)
             );
-            var result = await PerformSearch(queryObject, pageSize, from, sort, includeDetails, view, category, secondaryCategory, pitId, searchAfter);
-            return Ok(result);
+            return await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
         }
 
         [HttpGet("unique-values/{field}")]
@@ -537,14 +480,11 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(values);
         }
 
-        /// <summary>
-        /// Returns the Query Builder specification for Birthdays
-        /// </summary>
         [HttpGet("query-builder-spec")]
         [Produces("application/json")]
         public IActionResult GetQueryBuilderSpec()
         {
-            var path = Path.Combine(AppContext.BaseDirectory, "Resources", "query-builder", "birthday-qb-spec.json");
+            var path = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "query-builder", "birthday-qb-spec.json");
             if (!System.IO.File.Exists(path))
             {
                 return NotFound("Spec file not found");
@@ -553,12 +493,6 @@ namespace JhipsterSampleApplication.Controllers
             return Content(json, "application/json");
         }
 
-        /// <summary>
-        /// Converts a BQL query string to a Ruleset
-        /// </summary>
-        /// <returns>The converted Ruleset</returns>
-        /// <response code="200">Returns the converted Ruleset</response>
-        /// <response code="400">If the query is invalid or empty</response>
         [HttpPost("bql-to-ruleset")]
         [Consumes("text/plain")]
         [ProducesResponseType(typeof(RulesetDto), 200)]
@@ -566,82 +500,33 @@ namespace JhipsterSampleApplication.Controllers
         [Produces("application/json")]
         public async Task<ActionResult<RulesetDto>> ConvertBqlToRuleset([FromBody] string query)
         {
-            try
+            if (string.IsNullOrWhiteSpace(query))
             {
-                if (string.IsNullOrWhiteSpace(query))
-                {
-                    return BadRequest("Query cannot be empty");
-                }
-
-                var ruleset = await _bqlService.Bql2Ruleset(query.Trim());
-                return Ok(ruleset);
+                return BadRequest("Query cannot be empty");
             }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, "Error converting BQL to ruleset");
-                return BadRequest(ex.Message);
-            }
+            var ruleset = await _bqlService.Bql2Ruleset(query.Trim());
+            return Ok(ruleset);
         }
 
-        /// <summary>
-        /// Converts a Ruleset to a BQL query string
-        /// </summary>
-        /// <param name="ruleset">The Ruleset to convert</param>
-        /// <returns>The converted BQL query string</returns>
         [HttpPost("ruleset-to-bql")]
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(400)]
         public async Task<ActionResult<string>> ConvertRulesetToBql([FromBody] RulesetDto ruleset)
         {
-            _log.LogDebug("REST request to convert Ruleset to BQL");
-            try
-            {
-                var bqlQuery = await _bqlService.Ruleset2Bql(ruleset);
-                return Ok(bqlQuery);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, "Error converting Ruleset to BQL");
-                return StatusCode(500, "An error occurred while converting Ruleset to BQL");
-            }
+            var bqlQuery = await _bqlService.Ruleset2Bql(ruleset);
+            return Ok(bqlQuery);
         }
 
-        /// <summary>
-        /// Converts a Ruleset to an Elasticsearch query
-        /// </summary>
-        /// <param name="ruleset">The Ruleset to convert</param>
-        /// <returns>The converted Elasticsearch query</returns>
         [HttpPost("ruleset-to-elasticsearch")]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(400)]
         public async Task<ActionResult<object>> ConvertRulesetToElasticSearch([FromBody] RulesetDto rulesetDto)
         {
-            _log.LogDebug("REST request to convert Ruleset to Elasticsearch query");
-        
-            try
-            {
-                var ruleset = _mapper.Map<Ruleset>(rulesetDto);
-                var elasticQuery = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
-                return Ok(elasticQuery);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, "Error converting Ruleset to Elasticsearch query");
-                return StatusCode(500, "An error occurred while converting Ruleset to Elasticsearch query");
-            }
+            var ruleset = _mapper.Map<Ruleset>(rulesetDto);
+            var elasticQuery = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
+            return Ok(elasticQuery);
         }
 
-        /// <summary>
-        /// Add or remove a category from multiple birthdays
-        /// </summary>
         [HttpPost("categorize")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         [ProducesResponseType(400)]
@@ -660,9 +545,6 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(result);
         }
 
-        /// <summary>
-        /// Add and/or remove multiple categories across multiple birthdays
-        /// </summary>
         [HttpPost("categorize-multiple")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         [ProducesResponseType(400)]
