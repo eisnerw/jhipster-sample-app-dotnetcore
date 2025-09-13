@@ -64,6 +64,7 @@ public class Startup : IStartup
 
         var client = new ElasticClient(settings);
         services.AddSingleton<IElasticClient>(client);
+        services.AddSingleton<IEntitySpecRegistry, EntitySpecRegistry>();
         services.AddScoped<IViewRepository, ViewRepository>();
         services.AddScoped<IViewService, ViewService>();
         services.AddScoped<ViewInitializationService>();
