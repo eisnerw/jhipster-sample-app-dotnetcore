@@ -335,7 +335,8 @@ namespace JhipsterSampleApplication.Controllers
             var queryObject = await _supremeService.ConvertRulesetToElasticSearch(ruleset);
             await _historyService.Save(new History { User = User?.Identity?.Name, Domain = "supreme", Text = bqlQuery });
             var result = await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
-            return Ok(result);
+            return result;
+            //return Ok(result);
         }
 
         [HttpPost("search/ruleset")]

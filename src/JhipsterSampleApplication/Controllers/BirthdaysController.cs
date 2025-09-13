@@ -186,7 +186,7 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> SearchWithBql(
-            [FromQuery] string bqlQuery,
+            [FromBody] string bqlQuery,
             [FromQuery] string? view = null,
             [FromQuery] string? category = null,
             [FromQuery] string? secondaryCategory = null,
@@ -206,7 +206,7 @@ namespace JhipsterSampleApplication.Controllers
             var queryObject = await _birthdayService.ConvertRulesetToElasticSearch(ruleset);
             await _historyService.Save(new History { User = User?.Identity?.Name, Domain = "birthday", Text = bqlQuery });
             var result = await Search(queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
-            return Ok(result);
+            return result;
         }
 
         [HttpPost("search/ruleset")]
