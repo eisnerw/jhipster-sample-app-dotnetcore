@@ -5,6 +5,7 @@ using System;
 using System.Linq;
 using System.Text.Json.Nodes;
 
+#nullable enable
 public sealed record HtmlTemplateSpec(string? TitleExpr, string? BodyField, string? EmptyHtml);
 public sealed record EntitySpec(
     string Name,
