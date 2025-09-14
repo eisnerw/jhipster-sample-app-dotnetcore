@@ -59,7 +59,7 @@ public class EntityService<T> : IEntityService<T> where T : class
         _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
     }
 
-    public async Task<ISearchResponse<T>> SearchAsync(SearchSpec<T> spec)
+    public async Task<AppSearchResponse<T>> SearchAsync(SearchSpec<T> spec)
     {
         // Decide PIT first, then choose how to construct the request (typed index vs PIT-only).
         var pitId = spec.PitId;
@@ -190,34 +190,35 @@ public class EntityService<T> : IEntityService<T> where T : class
             }
             throw new Exception(retryResponse.Body ?? response.ServerError?.ToString());
         }
-        // Ensure Id from hit metadata is copied into source objects used by controllers/DTOs
-        if (response.Hits?.Count > 0)
+        var app = new AppSearchResponse<T>
         {
-            foreach (var hit in response.Hits)
+            Total = response.HitsMetadata?.Total?.Value ?? response.Total,
+            PointInTimeId = request.PointInTime?.Id,
+            IsValid = response.IsValid
+        };
+        if (response.Hits != null)
+        {
+            foreach (var h in response.Hits)
             {
-                if (hit.Source != null)
+                if (h.Source != null)
                 {
-                    try
-                    {
-                        var source = (CategorizedEntity<string>)(object)hit.Source;
-                        source.Id = hit.Id;
-                    }
-                    catch
-                    {
-                        // Non-categorized types: ignore
-                    }
+                    try { ((CategorizedEntity<string>)(object)h.Source).Id = h.Id; } catch {}
                 }
+                app.Hits.Add(new AppHit<T>
+                {
+                    Id = h.Id,
+                    Source = h.Source!,
+                    Sorts = h.Sorts?.ToList() ?? new List<object>()
+                });
             }
         }
-        return response;
+        return app;
     }
 
     /// <summary>
-    /// Searches for Entity documents using the provided search request
+    /// Legacy helper that executes a NEST search request and maps to AppSearchResponse.
     /// </summary>
-    /// <param name="request">The search request to execute</param>
-    /// <returns>The search response containing Entity documents</returns>
-    public async Task<ISearchResponse<T>> SearchAsync(ISearchRequest request, bool includeDetails, string? pitId = null) 
+    private async Task<AppSearchResponse<T>> SearchAsyncInternal(ISearchRequest request, bool includeDetails, string? pitId = null) 
     {            
         if (!includeDetails)
         {
@@ -264,18 +265,29 @@ public class EntityService<T> : IEntityService<T> where T : class
             }
             // Otherwise, allow the response to pass through (avoid 500 on benign conditions)
         }
-        if (response.Hits.Count > 0)
+        var app2 = new AppSearchResponse<T>
         {
-            foreach (var hit in response.Hits)
+            Total = response.HitsMetadata?.Total?.Value ?? response.Total,
+            PointInTimeId = request.PointInTime?.Id,
+            IsValid = response.IsValid
+        };
+        if (response.Hits != null)
+        {
+            foreach (var h in response.Hits)
             {
-                if (hit.Source != null)
+                if (h.Source != null)
                 {
-                    var source = (CategorizedEntity<string>)(object)hit.Source;
-                    source.Id = hit.Id;
+                    try { ((CategorizedEntity<string>)(object)h.Source).Id = h.Id; } catch {}
                 }
+                app2.Hits.Add(new AppHit<T>
+                {
+                    Id = h.Id,
+                    Source = h.Source!,
+                    Sorts = h.Sorts?.ToList() ?? new List<object>()
+                });
             }
         }
-        return response;
+        return app2;
     }
 
 
@@ -374,6 +386,7 @@ public class EntityService<T> : IEntityService<T> where T : class
     }
 
     // Back-compat implementation to satisfy interface; not used by new flow but kept for callers
+    // Legacy overload kept for reference; not part of interface anymore
     public async Task<List<ViewResultDto>> SearchUsingViewAsync(ISearchRequest request, ISearchRequest uncategorizedRequest)
     {
         List<ViewResultDto> content = new();
@@ -461,9 +474,10 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// </summary>
     /// <param name="Entity">The Entity document to index</param>
     /// <returns>The index response</returns>
-    public async Task<IndexResponse> IndexAsync(T entity)
+    public async Task<WriteResult> IndexAsync(T entity)
     {
-        return await _elasticClient.IndexAsync(entity, i => i.Index(_indexName).Refresh(Refresh.WaitFor));
+        var resp = await _elasticClient.IndexAsync(entity, i => i.Index(_indexName).Refresh(Refresh.WaitFor));
+        return new WriteResult { Success = resp.IsValid, Message = resp.DebugInformation?.Split('\n')[0] };
     }
 
     /// <summary>
@@ -472,14 +486,15 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// <param name="id">The ID of the document to update</param>
     /// <param name="Entity">The updated Entity document</param>
     /// <returns>The update response</returns>
-    public async Task<UpdateResponse<T>> UpdateAsync(string id, T entity)
+    public async Task<WriteResult> UpdateAsync(string id, T entity)
     {
-        return await _elasticClient.UpdateAsync<T>(id, u => u
+        var resp = await _elasticClient.UpdateAsync<T>(id, u => u
             .Index(_indexName)
             .Doc(entity)
             .DocAsUpsert()
             .Refresh(Refresh.WaitFor)
         );
+        return new WriteResult { Success = resp.IsValid, Message = resp.DebugInformation?.Split('\n')[0] };
     }
 
     /// <summary>
@@ -487,9 +502,10 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// </summary>
     /// <param name="id">The ID of the document to delete</param>
     /// <returns>The delete response</returns>
-    public async Task<DeleteResponse> DeleteAsync(string id)
+    public async Task<WriteResult> DeleteAsync(string id)
     {
-        return await _elasticClient.DeleteAsync<T>(id);
+        var resp = await _elasticClient.DeleteAsync<T>(id);
+        return new WriteResult { Success = resp.IsValid, Message = resp.DebugInformation?.Split('\n')[0] };
     }
 
     /// <summary>
@@ -536,31 +552,18 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// <param name="from">The starting index for pagination</param>
     /// <param name="sort">The sort descriptor for the search</param>
     /// <returns>The search response containing entity documents</returns>
-    public async Task<ISearchResponse<T>> SearchWithRulesetAsync(Ruleset ruleset, int size = 20, int from = 0, IList<ISort>? sort = null)
+    public async Task<AppSearchResponse<T>> SearchWithRulesetAsync(Ruleset ruleset, int size = 20, int from = 0, string? sort = null)
     {
         var queryObject = await ConvertRulesetToElasticSearch(ruleset);
-        string query = queryObject.ToString();
-        var searchRequest = new SearchRequest<T>
+        var spec = new SearchSpec<T>
         {
             Size = size,
             From = from,
-            Query = new QueryContainerDescriptor<T>().Raw(query)
+            RawQuery = queryObject,
+            IncludeDetails = false,
+            Sort = sort
         };
-
-        if (sort != null && sort.Any())
-        {
-            searchRequest.Sort = sort;
-        }
-        else
-        {
-            // Default sort by _id if no sort is provided
-            searchRequest.Sort = new List<ISort>
-            {
-                new FieldSort { Field = "_id", Order = SortOrder.Ascending }
-            };
-        }
-
-        return await SearchAsync(searchRequest, false);     
+        return await SearchAsync(spec);
     }
 
     /// <summary>
@@ -618,7 +621,7 @@ private static RulesetDto MapToDto(Ruleset rr)
     /// <param name="sort">The sort descriptor for the search</param>
     /// <returns>The search response containing a list of ViewResultDtos</returns>
 
-    public async Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(JObject queryObject, ViewDto viewDto, int size = 20, int from = 0, IList<ISort>? sort = null)
+    public async Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(JObject queryObject, ViewDto viewDto, int size = 20, int from = 0, string? sort = null)
     {
         string query = queryObject.ToString();        
         return await SearchUsingViewAsync(query, viewDto, from, size);
@@ -630,7 +633,7 @@ private static RulesetDto MapToDto(Ruleset rr)
         {
             Query = new QueryContainerDescriptor<T>().Terms(t => t.Field("_id").Terms(request.Ids))
         };
-        var response = await SearchAsync(searchRequest, true, "");
+        var response = await SearchAsyncInternal(searchRequest, true, "");
         if (!response.IsValid)
         {
             return new SimpleApiResponse { Success = false, Message = "Failed to search for the entities" };
@@ -653,14 +656,14 @@ private static RulesetDto MapToDto(Ruleset rr)
                         {
                             entity.Categories.Remove(categoryToRemove);
                             var updateResponse = await UpdateAsync(entity.Id!, (T)(object)entity);
-                            if (updateResponse.IsValid)
+                            if (updateResponse.Success)
                             {
                                 successCount++;
                             }
                             else
                             {
                                 errorCount++;
-                                errorMessages.Add($"Failed to update entity {entity.Id}: {updateResponse.DebugInformation}");
+                                errorMessages.Add($"Failed to update entity {entity.Id}: {updateResponse.Message}");
                             }
                         }
                     }
@@ -675,14 +678,14 @@ private static RulesetDto MapToDto(Ruleset rr)
                     {
                         entity.Categories.Add(request.Category);
                         var updateResponse = await UpdateAsync(entity.Id!, (T)(object)entity);
-                        if (updateResponse.IsValid)
+                        if (updateResponse.Success)
                         {
                             successCount++;
                         }
                         else
                         {
                             errorCount++;
-                            errorMessages.Add($"Failed to update entity {entity.Id}: {updateResponse.DebugInformation}");
+                            errorMessages.Add($"Failed to update entity {entity.Id}: {updateResponse.Message}");
                         }
                     }
                 }
@@ -729,7 +732,7 @@ private static RulesetDto MapToDto(Ruleset rr)
         {
             Query = new QueryContainerDescriptor<T>().Terms(t => t.Field("_id").Terms(request.Rows))
         };
-        var response = await SearchAsync(searchRequest, true, "");
+        var response = await SearchAsyncInternal(searchRequest, true, "");
         if (!response.IsValid)
         {
             return new SimpleApiResponse { Success = false, Message = "Failed to search for Entitys" };
@@ -760,14 +763,14 @@ private static RulesetDto MapToDto(Ruleset rr)
 
                 entity.Categories = current;
                 var updateResponse = await UpdateAsync(entity.Id!, (T)(object)entity);
-                if (updateResponse.IsValid)
+                if (updateResponse.Success)
                 {
                     successCount++;
                 }
                 else
                 {
                     errorCount++;
-                    errorMessages.Add($"Failed to update entity {entity.Id}: {updateResponse.DebugInformation}");
+                    errorMessages.Add($"Failed to update entity {entity.Id}: {updateResponse.Message}");
                 }
             }
             catch (Exception ex)

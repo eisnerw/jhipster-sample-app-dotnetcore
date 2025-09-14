@@ -69,8 +69,8 @@ namespace JhipsterSampleApplication.Controllers
             var response = await _birthdayService.IndexAsync(birthday);
             return Ok(new SimpleApiResponse
             {
-                Success = response.IsValid,
-                Message = response.DebugInformation.Split('\n')[0]
+                Success = response.Success,
+                Message = response.Message
             });
         }
 
@@ -150,8 +150,8 @@ namespace JhipsterSampleApplication.Controllers
             var updateResponse = await _birthdayService.UpdateAsync(id, birthday);
             return Ok(new SimpleApiResponse
             {
-                Success = updateResponse.IsValid,
-                Message = updateResponse.DebugInformation.Split('\n')[0]
+                Success = updateResponse.Success,
+                Message = updateResponse.Message
             });
         }
 
@@ -162,8 +162,8 @@ namespace JhipsterSampleApplication.Controllers
             var response = await _birthdayService.DeleteAsync(id);
             return Ok(new SimpleApiResponse
             {
-                Success = response.IsValid,
-                Message = response.DebugInformation.Split('\n')[0]
+                Success = response.Success,
+                Message = response.Message
             });
         }
 

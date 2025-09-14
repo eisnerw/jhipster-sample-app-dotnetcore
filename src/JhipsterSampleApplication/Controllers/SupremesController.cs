@@ -87,8 +87,8 @@ namespace JhipsterSampleApplication.Controllers
             var response = await _supremeService.IndexAsync(supreme);
             return Ok(new SimpleApiResponse
             {
-                Success = response.IsValid,
-                Message = response.DebugInformation.Split('\n')[0]
+                Success = response.Success,
+                Message = response.Message
             });
         }
 
@@ -279,8 +279,8 @@ namespace JhipsterSampleApplication.Controllers
             var updateResponse = await _supremeService.UpdateAsync(id, supreme);
             return Ok(new SimpleApiResponse
             {
-                Success = updateResponse.IsValid,
-                Message = updateResponse.DebugInformation.Split('\n')[0]
+                Success = updateResponse.Success,
+                Message = updateResponse.Message
             });
         }
 
@@ -291,8 +291,8 @@ namespace JhipsterSampleApplication.Controllers
             var response = await _supremeService.DeleteAsync(id);
             return Ok(new SimpleApiResponse
             {
-                Success = response.IsValid,
-                Message = response.DebugInformation.Split('\n')[0]
+                Success = response.Success,
+                Message = response.Message
             });
         }
 
