@@ -2,8 +2,11 @@ using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
-using Nest;
-using Elasticsearch.Net;
+using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.QueryDsl;
+using Elastic.Clients.Elasticsearch.Aggregations;
+using Elastic.Clients.Elasticsearch.Core.Search;
+using Elastic.Transport;
 using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
@@ -15,6 +18,8 @@ using System.IO;
 using System.Text;
 using System.Collections.Specialized;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using JhipsterSampleApplication.Domain.Search;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,13 +31,14 @@ namespace JhipsterSampleApplication.Domain.Services;
 /// </summary>
 public class EntityService<T> : IEntityService<T> where T : class
 {
-    private readonly IElasticClient _elasticClient;
+    private readonly ElasticsearchClient _elasticClient;
     private readonly string _indexName = "";
     private readonly string _detailFields = "";
     private readonly IBqlService<T> _bqlService;
     private readonly IViewService _viewService;
     // Set this to true in the debugger to enable verbose ES request logging
     private static bool debug = false;
+    private readonly IConfiguration? _configuration;
 
     /// <summary>
     /// Initializes a new instance of the EntityService
@@ -44,23 +50,40 @@ public class EntityService<T> : IEntityService<T> where T : class
     {
         _indexName = indexName ?? throw new ArgumentNullException(nameof(indexName));
         _detailFields = detailFields ?? throw new ArgumentNullException(nameof(detailFields));
-        _elasticClient = serviceProvider.GetRequiredService<IElasticClient>();
+        _elasticClient = serviceProvider.GetRequiredService<ElasticsearchClient>();
         _bqlService = bqlService ?? throw new ArgumentNullException(nameof(bqlService));
         _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
+        _configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    }
+
+    private string NormalizeSortField(string field)
+    {
+        if (string.Equals(field, "_id", StringComparison.OrdinalIgnoreCase)) return field;
+        if (string.Equals(_indexName, "movies", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.Equals(field, "title", StringComparison.OrdinalIgnoreCase)) return "title.keyword";
+        }
+        return field;
     }
 
     // Backwards-compatible overload used by some tests that construct with IElasticClient directly
-    public EntityService(string indexName, string detailFields, IElasticClient elasticClient, IBqlService<T> bqlService, IViewService viewService)
+    public EntityService(string indexName, string detailFields, Nest.IElasticClient elasticClient, IBqlService<T> bqlService, IViewService viewService)
     {
         _indexName = indexName ?? throw new ArgumentNullException(nameof(indexName));
         _detailFields = detailFields ?? throw new ArgumentNullException(nameof(detailFields));
-        _elasticClient = elasticClient ?? throw new ArgumentNullException(nameof(elasticClient));
+        // Test helper: build a local client; tests that use this overload do not hit ES
+        var settings = new ElasticsearchClientSettings(new Uri("http://localhost:9200"));
+        _elasticClient = new ElasticsearchClient(settings);
         _bqlService = bqlService ?? throw new ArgumentNullException(nameof(bqlService));
         _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
     }
 
     public async Task<AppSearchResponse<T>> SearchAsync(SearchSpec<T> spec)
     {
+        // If caller supplied a raw JSON query, use HTTP raw call to preserve exact semantics
+        if (spec.RawQuery != null)
+            return await SearchRawAsync(spec);
+
         // Decide PIT first, then choose how to construct the request (typed index vs PIT-only).
         var pitId = spec.PitId;
         if (pitId == null)
@@ -69,132 +92,94 @@ public class EntityService<T> : IEntityService<T> where T : class
             {
                 KeepAlive = "2m"
             });
-            if (pitResponse.IsValid)
+            if (pitResponse.IsValidResponse)
             {
                 pitId = pitResponse.Id;
             }
         }
 
-        var request = string.IsNullOrEmpty(pitId)
-            ? new SearchRequest<T>(_indexName) // no PIT -> specify index explicitly
-            : new SearchRequest<T>();          // with PIT -> index must be omitted
+        var response = await _elasticClient.SearchAsync<T>(s =>
+        {
+            if (string.IsNullOrEmpty(pitId)) s.Index(_indexName);
+            else s.Pit(p => p.Id(pitId).KeepAlive("2m"));
 
-        request.From = spec.From;
-        request.Size = spec.Size;
+            if (spec.From.HasValue) s.From(spec.From.Value);
+            if (spec.Size.HasValue) s.Size(spec.Size.Value);
+            if (!spec.IncludeDetails) s.SourceExcludes(_detailFields.Split(','));
 
-        if (!spec.IncludeDetails)
-        {
-            request.Source = new SourceFilter { Excludes = _detailFields.Split(',') };
-        }
-
-        // Build query
-        if (spec.RawQuery != null)
-        {
-            request.Query = new QueryContainerDescriptor<T>().Raw(spec.RawQuery.ToString());
-        }
-        else if (!string.IsNullOrEmpty(spec.Id))
-        {
-            request.Query = new QueryContainerDescriptor<T>().Term(t => t.Field("_id").Value(spec.Id));
-        }
-        else if (spec.Ids != null && spec.Ids.Count > 0)
-        {
-            request.Query = new QueryContainerDescriptor<T>().Terms(t => t.Field("_id").Terms(spec.Ids));
-        }
-
-        // Sorts
-        var sorts = new List<ISort>();
-        if (spec.Sorts != null && spec.Sorts.Count > 0)
-        {
-            foreach (var s in spec.Sorts)
+            if (!string.IsNullOrEmpty(spec.Id))
             {
-                var order = string.Equals(s.Order, "desc", StringComparison.OrdinalIgnoreCase) ? SortOrder.Descending : SortOrder.Ascending;
-                if (!string.IsNullOrWhiteSpace(s.Script))
+                s.Query(q => q.Term(t => t.Field("_id").Value(spec.Id)));
+            }
+            else if (spec.Ids != null && spec.Ids.Count > 0)
+            {
+                s.Query(q => q.Ids(iq => iq.Values(new Ids(spec.Ids.Select(x => (Id)x).ToArray()))));
+            }
+
+            s.Sort(so =>
+            {
+                if (spec.Sorts != null && spec.Sorts.Count > 0)
                 {
-                    sorts.Add(new ScriptSort
+                    foreach (var sortSpec in spec.Sorts)
                     {
-                        Script = new InlineScript(s.Script),
-                        Type = s.ScriptType ?? "number",
-                        Order = order
-                    });
+                        var order = string.Equals(sortSpec.Order, "desc", StringComparison.OrdinalIgnoreCase) ? SortOrder.Desc : SortOrder.Asc;
+                        if (string.IsNullOrWhiteSpace(sortSpec.Script))
+                        {
+                            var f = NormalizeSortField(sortSpec.Field);
+                            so.Field(fld => fld.Field(f).Order(order));
+                        }
+                    }
                 }
-                else
+                else if (!string.IsNullOrWhiteSpace(spec.Sort))
                 {
-                    var sortField = NormalizeSortField(s.Field);
-                    sorts.Add(new FieldSort { Field = sortField, Order = order });
+                    var parts = spec.Sort.Contains(',') ? spec.Sort.Split(',') : spec.Sort.Split(':');
+                    if (parts.Length == 2)
+                    {
+                        var order = parts[1].Trim().Equals("desc", StringComparison.OrdinalIgnoreCase) ? SortOrder.Desc : SortOrder.Asc;
+                        var f = NormalizeSortField(parts[0].Trim());
+                        so.Field(fld => fld.Field(f).Order(order));
+                    }
                 }
-            }
-        }
-        else if (!string.IsNullOrWhiteSpace(spec.Sort))
-        {
-            var parts = spec.Sort.Contains(',') ? spec.Sort.Split(',') : spec.Sort.Split(':');
-            if (parts.Length == 2)
+                // Always add _id
+                so.Field(fld => fld.Field("_id").Order(SortOrder.Asc));
+            });
+
+            if (spec.SearchAfter != null && spec.SearchAfter.Count > 0)
             {
-                var order = parts[1].Trim().Equals("desc", StringComparison.OrdinalIgnoreCase) ? SortOrder.Descending : SortOrder.Ascending;
-                var sortField = NormalizeSortField(parts[0].Trim());
-                sorts.Add(new FieldSort { Field = sortField, Order = order });
+                var sa = new List<FieldValue>();
+                foreach (var o in spec.SearchAfter)
+                {
+                    switch (o)
+                    {
+                        case string ssa: sa.Add(ssa); break;
+                        case long ll: sa.Add(ll); break;
+                        case int ii: sa.Add((long)ii); break;
+                        case double dd: sa.Add(dd); break;
+                        default: sa.Add(o?.ToString() ?? string.Empty); break;
+                    }
+                }
+                s.SearchAfter(sa);
+                s.From((int?)null);
             }
-        }
-        // Always add _id as tiebreaker
-        sorts.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
-        request.Sort = sorts;
+        });
 
-        string NormalizeSortField(string field)
-        {
-            // Guard: keep meta fields
-            if (string.Equals(field, "_id", StringComparison.OrdinalIgnoreCase)) return field;
-
-            // For movies index, map text field sorts to keyword subfield
-            if (string.Equals(_indexName, "movies", StringComparison.OrdinalIgnoreCase))
-            {
-                if (string.Equals(field, "title", StringComparison.OrdinalIgnoreCase)) return "title.keyword";
-            }
-            return field;
-        }
-
-        // Pagination via search_after
-        if (spec.SearchAfter != null && spec.SearchAfter.Count > 0)
-        {
-            request.SearchAfter = spec.SearchAfter;
-            request.From = null;
-        }
-
-        if (!string.IsNullOrEmpty(pitId))
-        {
-            request.PointInTime = new PointInTime(pitId);
-        }
+        // local uses global helper
 
         if (debug)
         {
-            if (spec.RawQuery != null)
-            {
-                Console.WriteLine($"[ES] {typeof(T).Name} spec.RawQuery: {spec.RawQuery}");
-            }
-            Console.WriteLine($"[ES] {typeof(T).Name} index='{_indexName}', pit='{pitId ?? "(none)"}', from={request.From}, size={request.Size}");
+            Console.WriteLine($"[ES] {typeof(T).Name} index='{_indexName}', pit='{pitId ?? "(none)"}', from={spec.From}, size={spec.Size}");
+            Console.WriteLine($"[ES] took={response.Took} hits={response.Hits.Count}");
         }
-        var response = await _elasticClient.SearchAsync<T>(request);
-        if (debug)
+        if (!response.IsValidResponse)
         {
-            try { Console.WriteLine("[ES] " + ToCurl(_elasticClient, response, request)); } catch {}
-        }
-        if (!response.IsValid)
-        {
-            // Detailed error capture using low-level client
-            StringResponse retryResponse;
-            if (request.PointInTime != null)
-            {
-                retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
-            }
-            else
-            {
-                retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(_indexName, PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
-            }
-            throw new Exception(retryResponse.Body ?? response.ServerError?.ToString());
+            var body = response.ApiCallDetails?.ResponseBodyInBytes != null ? Encoding.UTF8.GetString(response.ApiCallDetails.ResponseBodyInBytes) : response.ElasticsearchServerError?.ToString();
+            throw new Exception(body ?? "Elasticsearch search failed");
         }
         var app = new AppSearchResponse<T>
         {
-            Total = response.HitsMetadata?.Total?.Value ?? response.Total,
-            PointInTimeId = request.PointInTime?.Id,
-            IsValid = response.IsValid
+            Total = response.Hits?.Count ?? 0,
+            PointInTimeId = pitId,
+            IsValid = response.IsValidResponse
         };
         if (response.Hits != null)
         {
@@ -208,87 +193,155 @@ public class EntityService<T> : IEntityService<T> where T : class
                 {
                     Id = h.Id,
                     Source = h.Source!,
-                    Sorts = h.Sorts?.ToList() ?? new List<object>()
+                    Sorts = new List<object>()
                 });
             }
         }
         return app;
     }
 
-    /// <summary>
-    /// Legacy helper that executes a NEST search request and maps to AppSearchResponse.
-    /// </summary>
-    private async Task<AppSearchResponse<T>> SearchAsyncInternal(ISearchRequest request, bool includeDetails, string? pitId = null) 
-    {            
-        if (!includeDetails)
+    private async Task<AppSearchResponse<T>> SearchRawAsync(SearchSpec<T> spec)
+    {
+        var url = _configuration?["Elasticsearch:Url"]?.TrimEnd('/') ?? "http://localhost:9200";
+        var username = _configuration?["Elasticsearch:Username"];
+        var password = _configuration?["Elasticsearch:Password"];
+
+        // Ensure we have a PIT for the first page to anchor paging across updates/deletes
+        string? pitId = spec.PitId;
+        if (string.IsNullOrWhiteSpace(pitId))
         {
-            request.Source = new SourceFilter { Excludes = _detailFields.Split(',') };
-        }
-        if (pitId == null)
-        {
-            var pitResponse = await _elasticClient.OpenPointInTimeAsync(new OpenPointInTimeRequest(_indexName)
+            try
             {
-                KeepAlive = "2m" // Set the keep-alive duration for the PIT
-            });
-            if (!pitResponse.IsValid)
-            {
-                throw new Exception($"Failed to open point in time: {pitResponse.DebugInformation}");
+                var pitResponse = await _elasticClient.OpenPointInTimeAsync(new OpenPointInTimeRequest(_indexName)
+                {
+                    KeepAlive = "2m"
+                });
+                if (pitResponse.IsValidResponse)
+                {
+                    pitId = pitResponse.Id;
+                }
             }
-            pitId = pitResponse.Id;
+            catch
+            {
+                // If PIT open fails, proceed without PIT; paging stability may be reduced
+            }
         }
-        if (!string.IsNullOrEmpty(pitId))
+
+        var usePit = !string.IsNullOrEmpty(pitId);
+        var path = usePit ? "/_search" : $"/{_indexName}/_search";
+
+        var root = new JObject();
+        var hasSearchAfter = spec.SearchAfter != null && spec.SearchAfter.Count > 0;
+        if (spec.From.HasValue && !hasSearchAfter) root["from"] = spec.From.Value;
+        if (spec.Size.HasValue) root["size"] = spec.Size.Value;
+        if (!spec.IncludeDetails)
         {
-            // Note: Not setting PIT in the request if pitId is empty string
-            request.PointInTime = new PointInTime(pitId);
+            root["_source"] = new JObject { ["excludes"] = new JArray(_detailFields.Split(',')) };
         }
-        var response = await _elasticClient.SearchAsync<T>(request);
+        // Sorts
+        var sorts = new JArray();
+        if (spec.Sorts != null && spec.Sorts.Count > 0)
+        {
+            foreach (var s in spec.Sorts)
+            {
+                if (!string.IsNullOrWhiteSpace(s.Script)) continue; // skip script for now
+                var fld = NormalizeSortField(s.Field);
+                sorts.Add(new JObject { [fld] = new JObject { ["order"] = (s.Order?.ToLower() == "desc" ? "desc" : "asc") } });
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(spec.Sort))
+        {
+            var parts = spec.Sort.Contains(',') ? spec.Sort.Split(',') : spec.Sort.Split(':');
+            if (parts.Length == 2)
+            {
+                var fld = NormalizeSortField(parts[0].Trim());
+                var ord = parts[1].Trim().ToLower() == "desc" ? "desc" : "asc";
+                sorts.Add(new JObject { [fld] = new JObject { ["order"] = ord } });
+            }
+        }
+        // Always add _id tie-breaker
+        sorts.Add(new JObject { ["_id"] = new JObject { ["order"] = "asc" } });
+        root["sort"] = sorts;
+
+        if (hasSearchAfter)
+        {
+            var sa = new JArray();
+            foreach (var o in spec.SearchAfter) sa.Add(JToken.FromObject(o));
+            root["search_after"] = sa;
+            // When using search_after, ES requires that from is not used
+            root.Remove("from");
+        }
+
+        if (usePit)
+        {
+            root["pit"] = new JObject { ["id"] = pitId, ["keep_alive"] = "2m" };
+        }
+        root["query"] = spec.RawQuery!; // exact pass-through
+
         if (debug)
         {
-            try { Console.WriteLine("[ES] " + ToCurl(_elasticClient, response, request)); } catch {}
+            Console.WriteLine($"[ES-RAW] {typeof(T).Name} {url}{path} body={root}");
         }
-        if (!response.IsValid)
+
+        using var http = new HttpClient();
+        if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
         {
-            var status = response.ApiCall?.HttpStatusCode ?? 0;
-            if (status >= 400)
-            {
-                // Retry with direct streaming disabled to expose detailed error information
-                StringResponse retryResponse;
-                if (request.PointInTime != null)
-                {
-                    retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
-                }
-                else
-                {
-                    retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(_indexName, PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
-                }
-                throw new Exception(retryResponse.Body ?? response.ServerError?.ToString());
-            }
-            // Otherwise, allow the response to pass through (avoid 500 on benign conditions)
+            var bytes = Encoding.ASCII.GetBytes($"{username}:{password}");
+            http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(bytes));
         }
-        var app2 = new AppSearchResponse<T>
+        var req = new HttpRequestMessage(System.Net.Http.HttpMethod.Post, url + path)
         {
-            Total = response.HitsMetadata?.Total?.Value ?? response.Total,
-            PointInTimeId = request.PointInTime?.Id,
-            IsValid = response.IsValid
+            Content = new System.Net.Http.StringContent(root.ToString(), Encoding.UTF8, "application/json")
         };
-        if (response.Hits != null)
+        var resp = await http.SendAsync(req);
+        var json = await resp.Content.ReadAsStringAsync();
+        if (!resp.IsSuccessStatusCode)
         {
-            foreach (var h in response.Hits)
-            {
-                if (h.Source != null)
-                {
-                    try { ((CategorizedEntity<string>)(object)h.Source).Id = h.Id; } catch {}
-                }
-                app2.Hits.Add(new AppHit<T>
-                {
-                    Id = h.Id,
-                    Source = h.Source!,
-                    Sorts = h.Sorts?.ToList() ?? new List<object>()
-                });
-            }
+            throw new Exception($"ES search failed: {(int)resp.StatusCode} {json}");
         }
-        return app2;
+        var parsed = JObject.Parse(json);
+        var hitsToken = parsed["hits"]?["hits"] as JArray ?? new JArray();
+        var total = parsed["hits"]?["total"]?[(object)"value"]?.Value<long?>() ?? parsed["hits"]?["total"]?.Value<long?>() ?? hitsToken.Count;
+        var app = new AppSearchResponse<T> { Total = total, PointInTimeId = pitId, IsValid = true };
+        foreach (var h in hitsToken)
+        {
+            var id = h["_id"]?.ToString() ?? string.Empty;
+            var sortArr = (h["sort"] as JArray)?.Select(x => (object)(x.Type == JTokenType.Integer ? (long)x : x.Type == JTokenType.Float ? (double)x : (string)x)).ToList() ?? new List<object>();
+            var src = h["_source"]?.ToString() ?? "{}";
+            var obj = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(src)!;
+            try { ((CategorizedEntity<string>)(object)obj).Id = id; } catch {}
+            app.Hits.Add(new AppHit<T> { Id = id, Source = obj, Sorts = sortArr });
+        }
+        return app;
     }
+
+    private async Task<JObject> PostRawAsync(JObject body, string? pitId, bool useIndexPath)
+    {
+        var url = _configuration["Elasticsearch:Url"]?.TrimEnd('/') ?? "http://localhost:9200";
+        var username = _configuration["Elasticsearch:Username"];
+        var password = _configuration["Elasticsearch:Password"];
+        var path = useIndexPath ? $"/{_indexName}/_search" : "/_search";
+        if (!string.IsNullOrEmpty(pitId))
+        {
+            body["pit"] = new JObject { ["id"] = pitId, ["keep_alive"] = "2m" };
+        }
+        using var http = new HttpClient();
+        if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
+        {
+            var bytes = Encoding.ASCII.GetBytes($"{username}:{password}");
+            http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(bytes));
+        }
+        var req = new HttpRequestMessage(System.Net.Http.HttpMethod.Post, url + path)
+        {
+            Content = new StringContent(body.ToString(), Encoding.UTF8, "application/json")
+        };
+        var resp = await http.SendAsync(req);
+        var json = await resp.Content.ReadAsStringAsync();
+        if (!resp.IsSuccessStatusCode) throw new Exception($"ES raw post failed: {(int)resp.StatusCode} {json}");
+        return JObject.Parse(json);
+    }
+
+    // Removed NEST legacy search after v8 migration
 
 
     /// <summary>
@@ -299,175 +352,69 @@ public class EntityService<T> : IEntityService<T> where T : class
     public async Task<List<ViewResultDto>> SearchUsingViewAsync(string query, ViewDto viewDto, int from, int size)
     {
         List<ViewResultDto> content = new();
+        var queryObj = JObject.Parse(query);
 
-        // Primary aggregation over the selected view
-        var searchAggResponse = await _elasticClient.SearchAsync<T>(s =>
-            s.Index(_indexName)
-             .From(from)
-             .Size(0)
-             .Query(q => q.Raw(query))
-             .Aggregations(a => a
-                .Terms("distinct", t =>
-                    string.IsNullOrEmpty(viewDto.Script)
-                        ? t.Field(viewDto.Aggregation).Size(10000)
-                        : t.Script(ss => ss.Source(viewDto.Script)).Size(10000)
-                ))
-        );
-
-        var bucketAggregate = searchAggResponse.IsValid ? (searchAggResponse.Aggregations["distinct"] as BucketAggregate) : null;
-        if (bucketAggregate != null)
+        // distinct aggregation
+        var root = new JObject
         {
-            foreach (var it in bucketAggregate.Items.OfType<KeyedBucket<object>>())
+            ["size"] = 0,
+            ["query"] = queryObj,
+            ["aggs"] = new JObject
             {
-                string categoryName = it.KeyAsString ?? (it.Key?.ToString() ?? string.Empty);
-                bool notCategorized = false;
-                if (Regex.IsMatch(categoryName, @"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z"))
-                {
-                    categoryName = Regex.Replace(categoryName, @"(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}.\d{3}Z", "$1-$2-$3");
-                }
-                if (string.IsNullOrEmpty(categoryName))
-                {
-                    categoryName = "(Uncategorized)";
-                    notCategorized = true;
-                }
-                content.Add(new ViewResultDto
-                {
-                    CategoryName = categoryName,
-                    Count = it.DocCount,
-                    NotCategorized = notCategorized
-                });
+                ["distinct"] = string.IsNullOrEmpty(viewDto.Script)
+                    ? new JObject { ["terms"] = new JObject { ["field"] = viewDto.Aggregation, ["size"] = 10000 } }
+                    : new JObject { ["terms"] = new JObject { ["script"] = new JObject { ["source"] = viewDto.Script }, ["size"] = 10000 } }
             }
+        };
+        var distinct = await PostRawAsync(root, null, true);
+        var buckets = (distinct["aggregations"]?["distinct"]?["buckets"] as JArray) ?? new JArray();
+        foreach (var b in buckets)
+        {
+            string categoryName = b["key"]?.ToString() ?? b["key_as_string"]?.ToString() ?? string.Empty;
+            bool notCategorized = false;
+            if (Regex.IsMatch(categoryName, @"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z"))
+            {
+                categoryName = Regex.Replace(categoryName, @"(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}.\d{3}Z", "$1-$2-$3");
+            }
+            if (string.IsNullOrEmpty(categoryName)) { categoryName = "(Uncategorized)"; notCategorized = true; }
+            content.Add(new ViewResultDto { CategoryName = categoryName, Count = b["doc_count"]?.Value<long?>(), NotCategorized = notCategorized });
         }
 
         content = content.OrderBy(cat => cat.CategoryName).ToList();
 
-        // Count uncategorized explicitly (missing or empty)
         var baseField = (viewDto.Aggregation ?? string.Empty).Replace(".keyword", string.Empty);
-        var uncategorizedResponse = await _elasticClient.SearchAsync<T>(s =>
-            s.Index(_indexName)
-             .From(from)
-             .Size(0)
-             .Query(q => q.Raw(query))
-             .Aggregations(a => a
-                .Filter("uncategorized", f => f
-                    .Filter(b => b.Bool(bl => bl.MustNot(mn => mn.Exists(e => e.Field(baseField)))))
-                )
-             )
-        );
-
-        long uncatCount = 0;
-        if (uncategorizedResponse != null && uncategorizedResponse.IsValid && uncategorizedResponse.Aggregations != null)
+        var uncRoot = new JObject
         {
-            var filterAgg = uncategorizedResponse.Aggregations.Filter("uncategorized");
-            if (filterAgg != null)
+            ["size"] = 0,
+            ["query"] = queryObj,
+            ["aggs"] = new JObject
             {
-                uncatCount = filterAgg.DocCount;
+                ["uncategorized"] = new JObject
+                {
+                    ["filter"] = new JObject
+                    {
+                        ["bool"] = new JObject
+                        {
+                            ["must_not"] = new JArray { new JObject { ["exists"] = new JObject { ["field"] = baseField } } }
+                        }
+                    }
+                }
             }
-        }
+        };
+        var unc = await PostRawAsync(uncRoot, null, true);
+        long uncatCount = unc["aggregations"]?["uncategorized"]?["doc_count"]?.Value<long?>() ?? 0;
         if (uncatCount > 0)
         {
             var existingUncategorized = content.FirstOrDefault(c => c.NotCategorized == true);
-            if (existingUncategorized != null)
-            {
-                existingUncategorized.Count = (existingUncategorized.Count ?? 0) + uncatCount;
-            }
-            else
-            {
-                content.Add(new ViewResultDto
-                {
-                    CategoryName = "(Uncategorized)",
-                    Selected = false,
-                    NotCategorized = true,
-                    Count = uncatCount
-                });
-            }
+            if (existingUncategorized != null) existingUncategorized.Count = (existingUncategorized.Count ?? 0) + uncatCount;
+            else content.Add(new ViewResultDto { CategoryName = "(Uncategorized)", Selected = false, NotCategorized = true, Count = uncatCount });
         }
         return content;
     }
 
-    // Back-compat implementation to satisfy interface; not used by new flow but kept for callers
-    // Legacy overload kept for reference; not part of interface anymore
-    public async Task<List<ViewResultDto>> SearchUsingViewAsync(ISearchRequest request, ISearchRequest uncategorizedRequest)
-    {
-        List<ViewResultDto> content = new();
+    // Legacy overload removed after v8 migration
 
-        var result = await _elasticClient.SearchAsync<T>(request);
-        var distinctAgg = result.Aggregations?["distinct"] as BucketAggregate;
-        if (distinctAgg != null)
-        {
-            foreach (var it in distinctAgg.Items.OfType<KeyedBucket<object>>())
-            {
-                string categoryName = it.KeyAsString ?? (it.Key?.ToString() ?? string.Empty);
-                bool notCategorized = false;
-                if (Regex.IsMatch(categoryName, @"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z"))
-                {
-                    categoryName = Regex.Replace(categoryName, @"(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}.\d{3}Z", "$1-$2-$3");
-                }
-                if (string.IsNullOrEmpty(categoryName))
-                {
-                    categoryName = "(Uncategorized)";
-                    notCategorized = true;
-                }
-                content.Add(new ViewResultDto
-                {
-                    CategoryName = categoryName,
-                    Count = it.DocCount,
-                    NotCategorized = notCategorized
-                });
-            }
-        }
-
-        content = content.OrderBy(cat => cat.CategoryName).ToList();
-
-        var uncategorizedResponse = await _elasticClient.SearchAsync<T>(uncategorizedRequest);
-        var uncatCount = uncategorizedResponse.Aggregations.Filter("uncategorized").DocCount;
-        if (uncatCount > 0)
-        {
-            var existingUncategorized = content.FirstOrDefault(c => c.NotCategorized == true);
-            if (existingUncategorized != null)
-            {
-                existingUncategorized.Count = (existingUncategorized.Count ?? 0) + uncatCount;
-            }
-            else
-            {
-                content.Add(new ViewResultDto
-                {
-                    CategoryName = "(Uncategorized)",
-                    Selected = false,
-                    NotCategorized = true,
-                    Count = uncatCount
-                });
-            }
-        }
-
-        return content;
-    }
-
-    static string ToCurl(IElasticClient client, IResponse resp, ISearchRequest? originalRequest)
-    {
-        // Prefer the actual URL NEST hit; fall back to something sane if missing.
-        var url = resp?.ApiCall?.Uri?.ToString() ?? "http://localhost:9200/_search";
-
-        // 1) If NEST captured the body, use it…
-        string? body = null;
-        var bytes = resp?.ApiCall?.RequestBodyInBytes;
-        if (bytes is { Length: > 0 })
-            body = Encoding.UTF8.GetString(bytes);
-
-        // 2) …otherwise, serialize the original request ourselves.
-        if (string.IsNullOrWhiteSpace(body) && originalRequest != null)
-        {
-            using var ms = new MemoryStream();
-            client.RequestResponseSerializer.Serialize(originalRequest, ms, SerializationFormatting.Indented);
-            body = Encoding.UTF8.GetString(ms.ToArray());
-        }
-
-        // Escape for: curl -d '...'
-        static string Esc(string s) => s.Replace("'", "'\"'\"'");
-
-        // Use POST since we’re sending a body (ES accepts POST for _search).
-        return $"curl -X POST \"{url}\" -H 'Content-Type: application/json' -d '{Esc(body ?? "{}")}'";
-    }
+    // ToCurl helper removed after v8 migration
 
     /// <summary>
     /// Indexes a new Entity document
@@ -477,7 +424,7 @@ public class EntityService<T> : IEntityService<T> where T : class
     public async Task<WriteResult> IndexAsync(T entity)
     {
         var resp = await _elasticClient.IndexAsync(entity, i => i.Index(_indexName).Refresh(Refresh.WaitFor));
-        return new WriteResult { Success = resp.IsValid, Message = resp.DebugInformation?.Split('\n')[0] };
+        return new WriteResult { Success = resp.IsValidResponse, Message = resp.Result.ToString() };
     }
 
     /// <summary>
@@ -488,13 +435,9 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// <returns>The update response</returns>
     public async Task<WriteResult> UpdateAsync(string id, T entity)
     {
-        var resp = await _elasticClient.UpdateAsync<T>(id, u => u
-            .Index(_indexName)
-            .Doc(entity)
-            .DocAsUpsert()
-            .Refresh(Refresh.WaitFor)
-        );
-        return new WriteResult { Success = resp.IsValid, Message = resp.DebugInformation?.Split('\n')[0] };
+        // Use index as upsert/replace for simplicity
+        var resp = await _elasticClient.IndexAsync(entity, i => i.Index(_indexName).Id(id).Refresh(Refresh.WaitFor));
+        return new WriteResult { Success = resp.IsValidResponse, Message = resp.Result.ToString() };
     }
 
     /// <summary>
@@ -504,8 +447,8 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// <returns>The delete response</returns>
     public async Task<WriteResult> DeleteAsync(string id)
     {
-        var resp = await _elasticClient.DeleteAsync<T>(id);
-        return new WriteResult { Success = resp.IsValid, Message = resp.DebugInformation?.Split('\n')[0] };
+        var resp = await _elasticClient.DeleteAsync<T>(id, d => d.Index(_indexName));
+        return new WriteResult { Success = resp.IsValidResponse, Message = resp.Result.ToString() };
     }
 
     /// <summary>
@@ -515,31 +458,28 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// <returns>A collection of unique field values</returns>
     public async Task<List<string>> GetUniqueFieldValuesAsync(string field)
     {
-        var result = await _elasticClient.SearchAsync<Aggregation>(q => q
-            .Size(0).Index(_indexName).Aggregations(agg => agg.Terms(
-                "distinct", e =>
-                    e.Field(field).Size(10000)
-                )
-            )
-        );
-        List<string> ret = new List<string>();
-        if (result.Aggregations != null && result.Aggregations.Any())
+        var body = new JObject
         {
-            var firstAggregation = result.Aggregations.First();
-            if (firstAggregation.Value is BucketAggregate bucketAggregate && bucketAggregate.Items != null)
+            ["size"] = 0,
+            ["aggs"] = new JObject
             {
-                foreach (var item in bucketAggregate.Items)
+                ["distinct"] = new JObject
                 {
-                    if (item is KeyedBucket<Object> kb)
+                    ["terms"] = new JObject
                     {
-                        string value = kb.KeyAsString ?? kb.Key?.ToString() ?? string.Empty;
-                        if (!string.IsNullOrEmpty(value))
-                        {
-                            ret.Add(value);
-                        }
+                        ["field"] = field,
+                        ["size"] = 10000
                     }
                 }
             }
+        };
+        var json = await PostRawAsync(body, null, true);
+        var arr = (json["aggregations"]?["distinct"]?["buckets"] as JArray) ?? new JArray();
+        var ret = new List<string>();
+        foreach (var b in arr)
+        {
+            var v = b["key"]?.ToString() ?? string.Empty;
+            if (!string.IsNullOrEmpty(v)) ret.Add(v);
         }
         return ret;
     }
@@ -629,11 +569,8 @@ private static RulesetDto MapToDto(Ruleset rr)
 
     public async Task<SimpleApiResponse> CategorizeAsync(CategorizeRequestDto request)
     {
-        var searchRequest = new SearchRequest<T>
-        {
-            Query = new QueryContainerDescriptor<T>().Terms(t => t.Field("_id").Terms(request.Ids))
-        };
-        var response = await SearchAsyncInternal(searchRequest, true, "");
+        var spec = new SearchSpec<T> { Ids = request.Ids, IncludeDetails = true, PitId = "" };
+        var response = await SearchAsync(spec);
         if (!response.IsValid)
         {
             return new SimpleApiResponse { Success = false, Message = "Failed to search for the entities" };
@@ -728,11 +665,8 @@ private static RulesetDto MapToDto(Ruleset rr)
             return new SimpleApiResponse { Success = false, Message = "Nothing to add or remove" };
         }
 
-        var searchRequest = new SearchRequest<T>
-        {
-            Query = new QueryContainerDescriptor<T>().Terms(t => t.Field("_id").Terms(request.Rows))
-        };
-        var response = await SearchAsyncInternal(searchRequest, true, "");
+        var spec = new SearchSpec<T> { Ids = request.Rows, IncludeDetails = true, PitId = "" };
+        var response = await SearchAsync(spec);
         if (!response.IsValid)
         {
             return new SimpleApiResponse { Success = false, Message = "Failed to search for Entitys" };

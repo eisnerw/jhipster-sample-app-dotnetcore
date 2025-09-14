@@ -7,11 +7,12 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="JHipsterNet.Core" />
-        <PackageReference Include="AutoMapper" />
-        <PackageReference Include="LanguageExt.Core" />
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="JHipsterNet.Core" />
+    <PackageReference Include="AutoMapper" />
+    <PackageReference Include="LanguageExt.Core" />
+    <PackageReference Include="Elastic.Clients.Elasticsearch" />
+  </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\JhipsterSampleApplication.Domain\JhipsterSampleApplication.Domain.csproj" />
