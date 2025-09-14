@@ -66,18 +66,6 @@ public class EntityService<T> : IEntityService<T> where T : class
         return field;
     }
 
-    // Backwards-compatible overload used by some tests that construct with IElasticClient directly
-    public EntityService(string indexName, string detailFields, Nest.IElasticClient elasticClient, IBqlService<T> bqlService, IViewService viewService)
-    {
-        _indexName = indexName ?? throw new ArgumentNullException(nameof(indexName));
-        _detailFields = detailFields ?? throw new ArgumentNullException(nameof(detailFields));
-        // Test helper: build a local client; tests that use this overload do not hit ES
-        var settings = new ElasticsearchClientSettings(new Uri("http://localhost:9200"));
-        _elasticClient = new ElasticsearchClient(settings);
-        _bqlService = bqlService ?? throw new ArgumentNullException(nameof(bqlService));
-        _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
-    }
-
     public async Task<AppSearchResponse<T>> SearchAsync(SearchSpec<T> spec)
     {
         // If caller supplied a raw JSON query, use HTTP raw call to preserve exact semantics

@@ -4,10 +4,14 @@ using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Nest;
+using Elastic.Clients.Elasticsearch;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using Xunit;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using System;
+using System.Collections.Generic;
 
 namespace JhipsterSampleApplication.Test.DomainServices;
 
@@ -17,11 +21,30 @@ public class BirthdayServiceRangeQueryTest
 
     public BirthdayServiceRangeQueryTest()
     {
-        var elasticClient = new Mock<IElasticClient>().Object;
+        // Minimal DI container with IConfiguration and ElasticsearchClient
+        var services = new ServiceCollection();
+        var inMemorySettings = new Dictionary<string, string>
+        {
+            ["Elasticsearch:Url"] = "http://localhost:9200",
+            ["Elasticsearch:Username"] = "",
+            ["Elasticsearch:Password"] = ""
+        };
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(inMemorySettings)
+            .Build();
+        services.AddSingleton(configuration);
+
+        var node = new Uri(configuration["Elasticsearch:Url"]!);
+        var clientSettings = new ElasticsearchClientSettings(node);
+        var esClient = new ElasticsearchClient(clientSettings);
+        services.AddSingleton(esClient);
+
+        var serviceProvider = services.BuildServiceProvider();
+
         var bqlService = new BqlService<Birthday>(new Mock<ILogger<BqlService<Birthday>>>().Object,
             new Mock<INamedQueryService>().Object, new JObject(), "birthdays");
         var viewService = new Mock<IViewService>().Object;
-        _service = new EntityService<Birthday>("birthdays", "wikipedia", elasticClient, bqlService, viewService);
+        _service = new EntityService<Birthday>("birthdays", "wikipedia", serviceProvider, bqlService, viewService);
     }
 
     [Theory]

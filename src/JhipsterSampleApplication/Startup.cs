@@ -13,8 +13,6 @@ using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Services;
 using Elastic.Clients.Elasticsearch;
 using Elastic.Transport;
-using Nest;
-using Elasticsearch.Net;
 using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Domain.Repositories;
 using JhipsterSampleApplication.Infrastructure.Data.Repositories;
@@ -62,21 +60,6 @@ public class Startup : IStartup
 
         var esClient = new ElasticsearchClient(settings);
         services.AddSingleton(esClient);
-
-        // Legacy NEST client registration kept during migration
-        var connectionPool = new SingleNodeConnectionPool(node);
-        var nestSettings = new ConnectionSettings(connectionPool)
-            .DefaultIndex(defaultIndex)
-            // Ensure typed searches resolve to the correct indices
-            .DefaultMappingFor<JhipsterSampleApplication.Domain.Entities.Birthday>(m => m.IndexName("birthdays"))
-            .DefaultMappingFor<JhipsterSampleApplication.Domain.Entities.Movie>(m => m.IndexName("movies"))
-            .DefaultMappingFor<JhipsterSampleApplication.Domain.Entities.Supreme>(m => m.IndexName("supreme"));
-        if (!string.IsNullOrWhiteSpace(elasticsearchSettings?.Username) && !string.IsNullOrWhiteSpace(elasticsearchSettings?.Password))
-        {
-            nestSettings = nestSettings.BasicAuthentication(elasticsearchSettings.Username, elasticsearchSettings.Password);
-        }
-        var nestClient = new ElasticClient(nestSettings);
-        services.AddSingleton<IElasticClient>(nestClient);
         services.AddSingleton<IEntitySpecRegistry, EntitySpecRegistry>();
         services.AddScoped<IViewRepository, ViewRepository>();
         services.AddScoped<IViewService, ViewService>();

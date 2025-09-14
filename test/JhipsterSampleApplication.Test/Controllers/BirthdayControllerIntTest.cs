@@ -8,7 +8,8 @@ using JhipsterSampleApplication.Test.Setup;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Newtonsoft.Json;
 using Xunit;
-using Nest;
+using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.QueryDsl;
 using JhipsterSampleApplication.Dto;
 using JhipsterSampleApplication.Controllers;
 using JhipsterSampleApplication.Domain.Entities;
@@ -22,14 +23,14 @@ namespace JhipsterSampleApplication.Test.Controllers
     {
         private readonly WebApplicationFactory<Startup> _factory;
         private readonly HttpClient _client;
-        private readonly IElasticClient _elasticClient;
+        private readonly ElasticsearchClient _elasticClient;
         private readonly BirthdayDto _birthdayDto;
 
         public BirthdaysControllerIntTest(WebApplicationFactory<Startup> factory)
         {
             _factory = factory;
             _client = factory.CreateClient();
-            _elasticClient = factory.Services.GetRequiredService<IElasticClient>();
+            _elasticClient = factory.Services.GetRequiredService<ElasticsearchClient>();
 
             // Create a test birthday entity
             _birthdayDto = new BirthdayDto
@@ -45,8 +46,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             };
 
             // Clean up any existing records with the same last name using Birthdays client
-            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>(d => d
-                .Index("birthdays")
+            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>("birthdays", d => d
                 .Query(q => q.Term(t => t.Field("lname.keyword").Value(_birthdayDto.Lname))));
             Console.WriteLine($"<><><><><>Deleted {deleteResponse.Deleted} documents");
 
@@ -175,9 +175,9 @@ namespace JhipsterSampleApplication.Test.Controllers
 
             // 9. Delete record (DELETE /api/Birthdays/{id})
             Console.WriteLine($"<><><><><>Starting DELETE test");
-            var deleteResponse = await _client.DeleteAsync($"/api/Birthdays/{_birthdayDto.Id}");
-            deleteResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-            Console.WriteLine($"<><><><><>Delete response: {deleteResponse.Content.ReadAsStringAsync()}");
+            var deleteResponse2 = await _client.DeleteAsync($"/api/Birthdays/{_birthdayDto.Id}");
+            deleteResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
+            Console.WriteLine($"<><><><><>Delete response: {deleteResponse2.Content.ReadAsStringAsync()}");
 
             // Wait for the deletion to finish
             _elasticClient.Indices.Refresh("birthdays");
@@ -204,8 +204,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             };
 
             // Clean up any existing records
-            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>(d => d
-                .Index("birthdays")
+            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>("birthdays", d => d
                 .Query(q => q.Term(t => t.Field("lname.keyword").Value(testBirthday.Lname))));
             
             _elasticClient.Indices.Refresh("birthdays");
@@ -290,9 +289,8 @@ namespace JhipsterSampleApplication.Test.Controllers
             };
 
             // Clean up any existing records
-            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>(d => d
-                .Index("birthdays")
-                .Query(q => q.Terms(t => t.Field("lname.keyword").Terms(new[] { testBirthday1.Lname, testBirthday2.Lname }))));
+            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>("birthdays", d => d
+                .Query(q => q.Terms(t => t.Field("lname.keyword").Terms(new TermsQueryField(new List<FieldValue> { testBirthday1.Lname, testBirthday2.Lname })))));
             
             _elasticClient.Indices.Refresh("birthdays");
 
@@ -345,8 +343,7 @@ namespace JhipsterSampleApplication.Test.Controllers
         {
             // Clean up any existing test objects
             Console.WriteLine($"<><><><><>Starting TestViewOperations (cleanup & create new docs)");
-            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>(d => d
-                .Index("birthdays")
+            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>("birthdays", d => d
                 .Query(q => q.Term(t => t.Field("fname.keyword").Value("viewTestObject"))));
             
             _elasticClient.Indices.Refresh("birthdays");
@@ -436,8 +433,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             secondaryCategoryResult.Hits.First().Dob.Should().Be(new DateTime(1900, 1, 1));
             Console.WriteLine($"<><><><><>secondaryCategory resulted in {secondaryCategoryContent}.  Cleaning up.");
             // Clean up test objects
-            deleteResponse = _elasticClient.DeleteByQuery<Birthday>(d => d
-                .Index("birthdays")
+            deleteResponse = _elasticClient.DeleteByQuery<Birthday>("birthdays", d => d
                 .Query(q => q.Term(t => t.Field("fname.keyword").Value("viewTestObject"))));  
             _elasticClient.Indices.Refresh("birthdays");
             Console.WriteLine($"<><><><><>Deleted {deleteResponse.Deleted} documents.  Done with test.");
@@ -445,8 +441,7 @@ namespace JhipsterSampleApplication.Test.Controllers
         [Fact]
         public async Task TestUncategorizedFirstNameView()
         {
-            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>(d => d
-                .Index("birthdays")
+            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>("birthdays", d => d
                 .Query(q => q.Term(t => t.Field("sign.keyword").Value("uncatsign"))));
             _elasticClient.Indices.Refresh("birthdays");
 
@@ -500,9 +495,8 @@ namespace JhipsterSampleApplication.Test.Controllers
             var b2 = new BirthdayDto { Id = id2, Lname = "CatMulti", Fname = "Two", Sign = "taurus" };
 
             // Cleanup any pre-existing
-            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>(d => d
-                .Index("birthdays")
-                .Query(q => q.Terms(t => t.Field("_id").Terms(new[] { id1, id2 }))));
+            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>("birthdays", d => d
+                .Query(q => q.Terms(t => t.Field("_id").Terms(new TermsQueryField(new List<FieldValue> { id1, id2 })))));
             _elasticClient.Indices.Refresh("birthdays");
 
             // Create
