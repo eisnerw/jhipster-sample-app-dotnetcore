@@ -2,7 +2,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Nest;
+using JhipsterSampleApplication.Domain.Search;
 using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Entities;
@@ -22,7 +22,7 @@ namespace JhipsterSampleApplication.Controllers
     public class SupremesController : ControllerBase
     {
         private readonly IEntityService<Supreme> _supremeService;
-        private readonly IElasticClient _elasticClient;
+        private readonly IServiceProvider _serviceProvider;
         private readonly IBqlService<Supreme> _bqlService;
         private readonly ILogger<SupremesController> _log;
         private readonly IMapper _mapper;
@@ -30,7 +30,7 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IHistoryService _historyService;
 
         public SupremesController(
-            IElasticClient elasticClient,
+            IServiceProvider serviceProvider,
             INamedQueryService namedQueryService,
             ILogger<BqlService<Supreme>> bqlLogger,
             ILogger<SupremesController> logger,
@@ -43,8 +43,8 @@ namespace JhipsterSampleApplication.Controllers
                 namedQueryService,
                 BqlService<Supreme>.LoadSpec("supreme"),
                 "supreme");
-            _supremeService = new EntityService<Supreme>("supreme","justia_url,argument2_url,facts_of_the_case,conclusion", elasticClient, _bqlService, viewService);
-            _elasticClient = elasticClient;
+            _supremeService = new EntityService<Supreme>("supreme","justia_url,argument2_url,facts_of_the_case,conclusion", serviceProvider, _bqlService, viewService);
+            _serviceProvider = serviceProvider;
             _log = logger;
             _mapper = mapper;
             _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
@@ -96,15 +96,8 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(SupremeDto), 200)]
         public async Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
         {
-            var searchRequest = new SearchRequest<Supreme>
-            {
-                Query = new QueryContainerDescriptor<Supreme>().Term(t => t.Field("_id").Value(id)),
-                Source = includeDetails ? null : new SourceFilter
-                {
-                    Excludes = new[] { "justia_url", "facts_of_the_case", "question", "conclusion" }
-                }
-            };
-            var response = await _supremeService.SearchAsync(searchRequest, includeDetails: true, "");
+            var spec = new SearchSpec<Supreme> { Id = id, IncludeDetails = includeDetails, PitId = "" };
+            var response = await _supremeService.SearchAsync(spec);
             if (!response.IsValid || !response.Documents.Any())
             {
                 return NotFound();
@@ -146,11 +139,8 @@ namespace JhipsterSampleApplication.Controllers
         [Produces("text/html")]
         public async Task<IActionResult> GetHtmlById(string id)
         {
-            var searchRequest = new SearchRequest<Supreme>
-            {
-                Query = new QueryContainerDescriptor<Supreme>().Term(t => t.Field("_id").Value(id))
-            };
-            var response = await _supremeService.SearchAsync(searchRequest, includeDetails: true);
+            var spec = new SearchSpec<Supreme> { Id = id, IncludeDetails = true };
+            var response = await _supremeService.SearchAsync(spec);
             if (!response.IsValid || !response.Documents.Any())
             {
                 return NotFound();
@@ -249,12 +239,9 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         public async Task<IActionResult> Update(string id, [FromBody] SupremeDto dto)
         {
-            var searchRequest = new SearchRequest<Supreme>
-            {
-                Query = new QueryContainerDescriptor<Supreme>().Term(t => t.Field("_id").Value(id))
-            };
+            var spec = new SearchSpec<Supreme> { Id = id, IncludeDetails = true, PitId = "" };
 
-            var existingResponse = await _supremeService.SearchAsync(searchRequest, includeDetails: true, "");
+            var existingResponse = await _supremeService.SearchAsync(spec);
             if (!existingResponse.IsValid || !existingResponse.Documents.Any())
             {
                 return NotFound($"Document with ID {id} not found");
@@ -447,7 +434,7 @@ namespace JhipsterSampleApplication.Controllers
                 {
                     if (secondaryCategory == null)
                     {
-                        var viewSecondaryResult = await _supremeService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, from, pageSize);
+                        var viewSecondaryResult = await _supremeService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, pageSize, from);
                         return Ok(new SearchResultDto<ViewResultDto> { Hits = viewSecondaryResult, HitType = "view", ViewName = view, viewCategory = category });
                     }
                     if (secondaryCategory == "(Uncategorized)")
@@ -502,32 +489,14 @@ namespace JhipsterSampleApplication.Controllers
                     }
                 }
             }
-            var searchRequest = new SearchRequest<Supreme>
-            {
-                Size = pageSize,
-                From = from,
-                Source = includeDetails
-                    ? true
-                    : new SourceFilter
-                    {
-                        Excludes = new[] { "justia_url", "argument2_url", "facts_of_the_case", "conclusion" }
-                    }
-            };
-
-            if (searchAfter != null && searchAfter.Length > 0)
-            {
-                searchRequest.SearchAfter = searchAfter.Cast<object>().ToList();
-                searchRequest.From = null;
-            }
-
-            var sortDescriptor = new List<ISort>();
+            var sortDescriptor = new List<SortSpec>();
             if (!string.IsNullOrEmpty(sort))
             {
                 var sortParts = sort.Contains(':') ? sort.Split(':') : (sort.Contains(',') ? sort.Split(',') : Array.Empty<string>());
                 if (sortParts.Length == 2)
                 {
                     var field = sortParts[0];
-                    var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
+                    var order = sortParts[1].ToLower();
                     if (field == "docket_number")
                     {
                         _log.LogInformation("Using docket_number script sort. order={Order}", order);
@@ -546,12 +515,7 @@ namespace JhipsterSampleApplication.Controllers
                             @"if (d0.length() > 0) { a = Long.parseLong(d0); }" +
                             @"if (d1.length() > 0) { b = Long.parseLong(d1); }" +
                             @"return a * 1000000L + b;";
-                        sortDescriptor.Add(new ScriptSort
-                        {
-                            Script = new InlineScript(script),
-                            Type = "number",
-                            Order = order
-                        });
+                        sortDescriptor.Add(new SortSpec { Script = script, ScriptType = "number", Order = order });
                     }
                     else
                     {
@@ -562,7 +526,7 @@ namespace JhipsterSampleApplication.Controllers
                         else
                         {
                             _log.LogInformation("Using field sort. field={Field}, order={Order}", field, order);
-                            sortDescriptor.Add(new FieldSort { Field = field, Order = order });
+                            sortDescriptor.Add(new SortSpec { Field = field, Order = order });
                         }
                     }
                 }
@@ -572,12 +536,17 @@ namespace JhipsterSampleApplication.Controllers
                 // Default: rely on _id only (added below) to avoid mapping issues
                 _log.LogInformation("Using default sort by _id only");
             }
-            // Always add _id as the last sort field for consistent pagination
-            sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
-
-            searchRequest.Query = new QueryContainerDescriptor<Supreme>().Raw(elasticsearchQuery.ToString());
-            searchRequest.Sort = sortDescriptor;
-            var response = await _supremeService.SearchAsync(searchRequest, includeDetails, pitId);
+            var spec2 = new SearchSpec<Supreme>
+            {
+                Size = pageSize,
+                From = from,
+                RawQuery = elasticsearchQuery,
+                IncludeDetails = includeDetails,
+                PitId = pitId,
+                SearchAfter = searchAfter?.Cast<object>().ToList(),
+                Sorts = sortDescriptor
+            };
+            var response = await _supremeService.SearchAsync(spec2);
 
             var supremeDtos = new List<object>();
             foreach (var hit in response.Hits)
@@ -612,7 +581,7 @@ namespace JhipsterSampleApplication.Controllers
                 });
             }
             List<object>? searchAfterResponse = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null;
-            return Ok(new SearchResultDto<object> { Hits = supremeDtos.Cast<object>().ToList(), TotalHits = response.Total, HitType = "supreme", PitId = searchRequest.PointInTime?.Id, searchAfter = searchAfterResponse });
+            return Ok(new SearchResultDto<object> { Hits = supremeDtos.Cast<object>().ToList(), TotalHits = response.Total, HitType = "supreme", PitId = response.PointInTimeId, searchAfter = searchAfterResponse });
         }
 
         [HttpGet("search/lucene")]
@@ -733,15 +702,7 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(ClusterHealthDto), 200)]
         public async Task<IActionResult> GetHealth()
         {
-            var res = await _elasticClient.Cluster.HealthAsync();
-            var dto = new ClusterHealthDto
-            {
-                Status = res.Status.ToString(),
-                NumberOfNodes = res.NumberOfNodes,
-                NumberOfDataNodes = res.NumberOfDataNodes,
-                ActiveShards = res.ActiveShards,
-                ActivePrimaryShards = res.ActivePrimaryShards
-            };
+            var dto = await _supremeService.GetHealthAsync();
             return Ok(dto);
         }
    }

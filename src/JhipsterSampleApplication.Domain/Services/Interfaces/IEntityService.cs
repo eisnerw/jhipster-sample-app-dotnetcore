@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Nest;
+using JhipsterSampleApplication.Domain.Search;
 using JhipsterSampleApplication.Domain.Entities;
 using Newtonsoft.Json.Linq;
 using JhipsterSampleApplication.Dto;
@@ -9,6 +10,7 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
 {
     public interface IEntityService<T> where T : class
     {
+        Task<ISearchResponse<T>> SearchAsync(SearchSpec<T> spec);
         Task<ISearchResponse<T>> SearchAsync(ISearchRequest request, bool includeDetails, string? pitId = null);
         Task<IndexResponse> IndexAsync(T document);
         Task<UpdateResponse<T>> UpdateAsync(string id, T document);
@@ -20,5 +22,6 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
         Task<List<ViewResultDto>> SearchUsingViewAsync(ISearchRequest request, ISearchRequest uncategorizedRequest);
         Task<SimpleApiResponse> CategorizeAsync(CategorizeRequestDto request);
         Task<SimpleApiResponse> CategorizeMultipleAsync(CategorizeMultipleRequestDto request);
+        Task<ClusterHealthDto> GetHealthAsync();
     }
 } 

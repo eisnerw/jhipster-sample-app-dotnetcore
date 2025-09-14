@@ -2,7 +2,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Nest;
+using JhipsterSampleApplication.Domain.Search;
 using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Entities;
@@ -22,7 +22,7 @@ namespace JhipsterSampleApplication.Controllers
     public class MoviesController : ControllerBase
     {
         private readonly IEntityService<Movie> _movieService;
-        private readonly IElasticClient _elasticClient;
+        private readonly IServiceProvider _serviceProvider;
         private readonly IBqlService<Movie> _bqlService;
         private readonly ILogger<MoviesController> _log;
         private readonly IMapper _mapper;
@@ -30,7 +30,7 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IHistoryService _historyService;
 
         public MoviesController(
-            IElasticClient elasticClient,
+            IServiceProvider serviceProvider,
             INamedQueryService namedQueryService,
             ILogger<BqlService<Movie>> bqlLogger,
             ILogger<MoviesController> logger,
@@ -43,8 +43,8 @@ namespace JhipsterSampleApplication.Controllers
                 namedQueryService,
                 BqlService<Movie>.LoadSpec("movie"),
                 "movies");
-            _movieService = new EntityService<Movie>("movies", "synopsis", elasticClient, _bqlService, viewService);
-            _elasticClient = elasticClient;
+            _movieService = new EntityService<Movie>("movies", "synopsis", serviceProvider, _bqlService, viewService);
+            _serviceProvider = serviceProvider;
             _log = logger;
             _mapper = mapper;
             _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
@@ -69,15 +69,8 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(MovieDto), 200)]
         public async Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
         {
-            var searchRequest = new SearchRequest<Movie>
-            {
-                Query = new QueryContainerDescriptor<Movie>().Term(t => t.Field("_id").Value(id)),
-                Source = includeDetails ? null : new SourceFilter
-                {
-                    Excludes = new[] { "synopsis" }
-                }
-            };
-            var response = await _movieService.SearchAsync(searchRequest, includeDetails);
+            var spec = new SearchSpec<Movie> { Id = id, IncludeDetails = includeDetails };
+            var response = await _movieService.SearchAsync(spec);
             if (!response.IsValid || !response.Documents.Any())
             {
                 return NotFound();
@@ -95,11 +88,8 @@ namespace JhipsterSampleApplication.Controllers
         [Produces("text/html")]
         public async Task<IActionResult> GetHtmlById(string id)
         {
-            var searchRequest = new SearchRequest<Movie>
-            {
-                Query = new QueryContainerDescriptor<Movie>().Term(t => t.Field("_id").Value(id))
-            };
-            var response = await _movieService.SearchAsync(searchRequest, includeDetails: true);
+            var spec = new SearchSpec<Movie> { Id = id, IncludeDetails = true };
+            var response = await _movieService.SearchAsync(spec);
             if (!response.IsValid || !response.Documents.Any())
             {
                 return NotFound();
@@ -154,12 +144,9 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         public async Task<IActionResult> Update(string id, [FromBody] MovieDto dto)
         {
-            var searchRequest = new SearchRequest<Birthday>
-            {
-                Query = new QueryContainerDescriptor<Birthday>().Term(t => t.Field("_id").Value(id))
-            };
+            var spec = new SearchSpec<Movie> { Id = id, IncludeDetails = true, PitId = "" };
 
-            var existingResponse = await _movieService.SearchAsync(searchRequest, includeDetails: true, "");
+            var existingResponse = await _movieService.SearchAsync(spec);
             if (!existingResponse.IsValid || !existingResponse.Documents.Any())
             {
                 return NotFound($"Document with ID {id} not found");
@@ -325,7 +312,7 @@ namespace JhipsterSampleApplication.Controllers
                 {
                     if (secondaryCategory == null)
                     {
-                        var viewSecondaryResult = await _movieService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, from, pageSize);
+                        var viewSecondaryResult = await _movieService.SearchWithElasticQueryAndViewAsync(elasticsearchQuery, secondaryViewDto, pageSize, from);
                         return Ok(new SearchResultDto<ViewResultDto> { Hits = viewSecondaryResult, HitType = "view", ViewName = view, viewCategory = category });
                     }
                     if (secondaryCategory == "(Uncategorized)")
@@ -383,35 +370,30 @@ namespace JhipsterSampleApplication.Controllers
                     }
                 }
             }
-            var searchRequest = new SearchRequest<Movie>
-            {
-                Size = pageSize,
-                From = from
-            };
-
-            if (searchAfter != null && searchAfter.Length > 0)
-            {
-                searchRequest.SearchAfter = searchAfter.Cast<object>().ToList();
-                searchRequest.From = null;
-            }
-
-            var sortDescriptor = new List<ISort>();
+            var sortDescriptor = new List<SortSpec>();
             if (!string.IsNullOrEmpty(sort))
             {
                 var sortParts = sort.Contains(',') ? sort.Split(',') : sort.Split(':');
                 if (sortParts.Length == 2)
                 {
                     var field = sortParts[0];
-                    var order = sortParts[1].ToLower() == "desc" ? SortOrder.Descending : SortOrder.Ascending;
-                    sortDescriptor.Add(new FieldSort { Field = "release_year", Order = SortOrder.Ascending });
+                    var order = sortParts[1].ToLower();
+                    sortDescriptor.Add(new SortSpec { Field = field, Order = order });
                 }
             }
-            sortDescriptor.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
+            var normalizedPitId = string.IsNullOrWhiteSpace(pitId) ? null : pitId;
+            var spec2 = new SearchSpec<Movie>
+            {
+                Size = pageSize,
+                From = from,
+                RawQuery = elasticsearchQuery,
+                IncludeDetails = includeDetails,
+                PitId = normalizedPitId,
+                SearchAfter = searchAfter?.Cast<object>().ToList(),
+                Sorts = sortDescriptor
+            };
 
-            searchRequest.Query = new QueryContainerDescriptor<Movie>().Raw(elasticsearchQuery.ToString());
-            searchRequest.Sort = sortDescriptor;
-
-            var response = await _movieService.SearchAsync(searchRequest, includeDetails, pitId);
+            var response = await _movieService.SearchAsync(spec2);
             var movieDtos = new List<MovieDto>();
             foreach (var hit in response.Hits)
             {
@@ -430,7 +412,7 @@ namespace JhipsterSampleApplication.Controllers
                 Hits = movieDtos,
                 TotalHits = response.Total,
                 HitType = hitType,
-                PitId = searchRequest.PointInTime?.Id,
+                PitId = response.PointInTimeId,
                 searchAfter = searchAfterResponse
             });
         }
@@ -554,15 +536,7 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(ClusterHealthDto), 200)]
         public async Task<IActionResult> GetHealth()
         {
-            var res = await _elasticClient.Cluster.HealthAsync();
-            var dto = new ClusterHealthDto
-            {
-                Status = res.Status.ToString(),
-                NumberOfNodes = res.NumberOfNodes,
-                NumberOfDataNodes = res.NumberOfDataNodes,
-                ActiveShards = res.ActiveShards,
-                ActivePrimaryShards = res.ActivePrimaryShards
-            };
+            var dto = await _movieService.GetHealthAsync();
             return Ok(dto);
         }
     }

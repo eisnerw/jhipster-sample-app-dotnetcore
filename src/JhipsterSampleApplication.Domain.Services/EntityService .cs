@@ -16,6 +16,8 @@ using System.Text;
 using System.Collections.Specialized;
 using System.Net;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
+using JhipsterSampleApplication.Domain.Search;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace JhipsterSampleApplication.Domain.Services;
 
@@ -29,6 +31,8 @@ public class EntityService<T> : IEntityService<T> where T : class
     private readonly string _detailFields = "";
     private readonly IBqlService<T> _bqlService;
     private readonly IViewService _viewService;
+    // Set this to true in the debugger to enable verbose ES request logging
+    private static bool debug = false;
 
     /// <summary>
     /// Initializes a new instance of the EntityService
@@ -36,6 +40,16 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// <param name="elasticClient">The Elasticsearch client</param>
     /// <param name="bqlService">The BQL service</param>
     /// <param name="viewService">The View service</param>
+    public EntityService(string indexName, string detailFields, IServiceProvider serviceProvider, IBqlService<T> bqlService, IViewService viewService)
+    {
+        _indexName = indexName ?? throw new ArgumentNullException(nameof(indexName));
+        _detailFields = detailFields ?? throw new ArgumentNullException(nameof(detailFields));
+        _elasticClient = serviceProvider.GetRequiredService<IElasticClient>();
+        _bqlService = bqlService ?? throw new ArgumentNullException(nameof(bqlService));
+        _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
+    }
+
+    // Backwards-compatible overload used by some tests that construct with IElasticClient directly
     public EntityService(string indexName, string detailFields, IElasticClient elasticClient, IBqlService<T> bqlService, IViewService viewService)
     {
         _indexName = indexName ?? throw new ArgumentNullException(nameof(indexName));
@@ -43,6 +57,159 @@ public class EntityService<T> : IEntityService<T> where T : class
         _elasticClient = elasticClient ?? throw new ArgumentNullException(nameof(elasticClient));
         _bqlService = bqlService ?? throw new ArgumentNullException(nameof(bqlService));
         _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
+    }
+
+    public async Task<ISearchResponse<T>> SearchAsync(SearchSpec<T> spec)
+    {
+        // Decide PIT first, then choose how to construct the request (typed index vs PIT-only).
+        var pitId = spec.PitId;
+        if (pitId == null)
+        {
+            var pitResponse = await _elasticClient.OpenPointInTimeAsync(new OpenPointInTimeRequest(_indexName)
+            {
+                KeepAlive = "2m"
+            });
+            if (pitResponse.IsValid)
+            {
+                pitId = pitResponse.Id;
+            }
+        }
+
+        var request = string.IsNullOrEmpty(pitId)
+            ? new SearchRequest<T>(_indexName) // no PIT -> specify index explicitly
+            : new SearchRequest<T>();          // with PIT -> index must be omitted
+
+        request.From = spec.From;
+        request.Size = spec.Size;
+
+        if (!spec.IncludeDetails)
+        {
+            request.Source = new SourceFilter { Excludes = _detailFields.Split(',') };
+        }
+
+        // Build query
+        if (spec.RawQuery != null)
+        {
+            request.Query = new QueryContainerDescriptor<T>().Raw(spec.RawQuery.ToString());
+        }
+        else if (!string.IsNullOrEmpty(spec.Id))
+        {
+            request.Query = new QueryContainerDescriptor<T>().Term(t => t.Field("_id").Value(spec.Id));
+        }
+        else if (spec.Ids != null && spec.Ids.Count > 0)
+        {
+            request.Query = new QueryContainerDescriptor<T>().Terms(t => t.Field("_id").Terms(spec.Ids));
+        }
+
+        // Sorts
+        var sorts = new List<ISort>();
+        if (spec.Sorts != null && spec.Sorts.Count > 0)
+        {
+            foreach (var s in spec.Sorts)
+            {
+                var order = string.Equals(s.Order, "desc", StringComparison.OrdinalIgnoreCase) ? SortOrder.Descending : SortOrder.Ascending;
+                if (!string.IsNullOrWhiteSpace(s.Script))
+                {
+                    sorts.Add(new ScriptSort
+                    {
+                        Script = new InlineScript(s.Script),
+                        Type = s.ScriptType ?? "number",
+                        Order = order
+                    });
+                }
+                else
+                {
+                    var sortField = NormalizeSortField(s.Field);
+                    sorts.Add(new FieldSort { Field = sortField, Order = order });
+                }
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(spec.Sort))
+        {
+            var parts = spec.Sort.Contains(',') ? spec.Sort.Split(',') : spec.Sort.Split(':');
+            if (parts.Length == 2)
+            {
+                var order = parts[1].Trim().Equals("desc", StringComparison.OrdinalIgnoreCase) ? SortOrder.Descending : SortOrder.Ascending;
+                var sortField = NormalizeSortField(parts[0].Trim());
+                sorts.Add(new FieldSort { Field = sortField, Order = order });
+            }
+        }
+        // Always add _id as tiebreaker
+        sorts.Add(new FieldSort { Field = "_id", Order = SortOrder.Ascending });
+        request.Sort = sorts;
+
+        string NormalizeSortField(string field)
+        {
+            // Guard: keep meta fields
+            if (string.Equals(field, "_id", StringComparison.OrdinalIgnoreCase)) return field;
+
+            // For movies index, map text field sorts to keyword subfield
+            if (string.Equals(_indexName, "movies", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.Equals(field, "title", StringComparison.OrdinalIgnoreCase)) return "title.keyword";
+            }
+            return field;
+        }
+
+        // Pagination via search_after
+        if (spec.SearchAfter != null && spec.SearchAfter.Count > 0)
+        {
+            request.SearchAfter = spec.SearchAfter;
+            request.From = null;
+        }
+
+        if (!string.IsNullOrEmpty(pitId))
+        {
+            request.PointInTime = new PointInTime(pitId);
+        }
+
+        if (debug)
+        {
+            if (spec.RawQuery != null)
+            {
+                Console.WriteLine($"[ES] {typeof(T).Name} spec.RawQuery: {spec.RawQuery}");
+            }
+            Console.WriteLine($"[ES] {typeof(T).Name} index='{_indexName}', pit='{pitId ?? "(none)"}', from={request.From}, size={request.Size}");
+        }
+        var response = await _elasticClient.SearchAsync<T>(request);
+        if (debug)
+        {
+            try { Console.WriteLine("[ES] " + ToCurl(_elasticClient, response, request)); } catch {}
+        }
+        if (!response.IsValid)
+        {
+            // Detailed error capture using low-level client
+            StringResponse retryResponse;
+            if (request.PointInTime != null)
+            {
+                retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
+            }
+            else
+            {
+                retryResponse = await _elasticClient.LowLevel.SearchAsync<StringResponse>(_indexName, PostData.Serializable(request), new SearchRequestParameters { RequestConfiguration = new RequestConfiguration { DisableDirectStreaming = true } });
+            }
+            throw new Exception(retryResponse.Body ?? response.ServerError?.ToString());
+        }
+        // Ensure Id from hit metadata is copied into source objects used by controllers/DTOs
+        if (response.Hits?.Count > 0)
+        {
+            foreach (var hit in response.Hits)
+            {
+                if (hit.Source != null)
+                {
+                    try
+                    {
+                        var source = (CategorizedEntity<string>)(object)hit.Source;
+                        source.Id = hit.Id;
+                    }
+                    catch
+                    {
+                        // Non-categorized types: ignore
+                    }
+                }
+            }
+        }
+        return response;
     }
 
     /// <summary>
@@ -74,6 +241,10 @@ public class EntityService<T> : IEntityService<T> where T : class
             request.PointInTime = new PointInTime(pitId);
         }
         var response = await _elasticClient.SearchAsync<T>(request);
+        if (debug)
+        {
+            try { Console.WriteLine("[ES] " + ToCurl(_elasticClient, response, request)); } catch {}
+        }
         if (!response.IsValid)
         {
             var status = response.ApiCall?.HttpStatusCode ?? 0;
@@ -617,6 +788,19 @@ private static RulesetDto MapToDto(Ruleset rr)
         {
             Success = errorCount == 0,
             Message = message
+        };
+    }
+
+    public async Task<ClusterHealthDto> GetHealthAsync()
+    {
+        var res = await _elasticClient.Cluster.HealthAsync();
+        return new ClusterHealthDto
+        {
+            Status = res.Status.ToString(),
+            NumberOfNodes = res.NumberOfNodes,
+            NumberOfDataNodes = res.NumberOfDataNodes,
+            ActiveShards = res.ActiveShards,
+            ActivePrimaryShards = res.ActivePrimaryShards
         };
     }
 }
