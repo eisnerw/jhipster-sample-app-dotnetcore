@@ -17,7 +17,7 @@ namespace JhipsterSampleApplication.Test.DomainServices;
 
 public class BirthdayServiceRangeQueryTest
 {
-    private readonly EntityService<Birthday> _service;
+    private readonly EntityService _service;
 
     public BirthdayServiceRangeQueryTest()
     {
@@ -41,10 +41,10 @@ public class BirthdayServiceRangeQueryTest
 
         var serviceProvider = services.BuildServiceProvider();
 
-        var bqlService = new BqlService<Birthday>(new Mock<ILogger<BqlService<Birthday>>>().Object,
-            new Mock<INamedQueryService>().Object, new JObject(), "birthdays");
         var viewService = new Mock<IViewService>().Object;
-        _service = new EntityService<Birthday>("birthdays", "wikipedia", serviceProvider, bqlService, viewService);
+        var namedQueryService = new Mock<INamedQueryService>().Object;
+        var specRegistry = new Mock<JhipsterSampleApplication.Domain.Services.IEntitySpecRegistry>().Object;
+        _service = new EntityService(serviceProvider, viewService, namedQueryService, specRegistry);
     }
 
     [Theory]
@@ -61,7 +61,7 @@ public class BirthdayServiceRangeQueryTest
             value = "1990-01-01"
         };
 
-        var result = await _service.ConvertRulesetToElasticSearch(ruleset);
+        var result = await _service.ConvertRulesetToElasticSearch("birthday", ruleset);
 
         var expectedObject = new JObject
         {
@@ -90,7 +90,7 @@ public class BirthdayServiceRangeQueryTest
             value = "1990-01-01T12:34:56"
         };
 
-        var result = await _service.ConvertRulesetToElasticSearch(ruleset);
+        var result = await _service.ConvertRulesetToElasticSearch("birthday", ruleset);
 
         var expectedObject = new JObject
         {
@@ -122,7 +122,7 @@ public class BirthdayServiceRangeQueryTest
             value = value,
         };
 
-        var result = await _service.ConvertRulesetToElasticSearch(ruleset);
+        var result = await _service.ConvertRulesetToElasticSearch("birthday", ruleset);
 
         var expectedObject = new JObject
         {
@@ -155,7 +155,7 @@ public class BirthdayServiceRangeQueryTest
             value = value,
         };
 
-        var result = await _service.ConvertRulesetToElasticSearch(ruleset);
+        var result = await _service.ConvertRulesetToElasticSearch("birthday", ruleset);
 
         var expectedObject = new JObject
         {

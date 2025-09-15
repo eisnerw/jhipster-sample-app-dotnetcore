@@ -1,8 +1,8 @@
 {
     "name": "birthday",
     "title": "Birthday",
-    "elasticSearchIndex": "birthdays",
-    "descriptiveFieds": ["wikipedia"],
+    "elasticsearchIndex": "birthdays",
+    "detailFields": ["wikipedia"],
     "dto": {
       "allOf": [
         { "$ref": "#/definitions/BaseDto" },

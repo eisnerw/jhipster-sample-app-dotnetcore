@@ -227,7 +227,12 @@ namespace JhipsterSampleApplication.Controllers
 
             var response = await _entityService.SearchAsync(entity, spec2);
             var objects = response.Hits.Select(h => h.Source).ToList();
-            List<object>? searchAfterResponse = response.Hits.Count > 0 ? response.Hits.Last().Sorts.ToList() : null;
+            List<object>? searchAfterResponse = null;
+            if (response.Hits.Count > 0)
+            {
+                var lastSorts = response.Hits.Last().Sorts.Where(s => s != null).ToList();
+                searchAfterResponse = lastSorts.Count > 0 ? lastSorts : null;
+            }
             var hitType = isHitFromViewDrilldown ? "hit" : entity;
             return Ok(new SearchResultDto<JObject>
             {

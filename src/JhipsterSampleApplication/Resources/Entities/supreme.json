@@ -1,8 +1,8 @@
 {
     "name": "supreme",
     "title": "Supreme",
-    "elasticSearchIndex": "supreme",
-    "descriptiveFieds": ["facts_of_the_case","question","conclusion"],
+    "elasticsearchIndex": "supreme",
+    "detailFields": ["facts_of_the_case","question","conclusion"],
     "dto": {
       "allOf": [
         { "$ref": "#/definitions/BaseDto" },

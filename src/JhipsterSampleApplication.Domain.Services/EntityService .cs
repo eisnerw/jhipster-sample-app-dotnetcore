@@ -3,10 +3,6 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using Elastic.Clients.Elasticsearch;
-using Elastic.Clients.Elasticsearch.QueryDsl;
-using Elastic.Clients.Elasticsearch.Aggregations;
-using Elastic.Clients.Elasticsearch.Core.Search;
-using Elastic.Transport;
 using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
@@ -16,6 +12,7 @@ using JhipsterSampleApplication.Dto;
 using System.Threading;
 using System.IO;
 using System.Text;
+using System.Text.Json;
 using System.Collections.Specialized;
 using System.Net;
 using System.Net.Http;
@@ -23,22 +20,23 @@ using System.Net.Http.Headers;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using JhipsterSampleApplication.Domain.Search;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace JhipsterSampleApplication.Domain.Services;
 
 /// <summary>
 /// Service for interacting with Elasticsearch for Entity operations
 /// </summary>
-public class EntityService<T> : IEntityService<T> where T : class
+public class EntityService : IEntityService
 {
     private readonly ElasticsearchClient _elasticClient;
-    private readonly string _indexName = "";
-    private readonly string _detailFields = "";
-    private readonly IBqlService<T> _bqlService;
     private readonly IViewService _viewService;
     // Set this to true in the debugger to enable verbose ES request logging
     private static bool debug = false;
-    private readonly IConfiguration? _configuration;
+    private readonly IConfiguration _configuration;
+    private readonly IEntitySpecRegistry _specRegistry;
+    private readonly INamedQueryService _namedQueryService;
+    private readonly ILoggerFactory _loggerFactory;
 
     /// <summary>
     /// Initializes a new instance of the EntityService
@@ -46,153 +44,115 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// <param name="elasticClient">The Elasticsearch client</param>
     /// <param name="bqlService">The BQL service</param>
     /// <param name="viewService">The View service</param>
-    public EntityService(string indexName, string detailFields, IServiceProvider serviceProvider, IBqlService<T> bqlService, IViewService viewService)
+    public EntityService(IServiceProvider serviceProvider, IViewService viewService, INamedQueryService namedQueryService, IEntitySpecRegistry specRegistry)
     {
-        _indexName = indexName ?? throw new ArgumentNullException(nameof(indexName));
-        _detailFields = detailFields ?? throw new ArgumentNullException(nameof(detailFields));
         _elasticClient = serviceProvider.GetRequiredService<ElasticsearchClient>();
-        _bqlService = bqlService ?? throw new ArgumentNullException(nameof(bqlService));
         _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
         _configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        _specRegistry = specRegistry ?? throw new ArgumentNullException(nameof(specRegistry));
+        _namedQueryService = namedQueryService ?? throw new ArgumentNullException(nameof(namedQueryService));
+        _loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
     }
 
-    private string NormalizeSortField(string field)
+    private (string Index, string[] Details, string IdField) GetEntitySpec(string entity)
     {
-        if (string.Equals(field, "_id", StringComparison.OrdinalIgnoreCase)) return field;
-        if (string.Equals(_indexName, "movies", StringComparison.OrdinalIgnoreCase))
+        if (!_specRegistry.TryGet(entity, out var spec)) throw new ArgumentException($"Unknown entity '{entity}'", nameof(entity));
+        var idField = string.IsNullOrWhiteSpace(spec.IdField) ? "Id" : spec.IdField!;
+        return (spec.Index, spec.DescriptiveFields ?? Array.Empty<string>(), idField);
+    }
+
+    private string NormalizeSortField(string entity, string field)
+    {
+        if (string.Equals(field, "_id", StringComparison.OrdinalIgnoreCase)) return "_id";
+        if (string.Equals(field, "id", StringComparison.OrdinalIgnoreCase)) return "_id";
+        if (string.Equals(entity, "movies", StringComparison.OrdinalIgnoreCase))
         {
             if (string.Equals(field, "title", StringComparison.OrdinalIgnoreCase)) return "title.keyword";
         }
         return field;
     }
 
-    public async Task<AppSearchResponse<T>> SearchAsync(SearchSpec<T> spec)
+    public async Task<AppSearchResponse<JObject>> SearchAsync(string entity, SearchSpec<JObject> spec)
     {
-        // If caller supplied a raw JSON query, use HTTP raw call to preserve exact semantics
-        if (spec.RawQuery != null)
-            return await SearchRawAsync(spec);
-
-        // Decide PIT first, then choose how to construct the request (typed index vs PIT-only).
-        var pitId = spec.PitId;
-        if (pitId == null)
-        {
-            var pitResponse = await _elasticClient.OpenPointInTimeAsync(new OpenPointInTimeRequest(_indexName)
-            {
-                KeepAlive = "2m"
-            });
-            if (pitResponse.IsValidResponse)
-            {
-                pitId = pitResponse.Id;
-            }
-        }
-
-        var response = await _elasticClient.SearchAsync<T>(s =>
-        {
-            if (string.IsNullOrEmpty(pitId)) s.Index(_indexName);
-            else s.Pit(p => p.Id(pitId).KeepAlive("2m"));
-
-            if (spec.From.HasValue) s.From(spec.From.Value);
-            if (spec.Size.HasValue) s.Size(spec.Size.Value);
-            if (!spec.IncludeDetails) s.SourceExcludes(_detailFields.Split(','));
-
-            if (!string.IsNullOrEmpty(spec.Id))
-            {
-                s.Query(q => q.Term(t => t.Field("_id").Value(spec.Id)));
-            }
-            else if (spec.Ids != null && spec.Ids.Count > 0)
-            {
-                s.Query(q => q.Ids(iq => iq.Values(new Ids(spec.Ids.Select(x => (Id)x).ToArray()))));
-            }
-
-            s.Sort(so =>
-            {
-                if (spec.Sorts != null && spec.Sorts.Count > 0)
-                {
-                    foreach (var sortSpec in spec.Sorts)
-                    {
-                        var order = string.Equals(sortSpec.Order, "desc", StringComparison.OrdinalIgnoreCase) ? SortOrder.Desc : SortOrder.Asc;
-                        if (string.IsNullOrWhiteSpace(sortSpec.Script))
-                        {
-                            var f = NormalizeSortField(sortSpec.Field);
-                            so.Field(fld => fld.Field(f).Order(order));
-                        }
-                    }
-                }
-                else if (!string.IsNullOrWhiteSpace(spec.Sort))
-                {
-                    var parts = spec.Sort.Contains(',') ? spec.Sort.Split(',') : spec.Sort.Split(':');
-                    if (parts.Length == 2)
-                    {
-                        var order = parts[1].Trim().Equals("desc", StringComparison.OrdinalIgnoreCase) ? SortOrder.Desc : SortOrder.Asc;
-                        var f = NormalizeSortField(parts[0].Trim());
-                        so.Field(fld => fld.Field(f).Order(order));
-                    }
-                }
-                // Always add _id
-                so.Field(fld => fld.Field("_id").Order(SortOrder.Asc));
-            });
-
-            if (spec.SearchAfter != null && spec.SearchAfter.Count > 0)
-            {
-                var sa = new List<FieldValue>();
-                foreach (var o in spec.SearchAfter)
-                {
-                    switch (o)
-                    {
-                        case string ssa: sa.Add(ssa); break;
-                        case long ll: sa.Add(ll); break;
-                        case int ii: sa.Add((long)ii); break;
-                        case double dd: sa.Add(dd); break;
-                        default: sa.Add(o?.ToString() ?? string.Empty); break;
-                    }
-                }
-                s.SearchAfter(sa);
-                s.From((int?)null);
-            }
-        });
-
-        // local uses global helper
-
-        if (debug)
-        {
-            Console.WriteLine($"[ES] {typeof(T).Name} index='{_indexName}', pit='{pitId ?? "(none)"}', from={spec.From}, size={spec.Size}");
-            Console.WriteLine($"[ES] took={response.Took} hits={response.Hits.Count}");
-        }
-        if (!response.IsValidResponse)
-        {
-            var body = response.ApiCallDetails?.ResponseBodyInBytes != null ? Encoding.UTF8.GetString(response.ApiCallDetails.ResponseBodyInBytes) : response.ElasticsearchServerError?.ToString();
-            throw new Exception(body ?? "Elasticsearch search failed");
-        }
-        var app = new AppSearchResponse<T>
-        {
-            Total = response.Hits?.Count ?? 0,
-            PointInTimeId = pitId,
-            IsValid = response.IsValidResponse
-        };
-        if (response.Hits != null)
-        {
-            foreach (var h in response.Hits)
-            {
-                if (h.Source != null)
-                {
-                    try { ((CategorizedEntity<string>)(object)h.Source).Id = h.Id; } catch {}
-                }
-                app.Hits.Add(new AppHit<T>
-                {
-                    Id = h.Id,
-                    Source = h.Source!,
-                    Sorts = new List<object>()
-                });
-            }
-        }
-        return app;
+        return await SearchRawAsync(entity, spec);
     }
 
-    private async Task<AppSearchResponse<T>> SearchRawAsync(SearchSpec<T> spec)
+    private static JToken ConvertObjectToJToken(object? value)
     {
-        var url = _configuration?["Elasticsearch:Url"]?.TrimEnd('/') ?? "http://localhost:9200";
-        var username = _configuration?["Elasticsearch:Username"];
-        var password = _configuration?["Elasticsearch:Password"];
+        if (value == null) return JValue.CreateNull();
+        if (value is JToken jt) return jt;
+        if (value is JsonElement je) return ConvertJsonElement(je);
+        if (value is IDictionary<string, object> dict)
+        {
+            var o = new JObject();
+            foreach (var kv in dict)
+            {
+                o[kv.Key] = ConvertObjectToJToken(kv.Value);
+            }
+            return o;
+        }
+        if (value is IEnumerable<object> list)
+        {
+            var arr = new JArray();
+            foreach (var item in list) arr.Add(ConvertObjectToJToken(item));
+            return arr;
+        }
+        return JToken.FromObject(value);
+    }
+
+    private static JToken ConvertJsonElement(JsonElement je)
+    {
+        switch (je.ValueKind)
+        {
+            case JsonValueKind.Object:
+                var o = new JObject();
+                foreach (var p in je.EnumerateObject())
+                {
+                    o[p.Name] = ConvertJsonElement(p.Value);
+                }
+                return o;
+            case JsonValueKind.Array:
+                var a = new JArray();
+                foreach (var el in je.EnumerateArray()) a.Add(ConvertJsonElement(el));
+                return a;
+            case JsonValueKind.String:
+                return new JValue(je.GetString());
+            case JsonValueKind.Number:
+                if (je.TryGetInt64(out var l)) return new JValue(l);
+                if (je.TryGetDouble(out var d)) return new JValue(d);
+                return new JValue(je.GetRawText());
+            case JsonValueKind.True:
+                return new JValue(true);
+            case JsonValueKind.False:
+                return new JValue(false);
+            case JsonValueKind.Null:
+            case JsonValueKind.Undefined:
+                return JValue.CreateNull();
+            default:
+                return new JValue(je.GetRawText());
+        }
+    }
+
+    private async Task<AppSearchResponse<JObject>> SearchRawAsync(string entity, SearchSpec<JObject> spec)
+    {
+        var (indexName, detailFields, _) = GetEntitySpec(entity);
+        var url = _configuration["Elasticsearch:Url"]?.TrimEnd('/') ?? "http://localhost:9200";
+        var username = _configuration["Elasticsearch:Username"];
+        var password = _configuration["Elasticsearch:Password"];
+
+        // Fast path for single-id lookup: do a direct GET and avoid PIT/search
+        if (!string.IsNullOrWhiteSpace(spec.Id) && (spec.Ids == null || spec.Ids.Count == 0) && spec.RawQuery == null)
+        {
+            var get = await _elasticClient.GetAsync<Dictionary<string, object>>(spec.Id!, g => g.Index(indexName));
+            var appDirect = new AppSearchResponse<JObject> { Total = get.Found ? 1 : 0, PointInTimeId = null, IsValid = get.IsValidResponse };
+            if (get.Found && get.Source != null)
+            {
+                var src = ConvertObjectToJToken(get.Source) as JObject ?? new JObject();
+                if (src["id"] == null) src["id"] = get.Id;
+                appDirect.Hits.Add(new AppHit<JObject> { Id = get.Id, Source = src, Sorts = new List<object>() });
+            }
+            return appDirect;
+        }
 
         // Ensure we have a PIT for the first page to anchor paging across updates/deletes
         string? pitId = spec.PitId;
@@ -200,7 +160,7 @@ public class EntityService<T> : IEntityService<T> where T : class
         {
             try
             {
-                var pitResponse = await _elasticClient.OpenPointInTimeAsync(new OpenPointInTimeRequest(_indexName)
+                var pitResponse = await _elasticClient.OpenPointInTimeAsync(new OpenPointInTimeRequest(indexName)
                 {
                     KeepAlive = "2m"
                 });
@@ -216,7 +176,7 @@ public class EntityService<T> : IEntityService<T> where T : class
         }
 
         var usePit = !string.IsNullOrEmpty(pitId);
-        var path = usePit ? "/_search" : $"/{_indexName}/_search";
+        var path = usePit ? "/_search" : $"/{indexName}/_search";
 
         var root = new JObject();
         var hasSearchAfter = spec.SearchAfter != null && spec.SearchAfter.Count > 0;
@@ -224,16 +184,18 @@ public class EntityService<T> : IEntityService<T> where T : class
         if (spec.Size.HasValue) root["size"] = spec.Size.Value;
         if (!spec.IncludeDetails)
         {
-            root["_source"] = new JObject { ["excludes"] = new JArray(_detailFields.Split(',')) };
+            root["_source"] = new JObject { ["excludes"] = new JArray(detailFields) };
         }
         // Sorts
         var sorts = new JArray();
+        bool hasExplicitIdSort = false;
         if (spec.Sorts != null && spec.Sorts.Count > 0)
         {
             foreach (var s in spec.Sorts)
             {
                 if (!string.IsNullOrWhiteSpace(s.Script)) continue; // skip script for now
-                var fld = NormalizeSortField(s.Field);
+                var fld = NormalizeSortField(entity, s.Field);
+                if (string.Equals(fld, "_id", StringComparison.OrdinalIgnoreCase)) hasExplicitIdSort = true;
                 sorts.Add(new JObject { [fld] = new JObject { ["order"] = (s.Order?.ToLower() == "desc" ? "desc" : "asc") } });
             }
         }
@@ -242,19 +204,23 @@ public class EntityService<T> : IEntityService<T> where T : class
             var parts = spec.Sort.Contains(',') ? spec.Sort.Split(',') : spec.Sort.Split(':');
             if (parts.Length == 2)
             {
-                var fld = NormalizeSortField(parts[0].Trim());
+                var fld = NormalizeSortField(entity, parts[0].Trim());
                 var ord = parts[1].Trim().ToLower() == "desc" ? "desc" : "asc";
+                if (string.Equals(fld, "_id", StringComparison.OrdinalIgnoreCase)) hasExplicitIdSort = true;
                 sorts.Add(new JObject { [fld] = new JObject { ["order"] = ord } });
             }
         }
-        // Always add _id tie-breaker
-        sorts.Add(new JObject { ["_id"] = new JObject { ["order"] = "asc" } });
+        // Always add _id tie-breaker if not already explicitly sorted by _id
+        if (!hasExplicitIdSort)
+        {
+            sorts.Add(new JObject { ["_id"] = new JObject { ["order"] = "asc" } });
+        }
         root["sort"] = sorts;
 
         if (hasSearchAfter)
         {
             var sa = new JArray();
-            foreach (var o in spec.SearchAfter) sa.Add(JToken.FromObject(o));
+            foreach (var o in spec.SearchAfter!) sa.Add(JToken.FromObject(o));
             root["search_after"] = sa;
             // When using search_after, ES requires that from is not used
             root.Remove("from");
@@ -264,11 +230,23 @@ public class EntityService<T> : IEntityService<T> where T : class
         {
             root["pit"] = new JObject { ["id"] = pitId, ["keep_alive"] = "2m" };
         }
-        root["query"] = spec.RawQuery!; // exact pass-through
+        // Build query
+        if (!string.IsNullOrWhiteSpace(spec.Id))
+        {
+            root["query"] = new JObject { ["ids"] = new JObject { ["values"] = new JArray(spec.Id) } };
+        }
+        else if (spec.Ids != null && spec.Ids.Count > 0)
+        {
+            root["query"] = new JObject { ["ids"] = new JObject { ["values"] = new JArray(spec.Ids) } };
+        }
+        else
+        {
+            root["query"] = spec.RawQuery ?? new JObject { ["match_all"] = new JObject() };
+        }
 
         if (debug)
         {
-            Console.WriteLine($"[ES-RAW] {typeof(T).Name} {url}{path} body={root}");
+            Console.WriteLine($"[ES-RAW] entity='{entity}' {url}{path} body={root}");
         }
 
         using var http = new HttpClient();
@@ -290,25 +268,37 @@ public class EntityService<T> : IEntityService<T> where T : class
         var parsed = JObject.Parse(json);
         var hitsToken = parsed["hits"]?["hits"] as JArray ?? new JArray();
         var total = parsed["hits"]?["total"]?[(object)"value"]?.Value<long?>() ?? parsed["hits"]?["total"]?.Value<long?>() ?? hitsToken.Count;
-        var app = new AppSearchResponse<T> { Total = total, PointInTimeId = pitId, IsValid = true };
+        var app = new AppSearchResponse<JObject> { Total = total, PointInTimeId = pitId, IsValid = true };
         foreach (var h in hitsToken)
         {
             var id = h["_id"]?.ToString() ?? string.Empty;
-            var sortArr = (h["sort"] as JArray)?.Select(x => (object)(x.Type == JTokenType.Integer ? (long)x : x.Type == JTokenType.Float ? (double)x : (string)x)).ToList() ?? new List<object>();
-            var src = h["_source"]?.ToString() ?? "{}";
-            var obj = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(src)!;
-            try { ((CategorizedEntity<string>)(object)obj).Id = id; } catch {}
-            app.Hits.Add(new AppHit<T> { Id = id, Source = obj, Sorts = sortArr });
+            var sortsToken = h["sort"] as JArray;
+            var sortsList = new List<object>();
+            if (sortsToken != null)
+            {
+                foreach (var x in sortsToken)
+                {
+                    object? val;
+                    if (x.Type == JTokenType.Integer) val = (long)x;
+                    else if (x.Type == JTokenType.Float) val = (double)x;
+                    else if (x.Type == JTokenType.Null || x.Type == JTokenType.Undefined) val = null;
+                    else val = x.Value<string>() ?? x.ToString();
+                    if (val != null) sortsList.Add(val);
+                }
+            }
+            var obj = (h["_source"] as JObject) ?? new JObject();
+            if (obj["id"] == null) obj["id"] = id; // lowercase id for clients
+            app.Hits.Add(new AppHit<JObject> { Id = id, Source = obj, Sorts = sortsList });
         }
         return app;
     }
 
-    private async Task<JObject> PostRawAsync(JObject body, string? pitId, bool useIndexPath)
+    private async Task<JObject> PostRawAsync(string indexName, JObject body, string? pitId, bool useIndexPath)
     {
         var url = _configuration["Elasticsearch:Url"]?.TrimEnd('/') ?? "http://localhost:9200";
         var username = _configuration["Elasticsearch:Username"];
         var password = _configuration["Elasticsearch:Password"];
-        var path = useIndexPath ? $"/{_indexName}/_search" : "/_search";
+        var path = useIndexPath ? $"/{indexName}/_search" : "/_search";
         if (!string.IsNullOrEmpty(pitId))
         {
             body["pit"] = new JObject { ["id"] = pitId, ["keep_alive"] = "2m" };
@@ -337,7 +327,7 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// </summary>
     /// <param name="request">The aggregation request to execute</param>
     /// <returns>The search response containing ViewResults</returns>
-    public async Task<List<ViewResultDto>> SearchUsingViewAsync(string query, ViewDto viewDto, int from, int size)
+    private async Task<List<ViewResultDto>> SearchUsingViewAsync(string indexName, string query, ViewDto viewDto, int from, int size)
     {
         List<ViewResultDto> content = new();
         var queryObj = JObject.Parse(query);
@@ -354,7 +344,7 @@ public class EntityService<T> : IEntityService<T> where T : class
                     : new JObject { ["terms"] = new JObject { ["script"] = new JObject { ["source"] = viewDto.Script }, ["size"] = 10000 } }
             }
         };
-        var distinct = await PostRawAsync(root, null, true);
+        var distinct = await PostRawAsync(indexName, root, null, true);
         var buckets = (distinct["aggregations"]?["distinct"]?["buckets"] as JArray) ?? new JArray();
         foreach (var b in buckets)
         {
@@ -389,7 +379,7 @@ public class EntityService<T> : IEntityService<T> where T : class
                 }
             }
         };
-        var unc = await PostRawAsync(uncRoot, null, true);
+        var unc = await PostRawAsync(indexName, uncRoot, null, true);
         long uncatCount = unc["aggregations"]?["uncategorized"]?["doc_count"]?.Value<long?>() ?? 0;
         if (uncatCount > 0)
         {
@@ -404,38 +394,33 @@ public class EntityService<T> : IEntityService<T> where T : class
 
     // ToCurl helper removed after v8 migration
 
-    /// <summary>
-    /// Indexes a new Entity document
-    /// </summary>
-    /// <param name="Entity">The Entity document to index</param>
-    /// <returns>The index response</returns>
-    public async Task<WriteResult> IndexAsync(T entity)
+    public async Task<WriteResult> IndexAsync(string entity, JObject document)
     {
-        var resp = await _elasticClient.IndexAsync(entity, i => i.Index(_indexName).Refresh(Refresh.WaitFor));
+        var (indexName, _, idField) = GetEntitySpec(entity);
+        var id = document[idField]?.ToString() ?? document["Id"]?.ToString() ?? document["id"]?.ToString();
+        Elastic.Clients.Elasticsearch.IndexResponse resp;
+        if (!string.IsNullOrWhiteSpace(id))
+        {
+            resp = await _elasticClient.IndexAsync<object>(document.ToObject<object>()!, i => i.Index(indexName).Id(id!).Refresh(Refresh.WaitFor));
+        }
+        else
+        {
+            resp = await _elasticClient.IndexAsync<object>(document.ToObject<object>()!, i => i.Index(indexName).Refresh(Refresh.WaitFor));
+        }
         return new WriteResult { Success = resp.IsValidResponse, Message = resp.Result.ToString() };
     }
 
-    /// <summary>
-    /// Updates an existing Entity document
-    /// </summary>
-    /// <param name="id">The ID of the document to update</param>
-    /// <param name="Entity">The updated Entity document</param>
-    /// <returns>The update response</returns>
-    public async Task<WriteResult> UpdateAsync(string id, T entity)
+    public async Task<WriteResult> UpdateAsync(string entity, string id, JObject document)
     {
-        // Use index as upsert/replace for simplicity
-        var resp = await _elasticClient.IndexAsync(entity, i => i.Index(_indexName).Id(id).Refresh(Refresh.WaitFor));
+        var (indexName, _, _) = GetEntitySpec(entity);
+        var resp = await _elasticClient.IndexAsync<object>(document.ToObject<object>()!, i => i.Index(indexName).Id(id).Refresh(Refresh.WaitFor));
         return new WriteResult { Success = resp.IsValidResponse, Message = resp.Result.ToString() };
     }
 
-    /// <summary>
-    /// Deletes a entity document
-    /// </summary>
-    /// <param name="id">The ID of the document to delete</param>
-    /// <returns>The delete response</returns>
-    public async Task<WriteResult> DeleteAsync(string id)
+    public async Task<WriteResult> DeleteAsync(string entity, string id)
     {
-        var resp = await _elasticClient.DeleteAsync<T>(id, d => d.Index(_indexName));
+        var (indexName, _, _) = GetEntitySpec(entity);
+        var resp = await _elasticClient.DeleteAsync<object>(id, d => d.Index(indexName));
         return new WriteResult { Success = resp.IsValidResponse, Message = resp.Result.ToString() };
     }
 
@@ -444,8 +429,9 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// </summary>
     /// <param name="field">The field to get unique values for</param>
     /// <returns>A collection of unique field values</returns>
-    public async Task<List<string>> GetUniqueFieldValuesAsync(string field)
+    public async Task<List<string>> GetUniqueFieldValuesAsync(string entity, string field)
     {
+        var (indexName, _, _) = GetEntitySpec(entity);
         var body = new JObject
         {
             ["size"] = 0,
@@ -461,7 +447,7 @@ public class EntityService<T> : IEntityService<T> where T : class
                 }
             }
         };
-        var json = await PostRawAsync(body, null, true);
+        var json = await PostRawAsync(indexName, body, null, true);
         var arr = (json["aggregations"]?["distinct"]?["buckets"] as JArray) ?? new JArray();
         var ret = new List<string>();
         foreach (var b in arr)
@@ -480,19 +466,7 @@ public class EntityService<T> : IEntityService<T> where T : class
     /// <param name="from">The starting index for pagination</param>
     /// <param name="sort">The sort descriptor for the search</param>
     /// <returns>The search response containing entity documents</returns>
-    public async Task<AppSearchResponse<T>> SearchWithRulesetAsync(Ruleset ruleset, int size = 20, int from = 0, string? sort = null)
-    {
-        var queryObject = await ConvertRulesetToElasticSearch(ruleset);
-        var spec = new SearchSpec<T>
-        {
-            Size = size,
-            From = from,
-            RawQuery = queryObject,
-            IncludeDetails = false,
-            Sort = sort
-        };
-        return await SearchAsync(spec);
-    }
+    // Removed legacy generic SearchWithRulesetAsync after JSON refactor
 
     /// <summary>
     /// Converts a ruleset to an Elasticsearch query
@@ -505,7 +479,7 @@ public class EntityService<T> : IEntityService<T> where T : class
 /// </summary>
 /// <param name="rr">The ruleset to convert</param>
 /// <returns>A JObject containing the Elasticsearch query</returns>
-public async Task<JObject> ConvertRulesetToElasticSearch(Ruleset rr)
+public async Task<JObject> ConvertRulesetToElasticSearch(string entity, Ruleset rr)
 {
     if (!ValidateRuleset(rr))
     {
@@ -513,7 +487,11 @@ public async Task<JObject> ConvertRulesetToElasticSearch(Ruleset rr)
     }
 
     var dto = MapToDto(rr);
-    var result = await _bqlService.Ruleset2ElasticSearch(dto);
+    // Build BQL service for this entity on the fly using its QB spec
+    var qbSpec = BqlService<JObject>.LoadSpec(entity);
+    var logger = _loggerFactory.CreateLogger<BqlService<JObject>>();
+    var bql = new BqlService<JObject>(logger, _namedQueryService, qbSpec, entity);
+    var result = await bql.Ruleset2ElasticSearch(dto);
     return result is JObject jo ? jo : JObject.FromObject(result);
 }
 
@@ -549,16 +527,18 @@ private static RulesetDto MapToDto(Ruleset rr)
     /// <param name="sort">The sort descriptor for the search</param>
     /// <returns>The search response containing a list of ViewResultDtos</returns>
 
-    public async Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(JObject queryObject, ViewDto viewDto, int size = 20, int from = 0, string? sort = null)
+    public async Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(string entity, JObject queryObject, ViewDto viewDto, int size = 20, int from = 0, string? sort = null)
     {
-        string query = queryObject.ToString();        
-        return await SearchUsingViewAsync(query, viewDto, from, size);
+        var (indexName, _, _) = GetEntitySpec(entity);
+        string query = queryObject.ToString();
+        return await SearchUsingViewAsync(indexName, query, viewDto, from, size);
     }
 
-    public async Task<SimpleApiResponse> CategorizeAsync(CategorizeRequestDto request)
+    public async Task<SimpleApiResponse> CategorizeAsync(string entity, CategorizeRequestDto request)
     {
-        var spec = new SearchSpec<T> { Ids = request.Ids, IncludeDetails = true, PitId = "" };
-        var response = await SearchAsync(spec);
+        var (indexName, _, _) = GetEntitySpec(entity);
+        var spec = new SearchSpec<JObject> { Ids = request.Ids, IncludeDetails = true, PitId = "" };
+        var response = await SearchAsync(entity, spec);
         if (!response.IsValid)
         {
             return new SimpleApiResponse { Success = false, Message = "Failed to search for the entities" };
@@ -567,20 +547,24 @@ private static RulesetDto MapToDto(Ruleset rr)
         var errorCount = 0;
         var errorMessages = new List<string>();
 
-        foreach (var genericEntity in response.Documents)
+        foreach (var hit in response.Hits)
         {
-            var entity = (CategorizedEntity<string>)(object)genericEntity;
             try
             {
+                var doc = hit.Source;
+                var categories = (doc["Categories"] as JArray) ?? new JArray();
                 if (request.RemoveCategory)
                 {
-                    if (entity!.Categories != null)
+                    if (categories.Count > 0)
                     {
-                        var categoryToRemove = entity.Categories.FirstOrDefault(c => string.Equals(c, request.Category, StringComparison.OrdinalIgnoreCase));
-                        if (categoryToRemove != null)
+                        var toRemove = categories
+                            .Select(t => t?.ToString() ?? string.Empty)
+                            .FirstOrDefault(c => string.Equals(c, request.Category, StringComparison.OrdinalIgnoreCase));
+                        if (!string.IsNullOrEmpty(toRemove))
                         {
-                            entity.Categories.Remove(categoryToRemove);
-                            var updateResponse = await UpdateAsync(entity.Id!, (T)(object)entity);
+                            var remaining = new JArray(categories.Where(t => !string.Equals(t?.ToString(), toRemove, StringComparison.OrdinalIgnoreCase)));
+                            doc["Categories"] = remaining;
+                            var updateResponse = await UpdateAsync(entity, hit.Id, doc);
                             if (updateResponse.Success)
                             {
                                 successCount++;
@@ -588,21 +572,19 @@ private static RulesetDto MapToDto(Ruleset rr)
                             else
                             {
                                 errorCount++;
-                                errorMessages.Add($"Failed to update entity {entity.Id}: {updateResponse.Message}");
+                                errorMessages.Add($"Failed to update entity {hit.Id}: {updateResponse.Message}");
                             }
                         }
                     }
                 }
                 else
                 {
-                    if (entity.Categories == null)
+                    var exists = categories.Any(t => string.Equals(t?.ToString(), request.Category, StringComparison.OrdinalIgnoreCase));
+                    if (!exists)
                     {
-                        entity.Categories = new List<string>();
-                    }
-                    if (!entity.Categories.Any(c => string.Equals(c, request.Category, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        entity.Categories.Add(request.Category);
-                        var updateResponse = await UpdateAsync(entity.Id!, (T)(object)entity);
+                        categories.Add(request.Category);
+                        doc["Categories"] = categories;
+                        var updateResponse = await UpdateAsync(entity, hit.Id, doc);
                         if (updateResponse.Success)
                         {
                             successCount++;
@@ -610,7 +592,7 @@ private static RulesetDto MapToDto(Ruleset rr)
                         else
                         {
                             errorCount++;
-                            errorMessages.Add($"Failed to update entity {entity.Id}: {updateResponse.Message}");
+                            errorMessages.Add($"Failed to update entity {hit.Id}: {updateResponse.Message}");
                         }
                     }
                 }
@@ -618,7 +600,7 @@ private static RulesetDto MapToDto(Ruleset rr)
             catch (Exception ex)
             {
                 errorCount++;
-                errorMessages.Add($"Error processing entity {entity.Id}: {ex.Message}");
+                errorMessages.Add($"Error processing entity {hit.Id}: {ex.Message}");
             }
         }
 
@@ -627,7 +609,7 @@ private static RulesetDto MapToDto(Ruleset rr)
         {
             message += $". Error details: {string.Join("; ", errorMessages)}";
         }
-        await _elasticClient.Indices.RefreshAsync(_indexName);
+        await _elasticClient.Indices.RefreshAsync(indexName);
         return new SimpleApiResponse
         {
             Success = errorCount == 0,
@@ -635,8 +617,9 @@ private static RulesetDto MapToDto(Ruleset rr)
         };
     }
 
-    public async Task<SimpleApiResponse> CategorizeMultipleAsync(CategorizeMultipleRequestDto request)
+    public async Task<SimpleApiResponse> CategorizeMultipleAsync(string entity, CategorizeMultipleRequestDto request)
     {
+        var (indexName, _, _) = GetEntitySpec(entity);
         var toAdd = (request.Add ?? new List<string>())
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .Select(s => s.Trim().ToUpperInvariant())
@@ -653,8 +636,8 @@ private static RulesetDto MapToDto(Ruleset rr)
             return new SimpleApiResponse { Success = false, Message = "Nothing to add or remove" };
         }
 
-        var spec = new SearchSpec<T> { Ids = request.Rows, IncludeDetails = true, PitId = "" };
-        var response = await SearchAsync(spec);
+        var spec = new SearchSpec<JObject> { Ids = request.Rows, IncludeDetails = true, PitId = "" };
+        var response = await SearchAsync(entity, spec);
         if (!response.IsValid)
         {
             return new SimpleApiResponse { Success = false, Message = "Failed to search for Entitys" };
@@ -664,27 +647,27 @@ private static RulesetDto MapToDto(Ruleset rr)
         var errorCount = 0;
         var errorMessages = new List<string>();
 
-        foreach (var genericEntity in response.Documents)
+        foreach (var hit in response.Hits)
         {
-            var entity = (CategorizedEntity<string>)(object)genericEntity;
             try
             {
-                var current = entity!.Categories ?? new List<string>();
+                var doc = hit.Source;
+                var current = (doc["Categories"] as JArray) ?? new JArray();
                 if (toRemove.Any() && current.Any())
                 {
-                    current = current.Where(c => !toRemove.Any(r => string.Equals(c, r, StringComparison.OrdinalIgnoreCase))).ToList();
+                    current = new JArray(current.Where(t => !toRemove.Any(r => string.Equals(t?.ToString() ?? string.Empty, r, StringComparison.OrdinalIgnoreCase))));
                 }
 
                 foreach (var add in toAdd)
                 {
-                    if (!current.Any(c => string.Equals(c, add, StringComparison.OrdinalIgnoreCase)))
+                    if (!current.Any(t => string.Equals(t?.ToString() ?? string.Empty, add, StringComparison.OrdinalIgnoreCase)))
                     {
                         current.Add(add);
                     }
                 }
 
-                entity.Categories = current;
-                var updateResponse = await UpdateAsync(entity.Id!, (T)(object)entity);
+                doc["Categories"] = current;
+                var updateResponse = await UpdateAsync(entity, hit.Id, doc);
                 if (updateResponse.Success)
                 {
                     successCount++;
@@ -692,13 +675,13 @@ private static RulesetDto MapToDto(Ruleset rr)
                 else
                 {
                     errorCount++;
-                    errorMessages.Add($"Failed to update entity {entity.Id}: {updateResponse.Message}");
+                    errorMessages.Add($"Failed to update entity {hit.Id}: {updateResponse.Message}");
                 }
             }
             catch (Exception ex)
             {
                 errorCount++;
-                errorMessages.Add($"Error processing entity {entity.Id}: {ex.Message}");
+                errorMessages.Add($"Error processing entity {hit.Id}: {ex.Message}");
             }
         }
 
@@ -708,7 +691,7 @@ private static RulesetDto MapToDto(Ruleset rr)
             message += $". Error details: {string.Join("; ", errorMessages)}";
         }
 
-        await _elasticClient.Indices.RefreshAsync(_indexName);
+        await _elasticClient.Indices.RefreshAsync(indexName);
         return new SimpleApiResponse
         {
             Success = errorCount == 0,

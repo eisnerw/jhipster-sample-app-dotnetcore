@@ -1,8 +1,8 @@
 {
     "name": "movie",
     "title": "Movie",
-    "elasticSearchIndex": "movies",
-    "descriptiveFieds": ["synopsis"],
+    "elasticsearchIndex": "movies",
+    "detailFields": ["synopsis"],
     "dto": {
       "allOf": [
         { "$ref": "#/definitions/BaseDto" },
