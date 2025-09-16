@@ -40,9 +40,19 @@ namespace JhipsterSampleApplication.Controllers
 
         private (string Index, string[] DetailFields, string IdField) GetEntityConfig(string entity)
         {
-            if (!_specRegistry.TryGet(entity, out var spec)) throw new ArgumentException($"Unknown entity '{entity}'", nameof(entity));
-            var idField = string.IsNullOrWhiteSpace(spec.IdField) ? "Id" : spec.IdField!;
-            return (spec.Index, spec.DescriptiveFields ?? Array.Empty<string>(), idField);
+            if (!_specRegistry.TryGetString(entity, "elasticsearchIndex", out var index)
+                && !_specRegistry.TryGetString(entity, "elasticSearchIndex", out index)
+                && !_specRegistry.TryGetString(entity, "index", out index))
+                throw new ArgumentException($"Unknown entity '{entity}'", nameof(entity));
+
+            if (!_specRegistry.TryGetStringArray(entity, "detailFields", out var details))
+                _specRegistry.TryGetStringArray(entity, "descriptiveFields", out details);
+
+            var idField = "Id";
+            if (_specRegistry.TryGetString(entity, "idField", out var id) && !string.IsNullOrWhiteSpace(id))
+                idField = id;
+
+            return (index, details, idField);
         }
 
         [HttpPost("{entity}")]
