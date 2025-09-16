@@ -179,5 +179,12 @@ namespace JhipsterSampleApplication.Controllers
         {
             return _entityController.GetHealth();
         }
+
+        [HttpGet("query-builder-spec")]
+        [Produces("application/json")]
+        public IActionResult GetQueryBuilderSpec()
+        {
+            return _entityController.GetQueryBuilderSpec("supreme");
+        }
     }
 }

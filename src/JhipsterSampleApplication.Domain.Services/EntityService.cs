@@ -15,8 +15,7 @@ using System.Text;
 using System.Text.Json;
 using System.Collections.Specialized;
 using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
+using Elastic.Transport;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using JhipsterSampleApplication.Domain.Search;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,9 +30,8 @@ public class EntityService : IEntityService
 {
     private readonly ElasticsearchClient _elasticClient;
     private readonly IViewService _viewService;
-    // Set this to true in the debugger to enable verbose ES request logging
-    private static bool debug = false;
-    private readonly IConfiguration _configuration;
+    // Verbose ES request logging (can be toggled via env var ES_DEBUG=true)
+    private static bool debug = Environment.GetEnvironmentVariable("ES_DEBUG")?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
     private readonly IEntitySpecRegistry _specRegistry;
     private readonly INamedQueryService _namedQueryService;
     private readonly ILoggerFactory _loggerFactory;
@@ -48,10 +46,9 @@ public class EntityService : IEntityService
     {
         _elasticClient = serviceProvider.GetRequiredService<ElasticsearchClient>();
         _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
-        _configuration = serviceProvider.GetRequiredService<IConfiguration>();
         _specRegistry = specRegistry ?? throw new ArgumentNullException(nameof(specRegistry));
         _namedQueryService = namedQueryService ?? throw new ArgumentNullException(nameof(namedQueryService));
-        _loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+        _loggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? LoggerFactory.Create(_ => { });
     }
 
     private (string Index, string[] Details, string IdField) GetEntitySpec(string entity)
@@ -82,6 +79,71 @@ public class EntityService : IEntityService
             field = $"{field}.keyword";
         }
         return field;
+    }
+
+    private static string ToCamel(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return name;
+        if (name.Length == 1) return name.ToLowerInvariant();
+        return char.ToLowerInvariant(name[0]) + name.Substring(1);
+    }
+
+    private static JToken ToCamelCaseKeys(JToken token)
+    {
+        switch (token.Type)
+        {
+            case JTokenType.Object:
+                var obj = (JObject)token;
+                var newObj = new JObject();
+                foreach (var p in obj.Properties())
+                {
+                    var newName = ToCamel(p.Name);
+                    newObj[newName] = ToCamelCaseKeys(p.Value);
+                }
+                return newObj;
+            case JTokenType.Array:
+                var arr = new JArray();
+                foreach (var item in (JArray)token) arr.Add(ToCamelCaseKeys(item));
+                return arr;
+            default:
+                return token.DeepClone();
+        }
+    }
+
+    private static object? JTokenToPlain(JToken token)
+    {
+        switch (token.Type)
+        {
+            case JTokenType.Object:
+                var obj = (JObject)token;
+                var dict = new Dictionary<string, object?>();
+                foreach (var p in obj.Properties())
+                    dict[p.Name] = JTokenToPlain(p.Value);
+                return dict;
+            case JTokenType.Array:
+                var list = new List<object?>();
+                foreach (var item in (JArray)token) list.Add(JTokenToPlain(item));
+                return list;
+            case JTokenType.Integer:
+                return token.Value<long>();
+            case JTokenType.Float:
+                return token.Value<double>();
+            case JTokenType.Boolean:
+                return token.Value<bool>();
+            case JTokenType.Date:
+                // Preserve ISO-8601 for Elasticsearch date mapping compatibility
+                var dt = token.Value<DateTime>();
+                if (dt.Kind == DateTimeKind.Unspecified)
+                    dt = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+                return dt.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
+            case JTokenType.String:
+                return token.Value<string>();
+            case JTokenType.Null:
+            case JTokenType.Undefined:
+                return null;
+            default:
+                return token.ToString();
+        }
     }
 
     public async Task<AppSearchResponse<JObject>> SearchAsync(string entity, SearchSpec<JObject> spec)
@@ -148,9 +210,6 @@ public class EntityService : IEntityService
     private async Task<AppSearchResponse<JObject>> SearchRawAsync(string entity, SearchSpec<JObject> spec)
     {
         var (indexName, detailFields, _) = GetEntitySpec(entity);
-        var url = _configuration["Elasticsearch:Url"]?.TrimEnd('/') ?? "http://localhost:9200";
-        var username = _configuration["Elasticsearch:Username"];
-        var password = _configuration["Elasticsearch:Password"];
 
         // Fast path for single-id lookup: do a direct GET and avoid PIT/search
         if (!string.IsNullOrWhiteSpace(spec.Id) && (spec.Ids == null || spec.Ids.Count == 0) && spec.RawQuery == null)
@@ -258,24 +317,21 @@ public class EntityService : IEntityService
 
         if (debug)
         {
-            Console.WriteLine($"[ES-RAW] entity='{entity}' {url}{path} body={root}");
+            Console.WriteLine($"[ES-RAW] entity='{entity}' {path} body={root}");
         }
 
-        using var http = new HttpClient();
-        if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
+        var endpoint = new EndpointPath(HttpMethod.POST, path);
+        var esResp = await _elasticClient.Transport.RequestAsync<StringResponse>(in endpoint, PostData.String(root.ToString()), null, null, CancellationToken.None);
+        if (!(esResp.ApiCallDetails?.HasSuccessfulStatusCode ?? false))
         {
-            var bytes = Encoding.ASCII.GetBytes($"{username}:{password}");
-            http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(bytes));
+            var status = esResp.ApiCallDetails?.HttpStatusCode ?? 0;
+            var body = esResp.ApiCallDetails?.ResponseBodyInBytes != null ? Encoding.UTF8.GetString(esResp.ApiCallDetails.ResponseBodyInBytes) : esResp.Body;
+            throw new Exception($"ES search failed: {status} {body}");
         }
-        var req = new HttpRequestMessage(System.Net.Http.HttpMethod.Post, url + path)
+        var json = esResp.Body ?? string.Empty;
+        if (debug)
         {
-            Content = new System.Net.Http.StringContent(root.ToString(), Encoding.UTF8, "application/json")
-        };
-        var resp = await http.SendAsync(req);
-        var json = await resp.Content.ReadAsStringAsync();
-        if (!resp.IsSuccessStatusCode)
-        {
-            throw new Exception($"ES search failed: {(int)resp.StatusCode} {json}");
+            Console.WriteLine($"[ES-RESP] status={(esResp.ApiCallDetails?.HttpStatusCode ?? 0)} body={json}");
         }
         var parsed = JObject.Parse(json);
         var hitsToken = parsed["hits"]?["hits"] as JArray ?? new JArray();
@@ -307,28 +363,20 @@ public class EntityService : IEntityService
 
     private async Task<JObject> PostRawAsync(string indexName, JObject body, string? pitId, bool useIndexPath)
     {
-        var url = _configuration["Elasticsearch:Url"]?.TrimEnd('/') ?? "http://localhost:9200";
-        var username = _configuration["Elasticsearch:Username"];
-        var password = _configuration["Elasticsearch:Password"];
         var path = useIndexPath ? $"/{indexName}/_search" : "/_search";
         if (!string.IsNullOrEmpty(pitId))
         {
             body["pit"] = new JObject { ["id"] = pitId, ["keep_alive"] = "2m" };
         }
-        using var http = new HttpClient();
-        if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
+        var endpoint = new EndpointPath(HttpMethod.POST, path);
+        var esResp = await _elasticClient.Transport.RequestAsync<StringResponse>(in endpoint, PostData.String(body.ToString()), null, null, CancellationToken.None);
+        if (!(esResp.ApiCallDetails?.HasSuccessfulStatusCode ?? false))
         {
-            var bytes = Encoding.ASCII.GetBytes($"{username}:{password}");
-            http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(bytes));
+            var status = esResp.ApiCallDetails?.HttpStatusCode ?? 0;
+            var respBody = esResp.ApiCallDetails?.ResponseBodyInBytes != null ? Encoding.UTF8.GetString(esResp.ApiCallDetails.ResponseBodyInBytes) : esResp.Body;
+            throw new Exception($"ES raw post failed: {status} {respBody}");
         }
-        var req = new HttpRequestMessage(System.Net.Http.HttpMethod.Post, url + path)
-        {
-            Content = new StringContent(body.ToString(), Encoding.UTF8, "application/json")
-        };
-        var resp = await http.SendAsync(req);
-        var json = await resp.Content.ReadAsStringAsync();
-        if (!resp.IsSuccessStatusCode) throw new Exception($"ES raw post failed: {(int)resp.StatusCode} {json}");
-        return JObject.Parse(json);
+        return JObject.Parse(esResp.Body ?? "{}");
     }
 
     // Removed NEST legacy search after v8 migration
@@ -410,14 +458,21 @@ public class EntityService : IEntityService
     {
         var (indexName, _, idField) = GetEntitySpec(entity);
         var id = document[idField]?.ToString() ?? document["Id"]?.ToString() ?? document["id"]?.ToString();
+        var camelDoc = (JObject)ToCamelCaseKeys(document);
         Elastic.Clients.Elasticsearch.IndexResponse resp;
         if (!string.IsNullOrWhiteSpace(id))
         {
-            resp = await _elasticClient.IndexAsync<object>(document.ToObject<object>()!, i => i.Index(indexName).Id(id!).Refresh(Refresh.WaitFor));
+            var payload = JTokenToPlain(camelDoc)!;
+            resp = await _elasticClient.IndexAsync<object>(payload, i => i.Index(indexName).Id(id!).Refresh(Refresh.WaitFor));
         }
         else
         {
-            resp = await _elasticClient.IndexAsync<object>(document.ToObject<object>()!, i => i.Index(indexName).Refresh(Refresh.WaitFor));
+            var payload = JTokenToPlain(camelDoc)!;
+            resp = await _elasticClient.IndexAsync<object>(payload, i => i.Index(indexName).Refresh(Refresh.WaitFor));
+        }
+        if (debug)
+        {
+            Console.WriteLine($"[ES-INDEX] index={indexName} id={(id ?? "<auto>")} result={resp.Result} valid={resp.IsValidResponse}");
         }
         return new WriteResult { Success = resp.IsValidResponse, Message = resp.Result.ToString() };
     }
@@ -425,7 +480,9 @@ public class EntityService : IEntityService
     public async Task<WriteResult> UpdateAsync(string entity, string id, JObject document)
     {
         var (indexName, _, _) = GetEntitySpec(entity);
-        var resp = await _elasticClient.IndexAsync<object>(document.ToObject<object>()!, i => i.Index(indexName).Id(id).Refresh(Refresh.WaitFor));
+        var camelDoc = (JObject)ToCamelCaseKeys(document);
+        var payload = JTokenToPlain(camelDoc)!;
+        var resp = await _elasticClient.IndexAsync<object>(payload, i => i.Index(indexName).Id(id).Refresh(Refresh.WaitFor));
         return new WriteResult { Success = resp.IsValidResponse, Message = resp.Result.ToString() };
     }
 
@@ -564,7 +621,7 @@ private static RulesetDto MapToDto(Ruleset rr)
             try
             {
                 var doc = hit.Source;
-                var categories = (doc["Categories"] as JArray) ?? new JArray();
+                var categories = (doc["categories"] as JArray) ?? new JArray();
                 if (request.RemoveCategory)
                 {
                     if (categories.Count > 0)
@@ -575,7 +632,7 @@ private static RulesetDto MapToDto(Ruleset rr)
                         if (!string.IsNullOrEmpty(toRemove))
                         {
                             var remaining = new JArray(categories.Where(t => !string.Equals(t?.ToString(), toRemove, StringComparison.OrdinalIgnoreCase)));
-                            doc["Categories"] = remaining;
+                            doc["categories"] = remaining;
                             var updateResponse = await UpdateAsync(entity, hit.Id, doc);
                             if (updateResponse.Success)
                             {
@@ -595,7 +652,7 @@ private static RulesetDto MapToDto(Ruleset rr)
                     if (!exists)
                     {
                         categories.Add(request.Category);
-                        doc["Categories"] = categories;
+                        doc["categories"] = categories;
                         var updateResponse = await UpdateAsync(entity, hit.Id, doc);
                         if (updateResponse.Success)
                         {
@@ -664,7 +721,7 @@ private static RulesetDto MapToDto(Ruleset rr)
             try
             {
                 var doc = hit.Source;
-                var current = (doc["Categories"] as JArray) ?? new JArray();
+                var current = (doc["categories"] as JArray) ?? new JArray();
                 if (toRemove.Any() && current.Any())
                 {
                     current = new JArray(current.Where(t => !toRemove.Any(r => string.Equals(t?.ToString() ?? string.Empty, r, StringComparison.OrdinalIgnoreCase))));
@@ -678,7 +735,7 @@ private static RulesetDto MapToDto(Ruleset rr)
                     }
                 }
 
-                doc["Categories"] = current;
+                doc["categories"] = current;
                 var updateResponse = await UpdateAsync(entity, hit.Id, doc);
                 if (updateResponse.Success)
                 {

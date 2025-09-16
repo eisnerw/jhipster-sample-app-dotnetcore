@@ -13,6 +13,8 @@ using System.Net;
 using JhipsterSampleApplication.Dto;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -31,7 +33,8 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         public Task<IActionResult> Create([FromBody] BirthdayDto dto)
         {
-            var obj = JObject.FromObject(dto);
+            var settings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+            var obj = JObject.FromObject(dto, JsonSerializer.Create(settings));
             return _entityController.Create("birthday", obj);
         }
 
@@ -70,9 +73,10 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         public Task<IActionResult> Update(string id, [FromBody] BirthdayDto dto)
         {
-            var obj = JObject.FromObject(dto);
-            obj["Id"] = id;
-            return _entityController.Create("birthday", obj);
+            var settings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+            var obj = JObject.FromObject(dto, JsonSerializer.Create(settings));
+            obj["id"] = id;
+            return _entityController.Update("birthday", id, obj);
         }
 
         [HttpDelete("{id}")]
@@ -211,6 +215,13 @@ namespace JhipsterSampleApplication.Controllers
         public Task<IActionResult> GetHealth()
         {
             return _entityController.GetHealth();
+        }
+
+        [HttpGet("query-builder-spec")]
+        [Produces("application/json")]
+        public IActionResult GetQueryBuilderSpec()
+        {
+            return _entityController.GetQueryBuilderSpec("birthday");
         }
     }
 }
