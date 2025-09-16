@@ -65,9 +65,8 @@ public class EntityService : IEntityService
     {
         if (string.Equals(field, "_id", StringComparison.OrdinalIgnoreCase)) return "_id";
         if (string.Equals(field, "id", StringComparison.OrdinalIgnoreCase)) return "_id";
-        if (string.Equals(entity, "movies", StringComparison.OrdinalIgnoreCase))
-        {
-            if (string.Equals(field, "title", StringComparison.OrdinalIgnoreCase)) return "title.keyword";
+        if (!field.Contains(".keyword")){
+            field = $"{field}.keyword";
         }
         return field;
     }

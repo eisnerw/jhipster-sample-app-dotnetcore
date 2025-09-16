@@ -127,7 +127,8 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? pitId = null,
             [FromQuery] string[]? searchAfter = null)
         {
-            return _entityController.SearchWithBql("movie", bqlQuery, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
+            // overriding sort (for now)
+            return _entityController.SearchWithBql("movie", bqlQuery, view, category, secondaryCategory, includeDetails, from, pageSize, "title"/*sort*/, pitId, searchAfter);
         }
 
         [HttpPost("search/ruleset")]
