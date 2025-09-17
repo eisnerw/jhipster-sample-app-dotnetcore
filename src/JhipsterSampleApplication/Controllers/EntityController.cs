@@ -373,14 +373,11 @@ namespace JhipsterSampleApplication.Controllers
         [Produces("application/json")]
         public IActionResult GetQueryBuilderSpec([FromRoute] string entity)
         {
-            var fileName = ($"{entity}" ?? string.Empty).ToLowerInvariant() + "-qb-spec.json";
-            var path = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "query-builder", fileName);
-            if (!System.IO.File.Exists(path))
+            if (_specRegistry.TryGetObject(entity, "queryBuilder", out var qb))
             {
-                return NotFound("Spec file not found");
+                return Content(qb.ToJsonString(), "application/json");
             }
-            var json = System.IO.File.ReadAllText(path);
-            return Content(json, "application/json");
+            return NotFound("Query builder spec not found for entity.");
         }
 
         [HttpGet("{entity}/spec")]
