@@ -40,11 +40,10 @@ public class BirthdayServiceRangeQueryTest
         services.AddSingleton(esClient);
 
         var serviceProvider = services.BuildServiceProvider();
-
-        var viewService = new Mock<IViewService>().Object;
         var namedQueryService = new Mock<INamedQueryService>().Object;
-        var specRegistry = new Mock<JhipsterSampleApplication.Domain.Services.IEntitySpecRegistry>().Object;
-        _service = new EntityService(serviceProvider, viewService, namedQueryService, specRegistry);
+        // Use real spec registry backed by Resources/Entities copied into test output
+        var specRegistry = new JhipsterSampleApplication.Domain.Services.EntitySpecRegistry(configuration);
+        _service = new EntityService(serviceProvider, namedQueryService, specRegistry);
     }
 
     [Theory]

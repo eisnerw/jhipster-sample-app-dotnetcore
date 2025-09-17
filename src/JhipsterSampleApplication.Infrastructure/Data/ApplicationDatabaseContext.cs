@@ -23,7 +23,6 @@ namespace JhipsterSampleApplication.Infrastructure.Data
     {
         private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
-        public required DbSet<View> Views { get; set; }
         public required DbSet<NamedQuery> NamedQueries { get; set; }
         public required DbSet<Selector> Selectors { get; set; }
         public required DbSet<History> Histories { get; set; }
@@ -63,15 +62,7 @@ namespace JhipsterSampleApplication.Infrastructure.Data
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Entity<View>(entity =>
-            {
-                entity.ToTable("view");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Id).ValueGeneratedOnAdd();
-                entity.Property(e => e.Name).IsRequired();
-                entity.Property(e => e.Query).IsRequired();
-                entity.Property(e => e.CategoryQuery).IsRequired(false);
-            });
+            // Views are now sourced from entity specifications; no EF table mapping
 
             builder.Entity<NamedQuery>(entity =>
             {

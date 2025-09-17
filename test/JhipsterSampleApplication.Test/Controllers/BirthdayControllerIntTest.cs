@@ -92,7 +92,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             await EsAwait.AwaitApiHitsAsync<SearchResultDto<BirthdayDto>>(
                 _client,
                 $"/api/Birthdays/search/lucene?query={Uri.EscapeDataString(luceneQuery)}",
-                r => r.Hits?.Count ?? 0
+                r => r.Hits?.Count ?? 0, expected: 1
             );
             var luceneResponse = await _client.GetAsync($"/api/Birthdays/search/lucene?query={Uri.EscapeDataString(luceneQuery)}");
             luceneResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -197,15 +197,11 @@ namespace JhipsterSampleApplication.Test.Controllers
 
             // Wait for the deletion to finish
             _elasticClient.Indices.Refresh("birthdays");
-            await EsAwait.AwaitApiHitsAsync<SearchResultDto<ViewResultDto>>(
-                _client,
-                $"/api/Birthdays/search/lucene?query={Uri.EscapeDataString("fname:\"viewTestObject\"")}&view=sign/birth%20year",
-                r => r.Hits?.Count ?? 0, expected: 2
-            );
+            // This expectation depends on TestViewOperations seeding; remove cross-test dependency
             await EsAwait.AwaitApiHitsAsync<SearchResultDto<BirthdayDto>>(
                 _client,
                 $"/api/Birthdays/search/lucene?query={Uri.EscapeDataString(luceneQuery)}",
-                r => r.Hits?.Count ?? 0
+                r => r.Hits?.Count ?? 0, expected: 0
             );
 
             // Verify deletion
@@ -246,6 +242,12 @@ namespace JhipsterSampleApplication.Test.Controllers
                 $"/api/Birthdays/search/lucene?query={Uri.EscapeDataString($"lname:\"{testBirthday.Lname}\"")}",
                 r => r.Hits?.Count ?? 0
             );
+            // Seed two CatMulti docs so this test is self-contained
+            var seed1 = new BirthdayDto { Id = Guid.NewGuid().ToString(), Lname = "CatMulti", Fname = "One", Sign = "aries" };
+            var seed2 = new BirthdayDto { Id = Guid.NewGuid().ToString(), Lname = "CatMulti", Fname = "Two", Sign = "taurus" };
+            await _client.PostAsync("/api/Birthdays", TestUtil.ToJsonContent(seed1));
+            await _client.PostAsync("/api/Birthdays", TestUtil.ToJsonContent(seed2));
+            _elasticClient.Indices.Refresh("birthdays");
             await EsAwait.AwaitApiHitsAsync<SearchResultDto<BirthdayDto>>(
                 _client,
                 $"/api/Birthdays/search/lucene?query={Uri.EscapeDataString("lname:\"CatMulti\"")}",
@@ -294,7 +296,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             searchResult.Hits.Should().NotBeEmpty();
             searchResult.Hits.First().Lname.Should().Be(testBirthday.Lname);
 
-            // Clean up
+            // Clean up created records
             var deleteTestResponse = await _client.DeleteAsync($"/api/Birthdays/{testBirthday.Id}");
             deleteTestResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             _elasticClient.Indices.Refresh("birthdays");
@@ -303,6 +305,9 @@ namespace JhipsterSampleApplication.Test.Controllers
                 $"/api/Birthdays/search/lucene?query={Uri.EscapeDataString("lname:\"CatMulti\"")}",
                 r => r.Hits?.Count ?? 0, expected: 2
             );
+            (await _client.DeleteAsync($"/api/Birthdays/{seed1.Id}")).StatusCode.Should().Be(HttpStatusCode.OK);
+            (await _client.DeleteAsync($"/api/Birthdays/{seed2.Id}")).StatusCode.Should().Be(HttpStatusCode.OK);
+            _elasticClient.Indices.Refresh("birthdays");
         }
 
         [Fact]
@@ -382,11 +387,6 @@ namespace JhipsterSampleApplication.Test.Controllers
             await _client.DeleteAsync($"/api/Birthdays/{testBirthday1.Id}");
             await _client.DeleteAsync($"/api/Birthdays/{testBirthday2.Id}");
             _elasticClient.Indices.Refresh("birthdays");
-            await EsAwait.AwaitApiHitsAsync<SearchResultDto<BirthdayDto>>(
-                _client,
-                $"/api/Birthdays/search/lucene?query={Uri.EscapeDataString("fname:\"viewTestObject\"")}",
-                r => r.Hits?.Count ?? 0, expected: 3
-            );
         }
 
         [Fact]
@@ -398,11 +398,6 @@ namespace JhipsterSampleApplication.Test.Controllers
                 .Query(q => q.Term(t => t.Field("fname.keyword").Value("viewTestObject"))));
             
             _elasticClient.Indices.Refresh("birthdays");
-            await EsAwait.AwaitApiHitsAsync<SearchResultDto<BirthdayDto>>(
-                _client,
-                $"/api/Birthdays/search/lucene?query={Uri.EscapeDataString("sign:\"uncatsign\"")}",
-                r => r.Hits?.Count ?? 0, expected: 2
-            );
             Console.WriteLine($"<><><><><>Deleted {deleteResponse.Deleted} documents");
 
             // Create test objects

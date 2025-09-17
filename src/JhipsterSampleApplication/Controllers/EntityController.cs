@@ -12,6 +12,7 @@ using JhipsterSampleApplication.Dto;
 using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.Configuration;
 using JhipsterSampleApplication.Domain.Entities;
+using System.Text.Json.Nodes;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -22,16 +23,14 @@ namespace JhipsterSampleApplication.Controllers
         private readonly ElasticsearchClient _elasticClient;
         private readonly IConfiguration _configuration;
         private readonly IEntitySpecRegistry _specRegistry;
-        private readonly IViewService _viewService;
         private readonly INamedQueryService _namedQueryService;
         private readonly JhipsterSampleApplication.Domain.Services.EntityService _entityService;
 
-        public EntityController(ElasticsearchClient elasticClient, IConfiguration configuration, IEntitySpecRegistry specRegistry, IViewService viewService, INamedQueryService namedQueryService, JhipsterSampleApplication.Domain.Services.EntityService jsonService)
+        public EntityController(ElasticsearchClient elasticClient, IConfiguration configuration, IEntitySpecRegistry specRegistry, INamedQueryService namedQueryService, JhipsterSampleApplication.Domain.Services.EntityService jsonService)
         {
             _elasticClient = elasticClient;
             _configuration = configuration;
             _specRegistry = specRegistry;
-            _viewService = viewService;
             _namedQueryService = namedQueryService;
             _entityService = jsonService;
         }
@@ -88,8 +87,27 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? sort = null, [FromQuery] string? pitId = null, [FromQuery] string[]? searchAfter = null)
         {
             if (string.IsNullOrWhiteSpace(bqlQuery)) return BadRequest("Query cannot be empty");
-            var rulesetDto = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, BqlService<object>.LoadSpec(entity), entity).Bql2Ruleset(bqlQuery.Trim());
-            var ruleset = new Ruleset { field = rulesetDto.field, @operator = rulesetDto.@operator, value = rulesetDto.value, condition = rulesetDto.condition, not = rulesetDto.not, rules = rulesetDto.rules?.Select(r => new Ruleset { field = r.field, @operator = r.@operator, value = r.value, condition = r.condition, not = r.not, rules = new List<Ruleset>() }).ToList() ?? new List<Ruleset>() };
+            // Prefer spec from entity registry; fall back to legacy file if needed
+            Newtonsoft.Json.Linq.JObject qbSpec;
+            if (_specRegistry.TryGetObject(entity, "queryBuilder", out JsonObject qbNode))
+            {
+                qbSpec = Newtonsoft.Json.Linq.JObject.Parse(qbNode.ToJsonString());
+            }
+            else
+            {
+                var entitiesPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "Entities", $"{entity}.json");
+                if (System.IO.File.Exists(entitiesPath))
+                {
+                    var root = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText(entitiesPath));
+                    qbSpec = (root["queryBuilder"] as Newtonsoft.Json.Linq.JObject) ?? new Newtonsoft.Json.Linq.JObject();
+                }
+                else
+                {
+                    qbSpec = BqlService<object>.LoadSpec(entity);
+                }
+            }
+            var rulesetDto = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Bql2Ruleset(bqlQuery.Trim());
+            var ruleset = MapRuleset(rulesetDto);
             var queryObject = await _entityService.ConvertRulesetToElasticSearch(entity, ruleset);
             return await Search(entity, queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
         }
@@ -103,7 +121,7 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] bool includeDetails = false, [FromQuery] int from = 0, [FromQuery] int pageSize = 20,
             [FromQuery] string? sort = null, [FromQuery] string? pitId = null, [FromQuery] string[]? searchAfter = null)
         {
-            var ruleset = new Ruleset { field = rulesetDto.field, @operator = rulesetDto.@operator, value = rulesetDto.value, condition = rulesetDto.condition, not = rulesetDto.not, rules = rulesetDto.rules?.Select(r => new Ruleset { field = r.field, @operator = r.@operator, value = r.value, condition = r.condition, not = r.not, rules = new List<Ruleset>() }).ToList() ?? new List<Ruleset>() };
+            var ruleset = MapRuleset(rulesetDto);
             var queryObject = await _entityService.ConvertRulesetToElasticSearch(entity, ruleset);
             return await Search(entity, queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
         }
@@ -120,7 +138,7 @@ namespace JhipsterSampleApplication.Controllers
             bool isHitFromViewDrilldown = false;
             if (!string.IsNullOrEmpty(view))
             {
-                var viewDto = await _viewService.GetByIdAsync(view);
+                var viewDto = GetViewById(entity, view);
                 if (viewDto == null) throw new ArgumentException($"view '{view}' not found");
                 if (category == null)
                 {
@@ -166,7 +184,7 @@ namespace JhipsterSampleApplication.Controllers
                         }
                     };
                 }
-                var secondaryViewDto = await _viewService.GetChildByParentIdAsync(view);
+                var secondaryViewDto = GetChildViewByParentId(entity, view);
                 if (secondaryViewDto != null)
                 {
                     if (secondaryCategory == null)
@@ -302,7 +320,25 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<ActionResult<RulesetDto>> ConvertBqlToRuleset([FromRoute] string entity, [FromBody] string query)
         {
             if (string.IsNullOrWhiteSpace(query)) return BadRequest("Query cannot be empty");
-            var ruleset = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, BqlService<object>.LoadSpec(entity), entity).Bql2Ruleset(query.Trim());
+            Newtonsoft.Json.Linq.JObject qbSpec;
+            if (_specRegistry.TryGetObject(entity, "queryBuilder", out JsonObject qbNode))
+            {
+                qbSpec = Newtonsoft.Json.Linq.JObject.Parse(qbNode.ToJsonString());
+            }
+            else
+            {
+                var entitiesPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "Entities", $"{entity}.json");
+                if (System.IO.File.Exists(entitiesPath))
+                {
+                    var root = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText(entitiesPath));
+                    qbSpec = (root["queryBuilder"] as Newtonsoft.Json.Linq.JObject) ?? new Newtonsoft.Json.Linq.JObject();
+                }
+                else
+                {
+                    qbSpec = BqlService<object>.LoadSpec(entity);
+                }
+            }
+            var ruleset = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Bql2Ruleset(query.Trim());
             return Ok(ruleset);
         }
 
@@ -327,7 +363,25 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(400)]
         public async Task<ActionResult<string>> ConvertRulesetToBql([FromRoute] string entity, [FromBody] RulesetDto ruleset)
         {
-            var bqlQuery = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, BqlService<object>.LoadSpec(entity), entity).Ruleset2Bql(ruleset);
+            Newtonsoft.Json.Linq.JObject qbSpec;
+            if (_specRegistry.TryGetObject(entity, "queryBuilder", out JsonObject qbNode))
+            {
+                qbSpec = Newtonsoft.Json.Linq.JObject.Parse(qbNode.ToJsonString());
+            }
+            else
+            {
+                var entitiesPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "Entities", $"{entity}.json");
+                if (System.IO.File.Exists(entitiesPath))
+                {
+                    var root = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText(entitiesPath));
+                    qbSpec = (root["queryBuilder"] as Newtonsoft.Json.Linq.JObject) ?? new Newtonsoft.Json.Linq.JObject();
+                }
+                else
+                {
+                    qbSpec = BqlService<object>.LoadSpec(entity);
+                }
+            }
+            var bqlQuery = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Ruleset2Bql(ruleset);
             return Ok(bqlQuery);
         }
 
@@ -336,9 +390,23 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(400)]
         public async Task<ActionResult<object>> ConvertRulesetToElasticSearch([FromRoute] string entity, [FromBody] RulesetDto rulesetDto)
         {
-            var ruleset = new Ruleset { field = rulesetDto.field, @operator = rulesetDto.@operator, value = rulesetDto.value, condition = rulesetDto.condition, not = rulesetDto.not, rules = rulesetDto.rules?.Select(r => new Ruleset { field = r.field, @operator = r.@operator, value = r.value, condition = r.condition, not = r.not, rules = new List<Ruleset>() }).ToList() ?? new List<Ruleset>() };
+            var ruleset = MapRuleset(rulesetDto);
             var elasticQuery = await _entityService.ConvertRulesetToElasticSearch(entity, ruleset);
             return Ok(elasticQuery);
+        }
+
+        private static Ruleset MapRuleset(RulesetDto dto)
+        {
+            if (dto == null) return new Ruleset();
+            return new Ruleset
+            {
+                field = dto.field,
+                @operator = dto.@operator,
+                value = dto.value,
+                condition = dto.condition,
+                @not = dto.not,
+                rules = dto.rules?.Select(MapRuleset).ToList()
+            };
         }
 
         [HttpGet("health")]
@@ -368,6 +436,51 @@ namespace JhipsterSampleApplication.Controllers
 
         private Task<SimpleApiResponse> CategorizeMultipleAsync(string entity, CategorizeMultipleRequestDto request)
             => _entityService.CategorizeMultipleAsync(entity, request);
+
+        private ViewDto? GetViewById(string entity, string idOrName)
+        {
+            if (_specRegistry.TryGetArray(entity, "views", out var arr))
+            {
+                foreach (var node in arr.OfType<JsonObject>())
+                {
+                    var id = node["id"]?.GetValue<string>();
+                    var name = node["name"]?.GetValue<string>();
+                    if (string.Equals(id, idOrName, StringComparison.OrdinalIgnoreCase) || string.Equals(name, idOrName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return MapView(node);
+                    }
+                }
+            }
+            return null;
+        }
+
+        private ViewDto? GetChildViewByParentId(string entity, string parentId)
+        {
+            if (_specRegistry.TryGetArray(entity, "views", out var arr))
+            {
+                var matches = arr.OfType<JsonObject>()
+                    .Where(v => string.Equals(v["parentViewId"]?.GetValue<string>(), parentId, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                if (matches.Count == 1) return MapView(matches[0]);
+            }
+            return null;
+        }
+
+        private static ViewDto MapView(JsonObject o)
+        {
+            return new ViewDto
+            {
+                Id = o["id"]?.GetValue<string>(),
+                Name = o["name"]?.GetValue<string>(),
+                Field = o["field"]?.GetValue<string>(),
+                Aggregation = o["aggregation"]?.GetValue<string>(),
+                Query = o["query"]?.GetValue<string>(),
+                CategoryQuery = o["categoryQuery"]?.GetValue<string>(),
+                Script = o["script"]?.GetValue<string>(),
+                parentViewId = o["parentViewId"]?.GetValue<string>(),
+                Domain = o["domain"]?.GetValue<string>()
+            };
+        }
 
         [HttpGet("{entity}/query-builder-spec")]
         [Produces("application/json")]

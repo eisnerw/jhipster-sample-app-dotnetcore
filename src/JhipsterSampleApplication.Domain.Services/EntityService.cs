@@ -29,7 +29,6 @@ namespace JhipsterSampleApplication.Domain.Services;
 public class EntityService : IEntityService
 {
     private readonly ElasticsearchClient _elasticClient;
-    private readonly IViewService _viewService;
     // Verbose ES request logging (can be toggled via env var ES_DEBUG=true)
     private static bool debug = Environment.GetEnvironmentVariable("ES_DEBUG")?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
     private readonly IEntitySpecRegistry _specRegistry;
@@ -42,10 +41,9 @@ public class EntityService : IEntityService
     /// <param name="elasticClient">The Elasticsearch client</param>
     /// <param name="bqlService">The BQL service</param>
     /// <param name="viewService">The View service</param>
-    public EntityService(IServiceProvider serviceProvider, IViewService viewService, INamedQueryService namedQueryService, IEntitySpecRegistry specRegistry)
+    public EntityService(IServiceProvider serviceProvider, INamedQueryService namedQueryService, IEntitySpecRegistry specRegistry)
     {
         _elasticClient = serviceProvider.GetRequiredService<ElasticsearchClient>();
-        _viewService = viewService ?? throw new ArgumentNullException(nameof(viewService));
         _specRegistry = specRegistry ?? throw new ArgumentNullException(nameof(specRegistry));
         _namedQueryService = namedQueryService ?? throw new ArgumentNullException(nameof(namedQueryService));
         _loggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? LoggerFactory.Create(_ => { });
@@ -557,7 +555,26 @@ public async Task<JObject> ConvertRulesetToElasticSearch(string entity, Ruleset 
 
     var dto = MapToDto(rr);
     // Build BQL service for this entity on the fly using its QB spec
-    var qbSpec = BqlService<JObject>.LoadSpec(entity);
+    JObject qbSpec;
+    if (_specRegistry.TryGetObject(entity, "queryBuilder", out var qbNode))
+    {
+        qbSpec = JObject.Parse(qbNode.ToJsonString());
+    }
+    else
+    {
+        // Fallback 1: parse from Entities JSON in Resources if available
+        var entitiesPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "Entities", $"{entity}.json");
+        if (System.IO.File.Exists(entitiesPath))
+        {
+            var root = JObject.Parse(System.IO.File.ReadAllText(entitiesPath));
+            qbSpec = (root["queryBuilder"] as JObject) ?? new JObject();
+        }
+        else
+        {
+            // Fallback 2: legacy query-builder file location
+            qbSpec = BqlService<JObject>.LoadSpec(entity);
+        }
+    }
     var logger = _loggerFactory.CreateLogger<BqlService<JObject>>();
     var bql = new BqlService<JObject>(logger, _namedQueryService, qbSpec, entity);
     var result = await bql.Ruleset2ElasticSearch(dto);

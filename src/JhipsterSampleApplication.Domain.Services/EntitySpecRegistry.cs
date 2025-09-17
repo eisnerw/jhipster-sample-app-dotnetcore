@@ -25,6 +25,9 @@ public interface IEntitySpecRegistry
 
     /// <summary>Attempts to get an object node from an entity specification.</summary>
     bool TryGetObject(string entity, string property, out JsonObject value);
+
+    /// <summary>Attempts to get an array node from an entity specification.</summary>
+    bool TryGetArray(string entity, string property, out JsonArray value);
 }
 
 /// <summary>
@@ -82,5 +85,15 @@ public sealed class EntitySpecRegistry : IEntitySpecRegistry
         }
         return false;
     }
-}
 
+    public bool TryGetArray(string entity, string property, out JsonArray value)
+    {
+        value = default!;
+        if (_specs.TryGetValue(entity, out var obj) && obj[property] is JsonArray a)
+        {
+            value = a;
+            return true;
+        }
+        return false;
+    }
+}
