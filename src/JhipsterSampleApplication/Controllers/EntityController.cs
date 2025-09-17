@@ -382,5 +382,19 @@ namespace JhipsterSampleApplication.Controllers
             var json = System.IO.File.ReadAllText(path);
             return Content(json, "application/json");
         }
+
+        [HttpGet("{entity}/spec")]
+        [Produces("application/json")]
+        public IActionResult GetEntitySpec([FromRoute] string entity)
+        {
+            var fileName = ($"{entity}" ?? string.Empty).ToLowerInvariant() + ".json";
+            var path = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "Entities", fileName);
+            if (!System.IO.File.Exists(path))
+            {
+                return NotFound("Entity spec file not found");
+            }
+            var json = System.IO.File.ReadAllText(path);
+            return Content(json, "application/json");
+        }
     }
 }

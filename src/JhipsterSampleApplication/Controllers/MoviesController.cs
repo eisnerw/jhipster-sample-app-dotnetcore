@@ -32,7 +32,14 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         public Task<IActionResult> Create([FromBody] MovieDto dto)
         {
-            var obj = JObject.FromObject(dto);
+            var settings = new Newtonsoft.Json.JsonSerializerSettings
+            {
+                ContractResolver = new Newtonsoft.Json.Serialization.DefaultContractResolver
+                {
+                    NamingStrategy = new Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy()
+                }
+            };
+            var obj = JObject.FromObject(dto, Newtonsoft.Json.JsonSerializer.Create(settings));
             return _entityController.Create("movie", obj);
         }
 
@@ -76,20 +83,20 @@ namespace JhipsterSampleApplication.Controllers
             }
 
             AppendField("Title", Encode(m.Value<string>("Title")));
-            AppendField("Release Year", Encode(m.Value<int?>("ReleaseYear")?.ToString()));
-            AppendField("Genres", Join(m["Genres"]?.ToObject<List<string>>()));
-            AppendField("Runtime", Encode(m.Value<int?>("RuntimeMinutes")?.ToString()));
-            AppendField("Country", Encode(m.Value<string>("Country")));
-            AppendField("Languages", Join(m["Languages"]?.ToObject<List<string>>()));
-            AppendField("Directors", Join(m["Directors"]?.ToObject<List<string>>()));
-            AppendField("Producers", Join(m["Producers"]?.ToObject<List<string>>()));
-            AppendField("Writers", Join(m["Writers"]?.ToObject<List<string>>()));
-            AppendField("Cast", Join(m["Cast"]?.ToObject<List<string>>()));
-            AppendField("Budget", Encode(m.Value<long?>("BudgetUsd")?.ToString()));
-            AppendField("Gross", Encode(m.Value<long?>("GrossUsd")?.ToString()));
-            AppendField("Rotten Tomatoes", Encode(m.Value<int?>("RottenTomatoesScore")?.ToString()));
-            AppendField("Summary", Encode(m.Value<string>("Summary")));
-            AppendField("Synopsis", Encode(m.Value<string>("Synopsis")));
+            AppendField("Release Year", Encode(m.Value<int?>("release_year")?.ToString()));
+            AppendField("Genres", Join(m["genres"]?.ToObject<List<string>>()));
+            AppendField("Runtime", Encode(m.Value<int?>("runtime_minutes")?.ToString()));
+            AppendField("Country", Encode(m.Value<string>("country")));
+            AppendField("Languages", Join(m["languages"]?.ToObject<List<string>>()));
+            AppendField("Directors", Join(m["directors"]?.ToObject<List<string>>()));
+            AppendField("Producers", Join(m["producers"]?.ToObject<List<string>>()));
+            AppendField("Writers", Join(m["writers"]?.ToObject<List<string>>()));
+            AppendField("Cast", Join(m["cast"]?.ToObject<List<string>>()));
+            AppendField("Budget", Encode(m.Value<long?>("budget_usd")?.ToString()));
+            AppendField("Gross", Encode(m.Value<long?>("gross_usd")?.ToString()));
+            AppendField("Rotten Tomatoes", Encode(m.Value<int?>("rotten_tomatoes_score")?.ToString()));
+            AppendField("Summary", Encode(m.Value<string>("summary")));
+            AppendField("Synopsis", Encode(m.Value<string>("synopsis")));
 
             sb.Append("</body></html>");
             return Content(sb.ToString(), "text/html");
@@ -99,8 +106,14 @@ namespace JhipsterSampleApplication.Controllers
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         public Task<IActionResult> Update(string id, [FromBody] MovieDto dto)
         {
-            var obj = JObject.FromObject(dto);
-            obj["Id"] = id;
+            var settings = new Newtonsoft.Json.JsonSerializerSettings
+            {
+                ContractResolver = new Newtonsoft.Json.Serialization.DefaultContractResolver
+                {
+                    NamingStrategy = new Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy()
+                }
+            };
+            var obj = JObject.FromObject(dto, Newtonsoft.Json.JsonSerializer.Create(settings));
             return _entityController.Update("movie", id, obj);
         }
 
