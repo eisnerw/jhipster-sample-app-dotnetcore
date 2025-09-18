@@ -32,8 +32,8 @@ export class ViewService {
     return this.http.get<IView[]>(this.resourceUrl, { observe: 'response' });
   }
 
-  queryByDomain(domain: string): Observable<HttpResponse<IView[]>> {
-    return this.http.get<IView[]>(`${this.resourceUrl}?domain=${encodeURIComponent(domain)}`, { observe: 'response' });
+  queryByEntity(entity: string): Observable<HttpResponse<IView[]>> {
+    return this.http.get<IView[]>(`${this.resourceUrl}?entity=${encodeURIComponent(entity)}`, { observe: 'response' });
   }
 
   delete(id: string): Observable<HttpResponse<{}>> {

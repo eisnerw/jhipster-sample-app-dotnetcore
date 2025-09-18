@@ -1,7 +1,7 @@
 export interface IHistory {
   id?: number;
   user?: string | null;
-  domain?: string | null;
+  entity?: string | null;
   text?: string | null;
 }
 

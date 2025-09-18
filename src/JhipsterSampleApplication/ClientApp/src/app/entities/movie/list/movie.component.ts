@@ -377,7 +377,7 @@ export class MovieComponent implements OnInit, AfterViewInit {
   }
 
   loadViews(): void {
-    this.viewService.queryByDomain('movie').subscribe((res) => {
+    this.viewService.queryByEntity('movie').subscribe((res) => {
       const body = res.body ?? [];
       this.views = body.map((v: any) => ({ label: v.name, value: v.id! }));
     });

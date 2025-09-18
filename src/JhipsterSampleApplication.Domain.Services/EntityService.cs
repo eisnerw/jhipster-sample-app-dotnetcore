@@ -572,11 +572,11 @@ public async Task<JObject> ConvertRulesetToElasticSearch(string entity, Ruleset 
         else
         {
             // Fallback 2: legacy query-builder file location
-            qbSpec = BqlService<JObject>.LoadSpec(entity);
+            qbSpec = BqlService<object>.LoadSpec(entity);
         }
     }
-    var logger = _loggerFactory.CreateLogger<BqlService<JObject>>();
-    var bql = new BqlService<JObject>(logger, _namedQueryService, qbSpec, entity);
+    var logger = _loggerFactory.CreateLogger<BqlService<object>>();
+    var bql = new BqlService<object>(logger, _namedQueryService, qbSpec, entity);
     var result = await bql.Ruleset2ElasticSearch(dto);
     return result is JObject jo ? jo : JObject.FromObject(result);
 }

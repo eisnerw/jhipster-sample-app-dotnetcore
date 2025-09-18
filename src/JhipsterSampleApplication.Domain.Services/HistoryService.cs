@@ -19,7 +19,7 @@ namespace JhipsterSampleApplication.Domain.Services
         {
             if (!string.IsNullOrEmpty(history.User))
             {
-                var latest = await _historyRepository.FindLatestByUserAndDomain(history.User!, history.Domain);
+                var latest = await _historyRepository.FindLatestByUserAndEntity(history.User!, history.Entity);
                 if (latest != null && latest.Text == history.Text)
                 {
                     return latest;
@@ -31,9 +31,9 @@ namespace JhipsterSampleApplication.Domain.Services
             return history;
         }
 
-        public async Task<IEnumerable<History>> FindByUserAndDomain(string user, string? domain = null)
+        public async Task<IEnumerable<History>> FindByUserAndEntity(string user, string? entity = null)
         {
-            return await _historyRepository.FindByUserAndDomain(user, domain);
+            return await _historyRepository.FindByUserAndEntity(user, entity);
         }
     }
 }

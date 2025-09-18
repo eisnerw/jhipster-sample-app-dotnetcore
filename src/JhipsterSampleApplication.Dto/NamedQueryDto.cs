@@ -15,6 +15,6 @@ namespace JhipsterSampleApplication.Dto
         public string? Owner { get; set; }
 
         [Required]
-        public required string Domain { get; set; }
+        public required string Entity { get; set; }
     }
 }

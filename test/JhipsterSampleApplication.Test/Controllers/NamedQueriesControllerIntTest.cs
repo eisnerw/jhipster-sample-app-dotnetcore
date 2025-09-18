@@ -27,7 +27,7 @@ namespace JhipsterSampleApplication.Test.Controllers
         private const string DefaultName = "TestQuery";
         private const string DefaultText = "SELECT * FROM Test";
         private const string DefaultOwner = "testuser";
-        private const string DefaultDomain = "BIRTHDAY";
+        private const string DefaultEntity = "BIRTHDAY";
         private const string UpdatedName = "UpdatedQuery";
         private const string UpdatedText = "SELECT * FROM Updated";
 
@@ -92,7 +92,7 @@ namespace JhipsterSampleApplication.Test.Controllers
                 Name = name,
                 Text = text,
                 Owner = owner,
-                Domain = DefaultDomain
+                Entity = DefaultEntity
             };
             NamedQueryDto namedQueryDto = _mapper.Map<NamedQueryDto>(query);
             var response = await _client.PostAsync("/api/NamedQueries", TestUtil.ToJsonContent(namedQueryDto));
@@ -114,7 +114,7 @@ namespace JhipsterSampleApplication.Test.Controllers
                 Name = "NewQuery",
                 Text = "SELECT * FROM New",
                 Owner = DefaultOwner,
-                Domain = DefaultDomain
+                Entity = DefaultEntity
             };
             NamedQueryDto namedQueryDto = _mapper.Map<NamedQueryDto>(newQuery);
             var response = await _client.PostAsync("/api/NamedQueries", TestUtil.ToJsonContent(namedQueryDto));
@@ -127,7 +127,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             testNamedQuery.Name.Should().Be("NEWQUERY");
             testNamedQuery.Text.Should().Be("SELECT * FROM New");
             testNamedQuery.Owner.Should().Be(DefaultOwner);
-            testNamedQuery.Domain.Should().Be(DefaultDomain);
+            testNamedQuery.Entity.Should().Be(DefaultEntity);
         }
 
         [Fact]
@@ -138,7 +138,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             var query2 = await CreateTestQuery("Query2", "SELECT * FROM Test2");
 
             // Get all the namedQueryList
-            var response = await _client.GetAsync($"/api/NamedQueries?owner=ALL&domain={DefaultDomain}");
+            var response = await _client.GetAsync($"/api/NamedQueries?owner=ALL&entity={DefaultEntity}");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var json = JToken.Parse(await response.Content.ReadAsStringAsync());
@@ -154,7 +154,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             var query2 = await CreateTestQuery("Query2", "SELECT * FROM Test2", "owner2");
 
             // Get queries by owner
-            var response = await _client.GetAsync($"/api/NamedQueries?owner=owner1&domain={DefaultDomain}");
+            var response = await _client.GetAsync($"/api/NamedQueries?owner=owner1&entity={DefaultEntity}");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var json = JToken.Parse(await response.Content.ReadAsStringAsync());
@@ -170,7 +170,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             var query2 = await CreateTestQuery("Query2", "SELECT * FROM Test2");
 
             // Get queries by name
-            var response = await _client.GetAsync($"/api/NamedQueries?name=Query1&domain={DefaultDomain}");
+            var response = await _client.GetAsync($"/api/NamedQueries?name=Query1&entity={DefaultEntity}");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var json = JToken.Parse(await response.Content.ReadAsStringAsync());
@@ -186,14 +186,14 @@ namespace JhipsterSampleApplication.Test.Controllers
             var query2 = await CreateTestQuery("Query2", "SELECT * FROM Test2", "owner2");
 
             // Get query by name and owner
-            var response = await _client.GetAsync($"/api/NamedQueries?name=Query1&owner=owner1&domain={DefaultDomain}");
+            var response = await _client.GetAsync($"/api/NamedQueries?name=Query1&owner=owner1&entity={DefaultEntity}");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var json = JToken.Parse(await response.Content.ReadAsStringAsync());
             ((string)json["name"]).Should().Be("Query1".ToUpperInvariant());
             ((string)json["text"]).Should().Be("SELECT * FROM Test1");
             ((string)json["owner"]).Should().Be("owner1");
-            ((string)json["domain"]).Should().Be(DefaultDomain);
+            ((string)json["entity"]).Should().Be(DefaultEntity);
             ((long)json["id"]).Should().Be(query1.Id);
         }
 
@@ -210,7 +210,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             var json = JToken.Parse(await response.Content.ReadAsStringAsync());
             ((string)json["name"]).Should().Be(DefaultName.ToUpperInvariant());
             ((long)json["id"]).Should().Be(query.Id);
-            ((string)json["domain"]).Should().Be(DefaultDomain);
+            ((string)json["entity"]).Should().Be(DefaultEntity);
         }
 
         [Fact]

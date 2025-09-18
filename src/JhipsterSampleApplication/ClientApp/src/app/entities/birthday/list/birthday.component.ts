@@ -475,7 +475,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   loadViews(): void {
-    this.viewService.queryByDomain('birthday').subscribe((res) => {
+    this.viewService.queryByEntity('birthday').subscribe((res) => {
       const body = res.body ?? [];
       this.views = body.map((v) => ({ label: v.name, value: v.id! }));
     });

@@ -43,11 +43,11 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label" for="field_domain" jhiTranslate="jhipsterSampleApplicationApp.namedQuery.domain">Domain</label>
-            <input type="text" class="form-control" name="domain" id="field_domain" data-cy="domain" formControlName="domain" />
-            @if (editForm.get('domain')!.invalid && (editForm.get('domain')!.dirty || editForm.get('domain')!.touched)) {
+            <label class="form-label" for="field_entity" jhiTranslate="jhipsterSampleApplicationApp.namedQuery.entity">Entity</label>
+            <input type="text" class="form-control" name="entity" id="field_entity" data-cy="entity" formControlName="entity" />
+            @if (editForm.get('entity')!.invalid && (editForm.get('entity')!.dirty || editForm.get('entity')!.touched)) {
               <div>
-                @if (editForm.get('domain')?.errors?.required) {
+                @if (editForm.get('entity')?.errors?.required) {
                   <small class="form-text text-danger" jhiTranslate="entity.validation.required"> This field is required. </small>
                 }
               </div>

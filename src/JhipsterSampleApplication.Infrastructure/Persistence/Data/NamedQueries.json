@@ -4,20 +4,20 @@
     "name": "ALIVE",
     "text": "isAlive = true",
     "owner": "GLOBAL",
-    "domain": "BIRTHDAY"
+    "entity": "BIRTHDAY"
   },
   {
     "id": 1,
     "name": "JOHNSONS",
     "text": "lname=johnson",
     "owner": "GLOBAL",
-    "domain": "BIRTHDAY"
+    "entity": "BIRTHDAY"
   },
   {
     "id": 3,
     "name": "MRF",
     "text": "advocates CONTAINS mark & advocates CONTAINS freeman & ",
     "owner": "GLOBAL",
-    "domain": "SUPREME"
+    "entity": "SUPREME"
   }
 ]

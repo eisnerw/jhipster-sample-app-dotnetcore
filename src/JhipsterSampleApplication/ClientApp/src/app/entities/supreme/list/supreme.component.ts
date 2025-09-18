@@ -373,7 +373,7 @@ export class SupremeComponent implements OnInit, AfterViewInit {
   }
 
   loadViews(): void {
-    this.viewService.queryByDomain('supreme').subscribe((res) => {
+    this.viewService.queryByEntity('supreme').subscribe((res) => {
       const body = res.body ?? [];
       this.views = body.map((v: any) => ({ label: v.name, value: v.id! }));
     });

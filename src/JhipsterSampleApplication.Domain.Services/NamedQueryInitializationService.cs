@@ -70,13 +70,13 @@ namespace JhipsterSampleApplication.Domain.Services
                                 continue;
                             }
 
-                            if (string.IsNullOrEmpty(namedQuery.Domain))
+                            if (string.IsNullOrEmpty(namedQuery.Entity))
                             {
-                                _logger.LogError("Named query {QueryName} in file {File} has null or empty domain", namedQuery.Name, jsonFilePath);
+                                _logger.LogError("Named query {QueryName} in file {File} has null or empty entity", namedQuery.Name, jsonFilePath);
                                 continue;
                             }
 
-                            var existingQuery = await _namedQueryService.FindByNameAndOwner(namedQuery.Name, namedQuery.Owner, namedQuery.Domain);
+                            var existingQuery = await _namedQueryService.FindByNameAndOwner(namedQuery.Name, namedQuery.Owner, namedQuery.Entity);
                             if (existingQuery == null)
                             {
                                 var entity = new JhipsterSampleApplication.Domain.Entities.NamedQuery
@@ -84,7 +84,7 @@ namespace JhipsterSampleApplication.Domain.Services
                                     Name = namedQuery.Name,
                                     Text = namedQuery.Text,
                                     Owner = namedQuery.Owner,
-                                    Domain = namedQuery.Domain
+                                    Entity = namedQuery.Entity
                                 };
                                 await _namedQueryService.Save(entity);
                                 _logger.LogInformation("Created named query: {QueryName}", namedQuery.Name);

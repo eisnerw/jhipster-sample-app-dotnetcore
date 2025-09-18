@@ -24,14 +24,13 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public Task<IActionResult> Create([FromBody] SupremeDto dto)
+        public Task<IActionResult> Create([FromBody] JObject document)
         {
-            var obj = JObject.FromObject(dto);
-            return _entityController.Create("supreme", obj);
+            return _entityController.Create("supreme", document);
         }
 
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(SupremeDto), 200)]
+        [ProducesResponseType(typeof(JObject), 200)]
         public Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
         {
             return _entityController.GetById("supreme", id, includeDetails);
@@ -137,11 +136,9 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public Task<IActionResult> Update(string id, [FromBody] SupremeDto dto)
+        public Task<IActionResult> Update(string id, [FromBody] JObject document)
         {
-            var obj = JObject.FromObject(dto);
-            obj["Id"] = id;
-            return _entityController.Update("supreme", id, obj);
+            return _entityController.Update("supreme", id, document);
         }
 
         [HttpDelete("{id}")]
@@ -153,7 +150,7 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpPost("search/bql")]
         [Consumes("text/plain")]
-        [ProducesResponseType(typeof(SearchResultDto<SupremeDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<JObject>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public Task<IActionResult> SearchWithBql([FromBody] string bqlQuery,
@@ -171,7 +168,7 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpPost("search/ruleset")]
-        [ProducesResponseType(typeof(SearchResultDto<SupremeDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<JObject>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public Task<IActionResult> SearchWithRuleset([FromBody] RulesetDto rulesetDto,
@@ -189,7 +186,7 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpPost("search/elasticsearch")]
-        [ProducesResponseType(typeof(SearchResultDto<SupremeDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public Task<IActionResult> Search([FromBody] JObject elasticsearchQuery,
@@ -207,7 +204,7 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpGet("search/lucene")]
-        [ProducesResponseType(typeof(SearchResultDto<SupremeDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<JObject>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         public Task<IActionResult> SearchWithLuceneQuery(
             [FromQuery] string query,

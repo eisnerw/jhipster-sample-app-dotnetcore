@@ -26,15 +26,15 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<HistoryDto>>> GetAll([FromQuery] string? domain = null)
+        public async Task<ActionResult<IEnumerable<HistoryDto>>> GetAll([FromQuery] string? entity = null)
         {
             var user = User?.Identity?.Name;
             if (string.IsNullOrEmpty(user))
             {
                 return Unauthorized();
             }
-            var histories = await _historyService.FindByUserAndDomain(user, domain);
-            return Ok(histories.Select(h => new HistoryDto { Id = h.Id, User = h.User, Domain = h.Domain, Text = h.Text }));
+            var histories = await _historyService.FindByUserAndEntity(user, entity);
+            return Ok(histories.Select(h => new HistoryDto { Id = h.Id, User = h.User, Entity = h.Entity, Text = h.Text }));
         }
 
         [HttpPost]
@@ -45,9 +45,9 @@ namespace JhipsterSampleApplication.Controllers
             {
                 return Unauthorized();
             }
-            var history = new History { User = user, Domain = historyDto.Domain ?? string.Empty, Text = historyDto.Text };
+            var history = new History { User = user, Entity = historyDto.Entity ?? string.Empty, Text = historyDto.Text };
             var saved = await _historyService.Save(history);
-            var result = new HistoryDto { Id = saved.Id, User = saved.User, Domain = saved.Domain, Text = saved.Text };
+            var result = new HistoryDto { Id = saved.Id, User = saved.User, Entity = saved.Entity, Text = saved.Text };
             return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
         }
 
@@ -59,13 +59,13 @@ namespace JhipsterSampleApplication.Controllers
             {
                 return Unauthorized();
             }
-            var histories = await _historyService.FindByUserAndDomain(user, null);
+            var histories = await _historyService.FindByUserAndEntity(user, null);
             var history = histories.FirstOrDefault(h => h.Id == id);
             if (history == null)
             {
                 return NotFound();
             }
-            return Ok(new HistoryDto { Id = history.Id, User = history.User, Domain = history.Domain, Text = history.Text });
+            return Ok(new HistoryDto { Id = history.Id, User = history.User, Entity = history.Entity, Text = history.Text });
         }
 
         [HttpDelete("{id}")]
@@ -77,13 +77,13 @@ namespace JhipsterSampleApplication.Controllers
             {
                 return Unauthorized();
             }
-            var histories = await _historyService.FindByUserAndDomain(user, null);
+            var histories = await _historyService.FindByUserAndEntity(user, null);
             var history = histories.FirstOrDefault(h => h.Id == id);
             if (history == null)
             {
                 return NotFound();
             }
-            await _historyService.Save(new History { Id = id, User = history.User, Domain = history.Domain, Text = history.Text });
+            await _historyService.Save(new History { Id = id, User = history.User, Entity = history.Entity, Text = history.Text });
             return NoContent();
         }
     }

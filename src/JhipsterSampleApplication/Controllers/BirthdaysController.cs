@@ -31,15 +31,13 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public Task<IActionResult> Create([FromBody] BirthdayDto dto)
+        public Task<IActionResult> Create([FromBody] JObject document)
         {
-            var settings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
-            var obj = JObject.FromObject(dto, JsonSerializer.Create(settings));
-            return _entityController.Create("birthday", obj);
+            return _entityController.Create("birthday", document);
         }
 
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(BirthdayDto), 200)]
+        [ProducesResponseType(typeof(JObject), 200)]
         public Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
         {
             return _entityController.GetById("birthday", id, includeDetails);
@@ -71,26 +69,21 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public Task<IActionResult> Update(string id, [FromBody] BirthdayDto dto)
+        public Task<IActionResult> Update(string id, [FromBody] JObject document)
         {
-            var settings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
-            var obj = JObject.FromObject(dto, JsonSerializer.Create(settings));
-            obj["id"] = id;
-            return _entityController.Update("birthday", id, obj);
+            return _entityController.Update("birthday", id, document);
         }
 
         [HttpDelete("{id}")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         public Task<IActionResult> Delete(string id)
         {
-            var deleteReq = new CategorizeRequestDto { Ids = new List<string> { id }, Category = "__DELETE__", RemoveCategory = true };
-            // Use EntityController Delete equivalent by calling Delete endpoint directly is not set; fallback by updating service
             return _entityController.Delete("birthday", id);
         }
 
         [HttpPost("search/bql")]
         [Consumes("text/plain")]
-        [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<JObject>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public Task<IActionResult> SearchWithBql([FromBody] string bqlQuery,
@@ -108,7 +101,7 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpPost("search/ruleset")]
-        [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<JObject>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public Task<IActionResult> SearchWithRuleset([FromBody] RulesetDto rulesetDto,
@@ -126,7 +119,7 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpPost("search/elasticsearch")]
-        [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<JObject>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public Task<IActionResult> Search([FromBody] JObject elasticsearchQuery,
@@ -144,7 +137,7 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpGet("search/lucene")]
-        [ProducesResponseType(typeof(SearchResultDto<BirthdayDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<JObject>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         public Task<IActionResult> SearchWithLuceneQuery(
             [FromQuery] string query,

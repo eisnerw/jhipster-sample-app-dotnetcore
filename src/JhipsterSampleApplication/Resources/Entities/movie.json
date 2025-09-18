@@ -126,7 +126,7 @@
           "query": "directors:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         },
         {
           "id": "producers",
@@ -136,7 +136,7 @@
           "query": "producers:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         },
         {
           "id": "writers",
@@ -146,7 +146,7 @@
           "query": "writers:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         },
         {
           "id": "cast",
@@ -156,7 +156,7 @@
           "query": "cast:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         },
         {
           "id": "year",
@@ -166,7 +166,7 @@
           "query": "year:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         },
         {
           "id": "genres",
@@ -176,7 +176,7 @@
           "query": "genres:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         },
         {
           "id": "languages",
@@ -186,7 +186,7 @@
           "query": "languages:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         },
         {
           "id": "country",
@@ -196,7 +196,7 @@
           "query": "country:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         },
         {
           "id": "rotten_tomatoes_score",
@@ -206,7 +206,7 @@
           "query": "rotten_tomatoes_score:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         }
     ]
 }

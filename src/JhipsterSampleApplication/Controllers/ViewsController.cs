@@ -20,18 +20,18 @@ namespace JhipsterSampleApplication.Controllers
             _specRegistry = specRegistry;
         }
 
-        // Minimal shim for legacy front-end: GET /api/views?domain={entity}
+        // Minimal shim for legacy front-end: GET /api/views?entity={entity}
         // Returns views defined in Resources/Entities/{entity}.json (queryBuilder/views section)
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<ViewDto>), 200)]
-        public ActionResult<IEnumerable<ViewDto>> GetAll([FromQuery] string domain)
+        public ActionResult<IEnumerable<ViewDto>> GetAll([FromQuery] string entity)
         {
-            if (string.IsNullOrWhiteSpace(domain))
+            if (string.IsNullOrWhiteSpace(entity))
             {
-                return BadRequest("Query parameter 'domain' is required.");
+                return BadRequest("Query parameter 'entity' is required.");
             }
 
-            if (!_specRegistry.TryGetArray(domain, "views", out var arr))
+            if (!_specRegistry.TryGetArray(entity, "views", out var arr))
             {
                 return Ok(Enumerable.Empty<ViewDto>());
             }
@@ -55,7 +55,7 @@ namespace JhipsterSampleApplication.Controllers
                 CategoryQuery = o["categoryQuery"]?.GetValue<string>(),
                 Script = o["script"]?.GetValue<string>(),
                 parentViewId = o["parentViewId"]?.GetValue<string>(),
-                Domain = o["domain"]?.GetValue<string>()
+                Entity = o["entity"]?.GetValue<string>()
             };
         }
     }

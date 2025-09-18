@@ -14,7 +14,7 @@ namespace JhipsterSampleApplication.Test.DomainServices;
 
 public class BqlServiceTest
 {
-    private readonly BqlService<Birthday> _service;
+    private readonly BqlService<object> _service;
 
     public BqlServiceTest()
     {
@@ -22,7 +22,7 @@ public class BqlServiceTest
         // Load QB spec from Entities JSON included in test output
         var entitiesPath = Path.Combine(System.AppContext.BaseDirectory, "Resources", "Entities", "birthday.json");
         var qbSpec = JObject.Parse(File.ReadAllText(entitiesPath))["queryBuilder"] as JObject ?? new JObject();
-        _service = new BqlService<Birthday>(NullLogger<BqlService<Birthday>>.Instance, namedQueryService,
+        _service = new BqlService<object>(NullLogger<BqlService<object>>.Instance, namedQueryService,
             qbSpec, "birthdays");
     }
 

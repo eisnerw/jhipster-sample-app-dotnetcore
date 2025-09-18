@@ -30,21 +30,13 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public Task<IActionResult> Create([FromBody] MovieDto dto)
+        public Task<IActionResult> Create([FromBody] JObject document)
         {
-            var settings = new Newtonsoft.Json.JsonSerializerSettings
-            {
-                ContractResolver = new Newtonsoft.Json.Serialization.DefaultContractResolver
-                {
-                    NamingStrategy = new Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy()
-                }
-            };
-            var obj = JObject.FromObject(dto, Newtonsoft.Json.JsonSerializer.Create(settings));
-            return _entityController.Create("movie", obj);
+            return _entityController.Create("movie", document);
         }
 
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(MovieDto), 200)]
+        [ProducesResponseType(typeof(JObject), 200)]
         public Task<IActionResult> GetById(string id, [FromQuery] bool includeDetails = false)
         {
             return _entityController.GetById("movie", id, includeDetails);
@@ -104,17 +96,9 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        public Task<IActionResult> Update(string id, [FromBody] MovieDto dto)
+        public Task<IActionResult> Update(string id, [FromBody] JObject document)
         {
-            var settings = new Newtonsoft.Json.JsonSerializerSettings
-            {
-                ContractResolver = new Newtonsoft.Json.Serialization.DefaultContractResolver
-                {
-                    NamingStrategy = new Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy()
-                }
-            };
-            var obj = JObject.FromObject(dto, Newtonsoft.Json.JsonSerializer.Create(settings));
-            return _entityController.Update("movie", id, obj);
+            return _entityController.Update("movie", id, document);
         }
 
         [HttpDelete("{id}")]
@@ -126,7 +110,7 @@ namespace JhipsterSampleApplication.Controllers
 
         [HttpPost("search/bql")]
         [Consumes("text/plain")]
-        [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<JObject>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public Task<IActionResult> SearchWithBql([FromBody] string bqlQuery,
@@ -145,7 +129,7 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpPost("search/ruleset")]
-        [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<JObject>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public Task<IActionResult> SearchWithRuleset([FromBody] RulesetDto rulesetDto,
@@ -163,7 +147,7 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpPost("search/elasticsearch")]
-        [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<JObject>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
         public Task<IActionResult> Search([FromBody] JObject elasticsearchQuery,
@@ -181,7 +165,7 @@ namespace JhipsterSampleApplication.Controllers
         }
 
         [HttpGet("search/lucene")]
-        [ProducesResponseType(typeof(SearchResultDto<MovieDto>), 200)]
+        [ProducesResponseType(typeof(SearchResultDto<JObject>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         public Task<IActionResult> SearchWithLuceneQuery(
             [FromQuery] string query,

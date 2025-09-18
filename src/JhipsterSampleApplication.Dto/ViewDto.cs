@@ -24,6 +24,6 @@ namespace JhipsterSampleApplication.Dto
         public string? parentViewId { get; set; }
 
         [Required]
-        public string? Domain { get; set; }
+        public string? Entity { get; set; }
     }
 } 

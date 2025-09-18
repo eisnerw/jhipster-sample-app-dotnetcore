@@ -478,7 +478,7 @@ namespace JhipsterSampleApplication.Controllers
                 CategoryQuery = o["categoryQuery"]?.GetValue<string>(),
                 Script = o["script"]?.GetValue<string>(),
                 parentViewId = o["parentViewId"]?.GetValue<string>(),
-                Domain = o["domain"]?.GetValue<string>()
+                Entity = o["entity"]?.GetValue<string>()
             };
         }
 

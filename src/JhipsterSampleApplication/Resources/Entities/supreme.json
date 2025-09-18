@@ -3,6 +3,9 @@
     "title": "Supreme",
     "elasticsearchIndex": "supreme",
     "detailFields": ["facts_of_the_case","question","conclusion"],
+    "detailHtmlGeneration":{
+
+    },
     "dto": {
       "allOf": [
         { "$ref": "#/definitions/BaseDto" },
@@ -131,7 +134,7 @@
             "query": "term:*",
             "categoryQuery": "",
             "script": "",
-            "domain": "supreme"
+            "entity": "supreme"
         },
         {
             "id": "term_heard by",
@@ -142,7 +145,7 @@
             "categoryQuery": "",
             "script": "",
             "parentViewId": "heard_term",
-            "domain": "supreme"
+            "entity": "supreme"
         },
         {
             "id": "advocates",
@@ -152,7 +155,7 @@
             "query": "advocates:*",
             "categoryQuery": "",
             "script": "",
-            "domain": "supreme"
+            "entity": "supreme"
         },
         {
             "id": "lower court",
@@ -162,7 +165,7 @@
             "query": "lower_court:*",
             "categoryQuery": "",
             "script": "",
-            "domain": "supreme"
+            "entity": "supreme"
         },
         {
             "id": "decision_term",
@@ -172,7 +175,7 @@
             "query": "term:*",
             "categoryQuery": "",
             "script": "",
-            "domain": "supreme"
+            "entity": "supreme"
         },	
         {
             "id": "decision",
@@ -183,7 +186,7 @@
             "categoryQuery": "",
             "script": "",
             "parentViewId": "decision_term",
-            "domain": "supreme"
+            "entity": "supreme"
         },
         {
             "id": "term",
@@ -193,7 +196,7 @@
             "query": "term:*",
             "categoryQuery": "",
             "script": "",
-            "domain": "supreme"
+            "entity": "supreme"
         },
         {
             "id": "majority",
@@ -203,7 +206,7 @@
             "query": "majority:*",
             "categoryQuery": "",
             "script": "",
-            "domain": "supreme"
+            "entity": "supreme"
         },
         {
             "id": "minority",
@@ -213,7 +216,7 @@
             "query": "minority:*",
             "categoryQuery": "",
             "script": "",
-            "domain": "supreme"
+            "entity": "supreme"
         },
         {
             "id": "recused",
@@ -223,7 +226,7 @@
             "query": "recused:*",
             "categoryQuery": "",
             "script": "",
-            "domain": "supreme"
+            "entity": "supreme"
         }
     ]
 }

@@ -39,7 +39,7 @@ namespace JhipsterSampleApplication.Domain.Entities
                 }
                 return new JObject{{
                     "term", new JObject{{
-                        "lname","johnson"
+                        field!, (string)value!
                     }}
                 }};
             } else {
