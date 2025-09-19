@@ -46,52 +46,7 @@ namespace JhipsterSampleApplication.Controllers
         [Produces("text/html")]
         public async Task<IActionResult> GetHtmlById(string id)
         {
-            var result = await _entityController.GetById("movie", id, includeDetails: true) as OkObjectResult;
-            if (result == null) return NotFound();
-            var m = result.Value as JObject ?? new JObject();
-
-            string? Join(IEnumerable<string>? list)
-            {
-                if (list == null) return null;
-                var vals = list.Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => WebUtility.HtmlEncode(v.Trim())).ToList();
-                return vals.Count > 0 ? string.Join(", ", vals) : null;
-            }
-
-            string? Encode(string? v) => string.IsNullOrWhiteSpace(v) ? null : WebUtility.HtmlEncode(v);
-
-            var sb = new StringBuilder();
-            sb.Append("<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><base target=\\\"_blank\\\"><title>")
-              .Append(WebUtility.HtmlEncode(m.Value<string>("Title") ?? "Movie"))
-              .Append("</title><style>body{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial,\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111}.field-name{font-weight:600}.field{margin-bottom:0.7em}</style></head><body>");
-
-            void AppendField(string label, string? value)
-            {
-                if (string.IsNullOrWhiteSpace(value)) return;
-                sb.Append("<div class=\"field\"><span class=\"field-name\">")
-                  .Append(WebUtility.HtmlEncode(label))
-                  .Append(":</span> ")
-                  .Append(value)
-                  .Append("</div>");
-            }
-
-            AppendField("Title", Encode(m.Value<string>("Title")));
-            AppendField("Release Year", Encode(m.Value<int?>("release_year")?.ToString()));
-            AppendField("Genres", Join(m["genres"]?.ToObject<List<string>>()));
-            AppendField("Runtime", Encode(m.Value<int?>("runtime_minutes")?.ToString()));
-            AppendField("Country", Encode(m.Value<string>("country")));
-            AppendField("Languages", Join(m["languages"]?.ToObject<List<string>>()));
-            AppendField("Directors", Join(m["directors"]?.ToObject<List<string>>()));
-            AppendField("Producers", Join(m["producers"]?.ToObject<List<string>>()));
-            AppendField("Writers", Join(m["writers"]?.ToObject<List<string>>()));
-            AppendField("Cast", Join(m["cast"]?.ToObject<List<string>>()));
-            AppendField("Budget", Encode(m.Value<long?>("budget_usd")?.ToString()));
-            AppendField("Gross", Encode(m.Value<long?>("gross_usd")?.ToString()));
-            AppendField("Rotten Tomatoes", Encode(m.Value<int?>("rotten_tomatoes_score")?.ToString()));
-            AppendField("Summary", Encode(m.Value<string>("summary")));
-            AppendField("Synopsis", Encode(m.Value<string>("synopsis")));
-
-            sb.Append("</body></html>");
-            return Content(sb.ToString(), "text/html");
+            return await _entityController.GetHtmlById("movie", id);
         }
 
         [HttpPut("{id}")]

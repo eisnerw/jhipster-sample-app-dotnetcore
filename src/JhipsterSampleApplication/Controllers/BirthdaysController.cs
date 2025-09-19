@@ -47,24 +47,7 @@ namespace JhipsterSampleApplication.Controllers
         [Produces("text/html")]
         public async Task<IActionResult> GetHtmlById(string id)
         {
-            // Delegate to entity search and format HTML using spec HtmlTemplate later if needed
-            var result = await _entityController.GetById("birthday", id, includeDetails: true) as OkObjectResult;
-            if (result == null) return NotFound();
-            var birthday = result.Value as JObject ?? new JObject();
-            var fullName = ($"{birthday["fname"]} {birthday["lname"]}").Trim();
-            var wikipediaHtml = birthday.Value<string>("wikipedia") ?? string.Empty;
-            var title = string.IsNullOrWhiteSpace(fullName) ? "Birthday" : fullName;
-            var html = "<!doctype html>" +
-                       "<html><head>" +
-                       "<meta charset=\"utf-8\">" +
-                       "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
-                       "<base target=\"_blank\">" +
-                       "<title>" + WebUtility.HtmlEncode(title) + "</title>" +
-                       "<style>body{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial,\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111} .empty{color:#666}</style>" +
-                       "</head><body>" +
-                       (string.IsNullOrWhiteSpace(wikipediaHtml) ? ("<div class=\"empty\">No Wikipedia content available." + (string.IsNullOrWhiteSpace(fullName) ? string.Empty : (" for " + WebUtility.HtmlEncode(fullName))) + "</div>") : wikipediaHtml)
-                       + "</body></html>";
-            return Content(html, "text/html");
+            return await _entityController.GetHtmlById("birthday", id);
         }
 
         [HttpPut("{id}")]

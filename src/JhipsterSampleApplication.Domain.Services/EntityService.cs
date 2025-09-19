@@ -20,6 +20,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using JhipsterSampleApplication.Domain.Search;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Text.Json.Nodes;
+using System.Globalization;
 
 namespace JhipsterSampleApplication.Domain.Services;
 
@@ -796,5 +798,200 @@ private static RulesetDto MapToDto(Ruleset rr)
             ActiveShards = res.ActiveShards,
             ActivePrimaryShards = res.ActivePrimaryShards
         };
+    }
+
+    public static string InterpolateTemplate(string[] arTemplate, Newtonsoft.Json.Linq.JObject entityValues)
+    {
+        var sb = new StringBuilder();
+        string currentTemplate = string.Empty;
+
+        try
+        {
+            for (int i = 0; i < arTemplate.Length; i++)
+            {
+                currentTemplate = arTemplate[i] ?? string.Empty;
+                var lineOut = new StringBuilder();
+                var s = currentTemplate;
+
+                int p = 0;
+                while (p < s.Length)
+                {
+                    // Escaped opening brace "{{" => literal "{"
+                    if (s[p] == '{' && p + 1 < s.Length && s[p + 1] == '{')
+                    {
+                        lineOut.Append('{');
+                        p += 2;
+                        continue;
+                    }
+                    // Escaped closing brace "}}" => literal "}"
+                    if (s[p] == '}' && p + 1 < s.Length && s[p + 1] == '}')
+                    {
+                        lineOut.Append('}');
+                        p += 2;
+                        continue;
+                    }
+
+                    // Token start
+                    if (s[p] == '{')
+                    {
+                        int end = s.IndexOf('}', p + 1);
+                        if (end < 0)
+                        {
+                            // No matching }, treat as literal
+                            lineOut.Append(s[p]);
+                            p++;
+                            continue;
+                        }
+
+                        string token = s.Substring(p + 1, end - (p + 1));
+
+                        // Parse token: name[:formatter[:formatter...]]
+                        string attrName;
+                        var formatters = new List<string>();
+                        var parts = token.Split(':');
+                        attrName = parts.Length > 0 ? parts[0] : string.Empty;
+                        if (parts.Length > 1)
+                        {
+                            for (int k = 1; k < parts.Length; k++) formatters.Add(parts[k]);
+                        }
+
+                        // Defaults
+                        bool unlabeled = false;
+                        bool yesno = false;
+                        bool link = false;
+                        bool html = false;
+                        string? missing = null;
+                        string? labelOverride = null;
+                        string? fmt = null; // standard .NET format string
+
+                        foreach (var f in formatters)
+                        {
+                            if (string.Equals(f, "unlabeled", StringComparison.OrdinalIgnoreCase)) { unlabeled = true; continue; }
+                            if (string.Equals(f, "yesno", StringComparison.OrdinalIgnoreCase)) { yesno = true; continue; }
+                            if (string.Equals(f, "link", StringComparison.OrdinalIgnoreCase)) { link = true; continue; }
+                            if (string.Equals(f, "html", StringComparison.OrdinalIgnoreCase)) { html = true; continue; }
+
+                            int dash = f.IndexOf('-');
+                            if (dash > 0)
+                            {
+                                var kind = f.Substring(0, dash);
+                                var val = f.Substring(dash + 1);
+                                if (kind.Equals("missing", StringComparison.OrdinalIgnoreCase)) missing = val;
+                                else if (kind.Equals("label", StringComparison.OrdinalIgnoreCase)) labelOverride = val;
+                                else if (kind.Equals("format", StringComparison.OrdinalIgnoreCase)) fmt = val;
+                            }
+                        }
+
+                        // Lookup value from JObject (exact key)
+                        JToken? v = entityValues[attrName];
+                        // Convert to string according to rules
+                        string? valueString = ConvertValueToString(v, yesno, fmt, html);
+
+                        bool isMissing = string.IsNullOrEmpty(valueString?.Trim());
+                        if (isMissing && missing != null)
+                        {
+                            valueString = missing;
+                            isMissing = false; // treat as present for label rendering
+                        }
+
+                        string replacement = string.Empty;
+                        if (!isMissing)
+                        {
+                            if (link)
+                            {
+                                string anchorText = labelOverride ?? attrName;
+                                string href = html ? (valueString ?? string.Empty) : WebUtility.HtmlEncode(valueString ?? string.Empty);
+                                string anchorTextEsc = html ? anchorText : WebUtility.HtmlEncode(anchorText);
+                                replacement = $"<a href=\"{href}\">{anchorTextEsc}</a>";
+                            }
+                            else if (unlabeled)
+                            {
+                                replacement = valueString ?? string.Empty;
+                            }
+                            else
+                            {
+                                string labelText = (labelOverride ?? attrName.Substring(0,1).ToUpper() +  attrName.Substring(1).Replace('_', ' '));
+                                replacement = $"<b>{labelText}:</b> {valueString}";
+                            }
+
+                            // Default trailing space unless token ends the line
+                            bool atEnd = (end == s.Length - 1);
+                            if (!atEnd && !unlabeled) replacement += " ";
+                        }
+                        // else empty replacement when missing and no :missing- formatter
+
+                        lineOut.Append(replacement);
+                        p = end + 1;
+                        continue;
+                    }
+
+                    // Regular character
+                    lineOut.Append(s[p]);
+                    p++;
+                }
+
+                // Append two <br> after each template line except the last
+                string lineToBeAppended = lineOut.ToString();
+                if (lineToBeAppended.Trim().Length > 0)
+                {
+                    sb.Append(lineToBeAppended);
+                    if (i < arTemplate.Length - 1)
+                    {
+                        sb.Append("<br><br>");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            return $"Error: {WebUtility.HtmlEncode(ex.Message)} while processing template: {WebUtility.HtmlEncode(currentTemplate)}";
+        }
+
+        return sb.ToString();
+    }
+
+    private static string? ConvertValueToString(JToken? v, bool yesno, string? fmt, bool html)
+    {
+        if (v == null || v.Type == JTokenType.Null || v.Type == JTokenType.Undefined) return null;
+
+        // Arrays: join by ", "
+        if (v.Type == JTokenType.Array)
+        {
+            var items = new List<string>();
+            foreach (var t in (JArray)v)
+            {
+                var s = ConvertValueToString(t, yesno, fmt, html);
+                if (!string.IsNullOrEmpty(s)) items.Add(s!);
+            }
+            var joined = string.Join(", ", items);
+            return html ? joined : WebUtility.HtmlEncode(joined);
+        }
+
+        // Booleans (with optional yes/no)
+        if (v.Type == JTokenType.Boolean)
+        {
+            bool b = v.Value<bool>();
+            var text = yesno ? (b ? "yes" : "no") : (b ? "true" : "false");
+            return text; // booleans are plain text; encode later only when embedding labels
+        }
+
+        // Numbers (apply format if provided)
+        if (v.Type == JTokenType.Integer || v.Type == JTokenType.Float)
+        {
+            IFormattable num;
+            if (v.Type == JTokenType.Integer) num = (IFormattable)v.Value<long>();
+            else num = (IFormattable)v.Value<double>();
+            var txt = fmt == null ? num.ToString(null, System.Globalization.CultureInfo.InvariantCulture)
+                                  : num.ToString(fmt, System.Globalization.CultureInfo.InvariantCulture);
+            return txt;
+        } 
+        // Strings and others
+        var raw = v.Type == JTokenType.String ? (v.Value<string>() ?? string.Empty) : v.ToString();
+        var reDate = new Regex(@"^\d{4}-\d{2}-\d{2}(?:[T\s]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,7})?)?(?:Z|[+\-]\d{2}:\d{2})?)?$");
+        if (fmt != null &&reDate.IsMatch(raw) && DateTimeOffset.TryParse(raw, CultureInfo.InvariantCulture,DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var dt))
+        {
+            return dt.ToString(fmt, CultureInfo.InvariantCulture);
+        }
+        return html ? raw : WebUtility.HtmlEncode(raw);
     }
 }

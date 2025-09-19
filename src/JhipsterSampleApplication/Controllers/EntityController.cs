@@ -13,6 +13,8 @@ using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.Configuration;
 using JhipsterSampleApplication.Domain.Entities;
 using System.Text.Json.Nodes;
+using System.Text;
+using System.Net;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -74,6 +76,23 @@ namespace JhipsterSampleApplication.Controllers
                 obj.Remove("Synopsis");
             }
             return Ok(obj);
+        }
+
+        [HttpGet("html/{entity}/{id}")]
+        [Produces("text/html")]
+        public async Task<IActionResult> GetHtmlById([FromRoute] string entity, [FromRoute] string id)
+        {
+            var spec = new SearchSpec<JObject> { Id = id, IncludeDetails = true };
+            var response = await _entityService.SearchAsync(entity, spec);
+            if (!response.IsValid || !response.Documents.Any()) return NotFound();
+            var entityValues = response.Documents.First();
+            if (!_specRegistry.TryGetArray(entity, "detailHtmlTemplate", out var arr))
+            {
+                return Ok(Enumerable.Empty<ViewDto>());
+            }
+            string[] arTemplate = arr.Select(n => n!.GetValue<string>()).ToArray();
+            string html = JhipsterSampleApplication.Domain.Services.EntityService.InterpolateTemplate(arTemplate, entityValues);
+            return Content(html, "text/html");            
         }
 
         [HttpPost("search/{entity}/bql")]
