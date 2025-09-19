@@ -860,9 +860,11 @@ private static RulesetDto MapToDto(Ruleset rr)
                         bool yesno = false;
                         bool link = false;
                         bool html = false;
+                        bool ifDifferent = false;
                         string? missing = null;
                         string? labelOverride = null;
                         string? fmt = null; // standard .NET format string
+                        string? diffAttribute = null;
 
                         foreach (var f in formatters)
                         {
@@ -876,14 +878,27 @@ private static RulesetDto MapToDto(Ruleset rr)
                             {
                                 var kind = f.Substring(0, dash);
                                 var val = f.Substring(dash + 1);
-                                if (kind.Equals("missing", StringComparison.OrdinalIgnoreCase)) missing = val;
+                                if (f.StartsWith("ifDifferentFrom-"))
+                                {
+                                    ifDifferent = true;
+                                    diffAttribute = val;
+                                }
+                                else if (kind.Equals("missing", StringComparison.OrdinalIgnoreCase)) missing = val;
                                 else if (kind.Equals("label", StringComparison.OrdinalIgnoreCase)) labelOverride = val;
                                 else if (kind.Equals("format", StringComparison.OrdinalIgnoreCase)) fmt = val;
+                                else if (kind.Equals("ifDifferentFrom, StringComparison.OrdinalIgnoreCase")) diffAttribute = val;
                             }
                         }
 
                         // Lookup value from JObject (exact key)
                         JToken? v = entityValues[attrName];
+                        if (ifDifferent){
+                            JToken? diffToken = entityValues[diffAttribute ?? ""];
+                            if (diffToken != null && v != null && v.Type == JTokenType.String && diffToken.Type == JTokenType.String && diffToken.ToString().StartsWith(v.ToString()))
+                            {
+                                v = null;
+                            }
+                        }
                         // Convert to string according to rules
                         string? valueString = ConvertValueToString(v, yesno, fmt, html);
 
