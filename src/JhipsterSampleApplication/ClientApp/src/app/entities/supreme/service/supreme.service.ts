@@ -27,11 +27,11 @@ export class SupremeService {
   protected http = inject(HttpClient);
   protected applicationConfigService = inject(ApplicationConfigService);
 
-  protected resourceUrl = this.applicationConfigService.getEndpointFor('api/supreme');
-  protected searchUrl = this.applicationConfigService.getEndpointFor('api/supreme/search/lucene');
-  protected rulesetSearchUrl = this.applicationConfigService.getEndpointFor('api/supreme/search/ruleset');
-  protected bqlSearchUrl = this.applicationConfigService.getEndpointFor('api/supreme/search/bql');
-  protected qbSpecUrl = this.applicationConfigService.getEndpointFor('api/supreme/query-builder-spec');
+  protected resourceUrl = this.applicationConfigService.getEndpointFor('api/entity/supreme');
+  protected searchUrl = this.applicationConfigService.getEndpointFor('api/entity/supreme/search/lucene');
+  protected rulesetSearchUrl = this.applicationConfigService.getEndpointFor('api/entity/supreme/search/ruleset');
+  protected bqlSearchUrl = this.applicationConfigService.getEndpointFor('api/entity/supreme/search/bql');
+  protected qbSpecUrl = this.applicationConfigService.getEndpointFor('api/entity/supreme/query-builder-spec');
 
   query(req?: any): Observable<EntityArrayResponseType> {
     const options = createRequestOption(req);

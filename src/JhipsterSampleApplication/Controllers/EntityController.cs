@@ -78,7 +78,7 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(obj);
         }
 
-        [HttpGet("html/{entity}/{id}")]
+        [HttpGet("{entity}/html/{id}")]
         [Produces("text/html")]
         public async Task<IActionResult> GetHtmlById([FromRoute] string entity, [FromRoute] string id)
         {
@@ -95,7 +95,7 @@ namespace JhipsterSampleApplication.Controllers
             return Content(html, "text/html");            
         }
 
-        [HttpPost("search/{entity}/bql")]
+        [HttpPost("{entity}/search/bql")]
         [Consumes("text/plain")]
         [ProducesResponseType(typeof(SearchResultDto<JObject>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
@@ -131,7 +131,7 @@ namespace JhipsterSampleApplication.Controllers
             return await Search(entity, queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
         }
 
-        [HttpPost("search/{entity}/ruleset")]
+        [HttpPost("{entity}/search/ruleset")]
         [ProducesResponseType(typeof(SearchResultDto<JObject>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
@@ -145,7 +145,7 @@ namespace JhipsterSampleApplication.Controllers
             return await Search(entity, queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
         }
 
-        [HttpPost("search/{entity}/elasticsearch")]
+        [HttpPost("{entity}/search/elasticsearch")]
         [ProducesResponseType(typeof(SearchResultDto<JObject>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         [ProducesResponseType(400)]
@@ -289,7 +289,7 @@ namespace JhipsterSampleApplication.Controllers
             });
         }
 
-        [HttpGet("search/{entity}/lucene")]
+        [HttpGet("{entity}/search/lucene")]
         [ProducesResponseType(typeof(SearchResultDto<JObject>), 200)]
         [ProducesResponseType(typeof(SearchResultDto<ViewResultDto>), 200)]
         public async Task<IActionResult> SearchWithLuceneQuery([FromRoute] string entity, [FromQuery] string query,
@@ -310,7 +310,7 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(values);
         }
 
-        [HttpPost("categorize/{entity}")]
+        [HttpPost("{entity}/categorize")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> Categorize([FromRoute] string entity, [FromBody] CategorizeRequestDto request)
@@ -321,7 +321,7 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(result);
         }
 
-        [HttpPost("categorize-multiple/{entity}")]
+        [HttpPost("{entity}/categorize-multiple")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> CategorizeMultiple([FromRoute] string entity, [FromBody] CategorizeMultipleRequestDto request)
@@ -331,7 +331,7 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(result);
         }
 
-        [HttpPost("bql-to-ruleset/{entity}")]
+        [HttpPost("{entity}/bql-to-ruleset")]
         [Consumes("text/plain")]
         [ProducesResponseType(typeof(RulesetDto), 200)]
         [ProducesResponseType(400)]
@@ -377,7 +377,7 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(new SimpleApiResponse { Success = wr.Success, Message = wr.Message });
         }
 
-        [HttpPost("ruleset-to-bql/{entity}")]
+        [HttpPost("{entity}/ruleset-to-bql")]
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(400)]
         public async Task<ActionResult<string>> ConvertRulesetToBql([FromRoute] string entity, [FromBody] RulesetDto ruleset)
@@ -404,7 +404,7 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(bqlQuery);
         }
 
-        [HttpPost("ruleset-to-elasticsearch/{entity}")]
+        [HttpPost("{entity}/ruleset-to-elasticsearch")]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(400)]
         public async Task<ActionResult<object>> ConvertRulesetToElasticSearch([FromRoute] string entity, [FromBody] RulesetDto rulesetDto)

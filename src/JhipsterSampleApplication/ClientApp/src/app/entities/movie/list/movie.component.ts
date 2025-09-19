@@ -216,7 +216,7 @@ export class MovieComponent implements OnInit, AfterViewInit {
     const key = (row as any)?.id || JSON.stringify(row);
     this.expandedRowKeys[key] = true;
     setTimeout(() => {
-      const url = '/api/movies/html/' + (row as any).id;
+      const url = '/api/entity/movie/html/' + (row as any).id;
       this.iframeSafeSrcById[(row as any).id!] = this.sanitizer.bypassSecurityTrustResourceUrl(url);
     }, 50);
   }
