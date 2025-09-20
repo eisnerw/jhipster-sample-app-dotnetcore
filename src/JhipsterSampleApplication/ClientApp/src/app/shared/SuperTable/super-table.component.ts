@@ -66,6 +66,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Input() columns: ColumnConfig[] = [];
   @Input() widthKey: string | undefined;
   @Input() initialWidths: (string | undefined)[] | undefined;
+  @Input() specSignature: string | undefined;
   @Input() groups: GroupDescriptor[] = [];
   @Input() mode: 'grid' | 'group' = 'grid';
   @Input() groupQuery: ((group: GroupDescriptor) => GroupData) | undefined;
@@ -123,6 +124,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   };
   private capturedWidths = false;
   private enforceHandle: any;
+  tableStyle: { [k: string]: any } = {};
+  private autoExpandedApplied = false;
 
   // Holds the current global filter text for group mode
   private groupFilterValue: string = '';
@@ -251,7 +254,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       this.groupLoaders = {};
       this.expandedRowKeys = {};
     }
-    if ((changes['columns'] && !changes['columns'].firstChange) || changes['initialWidths'] || changes['widthKey']) {
+    if ((changes['columns'] && !changes['columns'].firstChange) || changes['initialWidths'] || changes['widthKey'] || changes['specSignature']) {
+      this.autoExpandedApplied = false;
       this.enforceWidthsAfterLayout();
     }
   }
@@ -584,9 +588,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private onResizeMove(ev: MouseEvent, left: number, right: number): void {
     if (this.resizingIndex == null) return;
     const dx = ev.clientX - this.startX;
-    let newLeft = Math.max(60, this.startLeftWidth + dx);
-    let newRight = Math.max(60, this.startRightWidth - dx);
+    let newLeft = Math.max(30, this.startLeftWidth + dx);
+    let newRight = Math.max(30, this.startRightWidth - dx);
     this.applyWidthsByIndex([[left, newLeft], [right, newRight]]);
+    this.updateTableStyleWidth();
   }
 
   private onResizeEnd(ev: MouseEvent, onMove: any, onUp: any): void {
@@ -613,7 +618,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private applyWidthsByIndex(pairs: Array<[number, number]>): void {
     pairs.forEach(([i, px]) => {
       if (!this.visibleColumns[i]) return;
-      this.visibleColumns[i].width = Math.max(20, Math.round(px)) + 'px';
+      this.visibleColumns[i].width = Math.max(30, Math.round(px)) + 'px';
     });
     this.columns = [...this.columns];
     this.cdr.detectChanges();
@@ -622,7 +627,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       const ths: NodeListOf<HTMLTableCellElement> = this.pTable.el.nativeElement.querySelectorAll('thead th');
       pairs.forEach(([i, px]) => {
         const th = ths[i];
-        if (th) th.style.width = Math.max(20, Math.round(px)) + 'px';
+        if (th) th.style.width = Math.max(30, Math.round(px)) + 'px';
       });
     }, 0);
   }
@@ -690,8 +695,14 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       if (!this.widthKey) return null;
       const raw = localStorage.getItem(`supertable.widths:${this.widthKey}`);
       if (!raw) return null;
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? (arr as string[]) : null;
+      const obj = JSON.parse(raw);
+      // Ignore legacy array format to prefer current spec widths on first load after changes
+      if (Array.isArray(obj)) return null;
+      if (obj && Array.isArray(obj.widths)) {
+        if (!this.specSignature || obj.sig === this.specSignature) return obj.widths as string[];
+        return null;
+      }
+      return null;
     } catch {
       return null;
     }
@@ -700,7 +711,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private writePersistedWidths(widths: string[]): void {
     try {
       if (!this.widthKey) return;
-      localStorage.setItem(`supertable.widths:${this.widthKey}`, JSON.stringify(widths));
+      const payload = this.specSignature ? { widths, sig: this.specSignature } : { widths };
+      localStorage.setItem(`supertable.widths:${this.widthKey}`, JSON.stringify(payload));
     } catch {}
   }
 
@@ -710,6 +722,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       if (w && typeof w === 'string' && w.trim()) c.width = w;
     });
     this.columns = [...this.columns];
+    this.updateTableStyleWidth();
     setTimeout(() => {
       if (!this.pTable?.el) return;
       const ths: NodeListOf<HTMLTableCellElement> = this.pTable.el.nativeElement.querySelectorAll('thead th');
@@ -754,6 +767,11 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         lastMismatchAt = Date.now();
         this.applyWidthsToDom(desired);
       }
+      // After things look stable for a bit, ensure table fills the container at least once
+      if (!mismatch && !this.autoExpandedApplied) {
+        this.autoExpandToContainer();
+        this.autoExpandedApplied = true;
+      }
       const elapsed = Date.now() - start;
       const sinceLastMismatch = Date.now() - lastMismatchAt;
       // Stop if stable for 250ms or after 1500ms total
@@ -773,6 +791,50 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       this.enforceHandle = null;
     }
     this.enforceHandle = setInterval(checkAndEnforce, 50);
+  }
+
+  private parsePx(value: string | undefined, fallback = 120): number {
+    if (!value) return fallback;
+    const s = String(value).trim();
+    if (s.endsWith('px')) return parseFloat(s);
+    if (s.endsWith('rem')) return parseFloat(s) * 16;
+    const n = parseFloat(s);
+    return isFinite(n) ? n : fallback;
+  }
+
+  private updateTableStyleWidth(): void {
+    try {
+      const total = this.visibleColumns.reduce((sum, c) => sum + this.parsePx(c.width, 120), 0);
+      this.tableStyle = { width: Math.max(100, Math.round(total)) + 'px', 'table-layout': 'fixed' };
+      this.cdr.markForCheck();
+    } catch {}
+  }
+
+  private autoExpandToContainer(): void {
+    try {
+      if (!this.pTable?.el) return;
+      const host = this.pTable.el.nativeElement as HTMLElement;
+      const wrapper = (host.querySelector('.p-datatable-wrapper') as HTMLElement) || host;
+      const container = wrapper.clientWidth || host.clientWidth;
+      const total = this.visibleColumns.reduce((sum, c) => sum + this.parsePx(c.width, 120), 0);
+      const diff = Math.round(container - total);
+      if (diff > 8) {
+        // add the extra space to the last resizable column
+        let idx = this.visibleColumns.length - 1;
+        while (idx >= 0) {
+          const t = this.visibleColumns[idx]?.type;
+          if (t !== 'lineNumber' && t !== 'checkbox' && t !== 'expander') break;
+          idx--;
+        }
+        if (idx >= 0) {
+          const newW = this.parsePx(this.visibleColumns[idx].width, 120) + diff;
+          this.applyWidthsByIndex([[idx, newW]]);
+          this.updateTableStyleWidth();
+        }
+      } else {
+        this.updateTableStyleWidth();
+      }
+    } catch {}
   }
 
   // === Group header select-all helpers ===

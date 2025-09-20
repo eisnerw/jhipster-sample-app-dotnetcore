@@ -80,6 +80,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   dataLoader!: DataLoader<AnyRow>;
   columns: ColumnConfig[] = [];
   initialWidths: (string | undefined)[] = [];
+  specSignature: string | undefined;
   globalFilterFields: string[] = [];
 
   viewName: string | null = null;
@@ -160,18 +161,37 @@ export class GenericListComponent implements OnInit, AfterViewInit {
         const columns = this.buildColumnsFromSpec(spec);
         this.columns = columns;
         this.initialWidths = this.columns.map(c => c.width || undefined);
+        this.specSignature = this.columns.map(c => `${c.field}:${c.width || ''}`).join('|');
         this.globalFilterFields = columns
           .filter(c => (c.type === 'string' || !c.type) && !!c.field && c.field !== 'lineNumber' && c.field !== 'checkbox')
           .map(c => c.field);
       },
       error: () => {
-        this.columns = [
-          { field: 'lineNumber', header: '#', type: 'lineNumber', width: '4rem' },
-          { field: 'checkbox', header: '', type: 'checkbox', width: '2rem' },
-          { field: 'id', header: 'Id', type: 'string' },
-          { field: 'expander', header: '', type: 'expander', width: '25px', style: 'font-weight: 700;' },
-        ];
-        this.globalFilterFields = ['id'];
+        // Fallback: try to build from query-builder spec if entity spec fetch fails
+        this.entityService.getQueryBuilderSpec(this.entity).subscribe({
+          next: (qb: any) => {
+            const specShim = { queryBuilder: qb };
+            const columns = this.buildColumnsFromSpec(specShim);
+            this.columns = columns;
+            this.initialWidths = this.columns.map(c => c.width || undefined);
+            this.specSignature = this.columns.map(c => `${c.field}:${c.width || ''}`).join('|');
+            this.globalFilterFields = columns
+              .filter(c => (c.type === 'string' || !c.type) && !!c.field && c.field !== 'lineNumber' && c.field !== 'checkbox')
+              .map(c => c.field);
+          },
+          error: () => {
+            // Final fallback: safe minimal columns
+            this.columns = [
+              { field: 'lineNumber', header: '#', type: 'lineNumber', width: '4rem' },
+              { field: 'checkbox', header: '', type: 'checkbox', width: '2rem' },
+              { field: 'id', header: 'Id', type: 'string' },
+              { field: 'expander', header: '', type: 'expander', width: '25px', style: 'font-weight: 700;' },
+            ];
+            this.initialWidths = this.columns.map(c => c.width || undefined);
+            this.specSignature = this.columns.map(c => `${c.field}:${c.width || ''}`).join('|');
+            this.globalFilterFields = ['id'];
+          },
+        });
       },
     });
   }
