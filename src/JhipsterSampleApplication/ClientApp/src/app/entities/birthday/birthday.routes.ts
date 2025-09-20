@@ -7,10 +7,11 @@ import { BirthdayResolve } from './route/birthday-routing-resolve.service';
 const birthdayRoute: Routes = [
   {
     path: '',
-    loadComponent: () => import('./list/birthday.component').then(m => m.BirthdayComponent),
+    loadComponent: () => import('../entity/list/generic-list.component').then(m => m.GenericListComponent),
     data: {
       defaultSort: `id,${ASC}`,
-      // legacy page retains dedicated Birthday component for comparison
+      entity: 'birthday',
+      pageTitle: 'Birthdays...'
     },
     canActivate: [UserRouteAccessService],
   },

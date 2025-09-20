@@ -19,7 +19,7 @@ const routes: Routes = [
   {
     path: 'entity',
     data: { pageTitle: 'Entity' },
-    loadChildren: () => import('./generic/generic.routes'),
+    loadChildren: () => import('./entity/entity.routes'),
   },
   {
     path: 'named-query',

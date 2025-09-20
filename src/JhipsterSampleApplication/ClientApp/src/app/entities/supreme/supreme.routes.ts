@@ -6,9 +6,11 @@ import { ASC } from 'app/config/navigation.constants';
 const supremeRoute: Routes = [
   {
     path: '',
-    loadComponent: () => import('./list/supreme.component').then(m => m.SupremeComponent),
+    loadComponent: () => import('../entity/list/generic-list.component').then(m => m.GenericListComponent),
     data: {
       defaultSort: `name,${ASC}`,
+      entity: 'supreme',
+      pageTitle: 'Supreme'
     },
     canActivate: [UserRouteAccessService],
   },

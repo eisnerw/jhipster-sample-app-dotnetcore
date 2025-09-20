@@ -11,7 +11,7 @@ const routes: Routes = [
   },
   {
     path: ':entity',
-    loadComponent: () => import('../shared/generic-list/generic-list.component').then(m => m.GenericListComponent),
+    loadComponent: () => import('./list/generic-list.component').then(m => m.GenericListComponent),
     data: {
       defaultSort: `id,${ASC}`,
       pageTitle: 'Entity (Generic)'
