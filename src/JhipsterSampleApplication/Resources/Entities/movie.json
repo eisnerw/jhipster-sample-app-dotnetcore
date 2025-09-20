@@ -14,11 +14,6 @@
     ],
     "queryBuilder": {
         "fields": {
-          "document": {
-            "name": "Document",
-            "type": "string",
-            "operators": ["contains", "!contains", "like", "!like"]
-          },
           "title": {
             "name": "Title",
             "type": "string",

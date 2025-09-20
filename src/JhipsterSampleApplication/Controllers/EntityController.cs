@@ -117,6 +117,7 @@ namespace JhipsterSampleApplication.Controllers
                     qbSpec = BqlService<object>.LoadSpec(entity);
                 }
             }
+            JhipsterSampleApplication.Domain.Services.EntityService.EnsureDocumentField(qbSpec);
             var rulesetDto = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Bql2Ruleset(bqlQuery.Trim());
             var ruleset = MapRuleset(rulesetDto);
             var queryObject = await _entityService.ConvertRulesetToElasticSearch(entity, ruleset);
@@ -349,6 +350,7 @@ namespace JhipsterSampleApplication.Controllers
                     qbSpec = BqlService<object>.LoadSpec(entity);
                 }
             }
+            JhipsterSampleApplication.Domain.Services.EntityService.EnsureDocumentField(qbSpec);
             var ruleset = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Bql2Ruleset(query.Trim());
             return Ok(ruleset);
         }
@@ -392,6 +394,7 @@ namespace JhipsterSampleApplication.Controllers
                     qbSpec = BqlService<object>.LoadSpec(entity);
                 }
             }
+            JhipsterSampleApplication.Domain.Services.EntityService.EnsureDocumentField(qbSpec);
             var bqlQuery = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Ruleset2Bql(ruleset);
             return Ok(bqlQuery);
         }
@@ -492,14 +495,16 @@ namespace JhipsterSampleApplication.Controllers
                 Entity = o["entity"]?.GetValue<string>()
             };
         }
-
         [HttpGet("{entity}/query-builder-spec")]
         [Produces("application/json")]
         public IActionResult GetQueryBuilderSpec([FromRoute] string entity)
         {
             if (_specRegistry.TryGetObject(entity, "queryBuilder", out var qb))
             {
-                return Content(qb.ToJsonString(), "application/json");
+                // Ensure the synthetic 'document' field is present at the beginning
+                var qbSpec = Newtonsoft.Json.Linq.JObject.Parse(qb.ToJsonString());
+                JhipsterSampleApplication.Domain.Services.EntityService.EnsureDocumentField(qbSpec);
+                return Content(qbSpec.ToString(Newtonsoft.Json.Formatting.None), "application/json");
             }
             return NotFound("Query builder spec not found for entity.");
         }

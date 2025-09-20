@@ -603,6 +603,8 @@ public async Task<JObject> ConvertRulesetToElasticSearch(string entity, Ruleset 
             qbSpec = BqlService<object>.LoadSpec(entity);
         }
     }
+    // Ensure "document" field exists for BQL processing
+    EnsureDocumentField(qbSpec);
     var logger = _loggerFactory.CreateLogger<BqlService<object>>();
     var bql = new BqlService<object>(logger, _namedQueryService, qbSpec, entity);
     var result = await bql.Ruleset2ElasticSearch(dto);
@@ -1034,5 +1036,29 @@ private static RulesetDto MapToDto(Ruleset rr)
             return dt.ToString(fmt, CultureInfo.InvariantCulture);
         }
         return html ? raw : WebUtility.HtmlEncode(raw);
+    }
+    public static void EnsureDocumentField(Newtonsoft.Json.Linq.JObject qbSpec)
+    {
+        if (qbSpec == null) return;
+        var fields = qbSpec["fields"] as JObject;
+        if (fields == null)
+        {
+            fields = new JObject();
+            qbSpec["fields"] = fields;
+        }
+        if (fields.Property("document") == null)
+        {
+            var newFields = new JObject
+            {
+                ["document"] = new JObject
+                {
+                    ["name"] = "Document",
+                    ["type"] = "string",
+                    ["operators"] = new JArray("contains", "!contains", "like", "!like")
+                }
+            };
+            foreach (var p in fields.Properties()) newFields[p.Name] = p.Value;
+            qbSpec["fields"] = newFields;
+        }
     }
 }

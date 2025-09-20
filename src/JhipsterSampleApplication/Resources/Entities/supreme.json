@@ -18,11 +18,6 @@
     ],
     "queryBuilder": {
         "fields": {
-          "document": {
-            "name": "Document",
-            "type": "string",
-            "operators": ["contains", "!contains", "like", "!like"]
-          },
           "name": {
             "name": "Case Name",
             "column": "Case",
