@@ -2,7 +2,7 @@
     "name": "movie",
     "title": "Movie",
     "elasticsearchIndex": "movies",
-    "detailFields": ["synopsis"],
+    "detailFields": ["synopsis", "country", "languages", "directors", "producers", "writers", "cast"],
     "detailHtmlTemplate":[
       "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><base target=\\\"_blank\\\"><title>{title:unlabeled}</title><style>body{{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111}}.field-name{{font-weight:600}}.field{{margin-bottom:0.7em}}</style></head><body><b>{title:unlabeled} ({release_year:unlabeled:date-yyyy:default-unknown date})</b> {languages:unlabeled} {runtime_minutes:label-Runtime}{languages,unlabeled}{rotten_tomatoes_score:label-Rotten Tomatos}",
       "{directors}{producers}{writers}",
@@ -12,46 +12,6 @@
       "{summary:ifDifferentFrom-synopsis}",
       "{synopsis}"
     ],
-    "dto": {
-      "allOf": [
-        { "$ref": "#/definitions/BaseDto" },
-        {
-          "type": "object",
-          "properties": {
-            "Title": { "type": ["string", "null"] },
-            "ReleaseYear": { "type": ["integer", "null"] },
-            "Genres": {
-              "type": ["array", "null"],
-              "items": { "type": "string" }
-            },
-            "RuntimeMinutes": { "type": ["integer", "null"] },
-            "Country": { "type": ["string", "null"] },
-            "Languages": {
-              "type": ["array", "null"],
-              "items": { "type": "string" }
-            },
-            "Directors": {
-              "type": ["array", "null"],
-              "items": { "type": "string" }
-            },
-            "Producers": {
-              "type": ["array", "null"],
-              "items": { "type": "string" }
-            },
-            "Writers": {
-              "type": ["array", "null"],
-              "items": { "type": "string" }
-            },
-            "Cast": {
-              "type": ["array", "null"],
-              "items": { "type": "string" }
-            },
-            "BudgetUsd": { "type": ["integer", "null"] },
-            "GrossUsd": { "type": ["integer", "null"] }
-          }
-        }
-      ]
-    },
     "queryBuilder": {
         "fields": {
           "document": {
@@ -62,6 +22,7 @@
           "title": {
             "name": "Title",
             "type": "string",
+            "width": "50px",
             "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"]
           },
           "release_year": {

@@ -203,13 +203,22 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       { field: 'lineNumber', header: '#', type: 'lineNumber', width: '4rem' },
       { field: 'checkbox', header: '', type: 'checkbox', width: '2rem' },
     ];
+    const EXCLUDE = new Set<string>(['document', 'category', 'categories']);
+    const df: any = spec?.detailFields;
+    if (Array.isArray(df)) {
+      for (const f of df) {
+        if (f !== undefined && f !== null) EXCLUDE.add(String(f).toLowerCase());
+      }
+    }
 
     const listFields: Array<string | { field: string; header?: string; type?: string; dateFormat?: string }> = spec?.listFields || [];
     if (Array.isArray(listFields) && listFields.length > 0) {
       for (const lf of listFields) {
         if (typeof lf === 'string') {
+          if (EXCLUDE.has(lf.toLowerCase())) continue;
           cols.push({ field: lf, header: this.prettyHeader(lf), type: 'string' });
         } else if (lf && typeof lf === 'object') {
+          if (EXCLUDE.has(String(lf.field || '').toLowerCase())) continue;
           const col: ColumnConfig = { field: lf.field, header: lf.header || this.prettyHeader(lf.field) } as any;
           const t = (lf.type || 'string').toLowerCase();
           if (t === 'date') { col.type = 'date'; col.filterType = 'date'; col.dateFormat = lf.dateFormat || 'MM/dd/yyyy'; }
@@ -221,8 +230,10 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       }
     } else {
       const qbFields = spec?.queryBuilder?.fields || {};
-      type F = { name?: string; type?: string; options?: any[] };
-      const entries: Array<[string, F]> = Object.entries(qbFields);
+      type F = { name?: string; type?: string; options?: any[]; width?: string };
+      const entries: Array<[string, F]> = (Object.entries(qbFields) as Array<[string, any]>)
+        .filter(([k]) => !EXCLUDE.has(String(k).toLowerCase()))
+        .map(([k, v]) => [k, v as F]);
       const score = (k: string, f: F): number => {
         const t = (f.type || '').toLowerCase();
         let s = 0;
@@ -239,14 +250,17 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       const pick = entries.slice(0, Math.min(6, entries.length));
       for (const [k, f] of pick) {
         const t = (f.type || '').toLowerCase();
-        if (t === 'date') cols.push({ field: k, header: f.name || this.prettyHeader(k), type: 'date', filterType: 'date', dateFormat: 'MM/dd/yyyy' });
-        else if (t === 'boolean') cols.push({ field: k, header: f.name || this.prettyHeader(k), type: 'boolean', filterType: 'boolean' });
-        else if (t === 'number') cols.push({ field: k, header: f.name || this.prettyHeader(k), type: 'string', filterType: 'numeric' });
+        let col: ColumnConfig;
+        if (t === 'date') col = { field: k, header: f.name || this.prettyHeader(k), type: 'date', filterType: 'date', dateFormat: 'MM/dd/yyyy' };
+        else if (t === 'boolean') col = { field: k, header: f.name || this.prettyHeader(k), type: 'boolean', filterType: 'boolean' };
+        else if (t === 'number') col = { field: k, header: f.name || this.prettyHeader(k), type: 'string', filterType: 'numeric' };
         else if (t === 'category' && Array.isArray(f.options)) {
-          cols.push({ field: k, header: f.name || this.prettyHeader(k), type: 'list', listOptions: (f.options || []).map((o: any) => ({ label: o.name || String(o.value), value: String(o.value) })) });
+          col = { field: k, header: f.name || this.prettyHeader(k), type: 'list', listOptions: (f.options || []).map((o: any) => ({ label: o.name || String(o.value), value: String(o.value) })) };
         } else {
-          cols.push({ field: k, header: f.name || this.prettyHeader(k), type: 'string', filterType: 'text' });
+          col = { field: k, header: f.name || this.prettyHeader(k), type: 'string', filterType: 'text' };
         }
+        if (f.width) col.width = String(f.width);
+        cols.push(col);
       }
     }
 
@@ -409,4 +423,3 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   onSort(event: any): void { /* capture if needed */ }
   onExpandedIframeLoad(id: string, ev: Event): void { /* no-op for generic */ }
 }
-
