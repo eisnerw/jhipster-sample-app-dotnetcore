@@ -17,11 +17,6 @@ export const ENTITY_NAV_ITEMS: NavbarItem[] = [
     translationKey: 'global.menu.entities.supreme',
   },
   {
-    name: 'Entity',
-    route: '/entity/birthday',
-    translationKey: 'global.menu.entities.entity',
-  },
-  {
     name: 'NamedQuery',
     route: '/named-query',
     translationKey: 'global.menu.entities.namedQuery',

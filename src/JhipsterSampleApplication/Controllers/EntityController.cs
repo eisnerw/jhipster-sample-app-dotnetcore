@@ -98,24 +98,15 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? sort = null, [FromQuery] string? pitId = null, [FromQuery] string[]? searchAfter = null)
         {
             if (string.IsNullOrWhiteSpace(bqlQuery)) return BadRequest("Query cannot be empty");
-            // Prefer spec from entity registry; fall back to legacy file if needed
+            // Use only top-level fields from entity spec (no legacy fallback)
             Newtonsoft.Json.Linq.JObject qbSpec;
-            if (_specRegistry.TryGetObject(entity, "queryBuilder", out JsonObject qbNode))
+            if (_specRegistry.TryGetObject(entity, "fields", out JsonObject fieldsNode))
             {
-                qbSpec = Newtonsoft.Json.Linq.JObject.Parse(qbNode.ToJsonString());
+                qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = Newtonsoft.Json.Linq.JObject.Parse(fieldsNode.ToJsonString()) };
             }
             else
             {
-                var entitiesPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "Entities", $"{entity}.json");
-                if (System.IO.File.Exists(entitiesPath))
-                {
-                    var root = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText(entitiesPath));
-                    qbSpec = (root["queryBuilder"] as Newtonsoft.Json.Linq.JObject) ?? new Newtonsoft.Json.Linq.JObject();
-                }
-                else
-                {
-                    qbSpec = BqlService<object>.LoadSpec(entity);
-                }
+                qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = new Newtonsoft.Json.Linq.JObject() };
             }
             JhipsterSampleApplication.Domain.Services.EntityService.EnsureDocumentField(qbSpec);
             var rulesetDto = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Bql2Ruleset(bqlQuery.Trim());
@@ -333,22 +324,13 @@ namespace JhipsterSampleApplication.Controllers
         {
             if (string.IsNullOrWhiteSpace(query)) return BadRequest("Query cannot be empty");
             Newtonsoft.Json.Linq.JObject qbSpec;
-            if (_specRegistry.TryGetObject(entity, "queryBuilder", out JsonObject qbNode))
+            if (_specRegistry.TryGetObject(entity, "fields", out JsonObject fieldsNode2))
             {
-                qbSpec = Newtonsoft.Json.Linq.JObject.Parse(qbNode.ToJsonString());
+                qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = Newtonsoft.Json.Linq.JObject.Parse(fieldsNode2.ToJsonString()) };
             }
             else
             {
-                var entitiesPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "Entities", $"{entity}.json");
-                if (System.IO.File.Exists(entitiesPath))
-                {
-                    var root = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText(entitiesPath));
-                    qbSpec = (root["queryBuilder"] as Newtonsoft.Json.Linq.JObject) ?? new Newtonsoft.Json.Linq.JObject();
-                }
-                else
-                {
-                    qbSpec = BqlService<object>.LoadSpec(entity);
-                }
+                qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = new Newtonsoft.Json.Linq.JObject() };
             }
             JhipsterSampleApplication.Domain.Services.EntityService.EnsureDocumentField(qbSpec);
             var ruleset = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Bql2Ruleset(query.Trim());
@@ -377,22 +359,13 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<ActionResult<string>> ConvertRulesetToBql([FromRoute] string entity, [FromBody] RulesetDto ruleset)
         {
             Newtonsoft.Json.Linq.JObject qbSpec;
-            if (_specRegistry.TryGetObject(entity, "queryBuilder", out JsonObject qbNode))
+            if (_specRegistry.TryGetObject(entity, "fields", out JsonObject fieldsNode3))
             {
-                qbSpec = Newtonsoft.Json.Linq.JObject.Parse(qbNode.ToJsonString());
+                qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = Newtonsoft.Json.Linq.JObject.Parse(fieldsNode3.ToJsonString()) };
             }
             else
             {
-                var entitiesPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "Entities", $"{entity}.json");
-                if (System.IO.File.Exists(entitiesPath))
-                {
-                    var root = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText(entitiesPath));
-                    qbSpec = (root["queryBuilder"] as Newtonsoft.Json.Linq.JObject) ?? new Newtonsoft.Json.Linq.JObject();
-                }
-                else
-                {
-                    qbSpec = BqlService<object>.LoadSpec(entity);
-                }
+                qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = new Newtonsoft.Json.Linq.JObject() };
             }
             JhipsterSampleApplication.Domain.Services.EntityService.EnsureDocumentField(qbSpec);
             var bqlQuery = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Ruleset2Bql(ruleset);
@@ -499,10 +472,10 @@ namespace JhipsterSampleApplication.Controllers
         [Produces("application/json")]
         public IActionResult GetQueryBuilderSpec([FromRoute] string entity)
         {
-            if (_specRegistry.TryGetObject(entity, "queryBuilder", out var qb))
+            // Compose a QB spec object from top-level fields only (no legacy fallback)
+            if (_specRegistry.TryGetObject(entity, "fields", out var fieldsNode))
             {
-                // Ensure the synthetic 'document' field is present at the beginning
-                var qbSpec = Newtonsoft.Json.Linq.JObject.Parse(qb.ToJsonString());
+                var qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = Newtonsoft.Json.Linq.JObject.Parse(fieldsNode.ToJsonString()) };
                 JhipsterSampleApplication.Domain.Services.EntityService.EnsureDocumentField(qbSpec);
                 return Content(qbSpec.ToString(Newtonsoft.Json.Formatting.None), "application/json");
             }

@@ -251,9 +251,16 @@ public class EntityService : IEntityService
         if (spec.Size.HasValue) root["size"] = spec.Size.Value;
         if (!spec.IncludeDetails)
         {
-            // Restrict returned fields strictly to those listed in the entity's
-            // "columns" (or legacy "listFields"). No name normalization.
-            var includesSet = new HashSet<string>();
+            // Exclude all defined fields that are NOT present in the entity's
+            // "columns" (or legacy "listFields"). Field names must match exactly.
+            var allDefinedFields = new List<string>();
+            if (_specRegistry.TryGetObject(entity, "fields", out var fieldsNode))
+            {
+                var qb = JObject.Parse(fieldsNode.ToJsonString());
+                foreach (var p in qb.Properties()) allDefinedFields.Add(p.Name);
+            }
+
+            var selected = new HashSet<string>();
             System.Text.Json.Nodes.JsonArray colsArr;
             if (_specRegistry.TryGetArray(entity, "columns", out colsArr) || _specRegistry.TryGetArray(entity, "listFields", out colsArr))
             {
@@ -264,23 +271,26 @@ public class EntityService : IEntityService
                         if (node is System.Text.Json.Nodes.JsonValue jv)
                         {
                             var s = jv.GetValue<string?>();
-                            if (!string.IsNullOrWhiteSpace(s)) includesSet.Add(s!);
+                            if (!string.IsNullOrWhiteSpace(s)) selected.Add(s!);
                         }
                         else if (node is System.Text.Json.Nodes.JsonObject jo)
                         {
                             var s = jo["field"]?.GetValue<string?>();
-                            if (!string.IsNullOrWhiteSpace(s)) includesSet.Add(s!);
+                            if (!string.IsNullOrWhiteSpace(s)) selected.Add(s!);
                         }
                     }
                     catch { /* ignore malformed */ }
                 }
             }
 
-            if (includesSet.Count > 0)
+            if (allDefinedFields.Count > 0 && selected.Count > 0)
             {
-                var includes = new JArray();
-                foreach (var key in includesSet) includes.Add(key);
-                root["_source"] = new JObject { ["includes"] = includes };
+                var excludes = new JArray();
+                foreach (var f in allDefinedFields)
+                {
+                    if (!selected.Contains(f)) excludes.Add(f);
+                }
+                root["_source"] = new JObject { ["excludes"] = excludes };
             }
         }
         // Sorts
@@ -582,26 +592,15 @@ public async Task<JObject> ConvertRulesetToElasticSearch(string entity, Ruleset 
     }
 
     var dto = MapToDto(rr);
-    // Build BQL service for this entity on the fly using its QB spec
+    // Build BQL service using top-level fields only (no legacy fallback)
     JObject qbSpec;
-    if (_specRegistry.TryGetObject(entity, "queryBuilder", out var qbNode))
+    if (_specRegistry.TryGetObject(entity, "fields", out var fieldsNode))
     {
-        qbSpec = JObject.Parse(qbNode.ToJsonString());
+        qbSpec = new JObject { ["fields"] = JObject.Parse(fieldsNode.ToJsonString()) };
     }
     else
     {
-        // Fallback 1: parse from Entities JSON in Resources if available
-        var entitiesPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "Entities", $"{entity}.json");
-        if (System.IO.File.Exists(entitiesPath))
-        {
-            var root = JObject.Parse(System.IO.File.ReadAllText(entitiesPath));
-            qbSpec = (root["queryBuilder"] as JObject) ?? new JObject();
-        }
-        else
-        {
-            // Fallback 2: legacy query-builder file location
-            qbSpec = BqlService<object>.LoadSpec(entity);
-        }
+        qbSpec = new JObject { ["fields"] = new JObject() };
     }
     // Ensure "document" field exists for BQL processing
     EnsureDocumentField(qbSpec);

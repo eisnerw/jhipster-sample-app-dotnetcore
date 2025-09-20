@@ -170,7 +170,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
         // Fallback: try to build from query-builder spec if entity spec fetch fails
         this.entityService.getQueryBuilderSpec(this.entity).subscribe({
           next: (qb: any) => {
-            const specShim = { queryBuilder: qb };
+            const specShim = { fields: qb?.fields || {} };
             const columns = this.buildColumnsFromSpec(specShim);
             this.columns = columns;
             this.initialWidths = this.columns.map(c => c.width || undefined);
@@ -225,7 +225,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       { field: 'lineNumber', header: '#', type: 'lineNumber', width: '4rem' },
       { field: 'checkbox', header: '', type: 'checkbox', width: '2rem' },
     ];
-    const qbFieldsAll: Record<string, any> = spec?.queryBuilder?.fields || {};
+    const qbFieldsAll: Record<string, any> = spec?.fields || {};
     const EXCLUDE = new Set<string>(['document', 'category', 'categories']);
     const df: any = spec?.detailFields;
     if (Array.isArray(df)) {
