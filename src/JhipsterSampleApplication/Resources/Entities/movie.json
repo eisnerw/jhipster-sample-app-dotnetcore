@@ -28,6 +28,7 @@
           "release_year": {
             "name": "Release Year",
             "type": "number",
+            "column": "Year",
             "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"]
           },
           "genres": {
@@ -77,6 +78,7 @@
           },
           "rotten_tomatoes_score": {
             "name": "Rotten Tomatoes Score",
+            "column": "Score",
             "type": "number",
             "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"]
           }

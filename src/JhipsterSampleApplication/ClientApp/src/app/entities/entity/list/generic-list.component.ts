@@ -225,6 +225,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       { field: 'lineNumber', header: '#', type: 'lineNumber', width: '4rem' },
       { field: 'checkbox', header: '', type: 'checkbox', width: '2rem' },
     ];
+    const qbFieldsAll: Record<string, any> = spec?.queryBuilder?.fields || {};
     const EXCLUDE = new Set<string>(['document', 'category', 'categories']);
     const df: any = spec?.detailFields;
     if (Array.isArray(df)) {
@@ -238,21 +239,27 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       for (const lf of listFields) {
         if (typeof lf === 'string') {
           if (EXCLUDE.has(lf.toLowerCase())) continue;
-          cols.push({ field: lf, header: this.prettyHeader(lf), type: 'string' });
+          const meta = qbFieldsAll[lf] || {};
+          const header = (meta.column || meta.name || this.prettyHeader(lf));
+          const width = meta.width ? String(meta.width) : undefined;
+          cols.push({ field: lf, header, type: 'string', width });
         } else if (lf && typeof lf === 'object') {
           if (EXCLUDE.has(String(lf.field || '').toLowerCase())) continue;
-          const col: ColumnConfig = { field: lf.field, header: lf.header || this.prettyHeader(lf.field) } as any;
+          const meta = qbFieldsAll[lf.field] || {};
+          const header = lf.header || meta.column || meta.name || this.prettyHeader(lf.field);
+          const col: ColumnConfig = { field: lf.field, header } as any;
           const t = (lf.type || 'string').toLowerCase();
           if (t === 'date') { col.type = 'date'; col.filterType = 'date'; col.dateFormat = lf.dateFormat || 'MM/dd/yyyy'; }
           else if (t === 'number' || t === 'numeric') { col.type = 'string'; col.filterType = 'numeric'; }
           else if (t === 'boolean') { col.type = 'boolean'; col.filterType = 'boolean'; }
           else { col.type = 'string'; col.filterType = 'text'; }
+          if (!col.width && meta.width) col.width = String(meta.width);
           cols.push(col);
         }
       }
     } else {
-      const qbFields = spec?.queryBuilder?.fields || {};
-      type F = { name?: string; type?: string; options?: any[]; width?: string };
+      const qbFields = qbFieldsAll;
+      type F = { name?: string; column?: string; type?: string; options?: any[]; width?: string };
       const entries: Array<[string, F]> = (Object.entries(qbFields) as Array<[string, any]>)
         .filter(([k]) => !EXCLUDE.has(String(k).toLowerCase()))
         .map(([k, v]) => [k, v as F]);
@@ -273,13 +280,14 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       for (const [k, f] of pick) {
         const t = (f.type || '').toLowerCase();
         let col: ColumnConfig;
-        if (t === 'date') col = { field: k, header: f.name || this.prettyHeader(k), type: 'date', filterType: 'date', dateFormat: 'MM/dd/yyyy' };
-        else if (t === 'boolean') col = { field: k, header: f.name || this.prettyHeader(k), type: 'boolean', filterType: 'boolean' };
-        else if (t === 'number') col = { field: k, header: f.name || this.prettyHeader(k), type: 'string', filterType: 'numeric' };
+        const header = (f.column || f.name || this.prettyHeader(k));
+        if (t === 'date') col = { field: k, header, type: 'date', filterType: 'date', dateFormat: 'MM/dd/yyyy' };
+        else if (t === 'boolean') col = { field: k, header, type: 'boolean', filterType: 'boolean' };
+        else if (t === 'number') col = { field: k, header, type: 'string', filterType: 'numeric' };
         else if (t === 'category' && Array.isArray(f.options)) {
-          col = { field: k, header: f.name || this.prettyHeader(k), type: 'list', listOptions: (f.options || []).map((o: any) => ({ label: o.name || String(o.value), value: String(o.value) })) };
+          col = { field: k, header, type: 'list', listOptions: (f.options || []).map((o: any) => ({ label: o.name || String(o.value), value: String(o.value) })) };
         } else {
-          col = { field: k, header: f.name || this.prettyHeader(k), type: 'string', filterType: 'text' };
+          col = { field: k, header, type: 'string', filterType: 'text' };
         }
         if (f.width) col.width = String(f.width);
         cols.push(col);
