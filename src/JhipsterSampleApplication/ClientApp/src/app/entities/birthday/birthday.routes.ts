@@ -10,6 +10,7 @@ const birthdayRoute: Routes = [
     loadComponent: () => import('./list/birthday.component').then(m => m.BirthdayComponent),
     data: {
       defaultSort: `id,${ASC}`,
+      // legacy page retains dedicated Birthday component for comparison
     },
     canActivate: [UserRouteAccessService],
   },

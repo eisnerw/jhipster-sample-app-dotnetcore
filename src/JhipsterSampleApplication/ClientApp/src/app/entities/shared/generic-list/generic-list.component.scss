@@ -1,0 +1,61 @@
+/* Minimal tweaks that mirror existing list pages */
+.global-filter-input { width: 12rem; }
+.chip-bar { padding: 0.25rem 0; }
+
+/* Match 22px row height used by other entity lists */
+:host {
+  /* Body rows */
+  ::ng-deep .p-datatable .p-datatable-tbody > tr {
+    min-height: 22px !important;
+    line-height: 22px !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+    padding: 0 0.5rem !important;
+    min-height: 22px !important;
+    line-height: 22px !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-tbody > tr > td:first-child {
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 22px !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-tbody > tr > td:first-child > div {
+    min-height: 22px !important;
+    line-height: 22px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  /* Buttons inside cells */
+  ::ng-deep .p-datatable .p-datatable-tbody > tr > td > .p-button {
+    width: 22px !important;
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 22px !important;
+  }
+  ::ng-deep .p-datatable .p-datatable-tbody > tr > td > .p-button .p-button-icon {
+    font-size: 12px !important;
+    line-height: 22px !important;
+    height: 22px !important;
+    width: 22px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  /* Checkbox sizing + neutral style */
+  ::ng-deep .p-checkbox { width: 16px !important; height: 16px !important; margin: 0 !important; padding: 0 !important; min-height: 16px !important; max-height: 16px !important; position: relative !important; top: -3px !important; }
+  ::ng-deep .p-checkbox .p-checkbox-box { width: 16px !important; height: 16px !important; margin: 0 !important; padding: 0 !important; min-height: 16px !important; max-height: 16px !important; }
+  ::ng-deep .p-datatable .p-datatable-tbody .p-checkbox .p-checkbox-box.p-highlight,
+  ::ng-deep .p-datatable .p-datatable-thead .p-checkbox .p-checkbox-box.p-highlight,
+  ::ng-deep .p-checkbox .p-checkbox-box.p-highlight { background: #ffffff !important; border-color: var(--surface-border, #ced4da) !important; box-shadow: none !important; }
+  ::ng-deep .p-datatable .p-datatable-tbody .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
+  ::ng-deep .p-datatable .p-datatable-thead .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
+  ::ng-deep .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
+  ::ng-deep .p-checkbox .p-checkbox-icon { color: var(--text-color, #212529) !important; }
+  ::ng-deep .p-checkbox .p-checkbox-icon { font-size: 12px !important; margin: 0 !important; padding: 0 !important; line-height: 12px !important; height: 12px !important; }
+
+  /* Header height to match other lists */
+  ::ng-deep .p-datatable .p-datatable-thead > tr.header-row { height: 32px !important; line-height: 32px !important; min-height: 32px !important; max-height: 32px !important; }
+  ::ng-deep .p-datatable .p-datatable-thead > tr.header-row > th { padding: 0 0.5rem !important; height: 32px !important; line-height: 32px !important; min-height: 32px !important; max-height: 32px !important; }
+}

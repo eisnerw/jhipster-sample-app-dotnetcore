@@ -17,6 +17,11 @@ const routes: Routes = [
     loadChildren: () => import('./supreme/supreme.routes'),
   },
   {
+    path: 'entity',
+    data: { pageTitle: 'Entity' },
+    loadChildren: () => import('./generic/generic.routes'),
+  },
+  {
     path: 'named-query',
     data: { pageTitle: 'JobHistories' },
     loadChildren: () => import('./named-query/named-query-routing.module').then(m => m.NamedQueryRoutingModule),
