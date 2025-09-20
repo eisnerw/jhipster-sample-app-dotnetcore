@@ -2,21 +2,6 @@ import { Routes } from '@angular/router';
 
 const routes: Routes = [
   {
-    path: 'movie',
-    data: { pageTitle: 'Movies' },
-    loadChildren: () => import('./movie/movie.routes'),
-  },
-  {
-    path: 'birthday',
-    data: { pageTitle: 'Birthdays' },
-    loadChildren: () => import('./birthday/birthday.routes'),
-  },
-  {
-    path: 'supreme',
-    data: { pageTitle: 'Supreme' },
-    loadChildren: () => import('./supreme/supreme.routes'),
-  },
-  {
     path: 'entity',
     data: { pageTitle: 'Entity' },
     loadChildren: () => import('./entity/entity.routes'),

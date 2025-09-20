@@ -11,12 +11,27 @@ const routes: Routes = [
   },
   {
     path: ':entity',
-    loadComponent: () => import('./list/generic-list.component').then(m => m.GenericListComponent),
-    data: {
-      defaultSort: `id,${ASC}`,
-      pageTitle: 'Entity (Generic)'
-    },
-    canActivate: [UserRouteAccessService],
+    children: [
+      {
+        path: 'new',
+        loadComponent: () => import('./edit/generic-edit.component').then(m => m.GenericEditComponent),
+        canActivate: [UserRouteAccessService],
+      },
+      {
+        path: ':id/edit',
+        loadComponent: () => import('./edit/generic-edit.component').then(m => m.GenericEditComponent),
+        canActivate: [UserRouteAccessService],
+      },
+      {
+        path: '',
+        loadComponent: () => import('./list/generic-list.component').then(m => m.GenericListComponent),
+        data: {
+          defaultSort: `id,${ASC}`,
+          pageTitle: 'Entity (Generic)'
+        },
+        canActivate: [UserRouteAccessService],
+      },
+    ],
   },
 ];
 

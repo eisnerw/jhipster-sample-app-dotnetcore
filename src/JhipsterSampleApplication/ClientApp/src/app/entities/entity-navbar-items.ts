@@ -1,21 +1,9 @@
 import NavbarItem from 'app/layouts/navbar/navbar-item.model';
 
 export const ENTITY_NAV_ITEMS: NavbarItem[] = [
-  {
-    name: 'Movie',
-    route: '/movie',
-    translationKey: 'global.menu.entities.movie',
-  },
-  {
-    name: 'Birthday',
-    route: '/birthday',
-    translationKey: 'global.menu.entities.birthday',
-  },
-  {
-    name: 'Supreme',
-    route: '/supreme',
-    translationKey: 'global.menu.entities.supreme',
-  },
+  { name: 'Movie', route: '/entity/movie', translationKey: 'global.menu.entities.movie' },
+  { name: 'Birthday', route: '/entity/birthday', translationKey: 'global.menu.entities.birthday' },
+  { name: 'Supreme', route: '/entity/supreme', translationKey: 'global.menu.entities.supreme' },
   {
     name: 'NamedQuery',
     route: '/named-query',

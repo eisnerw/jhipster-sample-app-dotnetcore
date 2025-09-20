@@ -36,18 +36,18 @@
         "column": "Sign",
         "type": "category",
         "options": [
-          { "name": "Aries", "value": "aries" },
-          { "name": "Taurus", "value": "taurus" },
-          { "name": "Gemini", "value": "gemini" },
-          { "name": "Cancer", "value": "cancer" },
-          { "name": "Leo", "value": "leo" },
-          { "name": "Virgo", "value": "virgo" },
-          { "name": "Libra", "value": "libra" },
-          { "name": "Scorpio", "value": "scorpio" },
-          { "name": "Sagittarius", "value": "sagittarius" },
-          { "name": "Capricorn", "value": "capricorn" },
-          { "name": "Aquarius", "value": "aquarius" },
-          { "name": "Pisces", "value": "pisces" }
+          { "name": "Aries", "value": "Aries" },
+          { "name": "Taurus", "value": "Taurus" },
+          { "name": "Gemini", "value": "Gemini" },
+          { "name": "Cancer", "value": "Cancer" },
+          { "name": "Leo", "value": "Leo" },
+          { "name": "Virgo", "value": "Virgo" },
+          { "name": "Libra", "value": "Libra" },
+          { "name": "Scorpio", "value": "Scorpio" },
+          { "name": "Sagittarius", "value": "Sagittarius" },
+          { "name": "Capricorn", "value": "Capricorn" },
+          { "name": "Aquarius", "value": "Aquarius" },
+          { "name": "Pisces", "value": "Pisces" }
         ]
       },
       "wikipedia": {

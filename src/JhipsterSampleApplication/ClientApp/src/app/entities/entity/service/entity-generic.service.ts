@@ -55,6 +55,18 @@ export class EntityGenericService {
     return this.applicationConfigService.getEndpointFor(`api/entity/${encodeURIComponent(entity)}/spec`);
   }
 
+  find<T>(entity: string, id: string): Observable<HttpResponse<T>> {
+    return this.http.get<T>(`${this.url(entity)}/${encodeURIComponent(id)}`, { observe: 'response' });
+  }
+
+  create<T>(entity: string, payload: any): Observable<HttpResponse<T>> {
+    return this.http.post<T>(this.url(entity), payload, { observe: 'response' });
+  }
+
+  update<T>(entity: string, id: string, payload: any): Observable<HttpResponse<T>> {
+    return this.http.put<T>(`${this.url(entity)}/${encodeURIComponent(id)}`, payload, { observe: 'response' });
+  }
+
   query<T>(entity: string, req?: any): Observable<SearchResponse<T>> {
     const params: any = { ...(req || {}) };
     let queryString = 'query=';
@@ -103,4 +115,3 @@ export class EntityGenericService {
     return this.http.get<any>(this.specUrl(entity));
   }
 }
-
