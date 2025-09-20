@@ -54,6 +54,9 @@ export class EntityGenericService {
   private specUrl(entity: string): string {
     return this.applicationConfigService.getEndpointFor(`api/entity/${encodeURIComponent(entity)}/spec`);
   }
+  private directoryUrl(): string {
+    return this.applicationConfigService.getEndpointFor('api/entity');
+  }
 
   find<T>(entity: string, id: string): Observable<HttpResponse<T>> {
     return this.http.get<T>(`${this.url(entity)}/${encodeURIComponent(id)}`, { observe: 'response' });
@@ -113,5 +116,9 @@ export class EntityGenericService {
 
   getEntitySpec(entity: string): Observable<any> {
     return this.http.get<any>(this.specUrl(entity));
+  }
+
+  listEntities(): Observable<HttpResponse<Array<{ name: string; title?: string }>>> {
+    return this.http.get<Array<{ name: string; title?: string }>>(this.directoryUrl(), { observe: 'response' });
   }
 }

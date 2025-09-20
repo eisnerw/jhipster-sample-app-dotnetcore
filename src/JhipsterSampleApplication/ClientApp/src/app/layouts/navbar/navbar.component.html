@@ -82,6 +82,24 @@
                 <span>User management</span>
               </a>
             </li>
+            <li>
+              <a class="dropdown-item" routerLink="/named-query" routerLinkActive="active" (click)="collapseNavbar()">
+                <fa-icon icon="search" [fixedWidth]="true"></fa-icon>
+                <span>Named Query</span>
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" routerLink="/selector" routerLinkActive="active" (click)="collapseNavbar()">
+                <fa-icon icon="filter" [fixedWidth]="true"></fa-icon>
+                <span>Selector</span>
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" routerLink="/history" routerLinkActive="active" (click)="collapseNavbar()">
+                <fa-icon icon="history" [fixedWidth]="true"></fa-icon>
+                <span>History</span>
+              </a>
+            </li>
             @if (openAPIEnabled) {
               <li>
                 <a class="dropdown-item" routerLink="/admin/docs" routerLinkActive="active" (click)="collapseNavbar()">

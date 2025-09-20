@@ -54,3 +54,6 @@ Multiple formatters may be specified:
 	":link", which means that the attribute value is replaced by "<a href=\"{attribute-value}\">{label or attribute-name}</a>"
 	":html", which means that the attribute value is not html-encoded
 The template will be assumed to have been validated, so there is no reason to add error checking.  Instead, interpolate the template in a try/catch and emit the error message and the current template string being processed
+
+Before we begin you should know that the way to build the back end is to use dotnet build  -p:SkipClientBuild=true.  Also, you can't build the front end because that may cause the computer to lock up.  Fortunately, I'm running HMR, so I will tell you if there are any ng or ts errors.
+

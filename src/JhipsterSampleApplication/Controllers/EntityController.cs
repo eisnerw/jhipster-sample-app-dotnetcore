@@ -37,6 +37,20 @@ namespace JhipsterSampleApplication.Controllers
             _entityService = jsonService;
         }
 
+        [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<JhipsterSampleApplication.Dto.EntityInfoDto>), 200)]
+        public IActionResult ListEntities()
+        {
+            var list = new List<JhipsterSampleApplication.Dto.EntityInfoDto>();
+            foreach (var name in _specRegistry.GetEntityNames())
+            {
+                string? title = null;
+                if (_specRegistry.TryGetString(name, "title", out var t)) title = t;
+                list.Add(new JhipsterSampleApplication.Dto.EntityInfoDto { Name = name, Title = title });
+            }
+            return Ok(list.OrderBy(e => e.Title ?? e.Name));
+        }
+
         private (string Index, string IdField) GetEntityConfig(string entity)
         {
             if (!_specRegistry.TryGetString(entity, "elasticsearchIndex", out var index)
