@@ -71,6 +71,7 @@
                 "output": "/swagger-ui/"
               }
             ],
+            "serviceWorker": "ngsw-config.json",
             "styles": [
               "src/content/scss/vendor.scss",
               "src/content/scss/global.scss"
@@ -85,8 +86,6 @@
               "sourceMap": false,
               "namedChunks": false,
               "extractLicenses": true,
-              "serviceWorker": true,
-              "ngswConfigPath": "ngsw-config.json",
               "budgets": [
                 {
                   "type": "initial",

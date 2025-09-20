@@ -2,7 +2,7 @@
     "name": "movie",
     "title": "Movie",
     "elasticsearchIndex": "movies",
-    "detailFields": ["synopsis", "country", "languages", "directors", "producers", "writers", "cast"],
+    "columns":["title", "release_year", "country", "budget_usd", "gross_usd", "rotten_tomatoes_score"],
     "detailHtmlTemplate":[
       "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><base target=\\\"_blank\\\"><title>{title:unlabeled}</title><style>body{{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111}}.field-name{{font-weight:600}}.field{{margin-bottom:0.7em}}</style></head><body><b>{title:unlabeled} ({release_year:unlabeled:date-yyyy:default-unknown date})</b> {languages:unlabeled} {runtime_minutes:label-Runtime}{languages,unlabeled}{rotten_tomatoes_score:label-Rotten Tomatos}",
       "{directors}{producers}{writers}",
@@ -22,7 +22,7 @@
           "title": {
             "name": "Title",
             "type": "string",
-            "width": "50px",
+            "width": "350px",
             "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"]
           },
           "release_year": {

@@ -51,7 +51,7 @@ public class EntityService : IEntityService
         _loggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? LoggerFactory.Create(_ => { });
     }
 
-    private (string Index, string[] Details, string IdField) GetEntitySpec(string entity)
+    private (string Index, string IdField) GetEntitySpec(string entity)
     {
         // Look up the Elasticsearch index for the entity.  If it is not present we
         // treat the entity as unknown.
@@ -60,15 +60,11 @@ public class EntityService : IEntityService
             && !_specRegistry.TryGetString(entity, "index", out index))
             throw new ArgumentException($"Unknown entity '{entity}'", nameof(entity));
 
-        // Detail fields are optional; fall back to an empty array if not specified.
-        if (!_specRegistry.TryGetStringArray(entity, "detailFields", out var details))
-            _specRegistry.TryGetStringArray(entity, "descriptiveFields", out details);
-
         var idField = "Id";
         if (_specRegistry.TryGetString(entity, "idField", out var id) && !string.IsNullOrWhiteSpace(id))
             idField = id;
 
-        return (index, details, idField);
+        return (index, idField);
     }
 
     private string NormalizeSortField(string entity, string field)
@@ -209,7 +205,7 @@ public class EntityService : IEntityService
 
     private async Task<AppSearchResponse<JObject>> SearchRawAsync(string entity, SearchSpec<JObject> spec)
     {
-        var (indexName, detailFields, _) = GetEntitySpec(entity);
+        var (indexName, _) = GetEntitySpec(entity);
 
         // Fast path for single-id lookup: do a direct GET and avoid PIT/search
         if (!string.IsNullOrWhiteSpace(spec.Id) && (spec.Ids == null || spec.Ids.Count == 0) && spec.RawQuery == null)
@@ -255,7 +251,37 @@ public class EntityService : IEntityService
         if (spec.Size.HasValue) root["size"] = spec.Size.Value;
         if (!spec.IncludeDetails)
         {
-            root["_source"] = new JObject { ["excludes"] = new JArray(detailFields) };
+            // Restrict returned fields strictly to those listed in the entity's
+            // "columns" (or legacy "listFields"). No name normalization.
+            var includesSet = new HashSet<string>();
+            System.Text.Json.Nodes.JsonArray colsArr;
+            if (_specRegistry.TryGetArray(entity, "columns", out colsArr) || _specRegistry.TryGetArray(entity, "listFields", out colsArr))
+            {
+                foreach (var node in colsArr)
+                {
+                    try
+                    {
+                        if (node is System.Text.Json.Nodes.JsonValue jv)
+                        {
+                            var s = jv.GetValue<string?>();
+                            if (!string.IsNullOrWhiteSpace(s)) includesSet.Add(s!);
+                        }
+                        else if (node is System.Text.Json.Nodes.JsonObject jo)
+                        {
+                            var s = jo["field"]?.GetValue<string?>();
+                            if (!string.IsNullOrWhiteSpace(s)) includesSet.Add(s!);
+                        }
+                    }
+                    catch { /* ignore malformed */ }
+                }
+            }
+
+            if (includesSet.Count > 0)
+            {
+                var includes = new JArray();
+                foreach (var key in includesSet) includes.Add(key);
+                root["_source"] = new JObject { ["includes"] = includes };
+            }
         }
         // Sorts
         var sorts = new JArray();
@@ -456,7 +482,7 @@ public class EntityService : IEntityService
 
     public async Task<WriteResult> IndexAsync(string entity, JObject document)
     {
-        var (indexName, _, idField) = GetEntitySpec(entity);
+        var (indexName, idField) = GetEntitySpec(entity);
         var id = document[idField]?.ToString() ?? document["Id"]?.ToString() ?? document["id"]?.ToString();
         var camelDoc = (JObject)ToCamelCaseKeys(document);
         Elastic.Clients.Elasticsearch.IndexResponse resp;
@@ -479,7 +505,7 @@ public class EntityService : IEntityService
 
     public async Task<WriteResult> UpdateAsync(string entity, string id, JObject document)
     {
-        var (indexName, _, _) = GetEntitySpec(entity);
+        var (indexName, _) = GetEntitySpec(entity);
         var camelDoc = (JObject)ToCamelCaseKeys(document);
         var payload = JTokenToPlain(camelDoc)!;
         var resp = await _elasticClient.IndexAsync<object>(payload, i => i.Index(indexName).Id(id).Refresh(Refresh.WaitFor));
@@ -488,7 +514,7 @@ public class EntityService : IEntityService
 
     public async Task<WriteResult> DeleteAsync(string entity, string id)
     {
-        var (indexName, _, _) = GetEntitySpec(entity);
+        var (indexName, _) = GetEntitySpec(entity);
         var resp = await _elasticClient.DeleteAsync<object>(id, d => d.Index(indexName));
         return new WriteResult { Success = resp.IsValidResponse, Message = resp.Result.ToString() };
     }
@@ -500,7 +526,7 @@ public class EntityService : IEntityService
     /// <returns>A collection of unique field values</returns>
     public async Task<List<string>> GetUniqueFieldValuesAsync(string entity, string field)
     {
-        var (indexName, _, _) = GetEntitySpec(entity);
+        var (indexName, _) = GetEntitySpec(entity);
         var body = new JObject
         {
             ["size"] = 0,
@@ -617,14 +643,14 @@ private static RulesetDto MapToDto(Ruleset rr)
 
     public async Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(string entity, JObject queryObject, ViewDto viewDto, int size = 20, int from = 0, string? sort = null)
     {
-        var (indexName, _, _) = GetEntitySpec(entity);
+        var (indexName, _) = GetEntitySpec(entity);
         string query = queryObject.ToString();
         return await SearchUsingViewAsync(indexName, query, viewDto, from, size);
     }
 
     public async Task<SimpleApiResponse> CategorizeAsync(string entity, CategorizeRequestDto request)
     {
-        var (indexName, _, _) = GetEntitySpec(entity);
+        var (indexName, _) = GetEntitySpec(entity);
         var spec = new SearchSpec<JObject> { Ids = request.Ids, IncludeDetails = true, PitId = "" };
         var response = await SearchAsync(entity, spec);
         if (!response.IsValid)
@@ -707,7 +733,7 @@ private static RulesetDto MapToDto(Ruleset rr)
 
     public async Task<SimpleApiResponse> CategorizeMultipleAsync(string entity, CategorizeMultipleRequestDto request)
     {
-        var (indexName, _, _) = GetEntitySpec(entity);
+        var (indexName, _) = GetEntitySpec(entity);
         var toAdd = (request.Add ?? new List<string>())
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .Select(s => s.Trim().ToUpperInvariant())

@@ -234,7 +234,8 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       }
     }
 
-    const listFields: Array<string | { field: string; header?: string; type?: string; dateFormat?: string }> = spec?.listFields || [];
+    const columnsPref: Array<string | { field: string; header?: string; type?: string; dateFormat?: string }> = Array.isArray(spec?.columns) ? spec.columns : [];
+    const listFields: Array<string | { field: string; header?: string; type?: string; dateFormat?: string }> = (columnsPref.length > 0 ? columnsPref : (spec?.listFields || []));
     if (Array.isArray(listFields) && listFields.length > 0) {
       for (const lf of listFields) {
         if (typeof lf === 'string') {
