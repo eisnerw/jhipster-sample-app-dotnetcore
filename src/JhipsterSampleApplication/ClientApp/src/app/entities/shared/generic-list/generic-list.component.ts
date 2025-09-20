@@ -137,17 +137,17 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
-    // Pull entity and title from route data when not provided as @Input
+    // react to :entity changes on the route
+    this.route.paramMap.subscribe(pm => {
+      const pEntity = pm.get('entity') || this.entity;
+      this.initForEntity(pEntity);
+    });
+
+    // also honor static data defaults when not using :entity
     const data = this.route.snapshot.data || {};
-    this.entity = this.entity || data['entity'];
-    this.pageTitle = this.pageTitle || data['pageTitle'] || (this.entity ? `${this.capitalize(this.entity)}s...` : 'Items');
-
-    // Load query builder spec
-    this.entityService.getQueryBuilderSpec(this.entity).subscribe({ next: spec => (this.spec = spec), error: () => (this.spec = undefined) });
-
-    // Load UI spec (list columns inference) and views
-    this.loadColumnsFromSpec();
-    this.loadViews();
+    if (!this.entity && data['entity']) {
+      this.initForEntity(data['entity']);
+    }
   }
 
   ngAfterViewInit(): void {
@@ -166,9 +166,13 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   private loadColumnsFromSpec(): void {
     this.entityService.getEntitySpec(this.entity).subscribe({
       next: (spec: any) => {
+        // update page title from spec if available
+        if (!this.pageTitle && spec?.title) this.pageTitle = String(spec.title);
         const columns = this.buildColumnsFromSpec(spec);
         this.columns = columns;
-        this.globalFilterFields = columns.filter(c => (c.type === 'string' || !c.type) && !!c.field && c.field !== 'lineNumber' && c.field !== 'checkbox').map(c => c.field);
+        this.globalFilterFields = columns
+          .filter(c => (c.type === 'string' || !c.type) && !!c.field && c.field !== 'lineNumber' && c.field !== 'checkbox')
+          .map(c => c.field);
       },
       error: () => {
         // Fallback minimal columns
@@ -181,6 +185,34 @@ export class GenericListComponent implements OnInit, AfterViewInit {
         this.globalFilterFields = ['id'];
       },
     });
+  }
+
+  private initForEntity(e: string | null): void {
+    if (!e) return;
+    // update entity and reset state
+    this.entity = e;
+    this.pageTitle = `${this.capitalize(this.entity)}s...`;
+
+    // re-create DataLoader bound to new entity
+    const fetch: FetchFunction<AnyRow> = (queryParams: any) => {
+      if (queryParams.bqlQuery) {
+        const bql = queryParams.bqlQuery;
+        delete queryParams.bqlQuery;
+        return this.entityService.searchWithBql<AnyRow>(this.entity, bql, queryParams);
+      }
+      return this.entityService.query<AnyRow>(this.entity, queryParams);
+    };
+    this.dataLoader = new DataLoader<AnyRow>(fetch);
+
+    // Load specs and views for this entity
+    this.entityService.getQueryBuilderSpec(this.entity).subscribe({ next: spec => (this.spec = spec), error: () => (this.spec = undefined) });
+    this.loadColumnsFromSpec();
+    this.loadViews();
+
+    // Run an initial load with lucene '*'
+    this.viewName = null;
+    this.currentQuery = '';
+    this.loadPage();
   }
 
   private buildColumnsFromSpec(spec: any): ColumnConfig[] {

@@ -6,10 +6,14 @@ import { ASC } from 'app/config/navigation.constants';
 const routes: Routes = [
   {
     path: '',
+    pathMatch: 'full',
+    redirectTo: 'birthday',
+  },
+  {
+    path: ':entity',
     loadComponent: () => import('../shared/generic-list/generic-list.component').then(m => m.GenericListComponent),
     data: {
       defaultSort: `id,${ASC}`,
-      entity: 'birthday',
       pageTitle: 'Entity (Generic)'
     },
     canActivate: [UserRouteAccessService],
@@ -17,4 +21,3 @@ const routes: Routes = [
 ];
 
 export default routes;
-

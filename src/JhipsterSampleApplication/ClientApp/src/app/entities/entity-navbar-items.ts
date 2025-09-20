@@ -18,7 +18,7 @@ export const ENTITY_NAV_ITEMS: NavbarItem[] = [
   },
   {
     name: 'Entity',
-    route: '/entity',
+    route: '/entity/birthday',
     translationKey: 'global.menu.entities.entity',
   },
   {
