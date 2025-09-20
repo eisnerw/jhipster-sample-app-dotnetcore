@@ -8,7 +8,7 @@
     [rowTrackBy]="trackByFn"
     [lazy]="false"
     [virtualScroll]="false"
-    [resizableColumns]="resizableColumns"
+    [resizableColumns]="false"
     columnResizeMode="fit"
     [reorderableColumns]="reorderableColumns"
     [scrollable]="scrollable"
@@ -33,7 +33,7 @@
   >
     <ng-template pTemplate="colgroup" let-columns>
       <colgroup>
-        @for (col of columns; track col) {
+        @for (col of columns; track col; let i = $index) {
           <col [style.width]="col.width" />
         }
       </colgroup>
@@ -41,12 +41,11 @@
     @if (showHeader && !superTableParent) {
       <ng-template pTemplate="header" let-columns>
         <tr class="header-row">
-          @for (col of columns; track col) {
+          @for (col of columns; track col; let i = $index) {
             <th
               [pSortableColumn]="
                 col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list' ? col.field : null
               "
-              pResizableColumn
               [style.width]="col.width"
               [style]="col.style"
             >
@@ -108,6 +107,14 @@
                   }
                 }
               </div>
+              <span
+                class="st-resize-handle"
+                *ngIf="resizableColumns && (col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list')"
+                (mousedown)="onResizeStart(i, $event)"
+                (mouseup)="$event.stopPropagation()"
+                (click)="$event.stopPropagation()"
+                (dblclick)="$event.stopPropagation()"
+              ></span>
             </th>
           }
         </tr>
@@ -180,7 +187,7 @@
   <p-table
     [columns]="visibleColumns"
     #pTable
-    [resizableColumns]="resizableColumns"
+    [resizableColumns]="false"
     columnResizeMode="fit"
     [scrollable]="true"
     [scrollHeight]="scrollHeight"
@@ -194,12 +201,11 @@
     @if (showHeader && !superTableParent) {
       <ng-template pTemplate="header" let-columns>
         <tr class="header-row">
-          @for (col of columns; track col) {
+          @for (col of columns; track col; let i = $index) {
             <th
               [pSortableColumn]="
                 col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list' ? col.field : undefined
               "
-              pResizableColumn
               [style.width]="col.width"
               [style]="col.style"
             >
@@ -265,6 +271,14 @@
                   }
                 }
               </div>
+              <span
+                class="st-resize-handle"
+                *ngIf="resizableColumns && (col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list')"
+                (mousedown)="onResizeStart(i, $event)"
+                (mouseup)="$event.stopPropagation()"
+                (click)="$event.stopPropagation()"
+                (dblclick)="$event.stopPropagation()"
+              ></span>
             </th>
           }
         </tr>

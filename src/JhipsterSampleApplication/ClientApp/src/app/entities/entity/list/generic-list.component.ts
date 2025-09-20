@@ -79,6 +79,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   spec: QueryLanguageSpec | undefined;
   dataLoader!: DataLoader<AnyRow>;
   columns: ColumnConfig[] = [];
+  initialWidths: (string | undefined)[] = [];
   globalFilterFields: string[] = [];
 
   viewName: string | null = null;
@@ -158,6 +159,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
         if (!this.pageTitle && spec?.title) this.pageTitle = String(spec.title);
         const columns = this.buildColumnsFromSpec(spec);
         this.columns = columns;
+        this.initialWidths = this.columns.map(c => c.width || undefined);
         this.globalFilterFields = columns
           .filter(c => (c.type === 'string' || !c.type) && !!c.field && c.field !== 'lineNumber' && c.field !== 'checkbox')
           .map(c => c.field);

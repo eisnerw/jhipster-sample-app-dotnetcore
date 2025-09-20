@@ -64,6 +64,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   @Input() dataLoader: DataLoader<any> | undefined;
   @Input() columns: ColumnConfig[] = [];
+  @Input() widthKey: string | undefined;
+  @Input() initialWidths: (string | undefined)[] | undefined;
   @Input() groups: GroupDescriptor[] = [];
   @Input() mode: 'grid' | 'group' = 'grid';
   @Input() groupQuery: ((group: GroupDescriptor) => GroupData) | undefined;
@@ -96,6 +98,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private lastSortEvent: any;
   private lastFilterEvent: any;
   private lastColumnWidths: string[] | undefined;
+  private resizingIndex: number | null = null;
+  private startX = 0;
+  private startLeftWidth = 0;
+  private startRightWidth = 0;
 
   private scrollContainer?: HTMLElement;
   private lastScrollTop = 0;
@@ -116,6 +122,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     }
   };
   private capturedWidths = false;
+  private enforceHandle: any;
 
   // Holds the current global filter text for group mode
   private groupFilterValue: string = '';
@@ -232,15 +239,20 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         setTimeout(() => {
           this.captureColumnWidths();
           this.initScroll();
+          this.enforceWidthsAfterLayout();
         });
       } else {
         this.initScroll();
+        this.enforceWidthsAfterLayout();
       }
     }
     if (changes['groups'] && !changes['groups'].firstChange) {
       // Clear cached group data and expanded state when groups change
       this.groupLoaders = {};
       this.expandedRowKeys = {};
+    }
+    if ((changes['columns'] && !changes['columns'].firstChange) || changes['initialWidths'] || changes['widthKey']) {
+      this.enforceWidthsAfterLayout();
     }
   }
 
@@ -250,6 +262,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         this.captureColumnWidths();
       }
       this.initScroll();
+      this.enforceWidthsAfterLayout();
     });
     this.detailTables.changes.subscribe(() => {
       setTimeout(() => this.applyStoredStateToDetails(), 500);
@@ -529,6 +542,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         c.width = this.lastColumnWidths![i];
       });
       this.columns = [...this.columns];
+      this.writePersistedWidths(this.lastColumnWidths);
     }
     this.detailTables?.forEach((table) => {
       if (this.lastColumnWidths) {
@@ -541,6 +555,76 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     });
     this.onColResize.emit(event);
     requestAnimationFrame(() => this.attemptScrollRestore());
+  }
+
+  // === Custom column resize (adjacent columns, fixed table width) ===
+  onResizeStart(index: number, ev: MouseEvent): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    let left = this.findResizableIndexFrom(index, 0);
+    let right = this.findResizableIndexFrom(index + 1, +1);
+    // If there is no right neighbor (last column), use the previous neighbor instead
+    if (left != null && right == null) {
+      const prev = this.findResizableIndexFrom(left - 1, -1);
+      if (prev != null) { right = left; left = prev; }
+    }
+    if (left == null || right == null) return;
+    const widths = this._getColumnWidths() || this.visibleColumns.map(c => c.width || '120px');
+    this.resizingIndex = left;
+    this.startX = ev.clientX;
+    this.startLeftWidth = parseFloat(widths[left] || '0');
+    this.startRightWidth = parseFloat(widths[right] || '0');
+    const onMove = (e: MouseEvent) => this.onResizeMove(e, left, right);
+    const onUp = (e: MouseEvent) => this.onResizeEnd(e, onMove, onUp);
+    document.addEventListener('mousemove', onMove, true);
+    document.addEventListener('mouseup', onUp, true);
+    document.body.classList.add('st-resizing');
+  }
+
+  private onResizeMove(ev: MouseEvent, left: number, right: number): void {
+    if (this.resizingIndex == null) return;
+    const dx = ev.clientX - this.startX;
+    let newLeft = Math.max(60, this.startLeftWidth + dx);
+    let newRight = Math.max(60, this.startRightWidth - dx);
+    this.applyWidthsByIndex([[left, newLeft], [right, newRight]]);
+  }
+
+  private onResizeEnd(ev: MouseEvent, onMove: any, onUp: any): void {
+    document.removeEventListener('mousemove', onMove, true);
+    document.removeEventListener('mouseup', onUp, true);
+    document.body.classList.remove('st-resizing');
+    this.lastColumnWidths = this._getColumnWidths();
+    if (this.lastColumnWidths) this.writePersistedWidths(this.lastColumnWidths);
+    this.resizingIndex = null;
+  }
+
+  private findResizableIndexFrom(start: number, dir: number): number | null {
+    const n = this.visibleColumns.length;
+    for (let i = start; i >= 0 && i < n; i += (dir === 0 ? 1 : dir)) {
+      const c = this.visibleColumns[i];
+      if (!c) continue;
+      const t = c.type;
+      if (t !== 'lineNumber' && t !== 'checkbox' && t !== 'expander') return i;
+      if (dir === 0) continue;
+    }
+    return null;
+  }
+
+  private applyWidthsByIndex(pairs: Array<[number, number]>): void {
+    pairs.forEach(([i, px]) => {
+      if (!this.visibleColumns[i]) return;
+      this.visibleColumns[i].width = Math.max(20, Math.round(px)) + 'px';
+    });
+    this.columns = [...this.columns];
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      if (!this.pTable?.el) return;
+      const ths: NodeListOf<HTMLTableCellElement> = this.pTable.el.nativeElement.querySelectorAll('thead th');
+      pairs.forEach(([i, px]) => {
+        const th = ths[i];
+        if (th) th.style.width = Math.max(20, Math.round(px)) + 'px';
+      });
+    }, 0);
   }
 
   private initScroll(): void {
@@ -595,6 +679,100 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       clearTimeout(this.scrollRestoreHandle);
       this.scrollRestoreHandle = null;
     }
+    if (this.enforceHandle) {
+      clearTimeout(this.enforceHandle);
+      this.enforceHandle = null;
+    }
+  }
+
+  private readPersistedWidths(): string[] | null {
+    try {
+      if (!this.widthKey) return null;
+      const raw = localStorage.getItem(`supertable.widths:${this.widthKey}`);
+      if (!raw) return null;
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? (arr as string[]) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private writePersistedWidths(widths: string[]): void {
+    try {
+      if (!this.widthKey) return;
+      localStorage.setItem(`supertable.widths:${this.widthKey}`, JSON.stringify(widths));
+    } catch {}
+  }
+
+  private applyWidthsToDom(widths: (string | undefined)[]): void {
+    this.visibleColumns.forEach((c, i) => {
+      const w = widths[i];
+      if (w && typeof w === 'string' && w.trim()) c.width = w;
+    });
+    this.columns = [...this.columns];
+    setTimeout(() => {
+      if (!this.pTable?.el) return;
+      const ths: NodeListOf<HTMLTableCellElement> = this.pTable.el.nativeElement.querySelectorAll('thead th');
+      widths.forEach((w, i) => {
+        if (!w || !ths[i]) return;
+        ths[i].style.width = w;
+      });
+    }, 0);
+  }
+
+  private enforceWidthsAfterLayout(): void {
+    const persisted = this.readPersistedWidths();
+    const desired = (persisted && persisted.length === this.visibleColumns.length)
+      ? persisted
+      : (this.initialWidths && this.initialWidths.length === this.visibleColumns.length ? this.initialWidths : undefined);
+    if (!desired) return;
+
+    const applyNow = () => this.applyWidthsToDom(desired);
+    // Apply immediately once
+    requestAnimationFrame(applyNow);
+
+    // Then enforce until stable for a short window, to outlast PrimeNG adjustments
+    const start = Date.now();
+    let lastMismatchAt = Date.now();
+
+    const checkAndEnforce = () => {
+      const ths: NodeListOf<HTMLTableCellElement> | null = this.pTable?.el?.nativeElement?.querySelectorAll('thead th') || null;
+      if (!ths || ths.length === 0) return; // nothing to enforce
+      // Compare only for indices where a desired width exists
+      let mismatch = false;
+      desired.forEach((w, i) => {
+        if (!w) return;
+        const th = ths[i];
+        if (!th) return;
+        const want = parseFloat(String(w));
+        const have = parseFloat(String(th.style.width || th.offsetWidth + ''));
+        if (isFinite(want) && Math.abs(have - want) > 1) {
+          mismatch = true;
+        }
+      });
+      if (mismatch) {
+        lastMismatchAt = Date.now();
+        this.applyWidthsToDom(desired);
+      }
+      const elapsed = Date.now() - start;
+      const sinceLastMismatch = Date.now() - lastMismatchAt;
+      // Stop if stable for 250ms or after 1500ms total
+      if (sinceLastMismatch > 250 || elapsed > 1500) {
+        if (this.enforceHandle) {
+          clearInterval(this.enforceHandle);
+          this.enforceHandle = null;
+        }
+        // Persist final widths if a key is set
+        const final = this._getColumnWidths();
+        if (final && final.length === this.visibleColumns.length) this.writePersistedWidths(final);
+      }
+    };
+
+    if (this.enforceHandle) {
+      clearInterval(this.enforceHandle);
+      this.enforceHandle = null;
+    }
+    this.enforceHandle = setInterval(checkAndEnforce, 50);
   }
 
   // === Group header select-all helpers ===

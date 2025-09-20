@@ -83,4 +83,30 @@
   justify-content: center;
   align-items: flex-end;
 }
+.st-resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  user-select: none;
+  z-index: 2;
+  border-right: 1px solid var(--surface-border, #dee2e6);
+}
+.st-resize-handle:hover {
+  background: rgba(0,0,0,0.06);
+}
 
+:host ::ng-deep .header-cell {
+  position: relative;
+}
+
+:host ::ng-deep .p-datatable thead th {
+  position: relative;
+}
+
+.st-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
