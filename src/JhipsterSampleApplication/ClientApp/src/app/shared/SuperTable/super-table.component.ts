@@ -157,8 +157,11 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       const containerEl: HTMLElement = (cand && cand.classList.contains('table-responsive'))
         ? cand
         : ((host.querySelector('.p-datatable-wrapper') as HTMLElement) || host);
-      // Subtract a small fudge to avoid border/rounding induced overflow
-      return Math.max(0, (containerEl.clientWidth || 0) - 4);
+      // Take the smaller of container clientWidth and viewport clientWidth to avoid page-level overflow,
+      // then subtract a conservative fudge (24px) to beat borders/rounding across browsers.
+      const viewport = typeof document !== 'undefined' ? (document.documentElement?.clientWidth || 0) : 0;
+      const base = Math.min(containerEl.clientWidth || 0, viewport || (containerEl.clientWidth || 0));
+      return Math.max(0, base - 24);
     } catch { return 0; }
   }
 
@@ -928,7 +931,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       if (c.type === 'boolean' || c.type === 'checkbox' || c.type === 'expander' || c.type === 'lineNumber') return Math.max(30, Math.min(approx, 80));
       if (c.type === 'date') return Math.max(80, approx);
       // Numeric columns: tighter minimum, ignore long headers
-      if (c.filterType === 'numeric') return 56;
+      if (c.filterType === 'numeric') return 52;
       return approx;
     });
     this.minWidthsCache = arr;
@@ -943,8 +946,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       const base = this.visibleColumns.map((c, i) => {
         if (c.type === 'date') return Math.max(minW[i], 120);
         if (c.type === 'boolean') return Math.max(minW[i], 70);
-        // Numeric default ~72px unless a higher min is specified
-        if (c.filterType === 'numeric') return Math.max(minW[i], 72);
+        // Numeric default ~64px unless a higher min is specified
+        if (c.filterType === 'numeric') return Math.max(minW[i], 64);
         if (c.type === 'checkbox' || c.type === 'expander' || c.type === 'lineNumber') return Math.max(minW[i], 30);
         return minW[i];
       });
