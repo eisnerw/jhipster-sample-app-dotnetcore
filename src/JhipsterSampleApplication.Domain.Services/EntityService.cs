@@ -51,7 +51,7 @@ public class EntityService : IEntityService
         _loggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? LoggerFactory.Create(_ => { });
     }
 
-    private (string Index, string[] Details, string IdField) GetEntitySpec(string entity)
+    private (string Index, string IdField) GetEntitySpec(string entity)
     {
         // Look up the Elasticsearch index for the entity.  If it is not present we
         // treat the entity as unknown.
@@ -60,15 +60,11 @@ public class EntityService : IEntityService
             && !_specRegistry.TryGetString(entity, "index", out index))
             throw new ArgumentException($"Unknown entity '{entity}'", nameof(entity));
 
-        // Detail fields are optional; fall back to an empty array if not specified.
-        if (!_specRegistry.TryGetStringArray(entity, "detailFields", out var details))
-            _specRegistry.TryGetStringArray(entity, "descriptiveFields", out details);
-
         var idField = "Id";
         if (_specRegistry.TryGetString(entity, "idField", out var id) && !string.IsNullOrWhiteSpace(id))
             idField = id;
 
-        return (index, details, idField);
+        return (index, idField);
     }
 
     private string NormalizeSortField(string entity, string field)
@@ -209,7 +205,7 @@ public class EntityService : IEntityService
 
     private async Task<AppSearchResponse<JObject>> SearchRawAsync(string entity, SearchSpec<JObject> spec)
     {
-        var (indexName, detailFields, _) = GetEntitySpec(entity);
+        var (indexName, _) = GetEntitySpec(entity);
 
         // Fast path for single-id lookup: do a direct GET and avoid PIT/search
         if (!string.IsNullOrWhiteSpace(spec.Id) && (spec.Ids == null || spec.Ids.Count == 0) && spec.RawQuery == null)
@@ -255,7 +251,76 @@ public class EntityService : IEntityService
         if (spec.Size.HasValue) root["size"] = spec.Size.Value;
         if (!spec.IncludeDetails)
         {
-            root["_source"] = new JObject { ["excludes"] = new JArray(detailFields) };
+            // Exclude all defined fields that are NOT present in the entity's
+            // "columns" (or legacy "listFields"). Field names must match exactly.
+            var allDefinedFields = new List<string>();
+            if (_specRegistry.TryGetObject(entity, "fields", out var fieldsNode))
+            {
+                var qb = JObject.Parse(fieldsNode.ToJsonString());
+                foreach (var p in qb.Properties()) allDefinedFields.Add(p.Name);
+            }
+
+            var selected = new HashSet<string>();
+            System.Text.Json.Nodes.JsonArray colsArr;
+            if (_specRegistry.TryGetArray(entity, "columns", out colsArr) || _specRegistry.TryGetArray(entity, "listFields", out colsArr))
+            {
+                foreach (var node in colsArr)
+                {
+                    try
+                    {
+                        if (node is System.Text.Json.Nodes.JsonValue jv)
+                        {
+                            var s = jv.GetValue<string?>();
+                            if (!string.IsNullOrWhiteSpace(s)) selected.Add(s!);
+                        }
+                        else if (node is System.Text.Json.Nodes.JsonObject jo)
+                        {
+                            var s = jo["field"]?.GetValue<string?>();
+                            if (!string.IsNullOrWhiteSpace(s)) selected.Add(s!);
+                        }
+                    }
+                    catch { /* ignore malformed */ }
+                }
+            }
+
+            if (allDefinedFields.Count > 0 && selected.Count > 0)
+            {
+                // If any selected field is a computed field, include its source fields as well
+                try
+                {
+                    if (_specRegistry.TryGetObject(entity, "fields", out var fieldsNode2))
+                    {
+                        var fieldsObj = JObject.Parse(fieldsNode2.ToJsonString());
+                        foreach (var sel in selected.ToList())
+                        {
+                            var def = fieldsObj[sel] as JObject;
+                            var typ = def? ["type"]?.ToString();
+                            if (!string.IsNullOrEmpty(typ) && string.Equals(typ, "computed", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var comp = def? ["computation"]?.ToString() ?? string.Empty;
+                                if (!string.IsNullOrWhiteSpace(comp))
+                                {
+                                    var refs = comp
+                                        .Split(new[] { '|', ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                                        .Select(s => s.Trim())
+                                        .Where(s => !string.IsNullOrWhiteSpace(s));
+                                    foreach (var r in refs) selected.Add(r);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch { /* ignore spec parse errors; best effort */ }
+
+                var excludes = new JArray();
+                foreach (var f in allDefinedFields)
+                {
+                    // Never exclude categories so UI can highlight/tool-tip even when not in columns
+                    if (string.Equals(f, "categories", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!selected.Contains(f)) excludes.Add(f);
+                }
+                root["_source"] = new JObject { ["excludes"] = excludes };
+            }
         }
         // Sorts
         var sorts = new JArray();
@@ -456,7 +521,7 @@ public class EntityService : IEntityService
 
     public async Task<WriteResult> IndexAsync(string entity, JObject document)
     {
-        var (indexName, _, idField) = GetEntitySpec(entity);
+        var (indexName, idField) = GetEntitySpec(entity);
         var id = document[idField]?.ToString() ?? document["Id"]?.ToString() ?? document["id"]?.ToString();
         var camelDoc = (JObject)ToCamelCaseKeys(document);
         Elastic.Clients.Elasticsearch.IndexResponse resp;
@@ -479,7 +544,7 @@ public class EntityService : IEntityService
 
     public async Task<WriteResult> UpdateAsync(string entity, string id, JObject document)
     {
-        var (indexName, _, _) = GetEntitySpec(entity);
+        var (indexName, _) = GetEntitySpec(entity);
         var camelDoc = (JObject)ToCamelCaseKeys(document);
         var payload = JTokenToPlain(camelDoc)!;
         var resp = await _elasticClient.IndexAsync<object>(payload, i => i.Index(indexName).Id(id).Refresh(Refresh.WaitFor));
@@ -488,7 +553,7 @@ public class EntityService : IEntityService
 
     public async Task<WriteResult> DeleteAsync(string entity, string id)
     {
-        var (indexName, _, _) = GetEntitySpec(entity);
+        var (indexName, _) = GetEntitySpec(entity);
         var resp = await _elasticClient.DeleteAsync<object>(id, d => d.Index(indexName));
         return new WriteResult { Success = resp.IsValidResponse, Message = resp.Result.ToString() };
     }
@@ -500,7 +565,7 @@ public class EntityService : IEntityService
     /// <returns>A collection of unique field values</returns>
     public async Task<List<string>> GetUniqueFieldValuesAsync(string entity, string field)
     {
-        var (indexName, _, _) = GetEntitySpec(entity);
+        var (indexName, _) = GetEntitySpec(entity);
         var body = new JObject
         {
             ["size"] = 0,
@@ -556,27 +621,18 @@ public async Task<JObject> ConvertRulesetToElasticSearch(string entity, Ruleset 
     }
 
     var dto = MapToDto(rr);
-    // Build BQL service for this entity on the fly using its QB spec
+    // Build BQL service using top-level fields only (no legacy fallback)
     JObject qbSpec;
-    if (_specRegistry.TryGetObject(entity, "queryBuilder", out var qbNode))
+    if (_specRegistry.TryGetObject(entity, "fields", out var fieldsNode))
     {
-        qbSpec = JObject.Parse(qbNode.ToJsonString());
+        qbSpec = new JObject { ["fields"] = JObject.Parse(fieldsNode.ToJsonString()) };
     }
     else
     {
-        // Fallback 1: parse from Entities JSON in Resources if available
-        var entitiesPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "Entities", $"{entity}.json");
-        if (System.IO.File.Exists(entitiesPath))
-        {
-            var root = JObject.Parse(System.IO.File.ReadAllText(entitiesPath));
-            qbSpec = (root["queryBuilder"] as JObject) ?? new JObject();
-        }
-        else
-        {
-            // Fallback 2: legacy query-builder file location
-            qbSpec = BqlService<object>.LoadSpec(entity);
-        }
+        qbSpec = new JObject { ["fields"] = new JObject() };
     }
+    // Ensure "document" field exists for BQL processing
+    EnsureDocumentField(qbSpec);
     var logger = _loggerFactory.CreateLogger<BqlService<object>>();
     var bql = new BqlService<object>(logger, _namedQueryService, qbSpec, entity);
     var result = await bql.Ruleset2ElasticSearch(dto);
@@ -617,14 +673,14 @@ private static RulesetDto MapToDto(Ruleset rr)
 
     public async Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(string entity, JObject queryObject, ViewDto viewDto, int size = 20, int from = 0, string? sort = null)
     {
-        var (indexName, _, _) = GetEntitySpec(entity);
+        var (indexName, _) = GetEntitySpec(entity);
         string query = queryObject.ToString();
         return await SearchUsingViewAsync(indexName, query, viewDto, from, size);
     }
 
     public async Task<SimpleApiResponse> CategorizeAsync(string entity, CategorizeRequestDto request)
     {
-        var (indexName, _, _) = GetEntitySpec(entity);
+        var (indexName, _) = GetEntitySpec(entity);
         var spec = new SearchSpec<JObject> { Ids = request.Ids, IncludeDetails = true, PitId = "" };
         var response = await SearchAsync(entity, spec);
         if (!response.IsValid)
@@ -707,7 +763,7 @@ private static RulesetDto MapToDto(Ruleset rr)
 
     public async Task<SimpleApiResponse> CategorizeMultipleAsync(string entity, CategorizeMultipleRequestDto request)
     {
-        var (indexName, _, _) = GetEntitySpec(entity);
+        var (indexName, _) = GetEntitySpec(entity);
         var toAdd = (request.Add ?? new List<string>())
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .Select(s => s.Trim().ToUpperInvariant())
@@ -1008,5 +1064,29 @@ private static RulesetDto MapToDto(Ruleset rr)
             return dt.ToString(fmt, CultureInfo.InvariantCulture);
         }
         return html ? raw : WebUtility.HtmlEncode(raw);
+    }
+    public static void EnsureDocumentField(Newtonsoft.Json.Linq.JObject qbSpec)
+    {
+        if (qbSpec == null) return;
+        var fields = qbSpec["fields"] as JObject;
+        if (fields == null)
+        {
+            fields = new JObject();
+            qbSpec["fields"] = fields;
+        }
+        if (fields.Property("document") == null)
+        {
+            var newFields = new JObject
+            {
+                ["document"] = new JObject
+                {
+                    ["name"] = "Document",
+                    ["type"] = "string",
+                    ["operators"] = new JArray("contains", "!contains", "like", "!like")
+                }
+            };
+            foreach (var p in fields.Properties()) newFields[p.Name] = p.Value;
+            qbSpec["fields"] = newFields;
+        }
     }
 }

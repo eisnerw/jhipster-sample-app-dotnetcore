@@ -8,11 +8,12 @@
     [rowTrackBy]="trackByFn"
     [lazy]="false"
     [virtualScroll]="false"
-    [resizableColumns]="resizableColumns"
-    columnResizeMode="fit"
+    [resizableColumns]="false"
+    columnResizeMode="expand"
     [reorderableColumns]="reorderableColumns"
     [scrollable]="scrollable"
     [scrollHeight]="scrollHeight"
+    [tableStyle]="tableStyle"
     [paginator]="paginator"
     [showGridlines]="true"
     [globalFilterFields]="globalFilterFields"
@@ -33,7 +34,7 @@
   >
     <ng-template pTemplate="colgroup" let-columns>
       <colgroup>
-        @for (col of columns; track col) {
+        @for (col of columns; track col; let i = $index) {
           <col [style.width]="col.width" />
         }
       </colgroup>
@@ -41,14 +42,14 @@
     @if (showHeader && !superTableParent) {
       <ng-template pTemplate="header" let-columns>
         <tr class="header-row">
-          @for (col of columns; track col) {
+          @for (col of columns; track col; let i = $index) {
             <th
               [pSortableColumn]="
                 col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list' ? col.field : null
               "
-              pResizableColumn
               [style.width]="col.width"
               [style]="col.style"
+              [ngClass]="{ 'numeric-header': col.filterType === 'numeric' }"
             >
               <div class="header-cell">
                 <span class="header-text">{{ col.header }}</span>
@@ -108,6 +109,14 @@
                   }
                 }
               </div>
+              <span
+                class="st-resize-handle"
+                *ngIf="resizableColumns && (col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list')"
+                (mousedown)="onResizeStart(i, $event)"
+                (mouseup)="$event.stopPropagation()"
+                (click)="$event.stopPropagation()"
+                (dblclick)="$event.stopPropagation()"
+              ></span>
             </th>
           }
         </tr>
@@ -122,25 +131,50 @@
     }
     <ng-template pTemplate="body" let-rowData let-columns="columns" let-rowIndex="rowIndex">
       <tr [pContextMenuRow]="rowData">
-        @for (col of columns; track col) {
-          <td>
+        @for (col of columns; track col; let i = $index) {
+          <td
+            [ngClass]="{ 'numeric-cell': col.filterType === 'numeric' }"
+            [attr.data-catcount]="(((i === 0 && col.type !== 'checkbox' && col.type !== 'lineNumber') || (i === 1 && (columns[0]?.type === 'checkbox' || columns[0]?.type === 'lineNumber'))) && (rowData.categories?.length || 0) > 0) ? rowData.categories.length : null"
+          >
             @switch (col.type) {
               @case ('checkbox') {
                 <p-tableCheckbox [value]="rowData" dataKey="id"></p-tableCheckbox>
               }
               @case ('string') {
-                <span class="cell-content" [pTooltip]="rowData[col.field]" [innerHTML]="formatCell(rowData[col.field], col.field)"></span>
+                @if ((((i === 0) && (col.type !== 'checkbox' && col.type !== 'lineNumber')) ||
+                      ((i === 1) && ((columns[0]?.type === 'checkbox' || columns[0]?.type === 'lineNumber'))))
+                      && (rowData.categories?.length || 0) > 0) {
+                  <span class="cat-pill"
+                        [pTooltip]="(rowData.categories || []).join(', ')"
+                        tooltipPosition="right"
+                        appendTo="body"
+                        [tooltipStyleClass]="'cat-tooltip'">
+                    {{ rowData.categories.length }}
+                  </span>
+                }
+                <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
               }
               @case ('date') {
-                <span class="cell-content" [pTooltip]="(rowData[col.field] | date: col.dateFormat || 'MM/dd/yyyy') || ''">{{
-                  rowData[col.field] | date: col.dateFormat || 'MM/dd/yyyy'
-                }}</span>
+                <span class="cell-content">
+                  {{ nonEmpty(rowData[col.field]) ? (rowData[col.field] | date: (col.dateFormat || 'MM/dd/yyyy')) : '' }}
+                </span>
               }
               @case ('boolean') {
                 <span class="cell-content" [pTooltip]="rowData[col.field] ? 'Yes' : 'No'">{{ rowData[col.field] ? 'Yes' : 'No' }}</span>
               }
               @case ('list') {
-                <span class="cell-content" [pTooltip]="rowData[col.field]" [innerHTML]="formatCell(rowData[col.field], col.field)"></span>
+                @if ((((i === 0) && (col.type !== 'checkbox' && col.type !== 'lineNumber')) ||
+                      ((i === 1) && ((columns[0]?.type === 'checkbox' || columns[0]?.type === 'lineNumber'))))
+                      && (rowData.categories?.length || 0) > 0) {
+                  <span class="cat-pill"
+                        [pTooltip]="(rowData.categories || []).join(', ')"
+                        tooltipPosition="right"
+                        appendTo="body"
+                        [tooltipStyleClass]="'cat-tooltip'">
+                    {{ rowData.categories.length }}
+                  </span>
+                }
+                <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
               }
               @case ('lineNumber') {
                 <span class="cell-content" [pTooltip]="rowIndex + 1">{{ rowIndex + 1 }}</span>
@@ -180,10 +214,11 @@
   <p-table
     [columns]="visibleColumns"
     #pTable
-    [resizableColumns]="resizableColumns"
-    columnResizeMode="fit"
+    [resizableColumns]="false"
+    columnResizeMode="expand"
     [scrollable]="true"
     [scrollHeight]="scrollHeight"
+    [tableStyle]="tableStyle"
     [showGridlines]="false"
     [globalFilterFields]="['name']"
     (onSort)="onHeaderSort($event)"
@@ -194,14 +229,14 @@
     @if (showHeader && !superTableParent) {
       <ng-template pTemplate="header" let-columns>
         <tr class="header-row">
-          @for (col of columns; track col) {
+          @for (col of columns; track col; let i = $index) {
             <th
               [pSortableColumn]="
                 col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list' ? col.field : undefined
               "
-              pResizableColumn
               [style.width]="col.width"
               [style]="col.style"
+              [ngClass]="{ 'numeric-header': col.filterType === 'numeric' }"
             >
               <div class="p-d-flex p-jc-between p-ai-center">
                 {{ col.header }}
@@ -265,6 +300,14 @@
                   }
                 }
               </div>
+              <span
+                class="st-resize-handle"
+                *ngIf="resizableColumns && (col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list')"
+                (mousedown)="onResizeStart(i, $event)"
+                (mouseup)="$event.stopPropagation()"
+                (click)="$event.stopPropagation()"
+                (dblclick)="$event.stopPropagation()"
+              ></span>
             </th>
           }
         </tr>
@@ -298,9 +341,9 @@
               [superTableParent]="this"
               [parentKey]="rowData.name"
               [expandedRowTemplate]="expandedRowTemplate"
-              [resizableColumns]="resizableColumns"
-              [scrollable]="scrollable"
-              [scrollHeight]="scrollHeight"
+              [resizableColumns]="false"
+              [scrollable]="false"
+              [scrollHeight]="undefined"
               [selectionMode]="selectionMode"
               [selection]="selection"
               (selectionChange)="selectionChange.emit($event)"

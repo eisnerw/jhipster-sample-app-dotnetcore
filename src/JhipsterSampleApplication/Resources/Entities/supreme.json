@@ -2,7 +2,7 @@
     "name": "supreme",
     "title": "Supreme",
     "elasticsearchIndex": "supreme",
-    "detailFields": ["facts_of_the_case","conclusion"],
+    "columns":["name", "term", "docket_number", "question_description"],
     "detailHtmlTemplate":[
       "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><base target=\\\"_blank\\\"><title>{name:unlabeled}</title><style>body{{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111}}.field-name{{font-weight:600}}.field{{margin-bottom:0.7em}}</style></head><body><b>{name:unlabeled} ({docket_number:unlabeled})</b>&nbsp;&nbsp;&nbsp;{term}{lower_court}{manner_of_jurisdiction:label-Jurisdiction}{decision}{advocates}",
       "{description}",
@@ -16,124 +16,89 @@
       "{minority}",
       "{recused}</body></html>"
     ],
-    "dto": {
-      "allOf": [
-        { "$ref": "#/definitions/BaseDto" },
-        {
-          "type": "object",
-          "properties": {
-            "CaseName": { "type": ["string", "null"] },
-            "DecisionDate": { "type": ["string", "null"], "format": "date" },
-            "DocketNumber": { "type": ["string", "null"] },
-            "Citation": { "type": ["string", "null"] },
-            "Summary": { "type": ["string", "null"] },
-            "Justices": {
-              "type": ["array", "null"],
-              "items": { "type": "string" }
-            },
-            "Majority": {
-              "type": ["array", "null"],
-              "items": { "type": "string" }
-            },
-            "Dissent": {
-              "type": ["array", "null"],
-              "items": { "type": "string" }
-            }
-          }
-        }
-      ]
-    },
-    "queryBuilder": {
-        "fields": {
-          "document": {
-            "name": "Document",
-            "type": "string",
-            "operators": ["contains", "!contains", "like", "!like"]
-          },
-          "name": {
-            "name": "Case Name",
-            "type": "string",
-            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"]
-          },
-          "term": {
-            "name": "Term",
-            "type": "number",
-            "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"]
-          },
-          "docket_number": {
-            "name": "Docket #",
-            "type": "string",
-            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
-          },
-          "petitioner": {
-            "name": "Petitioner",
-            "type": "string",
-            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
-          },
-          "respondent": {
-            "name": "Respondent",
-            "type": "string",
-            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
-          },
-          "heard_by": {
-            "name": "Heard By",
-            "type": "string",
-            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
-          },
-          "lower_court": {
-            "name": "Lower Court",
-            "type": "string",
-            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
-          },
-          "manner_of_jurisdiction": {
-            "name": "Jurisdiction",
-            "type": "string",
-            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
-          },
-          "majority": {
-            "name": "Majority",
-            "type": "string",
-            "operators": ["contains", "!contains", "like", "!like", "exists"]
-          },
-          "minority": {
-            "name": "Minority",
-            "type": "string",
-            "operators": ["contains", "!contains", "like", "!like", "exists"]
-          },
-          "advocates": {
-            "name": "Advocates",
-            "type": "string",
-            "operators": ["contains", "!contains", "like", "!like", "exists"]
-          },
-          "question": {
-            "name": "Question",
-            "type": "string",
-            "operators": ["contains", "!contains", "like", "!like", "exists"]
-          },
-          "facts_of_the_case": {
-            "name": "Facts",
-            "type": "string",
-            "operators": ["contains", "!contains", "like", "!like", "exists"]
-          },
-          "conclusion": {
-            "name": "Conclusion",
-            "type": "string",
-            "operators": ["contains", "!contains", "like", "!like", "exists"]
-          },
-          "description": {
-            "name": "Description",
-            "type": "string",
-            "operators": ["contains", "!contains", "like", "!like", "exists"]
-          }
-        },
-        "operatorMap": {
-          "string": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in"],
-          "number": ["=", "!=", ">", ">=", "<", "<=", "in", "!in"],
-          "time": ["=", "!=", ">", ">=", "<", "<="],
-          "date": ["=", "!=", ">", ">=", "<", "<="],
-          "category": ["=", "!=", "in", "!in"],
-          "boolean": ["="]
-        }
+    "fields": {
+      "name": {
+        "name": "Case Name",
+        "column": "Case",
+        "type": "string",
+        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"]
+      },
+      "term": {
+        "name": "Term",
+        "type": "number",
+        "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"]
+      },
+      "docket_number": {
+        "name": "Docket #",
+        "type": "string",
+        "width": "110px",
+        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+      },
+      "petitioner": {
+        "name": "Petitioner",
+        "type": "string",
+        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+      },
+      "respondent": {
+        "name": "Respondent",
+        "type": "string",
+        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+      },
+      "heard_by": {
+        "name": "Heard By",
+        "type": "string",
+        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+      },
+      "lower_court": {
+        "name": "Lower Court",
+        "type": "string",
+        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+      },
+      "manner_of_jurisdiction": {
+        "name": "Jurisdiction",
+        "type": "string",
+        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
+      },
+      "majority": {
+        "name": "Majority",
+        "type": "string",
+        "operators": ["contains", "!contains", "like", "!like", "exists"]
+      },
+      "minority": {
+        "name": "Minority",
+        "type": "string",
+        "operators": ["contains", "!contains", "like", "!like", "exists"]
+      },
+      "advocates": {
+        "name": "Advocates",
+        "type": "string",
+        "operators": ["contains", "!contains", "like", "!like", "exists"]
+      },
+      "question": {
+        "name": "Question",
+        "type": "string",
+        "operators": ["contains", "!contains", "like", "!like", "exists"]
+      },
+      "facts_of_the_case": {
+        "name": "Facts",
+        "type": "string",
+        "operators": ["contains", "!contains", "like", "!like", "exists"]
+      },
+      "conclusion": {
+        "name": "Conclusion",
+        "type": "string",
+        "operators": ["contains", "!contains", "like", "!like", "exists"]
+      },
+      "description": {
+        "name": "Description",
+        "type": "string",
+        "operators": ["contains", "!contains", "like", "!like", "exists"]
+      },
+      "question_description": {
+        "name": "Quesion/Description",
+        "type": "computed",
+        "computation": "question | description"
+      }
     },
     "views": [
         {

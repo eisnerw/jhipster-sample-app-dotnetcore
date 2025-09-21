@@ -28,10 +28,23 @@ namespace JhipsterSampleApplication.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<HistoryDto>>> GetAll([FromQuery] string? entity = null)
         {
+            // Admins: when no entity filter is provided, return ALL histories
+            if (User.IsInRole("ROLE_ADMIN") && string.IsNullOrEmpty(entity))
+            {
+                var all = await _historyService.FindAll();
+                return Ok(all.Select(h => new HistoryDto { Id = h.Id, User = h.User, Entity = h.Entity, Text = h.Text }));
+            }
+
+            // Non-admins or entity-scoped request: return only current user's history for the entity
             var user = User?.Identity?.Name;
             if (string.IsNullOrEmpty(user))
             {
                 return Unauthorized();
+            }
+            if (string.IsNullOrEmpty(entity))
+            {
+                // Require entity for non-admin requests
+                return Ok(Enumerable.Empty<HistoryDto>());
             }
             var histories = await _historyService.FindByUserAndEntity(user, entity);
             return Ok(histories.Select(h => new HistoryDto { Id = h.Id, User = h.User, Entity = h.Entity, Text = h.Text }));

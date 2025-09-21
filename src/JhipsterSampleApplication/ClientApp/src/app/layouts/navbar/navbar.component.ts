@@ -6,7 +6,7 @@ import HasAnyAuthorityDirective from 'app/shared/auth/has-any-authority.directiv
 import { AccountService } from 'app/core/auth/account.service';
 import { LoginService } from 'app/login/login.service';
 import { ProfileService } from 'app/layouts/profiles/profile.service';
-import { ENTITY_NAV_ITEMS } from 'app/entities/entity-navbar-items';
+import { EntityGenericService } from 'app/entities/entity/service/entity-generic.service';
 import { environment } from 'environments/environment';
 import NavbarItem from './navbar-item.model';
 
@@ -27,6 +27,7 @@ export default class NavbarComponent implements OnInit {
   private readonly loginService = inject(LoginService);
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
+  private readonly entityService = inject(EntityGenericService);
 
   constructor() {
     const { VERSION } = environment;
@@ -36,7 +37,14 @@ export default class NavbarComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.entitiesNavbarItems = ENTITY_NAV_ITEMS;
+    this.entityService.listEntities().subscribe(res => {
+      const list = res.body ?? [];
+      this.entitiesNavbarItems = list.map(e => ({
+        name: e.title || e.name,
+        route: `/entity/${encodeURIComponent(e.name)}`,
+        translationKey: `global.menu.entities.${e.name}`,
+      }));
+    });
     this.profileService.getProfileInfo().subscribe(profileInfo => {
       this.inProduction = profileInfo.inProduction;
       this.openAPIEnabled = profileInfo.openAPIEnabled;

@@ -4,7 +4,10 @@ import {
   Input,
   Output,
   OnInit,
+  OnChanges,
+  SimpleChanges,
   ViewChild,
+  ElementRef,
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -58,11 +61,12 @@ interface NamedQuery {
   styleUrls: ['./query-input.component.scss'],
   templateUrl: './query-input.component.html',
 })
-export class QueryInputComponent implements OnInit {
+export class QueryInputComponent implements OnInit, OnChanges {
   private dialog = inject(MatDialog);
   private http = inject(HttpClient);
 
   @ViewChild('builder') builder?: QueryBuilderComponent;
+  @ViewChild('editBox') editBox?: ElementRef<HTMLInputElement>;
 
   @Input() placeholder = 'BQL';
   @Input() query = '';
@@ -96,6 +100,15 @@ export class QueryInputComponent implements OnInit {
     this.loadHistory();
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    // When entity context changes, reset and reload history from backend
+    if (changes['historyEntity'] && !changes['historyEntity'].firstChange) {
+      this.history = [];
+      this.historyIndex = -1;
+      this.loadHistory();
+    }
+  }
+
   private loadNamedQueries(): void {
     let params = new HttpParams();
     if (this.namedQueryEntity) {
@@ -121,6 +134,17 @@ export class QueryInputComponent implements OnInit {
     this.previousQuery = this.query;
     this.editing = true;
     this.onQueryChange();
+    // Focus the input immediately after switching to edit mode
+    setTimeout(() => {
+      const el = this.editBox?.nativeElement;
+      if (el) {
+        el.focus();
+        try {
+          const len = el.value?.length ?? 0;
+          el.setSelectionRange(len, len);
+        } catch {}
+      }
+    });
   }
 
   clearQuery(event?: Event) {
@@ -271,10 +295,11 @@ export class QueryInputComponent implements OnInit {
     if (!this.historyEntity) {
       return;
     }
+    const url = `/api/entity/${encodeURIComponent(this.historyEntity)}/bql-history`;
     this.http
-      .get<HistoryDto[]>('/api/Histories', { params: new HttpParams().set('entity', this.historyEntity) })
+      .get<HistoryDto[]>(url)
       .subscribe(res => {
-        this.history = res.map(h => h.text);
+        this.history = (res || []).map(h => h.text).filter(t => !!t);
         this.historyIndex = -1;
       });
     }

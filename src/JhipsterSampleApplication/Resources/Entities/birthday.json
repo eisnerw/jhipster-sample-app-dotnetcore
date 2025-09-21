@@ -2,85 +2,59 @@
     "name": "birthday",
     "title": "Birthday",
     "elasticsearchIndex": "birthdays",
-    "detailFields": ["wikipedia"],
+    "columns":["lname",  "fname", "dob", "sign", "isAlive"],
     "detailHtmlTemplate":[
       "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><base target=\\\"_blank\\\"><title>{fname:unlabeled} {lname:unlabeled}</title><style>body{{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111}}.field-name{{font-weight:600}}.field{{margin-bottom:0.7em}}</style></head><body><h3>{fname:unlabeled} {lname:unlabeled} {dob:format-MM/dd/yyyy:label-Born}({sign:unlabeled}) {isAlive:yesno:label-Alive}</h3>{wikipedia:html:unlabeled}"
     ],
-    "dto": {
-      "allOf": [
-        { "$ref": "#/definitions/BaseDto" },
-        {
-          "type": "object",
-          "properties": {
-            "Lname": { "type": ["string", "null"] },
-            "Fname": { "type": ["string", "null"] },
-            "Sign": { "type": ["string", "null"] },
-            "Dob": { "type": ["string", "null"], "format": "date-time" },
-            "IsAlive": { "type": ["boolean", "null"] },
-            "Text": { "type": ["string", "null"] },
-            "Wikipedia": { "type": ["string", "null"] }
-          }
-        }
-      ]
-    },
-    "queryBuilder": {
-        "fields": {
-          "document": {
-            "name": "Document",
-            "type": "string",
-            "operators": ["contains", "!contains", "like", "!like"]
-          },
-          "lname": {
-            "name": "Last Name",
-            "type": "string",
-            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in"]
-          },
-          "fname": {
-            "name": "First Name",
-            "type": "string",
-            "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"]
-          },
-          "isAlive": {
-            "name": "Alive?",
-            "type": "boolean"
-          },
-          "categories": {
-            "name": "Category",
-            "type": "string",
-            "operators": ["contains", "!contains", "like", "!like", "exists"]
-          },
-          "dob": {
-            "name": "Birthday",
-            "type": "date",
-            "operators": ["=", "<=", ">", "<", ">="]
-          },
-          "sign": {
-            "name": "Astrological Sign",
-            "type": "category",
-            "options": [
-              { "name": "Aries", "value": "aries" },
-              { "name": "Taurus", "value": "taurus" },
-              { "name": "Gemini", "value": "gemini" },
-              { "name": "Cancer", "value": "cancer" },
-              { "name": "Leo", "value": "leo" },
-              { "name": "Virgo", "value": "virgo" },
-              { "name": "Libra", "value": "libra" },
-              { "name": "Scorpio", "value": "scorpio" },
-              { "name": "Sagittarius", "value": "sagittarius" },
-              { "name": "Capricorn", "value": "capricorn" },
-              { "name": "Aquarius", "value": "aquarius" },
-              { "name": "Pisces", "value": "pisces" }
-            ]
-          }
-        },
-        "operatorMap": {
-          "string": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in"],
-          "number": ["=", "!=", ">", ">=", "<", "<=", "in", "!in"],
-          "time": ["=", "!=", ">", ">=", "<", "<="],
-          "date": ["=", "!=", ">", ">=", "<", "<="],
-          "category": ["=", "!=", "in", "!in"],
-          "boolean": ["="]
-        }
+    "fields": {
+      "lname": {
+        "name": "Last Name",
+        "type": "string",
+        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in"]
+      },
+      "fname": {
+        "name": "First Name",
+        "type": "string",
+        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"]
+      },
+      "isAlive": {
+        "name": "Alive?",
+        "type": "boolean"
+      },
+      "categories": {
+        "name": "Category",
+        "type": "string",
+        "operators": ["contains", "!contains", "like", "!like", "exists"]
+      },
+      "dob": {
+        "name": "Birthday",
+        "type": "date",
+        "operators": ["=", "<=", ">", "<", ">="]
+      },
+      "sign": {
+        "name": "Astrological Sign",
+        "column": "Sign",
+        "type": "category",
+        "options": [
+          { "name": "Aries", "value": "Aries" },
+          { "name": "Taurus", "value": "Taurus" },
+          { "name": "Gemini", "value": "Gemini" },
+          { "name": "Cancer", "value": "Cancer" },
+          { "name": "Leo", "value": "Leo" },
+          { "name": "Virgo", "value": "Virgo" },
+          { "name": "Libra", "value": "Libra" },
+          { "name": "Scorpio", "value": "Scorpio" },
+          { "name": "Sagittarius", "value": "Sagittarius" },
+          { "name": "Capricorn", "value": "Capricorn" },
+          { "name": "Aquarius", "value": "Aquarius" },
+          { "name": "Pisces", "value": "Pisces" }
+        ]
+      },
+      "wikipedia": {
+        "name": "Wikipedia",
+        "type": "string",
+        "operators": ["contains", "!contains"]
+      }
     },
     "views": [
         {

@@ -15,6 +15,7 @@ using JhipsterSampleApplication.Domain.Entities;
 using System.Text.Json.Nodes;
 using System.Text;
 using System.Net;
+using Microsoft.AspNetCore.Authorization;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -27,31 +28,44 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IEntitySpecRegistry _specRegistry;
         private readonly INamedQueryService _namedQueryService;
         private readonly JhipsterSampleApplication.Domain.Services.EntityService _entityService;
+        private readonly IHistoryService _historyService;
 
-        public EntityController(ElasticsearchClient elasticClient, IConfiguration configuration, IEntitySpecRegistry specRegistry, INamedQueryService namedQueryService, JhipsterSampleApplication.Domain.Services.EntityService jsonService)
+        public EntityController(ElasticsearchClient elasticClient, IConfiguration configuration, IEntitySpecRegistry specRegistry, INamedQueryService namedQueryService, JhipsterSampleApplication.Domain.Services.EntityService jsonService, IHistoryService historyService)
         {
             _elasticClient = elasticClient;
             _configuration = configuration;
             _specRegistry = specRegistry;
             _namedQueryService = namedQueryService;
             _entityService = jsonService;
+            _historyService = historyService;
         }
 
-        private (string Index, string[] DetailFields, string IdField) GetEntityConfig(string entity)
+        [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<JhipsterSampleApplication.Dto.EntityInfoDto>), 200)]
+        public IActionResult ListEntities()
+        {
+            var list = new List<JhipsterSampleApplication.Dto.EntityInfoDto>();
+            foreach (var name in _specRegistry.GetEntityNames())
+            {
+                string? title = null;
+                if (_specRegistry.TryGetString(name, "title", out var t)) title = t;
+                list.Add(new JhipsterSampleApplication.Dto.EntityInfoDto { Name = name, Title = title });
+            }
+            return Ok(list.OrderBy(e => e.Title ?? e.Name));
+        }
+
+        private (string Index, string IdField) GetEntityConfig(string entity)
         {
             if (!_specRegistry.TryGetString(entity, "elasticsearchIndex", out var index)
                 && !_specRegistry.TryGetString(entity, "elasticSearchIndex", out index)
                 && !_specRegistry.TryGetString(entity, "index", out index))
                 throw new ArgumentException($"Unknown entity '{entity}'", nameof(entity));
 
-            if (!_specRegistry.TryGetStringArray(entity, "detailFields", out var details))
-                _specRegistry.TryGetStringArray(entity, "descriptiveFields", out details);
-
             var idField = "Id";
             if (_specRegistry.TryGetString(entity, "idField", out var id) && !string.IsNullOrWhiteSpace(id))
                 idField = id;
 
-            return (index, details, idField);
+            return (index, idField);
         }
 
         [HttpPost("{entity}")]
@@ -70,11 +84,6 @@ namespace JhipsterSampleApplication.Controllers
             var response = await _entityService.SearchAsync(entity, spec);
             if (!response.IsValid || !response.Documents.Any()) return NotFound();
             var obj = response.Documents.First();
-            if (!includeDetails)
-            {
-                obj.Remove("Wikipedia");
-                obj.Remove("Synopsis");
-            }
             return Ok(obj);
         }
 
@@ -106,25 +115,17 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string? sort = null, [FromQuery] string? pitId = null, [FromQuery] string[]? searchAfter = null)
         {
             if (string.IsNullOrWhiteSpace(bqlQuery)) return BadRequest("Query cannot be empty");
-            // Prefer spec from entity registry; fall back to legacy file if needed
+            // Use only top-level fields from entity spec (no legacy fallback)
             Newtonsoft.Json.Linq.JObject qbSpec;
-            if (_specRegistry.TryGetObject(entity, "queryBuilder", out JsonObject qbNode))
+            if (_specRegistry.TryGetObject(entity, "fields", out JsonObject fieldsNode))
             {
-                qbSpec = Newtonsoft.Json.Linq.JObject.Parse(qbNode.ToJsonString());
+                qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = Newtonsoft.Json.Linq.JObject.Parse(fieldsNode.ToJsonString()) };
             }
             else
             {
-                var entitiesPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "Entities", $"{entity}.json");
-                if (System.IO.File.Exists(entitiesPath))
-                {
-                    var root = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText(entitiesPath));
-                    qbSpec = (root["queryBuilder"] as Newtonsoft.Json.Linq.JObject) ?? new Newtonsoft.Json.Linq.JObject();
-                }
-                else
-                {
-                    qbSpec = BqlService<object>.LoadSpec(entity);
-                }
+                qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = new Newtonsoft.Json.Linq.JObject() };
             }
+            JhipsterSampleApplication.Domain.Services.EntityService.EnsureDocumentField(qbSpec);
             var rulesetDto = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Bql2Ruleset(bqlQuery.Trim());
             var ruleset = MapRuleset(rulesetDto);
             var queryObject = await _entityService.ConvertRulesetToElasticSearch(entity, ruleset);
@@ -340,23 +341,15 @@ namespace JhipsterSampleApplication.Controllers
         {
             if (string.IsNullOrWhiteSpace(query)) return BadRequest("Query cannot be empty");
             Newtonsoft.Json.Linq.JObject qbSpec;
-            if (_specRegistry.TryGetObject(entity, "queryBuilder", out JsonObject qbNode))
+            if (_specRegistry.TryGetObject(entity, "fields", out JsonObject fieldsNode2))
             {
-                qbSpec = Newtonsoft.Json.Linq.JObject.Parse(qbNode.ToJsonString());
+                qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = Newtonsoft.Json.Linq.JObject.Parse(fieldsNode2.ToJsonString()) };
             }
             else
             {
-                var entitiesPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "Entities", $"{entity}.json");
-                if (System.IO.File.Exists(entitiesPath))
-                {
-                    var root = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText(entitiesPath));
-                    qbSpec = (root["queryBuilder"] as Newtonsoft.Json.Linq.JObject) ?? new Newtonsoft.Json.Linq.JObject();
-                }
-                else
-                {
-                    qbSpec = BqlService<object>.LoadSpec(entity);
-                }
+                qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = new Newtonsoft.Json.Linq.JObject() };
             }
+            JhipsterSampleApplication.Domain.Services.EntityService.EnsureDocumentField(qbSpec);
             var ruleset = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Bql2Ruleset(query.Trim());
             return Ok(ruleset);
         }
@@ -383,23 +376,15 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<ActionResult<string>> ConvertRulesetToBql([FromRoute] string entity, [FromBody] RulesetDto ruleset)
         {
             Newtonsoft.Json.Linq.JObject qbSpec;
-            if (_specRegistry.TryGetObject(entity, "queryBuilder", out JsonObject qbNode))
+            if (_specRegistry.TryGetObject(entity, "fields", out JsonObject fieldsNode3))
             {
-                qbSpec = Newtonsoft.Json.Linq.JObject.Parse(qbNode.ToJsonString());
+                qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = Newtonsoft.Json.Linq.JObject.Parse(fieldsNode3.ToJsonString()) };
             }
             else
             {
-                var entitiesPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "Entities", $"{entity}.json");
-                if (System.IO.File.Exists(entitiesPath))
-                {
-                    var root = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText(entitiesPath));
-                    qbSpec = (root["queryBuilder"] as Newtonsoft.Json.Linq.JObject) ?? new Newtonsoft.Json.Linq.JObject();
-                }
-                else
-                {
-                    qbSpec = BqlService<object>.LoadSpec(entity);
-                }
+                qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = new Newtonsoft.Json.Linq.JObject() };
             }
+            JhipsterSampleApplication.Domain.Services.EntityService.EnsureDocumentField(qbSpec);
             var bqlQuery = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Ruleset2Bql(ruleset);
             return Ok(bqlQuery);
         }
@@ -500,14 +485,27 @@ namespace JhipsterSampleApplication.Controllers
                 Entity = o["entity"]?.GetValue<string>()
             };
         }
-
         [HttpGet("{entity}/query-builder-spec")]
         [Produces("application/json")]
         public IActionResult GetQueryBuilderSpec([FromRoute] string entity)
         {
-            if (_specRegistry.TryGetObject(entity, "queryBuilder", out var qb))
+            // Compose a QB spec object from top-level fields only (no legacy fallback)
+            if (_specRegistry.TryGetObject(entity, "fields", out var fieldsNode))
             {
-                return Content(qb.ToJsonString(), "application/json");
+                var fieldsObj = Newtonsoft.Json.Linq.JObject.Parse(fieldsNode.ToJsonString());
+                // Exclude computed fields from query-builder spec
+                foreach (var prop in fieldsObj.Properties().ToList())
+                {
+                    var v = prop.Value as Newtonsoft.Json.Linq.JObject;
+                    var t = v? ["type"]?.ToString();
+                    if (!string.IsNullOrEmpty(t) && string.Equals(t, "computed", StringComparison.OrdinalIgnoreCase))
+                    {
+                        prop.Remove();
+                    }
+                }
+                var qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = fieldsObj };
+                JhipsterSampleApplication.Domain.Services.EntityService.EnsureDocumentField(qbSpec);
+                return Content(qbSpec.ToString(Newtonsoft.Json.Formatting.None), "application/json");
             }
             return NotFound("Query builder spec not found for entity.");
         }
@@ -524,6 +522,21 @@ namespace JhipsterSampleApplication.Controllers
             }
             var json = System.IO.File.ReadAllText(path);
             return Content(json, "application/json");
+        }
+
+        [Authorize]
+        [HttpGet("{entity}/bql-history")]
+        [ProducesResponseType(typeof(IEnumerable<HistoryDto>), 200)]
+        public async Task<IActionResult> GetBqlHistory([FromRoute] string entity)
+        {
+            var user = User?.Identity?.Name;
+            if (string.IsNullOrEmpty(user))
+            {
+                return Unauthorized();
+            }
+            var histories = await _historyService.FindByUserAndEntity(user!, entity);
+            var dto = histories.Select(h => new HistoryDto { Id = h.Id, User = h.User, Entity = h.Entity, Text = h.Text });
+            return Ok(dto);
         }
     }
 }

@@ -6,6 +6,7 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
 {
     public interface IHistoryService
     {
+        Task<IEnumerable<History>> FindAll();
         Task<History> Save(History history);
         Task<IEnumerable<History>> FindByUserAndEntity(string user, string? entity = null);
     }

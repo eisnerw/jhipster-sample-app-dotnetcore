@@ -28,6 +28,9 @@ public interface IEntitySpecRegistry
 
     /// <summary>Attempts to get an array node from an entity specification.</summary>
     bool TryGetArray(string entity, string property, out JsonArray value);
+
+    /// <summary>Returns all entity names registered.</summary>
+    IEnumerable<string> GetEntityNames();
 }
 
 /// <summary>
@@ -96,4 +99,6 @@ public sealed class EntitySpecRegistry : IEntitySpecRegistry
         }
         return false;
     }
+
+    public IEnumerable<string> GetEntityNames() => _specs.Keys;
 }

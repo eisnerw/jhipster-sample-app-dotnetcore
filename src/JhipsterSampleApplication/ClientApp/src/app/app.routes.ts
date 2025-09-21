@@ -34,6 +34,18 @@ const routes: Routes = [
     title: 'login.title',
   },
   {
+    path: 'entity',
+    loadChildren: () => import('./entities/entity/entity.routes'),
+  },
+  {
+    path: 'entity/:entity/new',
+    loadComponent: () => import('./entities/entity/edit/generic-edit.component').then(m => m.GenericEditComponent),
+  },
+  {
+    path: 'entity/:entity/:id/edit',
+    loadComponent: () => import('./entities/entity/edit/generic-edit.component').then(m => m.GenericEditComponent),
+  },
+  {
     path: '',
     loadChildren: () => import(`./entities/entity.routes`),
   },

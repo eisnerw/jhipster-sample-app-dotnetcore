@@ -17,7 +17,10 @@ export interface ColumnConfig {
   header: string;
   filterType?: 'text' | 'date' | 'numeric' | 'boolean';
   width?: string;
+  minWidth?: string;
   style?: string;
+  // Optional: for computed display columns, provide fallback fields in priority order
+  computeFields?: string[];
   type?:
     | 'checkbox'
     | 'expander'
@@ -64,6 +67,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   @Input() dataLoader: DataLoader<any> | undefined;
   @Input() columns: ColumnConfig[] = [];
+  @Input() widthKey: string | undefined;
+  @Input() initialWidths: (string | undefined)[] | undefined;
+  @Input() specSignature: string | undefined;
   @Input() groups: GroupDescriptor[] = [];
   @Input() mode: 'grid' | 'group' = 'grid';
   @Input() groupQuery: ((group: GroupDescriptor) => GroupData) | undefined;
@@ -96,6 +102,12 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private lastSortEvent: any;
   private lastFilterEvent: any;
   private lastColumnWidths: string[] | undefined;
+  private resizingIndex: number | null = null;
+  private startX = 0;
+  private startLeftWidth = 0;
+  private startRightWidth = 0;
+  private minWidthsCache: number[] | null = null;
+  private startWidthsPx: number[] | null = null;
 
   private scrollContainer?: HTMLElement;
   private lastScrollTop = 0;
@@ -116,6 +128,45 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     }
   };
   private capturedWidths = false;
+  private enforceHandle: any;
+  private windowResizeHandler?: () => void;
+  tableStyle: { [k: string]: any } = {};
+  private autoExpandedApplied = false;
+  private justResized = false;
+  private applyingWidths = false; // guard to prevent ngOnChanges loop
+  private purgeAllPersistedWidths(): void {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('supertable.widths:')) keys.push(k);
+      }
+      keys.forEach(k => localStorage.removeItem(k));
+    } catch {}
+  }
+
+  // Resolve the real horizontal container width for this table.
+  // Prefer a surrounding Bootstrap .table-responsive scroller when present; otherwise use PrimeNG wrapper.
+  private getContainerWidth(): number {
+    try {
+      const host = this.pTable?.el?.nativeElement as HTMLElement | undefined;
+      if (!host) return 0;
+      let cand: HTMLElement | null = host;
+      while (cand && cand.parentElement) {
+        if (cand.classList && cand.classList.contains('table-responsive')) break;
+        cand = cand.parentElement as HTMLElement;
+      }
+      const containerEl: HTMLElement = (cand && cand.classList.contains('table-responsive'))
+        ? cand
+        : ((host.querySelector('.p-datatable-wrapper') as HTMLElement) || host);
+      // Take the smaller of container clientWidth and viewport clientWidth to avoid page-level overflow,
+      // then subtract a conservative fudge (24px) to beat borders/rounding across browsers.
+      const viewport = typeof document !== 'undefined' ? (document.documentElement?.clientWidth || 0) : 0;
+      const base = Math.min(containerEl.clientWidth || 0, viewport || (containerEl.clientWidth || 0));
+      return Math.max(0, base - 24);
+    } catch { return 0; }
+  }
 
   // Holds the current global filter text for group mode
   private groupFilterValue: string = '';
@@ -162,7 +213,21 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   ngOnInit(): void {
-    // no initialization required
+    // Recompute layout on browser resize using default heuristic
+    if (typeof window !== 'undefined') {
+      this.windowResizeHandler = () => {
+        try {
+          // Abandon ALL persisted widths on resize to let defaults take over
+          this.purgeAllPersistedWidths();
+          const defaults = this.computeDefaultWidths();
+          const fitted = this.fitWidthsToContainer(defaults);
+          this.applyWidthsToDom(fitted);
+          this.justResized = true;
+          setTimeout(() => (this.justResized = false), 1500);
+        } catch {}
+      };
+      window.addEventListener('resize', this.windowResizeHandler, { passive: true });
+    }
   }
 
   // Highlight helper: returns HTML with <mark> around pattern matches
@@ -212,6 +277,32 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     }
   }
 
+  // Truthy check that treats empty strings (including whitespace-only) as empty
+  nonEmpty(value: any): boolean {
+    try {
+      if (value === null || value === undefined) return false;
+      const s = String(value);
+      return s.trim().length > 0;
+    } catch { return false; }
+  }
+
+  // Get display string for a column, supporting computed fields (first non-empty among computeFields)
+  getCellString(row: any, col: ColumnConfig): string {
+    try {
+      if (col && Array.isArray((col as any).computeFields)) {
+        for (const f of (col as any).computeFields as string[]) {
+          const v = row?.[f];
+          if (v !== undefined && v !== null && String(v).trim().length > 0) return String(v);
+        }
+        return '';
+      }
+      const v = row?.[(col as any).field];
+      return v === undefined || v === null ? '' : String(v);
+    } catch {
+      return '';
+    }
+  }
+
   private escapeHtml(s: string): string {
     return s
       .replace(/&/g, '&amp;')
@@ -232,15 +323,26 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         setTimeout(() => {
           this.captureColumnWidths();
           this.initScroll();
+          this.enforceWidthsAfterLayout();
         });
       } else {
         this.initScroll();
+        this.enforceWidthsAfterLayout();
       }
     }
     if (changes['groups'] && !changes['groups'].firstChange) {
       // Clear cached group data and expanded state when groups change
       this.groupLoaders = {};
       this.expandedRowKeys = {};
+    }
+    // Avoid re-entrancy: ignore change events we caused while applying widths
+    if (this.applyingWidths) {
+      return;
+    }
+    // Trigger enforcement only for external shape/signature changes, not for internal 'columns' clones
+    if (changes['initialWidths'] || changes['widthKey'] || changes['specSignature']) {
+      this.autoExpandedApplied = false;
+      this.enforceWidthsAfterLayout();
     }
   }
 
@@ -250,6 +352,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         this.captureColumnWidths();
       }
       this.initScroll();
+      this.enforceWidthsAfterLayout();
     });
     this.detailTables.changes.subscribe(() => {
       setTimeout(() => this.applyStoredStateToDetails(), 500);
@@ -258,6 +361,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   ngOnDestroy(): void {
     this.destroyScroll();
+    if (typeof window !== 'undefined' && this.windowResizeHandler) {
+      window.removeEventListener('resize', this.windowResizeHandler as any);
+      this.windowResizeHandler = undefined;
+    }
   }
 
   isRowExpanded(row: any): boolean {
@@ -529,6 +636,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         c.width = this.lastColumnWidths![i];
       });
       this.columns = [...this.columns];
+      this.writePersistedWidths(this.lastColumnWidths);
     }
     this.detailTables?.forEach((table) => {
       if (this.lastColumnWidths) {
@@ -541,6 +649,117 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     });
     this.onColResize.emit(event);
     requestAnimationFrame(() => this.attemptScrollRestore());
+  }
+
+  // === Custom column resize (adjacent columns, fixed table width) ===
+  onResizeStart(index: number, ev: MouseEvent): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    let left = this.findResizableIndexFrom(index, 0);
+    let right = this.findResizableIndexFrom(index + 1, +1);
+    // If there is no right neighbor (last column), use the previous neighbor instead
+    if (left != null && right == null) {
+      const prev = this.findResizableIndexFrom(left - 1, -1);
+      if (prev != null) { right = left; left = prev; }
+    }
+    if (left == null || right == null) return;
+    const widths = this._getColumnWidths() || this.visibleColumns.map(c => c.width || '120px');
+    this.resizingIndex = left;
+    this.startX = ev.clientX;
+    this.startLeftWidth = parseFloat(widths[left] || '0');
+    this.startRightWidth = parseFloat(widths[right] || '0');
+    // Snapshot starting widths so each move is computed relative to initial state
+    this.startWidthsPx = widths.map(w => this.parsePx(String(w), 120));
+    this.minWidthsCache = this.getMinWidths();
+    const onMove = (e: MouseEvent) => this.onResizeMove(e, left, right);
+    const onUp = (e: MouseEvent) => this.onResizeEnd(e, onMove, onUp);
+    document.addEventListener('mousemove', onMove, true);
+    document.addEventListener('mouseup', onUp, true);
+    document.body.classList.add('st-resizing');
+  }
+
+  private onResizeMove(ev: MouseEvent, left: number, right: number): void {
+    if (this.resizingIndex == null) return;
+    const dx = ev.clientX - this.startX;
+    const start = (this.startWidthsPx && this.startWidthsPx.length === this.visibleColumns.length)
+      ? [...this.startWidthsPx]
+      : (this._getColumnWidths() || this.visibleColumns.map(c => c.width || '120px')).map(w => this.parsePx(String(w), 120));
+    const minW = this.minWidthsCache || this.getMinWidths();
+
+    // Clamp desired left within [minLeft, startLeft + totalHeadroomRight]
+    const totalHeadroomRight = start.slice(right).reduce((s, w, i) => s + Math.max(0, w - (minW[right + i] || 30)), 0);
+    const minLeft = minW[left] || 30;
+    const desiredLeftRaw = this.startLeftWidth + dx;
+    const desiredLeft = Math.min(this.startLeftWidth + totalHeadroomRight, Math.max(minLeft, desiredLeftRaw));
+    let delta = Math.round(desiredLeft - this.startLeftWidth);
+
+    const newWidths = [...start];
+    if (delta > 0) {
+      let need = delta;
+      let i = right;
+      while (i < newWidths.length && need > 0) {
+        const headroom = Math.max(0, newWidths[i] - (minW[i] || 30));
+        const take = Math.min(headroom, need);
+        newWidths[i] -= take;
+        need -= take;
+        i++;
+      }
+      const stolen = delta - need;
+      newWidths[left] = this.startLeftWidth + stolen;
+    } else if (delta < 0) {
+      const give = -delta;
+      newWidths[left] = this.startLeftWidth - give;
+      if (right < newWidths.length) newWidths[right] = start[right] + give;
+    } else {
+      // no change
+    }
+
+    // Apply only changed indices to avoid jitter
+    const pairs: Array<[number, number]> = [];
+    newWidths.forEach((w, i) => {
+      if (w !== start[i]) pairs.push([i, w]);
+    });
+    if (pairs.length) this.applyWidthsByIndex(pairs);
+    this.updateTableStyleWidth();
+  }
+
+  private onResizeEnd(ev: MouseEvent, onMove: any, onUp: any): void {
+    document.removeEventListener('mousemove', onMove, true);
+    document.removeEventListener('mouseup', onUp, true);
+    document.body.classList.remove('st-resizing');
+    this.lastColumnWidths = this._getColumnWidths();
+    if (this.lastColumnWidths) this.writePersistedWidths(this.lastColumnWidths);
+    this.resizingIndex = null;
+    this.startWidthsPx = null;
+  }
+
+  private findResizableIndexFrom(start: number, dir: number): number | null {
+    const n = this.visibleColumns.length;
+    for (let i = start; i >= 0 && i < n; i += (dir === 0 ? 1 : dir)) {
+      const c = this.visibleColumns[i];
+      if (!c) continue;
+      const t = c.type;
+      if (t !== 'lineNumber' && t !== 'checkbox' && t !== 'expander') return i;
+      if (dir === 0) continue;
+    }
+    return null;
+  }
+
+  private applyWidthsByIndex(pairs: Array<[number, number]>): void {
+    pairs.forEach(([i, px]) => {
+      if (!this.visibleColumns[i]) return;
+      this.visibleColumns[i].width = Math.max(30, Math.round(px)) + 'px';
+    });
+    this.columns = [...this.columns];
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      if (!this.pTable?.el) return;
+      const ths: NodeListOf<HTMLTableCellElement> = this.pTable.el.nativeElement.querySelectorAll('thead th');
+      pairs.forEach(([i, px]) => {
+        const th = ths[i];
+        if (th) th.style.width = Math.max(30, Math.round(px)) + 'px';
+      });
+    }, 0);
   }
 
   private initScroll(): void {
@@ -595,6 +814,326 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       clearTimeout(this.scrollRestoreHandle);
       this.scrollRestoreHandle = null;
     }
+    if (this.enforceHandle) {
+      clearTimeout(this.enforceHandle);
+      this.enforceHandle = null;
+    }
+  }
+
+  private readPersistedWidths(): string[] | null {
+    try {
+      if (!this.widthKey) return null;
+      const raw = localStorage.getItem(`supertable.widths:${this.widthKey}`);
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      // Ignore legacy array format to prefer current spec widths on first load after changes
+      if (Array.isArray(obj)) return null;
+      if (obj && Array.isArray(obj.widths)) {
+        if (!this.specSignature || obj.sig === this.specSignature) return obj.widths as string[];
+        return null;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  private writePersistedWidths(widths: string[]): void {
+    try {
+      if (!this.widthKey) return;
+      const payload = this.specSignature ? { widths, sig: this.specSignature } : { widths };
+      localStorage.setItem(`supertable.widths:${this.widthKey}`, JSON.stringify(payload));
+    } catch {}
+  }
+
+  private applyWidthsToDom(widths: (string | undefined)[]): void {
+    this.applyingWidths = true;
+    this.visibleColumns.forEach((c, i) => {
+      const w = widths[i];
+      if (w && typeof w === 'string' && w.trim()) c.width = w;
+    });
+    this.columns = [...this.columns];
+    this.updateTableStyleWidth();
+    setTimeout(() => {
+      if (!this.pTable?.el) return;
+      const ths: NodeListOf<HTMLTableCellElement> = this.pTable.el.nativeElement.querySelectorAll('thead th');
+      widths.forEach((w, i) => {
+        if (!w || !ths[i]) return;
+        ths[i].style.width = w;
+      });
+      this.applyingWidths = false;
+    }, 0);
+  }
+
+  private enforceWidthsAfterLayout(): void {
+    const persisted = this.readPersistedWidths();
+    // Prefer persisted widths only if they fit the available container width and minima.
+    let desired: (string | undefined)[] | undefined = undefined;
+    if (persisted && persisted.length === this.visibleColumns.length) {
+      try {
+        const containerWidth = this.getContainerWidth();
+        const totalPersisted = persisted.reduce((sum, w) => sum + this.parsePx(String(w), 120), 0);
+        const minW = this.getMinWidths();
+        const anyBelowMin = persisted.some((w, i) => this.parsePx(String(w), 120) < (minW[i] || 30));
+        if ((containerWidth && totalPersisted > containerWidth) || anyBelowMin) {
+          desired = undefined;
+        } else {
+          desired = persisted;
+        }
+      } catch {
+        desired = persisted;
+      }
+    }
+    if (!desired) {
+      desired = (this.initialWidths && this.initialWidths.length === this.visibleColumns.length ? this.initialWidths : undefined);
+    }
+    if (!desired) {
+      desired = this.computeDefaultWidths();
+    }
+    if (!desired) return;
+
+    desired = this.fitWidthsToContainer(desired);
+
+    const applyNow = () => this.applyWidthsToDom(desired);
+    // Apply immediately once
+    requestAnimationFrame(applyNow);
+
+    // If this is a nested table (rendered inside another SuperTable),
+    // skip the enforcement loop to avoid multiple concurrent timers and
+    // heavy layout churn when many nested tables are expanded.
+    if (this.superTableParent) {
+      return;
+    }
+
+    // Then enforce until stable for a short window, to outlast PrimeNG adjustments
+    const start = Date.now();
+    let lastMismatchAt = Date.now();
+
+    const checkAndEnforce = () => {
+      // Do not enforce while the user is actively resizing columns
+      if (this.resizingIndex != null) return;
+      const ths: NodeListOf<HTMLTableCellElement> | null = this.pTable?.el?.nativeElement?.querySelectorAll('thead th') || null;
+      if (!ths || ths.length === 0) return; // nothing to enforce
+      // Compare only for indices where a desired width exists
+      let mismatch = false;
+      desired.forEach((w, i) => {
+        if (!w) return;
+        const th = ths[i];
+        if (!th) return;
+        const want = parseFloat(String(w));
+        const have = parseFloat(String(th.style.width || th.offsetWidth + ''));
+        if (isFinite(want) && Math.abs(have - want) > 1) {
+          mismatch = true;
+        }
+      });
+      if (mismatch) {
+        lastMismatchAt = Date.now();
+        this.applyWidthsToDom(desired);
+      }
+      // Skip auto-expand; widths are already fit to container by heuristic
+      const elapsed = Date.now() - start;
+      const sinceLastMismatch = Date.now() - lastMismatchAt;
+      // Stop if stable for 200ms or after 800ms total (tighter guard)
+      if (sinceLastMismatch > 200 || elapsed > 800) {
+        if (this.enforceHandle) {
+          clearInterval(this.enforceHandle);
+          this.enforceHandle = null;
+        }
+        // Final micro-adjust based on actual rendered header widths to avoid tiny overflow/underflow
+        this.adjustToMeasuredContainer();
+        // Persist final widths if a key is set and not immediately after a window resize
+        if (!this.justResized) {
+          const final = this._getColumnWidths();
+          if (final && final.length === this.visibleColumns.length) this.writePersistedWidths(final);
+        }
+      }
+    };
+
+    if (this.enforceHandle) {
+      clearInterval(this.enforceHandle);
+      this.enforceHandle = null;
+    }
+    this.enforceHandle = setInterval(checkAndEnforce, 50);
+  }
+
+  private parsePx(value: string | undefined, fallback = 120): number {
+    if (!value) return fallback;
+    const s = String(value).trim();
+    if (s.endsWith('px')) return parseFloat(s);
+    if (s.endsWith('rem')) return parseFloat(s) * 16;
+    const n = parseFloat(s);
+    return isFinite(n) ? n : fallback;
+  }
+
+  private getMinWidths(): number[] {
+    if (this.minWidthsCache && this.minWidthsCache.length === this.visibleColumns.length) return this.minWidthsCache;
+    const arr = this.visibleColumns.map(c => {
+      // Respect explicit width as the floor if provided
+      const explicit = this.parsePx(c.width, NaN);
+      if (c.minWidth) return this.parsePx(c.minWidth, 30);
+      const label = (c.header || '').trim();
+      const approx = Math.max(40, Math.min(240, Math.round(label.length * 9 + 24)));
+      if (c.type === 'boolean' || c.type === 'checkbox' || c.type === 'expander' || c.type === 'lineNumber') return Math.max(30, Math.min(approx, 80));
+      if (c.type === 'date') return Math.max(80, approx);
+      // Numeric columns: readable default minimum
+      if (c.filterType === 'numeric') return 80;
+      // If width is explicitly set, treat that as the minimum to avoid auto-shrinking
+      if (!isNaN(explicit)) return explicit;
+      return approx;
+    });
+    this.minWidthsCache = arr;
+    return arr;
+  }
+
+  private computeDefaultWidths(): (string | undefined)[] {
+    try {
+      const container = this.getContainerWidth();
+      const minW = this.getMinWidths();
+      // Only text-like columns without an explicit width are flexible
+      const isFlexible = (c: ColumnConfig) => ((c.type === 'string' || c.type === 'list' || c.type === undefined) && c.filterType !== 'numeric' && !c.width);
+      const base = this.visibleColumns.map((c, i) => {
+        const explicit = this.parsePx(c.width, NaN);
+        if (!isNaN(explicit)) return Math.max(minW[i], explicit);
+        if (c.type === 'date') return Math.max(minW[i], 120);
+        if (c.type === 'boolean') return Math.max(minW[i], 70);
+        // Numeric default ~120px unless a higher min is specified
+        if (c.filterType === 'numeric') return Math.max(minW[i], 120);
+        if (c.type === 'checkbox' || c.type === 'expander' || c.type === 'lineNumber') return Math.max(minW[i], 30);
+        return minW[i];
+      });
+      const flexIdx: number[] = [];
+      base.forEach((_, i) => { if (isFlexible(this.visibleColumns[i])) flexIdx.push(i); });
+      const baseSum = base.reduce((s, v) => s + v, 0);
+      const room = Math.max(0, container - baseSum);
+      const addEach = flexIdx.length > 0 ? Math.floor(room / Math.max(1, flexIdx.length)) : 0;
+      flexIdx.forEach(i => base[i] += addEach);
+      const remainder = container - base.reduce((s, v) => s + v, 0);
+      if (remainder > 0 && flexIdx.length > 0) base[flexIdx[flexIdx.length - 1]] += remainder;
+      return base.map(px => Math.round(px) + 'px');
+    } catch {
+      return this.visibleColumns.map(() => '120px');
+    }
+  }
+
+  private fitWidthsToContainer(widths: (string | undefined)[]): (string | undefined)[] {
+    try {
+      const container = this.getContainerWidth();
+      const minW = this.getMinWidths();
+      let arr = widths.map(w => this.parsePx(String(w), 120));
+      arr = arr.map((w, i) => Math.max(minW[i] || 30, w));
+      const sum = arr.reduce((s, v) => s + v, 0);
+      const isFlexible = (i: number) => {
+        const col = this.visibleColumns[i];
+        const t = col?.type;
+        const ft = (col as any)?.filterType as any;
+        const hasExplicit = !!col?.width;
+        return (t === 'string' || t === 'list' || t === undefined) && ft !== 'numeric' && !hasExplicit;
+      };
+      const flexIdx = arr.map((_, i) => i).filter(isFlexible);
+      if (container > 0 && flexIdx.length > 0) {
+        let diff = Math.round(container - sum);
+        if (diff !== 0) {
+          const step = diff > 0 ? 1 : -1;
+          let guard = Math.min(5000, Math.abs(diff) * 5);
+          while (diff !== 0 && guard-- > 0) {
+            let progressed = false;
+            for (const i of flexIdx) {
+              const next = arr[i] + step;
+              if (step < 0 && next < (minW[i] || 30)) continue;
+              arr[i] = next;
+              diff -= step;
+              progressed = true;
+              if (diff === 0) break;
+            }
+            if (!progressed) break;
+          }
+        }
+      }
+      // Round and correct to avoid tiny overflow
+      let rounded = arr.map(px => Math.max(30, Math.round(px)));
+      let total = rounded.reduce((s, v) => s + v, 0);
+      let delta = Math.round(container - total);
+      if (delta !== 0) {
+        const target = flexIdx.length > 0 ? flexIdx[flexIdx.length - 1] : (rounded.length - 1);
+        const minVal = minW[target] || 30;
+        rounded[target] = Math.max(minVal, rounded[target] + delta);
+      }
+      return rounded.map(px => px + 'px');
+    } catch {
+      return widths;
+    }
+  }
+
+  private updateTableStyleWidth(): void {
+    try {
+      const total = this.visibleColumns.reduce((sum, c) => sum + this.parsePx(c.width, 120), 0);
+      const container = this.getContainerWidth();
+      const width = container > 0 ? Math.min(container, Math.floor(total)) : Math.floor(total);
+      this.tableStyle = { width: Math.max(100, width) + 'px', 'table-layout': 'fixed' };
+      this.cdr.markForCheck();
+    } catch {}
+  }
+
+  private adjustToMeasuredContainer(): void {
+    try {
+      if (!this.pTable?.el) return;
+      const host = this.pTable.el.nativeElement as HTMLElement;
+      const container = this.getContainerWidth();
+      const ths: NodeListOf<HTMLTableCellElement> = host.querySelectorAll('thead th');
+      const firstRow = host.querySelector('.p-datatable-tbody tr');
+      // Measure header sum
+      let sumHeader = 0;
+      if (ths && ths.length) ths.forEach(th => (sumHeader += th.offsetWidth));
+      // Measure first body row sum (if present)
+      let sumBody = 0;
+      if (firstRow) {
+        const tds = firstRow.querySelectorAll('td');
+        if (tds && tds.length) tds.forEach(td => (sumBody += (td as HTMLTableCellElement).offsetWidth));
+      }
+      const actual = Math.max(sumHeader, sumBody);
+      let delta = Math.round(container - actual);
+      if (delta === 0) return;
+      // Adjust the last flexible column to absorb the delta
+      const isFlexible = (i: number) => {
+        const t = this.visibleColumns[i]?.type;
+        return t === 'string' || t === 'list' || t === undefined;
+      };
+      const flexIdx = this.visibleColumns.map((_, i) => i).filter(isFlexible);
+      const target = flexIdx.length > 0 ? flexIdx[flexIdx.length - 1] : (this.visibleColumns.length - 1);
+      const current = this._getColumnWidths() || this.visibleColumns.map(c => c.width || '120px');
+      const minW = this.getMinWidths();
+      const now = current.map(w => this.parsePx(String(w), 120));
+      const newVal = Math.max(minW[target] || 30, now[target] + delta);
+      this.applyWidthsByIndex([[target, newVal]]);
+      this.updateTableStyleWidth();
+    } catch {}
+  }
+
+  private autoExpandToContainer(): void {
+    try {
+      if (!this.pTable?.el) return;
+      const host = this.pTable.el.nativeElement as HTMLElement;
+      const wrapper = (host.querySelector('.p-datatable-wrapper') as HTMLElement) || host;
+      const container = wrapper.clientWidth || host.clientWidth;
+      const total = this.visibleColumns.reduce((sum, c) => sum + this.parsePx(c.width, 120), 0);
+      const diff = Math.round(container - total);
+      if (diff > 8) {
+        // add the extra space to the last resizable column
+        let idx = this.visibleColumns.length - 1;
+        while (idx >= 0) {
+          const t = this.visibleColumns[idx]?.type;
+          if (t !== 'lineNumber' && t !== 'checkbox' && t !== 'expander') break;
+          idx--;
+        }
+        if (idx >= 0) {
+          const newW = this.parsePx(this.visibleColumns[idx].width, 120) + diff;
+          this.applyWidthsByIndex([[idx, newW]]);
+          this.updateTableStyleWidth();
+        }
+      } else {
+        this.updateTableStyleWidth();
+      }
+    } catch {}
   }
 
   // === Group header select-all helpers ===
