@@ -49,6 +49,7 @@
               "
               [style.width]="col.width"
               [style]="col.style"
+              [ngClass]="{ 'numeric-header': col.filterType === 'numeric' }"
             >
               <div class="header-cell">
                 <span class="header-text">{{ col.header }}</span>
@@ -131,7 +132,7 @@
     <ng-template pTemplate="body" let-rowData let-columns="columns" let-rowIndex="rowIndex">
       <tr [pContextMenuRow]="rowData">
         @for (col of columns; track col) {
-          <td>
+          <td [ngClass]="{ 'numeric-cell': col.filterType === 'numeric' }">
             @switch (col.type) {
               @case ('checkbox') {
                 <p-tableCheckbox [value]="rowData" dataKey="id"></p-tableCheckbox>
@@ -210,6 +211,7 @@
               "
               [style.width]="col.width"
               [style]="col.style"
+              [ngClass]="{ 'numeric-header': col.filterType === 'numeric' }"
             >
               <div class="p-d-flex p-jc-between p-ai-center">
                 {{ col.header }}

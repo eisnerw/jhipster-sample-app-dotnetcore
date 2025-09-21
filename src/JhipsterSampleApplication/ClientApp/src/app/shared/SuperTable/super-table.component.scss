@@ -106,6 +106,10 @@
   position: relative;
 }
 
+/* Numeric columns: right-align body, keep header left-aligned */
+:host ::ng-deep td.numeric-cell { text-align: right; }
+:host ::ng-deep th.numeric-header { text-align: left; }
+
 .st-resizing * {
   cursor: col-resize !important;
   user-select: none !important;
