@@ -99,6 +99,16 @@
   display: flex;
   align-items: center;
 }
+
+/* Center header checkbox horizontally and fine-tune position */
+:host ::ng-deep thead th p-tableHeaderCheckbox {
+  display: flex;
+  margin-left: auto;
+  margin-right: auto;
+}
+:host ::ng-deep thead th p-tableHeaderCheckbox .p-checkbox {
+  transform: translate(-2px, 2px) !important; /* shift slightly left and down */
+}
 .st-resize-handle {
   position: absolute;
   right: 0;
