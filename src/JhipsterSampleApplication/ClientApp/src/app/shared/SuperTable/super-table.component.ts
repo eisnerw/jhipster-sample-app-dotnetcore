@@ -276,6 +276,15 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     }
   }
 
+  // Truthy check that treats empty strings (including whitespace-only) as empty
+  nonEmpty(value: any): boolean {
+    try {
+      if (value === null || value === undefined) return false;
+      const s = String(value);
+      return s.trim().length > 0;
+    } catch { return false; }
+  }
+
   // Get display string for a column, supporting computed fields (first non-empty among computeFields)
   getCellString(row: any, col: ColumnConfig): string {
     try {

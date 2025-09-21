@@ -155,9 +155,9 @@
                 <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
               }
               @case ('date') {
-                <span class="cell-content" [pTooltip]="(rowData[col.field] | date: col.dateFormat || 'MM/dd/yyyy') || ''">{{
-                  rowData[col.field] | date: col.dateFormat || 'MM/dd/yyyy'
-                }}</span>
+                <span class="cell-content">
+                  {{ nonEmpty(rowData[col.field]) ? (rowData[col.field] | date: (col.dateFormat || 'MM/dd/yyyy')) : '' }}
+                </span>
               }
               @case ('boolean') {
                 <span class="cell-content" [pTooltip]="rowData[col.field] ? 'Yes' : 'No'">{{ rowData[col.field] ? 'Yes' : 'No' }}</span>
