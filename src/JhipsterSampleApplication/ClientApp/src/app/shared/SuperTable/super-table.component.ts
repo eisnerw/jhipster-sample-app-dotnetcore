@@ -19,6 +19,8 @@ export interface ColumnConfig {
   width?: string;
   minWidth?: string;
   style?: string;
+  // Optional: for computed display columns, provide fallback fields in priority order
+  computeFields?: string[];
   type?:
     | 'checkbox'
     | 'expander'
@@ -271,6 +273,23 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       return segments.join('');
     } catch {
       return this.escapeHtml(text);
+    }
+  }
+
+  // Get display string for a column, supporting computed fields (first non-empty among computeFields)
+  getCellString(row: any, col: ColumnConfig): string {
+    try {
+      if (col && Array.isArray((col as any).computeFields)) {
+        for (const f of (col as any).computeFields as string[]) {
+          const v = row?.[f];
+          if (v !== undefined && v !== null && String(v).trim().length > 0) return String(v);
+        }
+        return '';
+      }
+      const v = row?.[(col as any).field];
+      return v === undefined || v === null ? '' : String(v);
+    } catch {
+      return '';
     }
   }
 

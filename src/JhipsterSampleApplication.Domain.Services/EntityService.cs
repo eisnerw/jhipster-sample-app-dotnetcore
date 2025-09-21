@@ -285,6 +285,33 @@ public class EntityService : IEntityService
 
             if (allDefinedFields.Count > 0 && selected.Count > 0)
             {
+                // If any selected field is a computed field, include its source fields as well
+                try
+                {
+                    if (_specRegistry.TryGetObject(entity, "fields", out var fieldsNode2))
+                    {
+                        var fieldsObj = JObject.Parse(fieldsNode2.ToJsonString());
+                        foreach (var sel in selected.ToList())
+                        {
+                            var def = fieldsObj[sel] as JObject;
+                            var typ = def? ["type"]?.ToString();
+                            if (!string.IsNullOrEmpty(typ) && string.Equals(typ, "computed", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var comp = def? ["computation"]?.ToString() ?? string.Empty;
+                                if (!string.IsNullOrWhiteSpace(comp))
+                                {
+                                    var refs = comp
+                                        .Split(new[] { '|', ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                                        .Select(s => s.Trim())
+                                        .Where(s => !string.IsNullOrWhiteSpace(s));
+                                    foreach (var r in refs) selected.Add(r);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch { /* ignore spec parse errors; best effort */ }
+
                 var excludes = new JArray();
                 foreach (var f in allDefinedFields)
                 {

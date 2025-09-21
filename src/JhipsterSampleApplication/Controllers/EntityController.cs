@@ -492,7 +492,18 @@ namespace JhipsterSampleApplication.Controllers
             // Compose a QB spec object from top-level fields only (no legacy fallback)
             if (_specRegistry.TryGetObject(entity, "fields", out var fieldsNode))
             {
-                var qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = Newtonsoft.Json.Linq.JObject.Parse(fieldsNode.ToJsonString()) };
+                var fieldsObj = Newtonsoft.Json.Linq.JObject.Parse(fieldsNode.ToJsonString());
+                // Exclude computed fields from query-builder spec
+                foreach (var prop in fieldsObj.Properties().ToList())
+                {
+                    var v = prop.Value as Newtonsoft.Json.Linq.JObject;
+                    var t = v? ["type"]?.ToString();
+                    if (!string.IsNullOrEmpty(t) && string.Equals(t, "computed", StringComparison.OrdinalIgnoreCase))
+                    {
+                        prop.Remove();
+                    }
+                }
+                var qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = fieldsObj };
                 JhipsterSampleApplication.Domain.Services.EntityService.EnsureDocumentField(qbSpec);
                 return Content(qbSpec.ToString(Newtonsoft.Json.Formatting.None), "application/json");
             }

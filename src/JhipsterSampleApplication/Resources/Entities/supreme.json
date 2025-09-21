@@ -2,7 +2,7 @@
     "name": "supreme",
     "title": "Supreme",
     "elasticsearchIndex": "supreme",
-    "columns":["name", "term", "docket_number", "description"],
+    "columns":["name", "term", "docket_number", "question_description"],
     "detailHtmlTemplate":[
       "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><base target=\\\"_blank\\\"><title>{name:unlabeled}</title><style>body{{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111}}.field-name{{font-weight:600}}.field{{margin-bottom:0.7em}}</style></head><body><b>{name:unlabeled} ({docket_number:unlabeled})</b>&nbsp;&nbsp;&nbsp;{term}{lower_court}{manner_of_jurisdiction:label-Jurisdiction}{decision}{advocates}",
       "{description}",
@@ -93,6 +93,11 @@
         "name": "Description",
         "type": "string",
         "operators": ["contains", "!contains", "like", "!like", "exists"]
+      },
+      "question_description": {
+        "name": "Quesion/Description",
+        "type": "computed",
+        "computation": "question | description"
       }
     },
     "views": [

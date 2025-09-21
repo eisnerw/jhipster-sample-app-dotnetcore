@@ -247,6 +247,12 @@ export class GenericListComponent implements OnInit, AfterViewInit {
           const col: ColumnConfig = { field: lf, header, width } as any;
           if (t === 'date' || t === 'datetime') { col.type = 'date'; col.filterType = 'date'; col.dateFormat = meta.dateFormat || 'MM/dd/yyyy'; }
           else if (t === 'number' || t === 'numeric') { col.type = 'string'; col.filterType = 'numeric'; }
+          else if (t === 'computed') {
+            col.type = 'string'; col.filterType = 'text';
+            const expr = String(meta.computation || '').trim();
+            col.computeFields = this.parseCompute(expr);
+            if (!col.header) col.header = this.prettyHeader(lf);
+          }
           else if (t === 'boolean') { col.type = 'boolean'; col.filterType = 'boolean'; }
           else { col.type = 'string'; col.filterType = 'text'; }
           cols.push(col);
@@ -258,6 +264,11 @@ export class GenericListComponent implements OnInit, AfterViewInit {
           const t = (lf.type || 'string').toLowerCase();
           if (t === 'date' || t === 'datetime') { col.type = 'date'; col.filterType = 'date'; col.dateFormat = lf.dateFormat || 'MM/dd/yyyy'; }
           else if (t === 'number' || t === 'numeric') { col.type = 'string'; col.filterType = 'numeric'; }
+          else if (t === 'computed') {
+            col.type = 'string'; col.filterType = 'text';
+            const expr = String((lf as any).computation || meta.computation || '').trim();
+            col.computeFields = this.parseCompute(expr);
+          }
           else if (t === 'boolean') { col.type = 'boolean'; col.filterType = 'boolean'; }
           else { col.type = 'string'; col.filterType = 'text'; }
           if (!col.width && (lf as any).width) col.width = this.normalizeWidth((lf as any).width);
@@ -292,6 +303,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
         if (t === 'date' || t === 'datetime') col = { field: k, header, type: 'date', filterType: 'date', dateFormat: 'MM/dd/yyyy' };
         else if (t === 'boolean') col = { field: k, header, type: 'boolean', filterType: 'boolean' };
         else if (t === 'number') col = { field: k, header, type: 'string', filterType: 'numeric' };
+        else if (t === 'computed') { col = { field: k, header, type: 'string', filterType: 'text', computeFields: this.parseCompute(String((f as any).computation || '')) } as any; }
         else if (t === 'category' && Array.isArray(f.options)) {
           col = { field: k, header, type: 'list', listOptions: (f.options || []).map((o: any) => ({ label: o.name || String(o.value), value: String(o.value) })) };
         } else {
@@ -315,6 +327,13 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     if (/^(\d+\.?\d*)(px|rem|%)$/.test(s)) return s;
     const n = parseFloat(s);
     return isFinite(n) ? `${Math.max(1, Math.round(n))}px` : undefined;
+  }
+
+  private parseCompute(expr: string): string[] {
+    if (!expr) return [];
+    // Support syntax like "a | b | c" or "a||b"
+    const parts = expr.split(/\|\|?|,/).map(s => s.trim()).filter(Boolean);
+    return Array.from(new Set(parts));
   }
 
   onQueryChange(query: string, restoreState = false): void { this.currentQuery = query || ''; if (this.viewName) { this.loadRootGroups(restoreState); } else { this.loadPage(); } }
