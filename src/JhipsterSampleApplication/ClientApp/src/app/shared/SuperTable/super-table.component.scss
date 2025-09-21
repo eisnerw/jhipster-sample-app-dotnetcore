@@ -75,13 +75,29 @@
   padding-left: 4px;
 }
 
-/* Center checkboxes in table cells and header */
+/* Checkboxes: center vertically; body rows nudged down slightly */
 :host ::ng-deep td > p-tablecheckbox,
 :host ::ng-deep td > p-tableHeaderCheckbox,
 :host ::ng-deep th > div > p-tableHeaderCheckbox {
   display: flex;
   justify-content: center;
-  align-items: flex-end;
+  align-items: center;
+}
+
+/* Lower body-row checkboxes a touch for visual centering */
+/* Nudge body-row checkboxes down slightly (PrimeNG places them a bit high) */
+:host ::ng-deep .p-datatable-tbody td p-tablecheckbox .p-checkbox {
+  transform: translateY(2px) !important;
+}
+/* Extra safeguard: nudge the visible box as well in case inner box is measured */
+:host ::ng-deep .p-datatable-tbody td p-tablecheckbox .p-checkbox .p-checkbox-box {
+  margin-top: 1px !important;
+}
+
+/* Vertically center header contents (including header checkbox) */
+:host ::ng-deep .header-cell {
+  display: flex;
+  align-items: center;
 }
 .st-resize-handle {
   position: absolute;
