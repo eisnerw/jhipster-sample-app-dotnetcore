@@ -243,14 +243,20 @@ export class GenericListComponent implements OnInit, AfterViewInit {
           const meta = qbFieldsAll[lf] || {};
           const header = (meta.column || meta.name || this.prettyHeader(lf));
           const width = meta.width ? String(meta.width) : undefined;
-          cols.push({ field: lf, header, type: 'string', width });
+          const t = String(meta.type || 'string').toLowerCase();
+          const col: ColumnConfig = { field: lf, header, width } as any;
+          if (t === 'date' || t === 'datetime') { col.type = 'date'; col.filterType = 'date'; col.dateFormat = meta.dateFormat || 'MM/dd/yyyy'; }
+          else if (t === 'number' || t === 'numeric') { col.type = 'string'; col.filterType = 'numeric'; }
+          else if (t === 'boolean') { col.type = 'boolean'; col.filterType = 'boolean'; }
+          else { col.type = 'string'; col.filterType = 'text'; }
+          cols.push(col);
         } else if (lf && typeof lf === 'object') {
           if (EXCLUDE.has(String(lf.field || '').toLowerCase())) continue;
           const meta = qbFieldsAll[lf.field] || {};
           const header = lf.header || meta.column || meta.name || this.prettyHeader(lf.field);
           const col: ColumnConfig = { field: lf.field, header } as any;
           const t = (lf.type || 'string').toLowerCase();
-          if (t === 'date') { col.type = 'date'; col.filterType = 'date'; col.dateFormat = lf.dateFormat || 'MM/dd/yyyy'; }
+          if (t === 'date' || t === 'datetime') { col.type = 'date'; col.filterType = 'date'; col.dateFormat = lf.dateFormat || 'MM/dd/yyyy'; }
           else if (t === 'number' || t === 'numeric') { col.type = 'string'; col.filterType = 'numeric'; }
           else if (t === 'boolean') { col.type = 'boolean'; col.filterType = 'boolean'; }
           else { col.type = 'string'; col.filterType = 'text'; }
@@ -282,7 +288,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
         const t = (f.type || '').toLowerCase();
         let col: ColumnConfig;
         const header = (f.column || f.name || this.prettyHeader(k));
-        if (t === 'date') col = { field: k, header, type: 'date', filterType: 'date', dateFormat: 'MM/dd/yyyy' };
+        if (t === 'date' || t === 'datetime') col = { field: k, header, type: 'date', filterType: 'date', dateFormat: 'MM/dd/yyyy' };
         else if (t === 'boolean') col = { field: k, header, type: 'boolean', filterType: 'boolean' };
         else if (t === 'number') col = { field: k, header, type: 'string', filterType: 'numeric' };
         else if (t === 'category' && Array.isArray(f.options)) {

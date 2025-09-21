@@ -31,6 +31,7 @@
       "docket_number": {
         "name": "Docket #",
         "type": "string",
+        "width": "80px",
         "operators": ["=", "!=", "contains", "!contains", "like", "!like", "exists"]
       },
       "petitioner": {

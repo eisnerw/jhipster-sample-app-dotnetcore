@@ -17,6 +17,7 @@ export interface ColumnConfig {
   header: string;
   filterType?: 'text' | 'date' | 'numeric' | 'boolean';
   width?: string;
+  minWidth?: string;
   style?: string;
   type?:
     | 'checkbox'
@@ -103,6 +104,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private startX = 0;
   private startLeftWidth = 0;
   private startRightWidth = 0;
+  private minWidthsCache: number[] | null = null;
+  private startWidthsPx: number[] | null = null;
 
   private scrollContainer?: HTMLElement;
   private lastScrollTop = 0;
@@ -124,8 +127,40 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   };
   private capturedWidths = false;
   private enforceHandle: any;
+  private windowResizeHandler?: () => void;
   tableStyle: { [k: string]: any } = {};
   private autoExpandedApplied = false;
+  private justResized = false;
+  private purgeAllPersistedWidths(): void {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('supertable.widths:')) keys.push(k);
+      }
+      keys.forEach(k => localStorage.removeItem(k));
+    } catch {}
+  }
+
+  // Resolve the real horizontal container width for this table.
+  // Prefer a surrounding Bootstrap .table-responsive scroller when present; otherwise use PrimeNG wrapper.
+  private getContainerWidth(): number {
+    try {
+      const host = this.pTable?.el?.nativeElement as HTMLElement | undefined;
+      if (!host) return 0;
+      let cand: HTMLElement | null = host;
+      while (cand && cand.parentElement) {
+        if (cand.classList && cand.classList.contains('table-responsive')) break;
+        cand = cand.parentElement as HTMLElement;
+      }
+      const containerEl: HTMLElement = (cand && cand.classList.contains('table-responsive'))
+        ? cand
+        : ((host.querySelector('.p-datatable-wrapper') as HTMLElement) || host);
+      // Subtract a small fudge to avoid border/rounding induced overflow
+      return Math.max(0, (containerEl.clientWidth || 0) - 4);
+    } catch { return 0; }
+  }
 
   // Holds the current global filter text for group mode
   private groupFilterValue: string = '';
@@ -172,7 +207,21 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   ngOnInit(): void {
-    // no initialization required
+    // Recompute layout on browser resize using default heuristic
+    if (typeof window !== 'undefined') {
+      this.windowResizeHandler = () => {
+        try {
+          // Abandon ALL persisted widths on resize to let defaults take over
+          this.purgeAllPersistedWidths();
+          const defaults = this.computeDefaultWidths();
+          const fitted = this.fitWidthsToContainer(defaults);
+          this.applyWidthsToDom(fitted);
+          this.justResized = true;
+          setTimeout(() => (this.justResized = false), 1500);
+        } catch {}
+      };
+      window.addEventListener('resize', this.windowResizeHandler, { passive: true });
+    }
   }
 
   // Highlight helper: returns HTML with <mark> around pattern matches
@@ -275,6 +324,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   ngOnDestroy(): void {
     this.destroyScroll();
+    if (typeof window !== 'undefined' && this.windowResizeHandler) {
+      window.removeEventListener('resize', this.windowResizeHandler as any);
+      this.windowResizeHandler = undefined;
+    }
   }
 
   isRowExpanded(row: any): boolean {
@@ -578,6 +631,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     this.startX = ev.clientX;
     this.startLeftWidth = parseFloat(widths[left] || '0');
     this.startRightWidth = parseFloat(widths[right] || '0');
+    // Snapshot starting widths so each move is computed relative to initial state
+    this.startWidthsPx = widths.map(w => this.parsePx(String(w), 120));
+    this.minWidthsCache = this.getMinWidths();
     const onMove = (e: MouseEvent) => this.onResizeMove(e, left, right);
     const onUp = (e: MouseEvent) => this.onResizeEnd(e, onMove, onUp);
     document.addEventListener('mousemove', onMove, true);
@@ -588,9 +644,45 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private onResizeMove(ev: MouseEvent, left: number, right: number): void {
     if (this.resizingIndex == null) return;
     const dx = ev.clientX - this.startX;
-    let newLeft = Math.max(30, this.startLeftWidth + dx);
-    let newRight = Math.max(30, this.startRightWidth - dx);
-    this.applyWidthsByIndex([[left, newLeft], [right, newRight]]);
+    const start = (this.startWidthsPx && this.startWidthsPx.length === this.visibleColumns.length)
+      ? [...this.startWidthsPx]
+      : (this._getColumnWidths() || this.visibleColumns.map(c => c.width || '120px')).map(w => this.parsePx(String(w), 120));
+    const minW = this.minWidthsCache || this.getMinWidths();
+
+    // Clamp desired left within [minLeft, startLeft + totalHeadroomRight]
+    const totalHeadroomRight = start.slice(right).reduce((s, w, i) => s + Math.max(0, w - (minW[right + i] || 30)), 0);
+    const minLeft = minW[left] || 30;
+    const desiredLeftRaw = this.startLeftWidth + dx;
+    const desiredLeft = Math.min(this.startLeftWidth + totalHeadroomRight, Math.max(minLeft, desiredLeftRaw));
+    let delta = Math.round(desiredLeft - this.startLeftWidth);
+
+    const newWidths = [...start];
+    if (delta > 0) {
+      let need = delta;
+      let i = right;
+      while (i < newWidths.length && need > 0) {
+        const headroom = Math.max(0, newWidths[i] - (minW[i] || 30));
+        const take = Math.min(headroom, need);
+        newWidths[i] -= take;
+        need -= take;
+        i++;
+      }
+      const stolen = delta - need;
+      newWidths[left] = this.startLeftWidth + stolen;
+    } else if (delta < 0) {
+      const give = -delta;
+      newWidths[left] = this.startLeftWidth - give;
+      if (right < newWidths.length) newWidths[right] = start[right] + give;
+    } else {
+      // no change
+    }
+
+    // Apply only changed indices to avoid jitter
+    const pairs: Array<[number, number]> = [];
+    newWidths.forEach((w, i) => {
+      if (w !== start[i]) pairs.push([i, w]);
+    });
+    if (pairs.length) this.applyWidthsByIndex(pairs);
     this.updateTableStyleWidth();
   }
 
@@ -601,6 +693,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     this.lastColumnWidths = this._getColumnWidths();
     if (this.lastColumnWidths) this.writePersistedWidths(this.lastColumnWidths);
     this.resizingIndex = null;
+    this.startWidthsPx = null;
   }
 
   private findResizableIndexFrom(start: number, dir: number): number | null {
@@ -735,10 +828,32 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   private enforceWidthsAfterLayout(): void {
     const persisted = this.readPersistedWidths();
-    const desired = (persisted && persisted.length === this.visibleColumns.length)
-      ? persisted
-      : (this.initialWidths && this.initialWidths.length === this.visibleColumns.length ? this.initialWidths : undefined);
+    // Prefer persisted widths only if they fit the available container width and minima.
+    let desired: (string | undefined)[] | undefined = undefined;
+    if (persisted && persisted.length === this.visibleColumns.length) {
+      try {
+        const containerWidth = this.getContainerWidth();
+        const totalPersisted = persisted.reduce((sum, w) => sum + this.parsePx(String(w), 120), 0);
+        const minW = this.getMinWidths();
+        const anyBelowMin = persisted.some((w, i) => this.parsePx(String(w), 120) < (minW[i] || 30));
+        if ((containerWidth && totalPersisted > containerWidth) || anyBelowMin) {
+          desired = undefined;
+        } else {
+          desired = persisted;
+        }
+      } catch {
+        desired = persisted;
+      }
+    }
+    if (!desired) {
+      desired = (this.initialWidths && this.initialWidths.length === this.visibleColumns.length ? this.initialWidths : undefined);
+    }
+    if (!desired) {
+      desired = this.computeDefaultWidths();
+    }
     if (!desired) return;
+
+    desired = this.fitWidthsToContainer(desired);
 
     const applyNow = () => this.applyWidthsToDom(desired);
     // Apply immediately once
@@ -749,6 +864,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     let lastMismatchAt = Date.now();
 
     const checkAndEnforce = () => {
+      // Do not enforce while the user is actively resizing columns
+      if (this.resizingIndex != null) return;
       const ths: NodeListOf<HTMLTableCellElement> | null = this.pTable?.el?.nativeElement?.querySelectorAll('thead th') || null;
       if (!ths || ths.length === 0) return; // nothing to enforce
       // Compare only for indices where a desired width exists
@@ -767,11 +884,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         lastMismatchAt = Date.now();
         this.applyWidthsToDom(desired);
       }
-      // After things look stable for a bit, ensure table fills the container at least once
-      if (!mismatch && !this.autoExpandedApplied) {
-        this.autoExpandToContainer();
-        this.autoExpandedApplied = true;
-      }
+      // Skip auto-expand; widths are already fit to container by heuristic
       const elapsed = Date.now() - start;
       const sinceLastMismatch = Date.now() - lastMismatchAt;
       // Stop if stable for 250ms or after 1500ms total
@@ -780,9 +893,13 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
           clearInterval(this.enforceHandle);
           this.enforceHandle = null;
         }
-        // Persist final widths if a key is set
-        const final = this._getColumnWidths();
-        if (final && final.length === this.visibleColumns.length) this.writePersistedWidths(final);
+        // Final micro-adjust based on actual rendered header widths to avoid tiny overflow/underflow
+        this.adjustToMeasuredContainer();
+        // Persist final widths if a key is set and not immediately after a window resize
+        if (!this.justResized) {
+          const final = this._getColumnWidths();
+          if (final && final.length === this.visibleColumns.length) this.writePersistedWidths(final);
+        }
       }
     };
 
@@ -802,11 +919,137 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     return isFinite(n) ? n : fallback;
   }
 
+  private getMinWidths(): number[] {
+    if (this.minWidthsCache && this.minWidthsCache.length === this.visibleColumns.length) return this.minWidthsCache;
+    const arr = this.visibleColumns.map(c => {
+      if (c.minWidth) return this.parsePx(c.minWidth, 30);
+      const label = (c.header || '').trim();
+      const approx = Math.max(40, Math.min(240, Math.round(label.length * 9 + 24)));
+      if (c.type === 'boolean' || c.type === 'checkbox' || c.type === 'expander' || c.type === 'lineNumber') return Math.max(30, Math.min(approx, 80));
+      if (c.type === 'date') return Math.max(80, approx);
+      // Numeric columns: tighter minimum, ignore long headers
+      if (c.filterType === 'numeric') return 56;
+      return approx;
+    });
+    this.minWidthsCache = arr;
+    return arr;
+  }
+
+  private computeDefaultWidths(): (string | undefined)[] {
+    try {
+      const container = this.getContainerWidth();
+      const minW = this.getMinWidths();
+      const isFlexible = (c: ColumnConfig) => (c.type === 'string' || c.type === 'list' || c.type === undefined);
+      const base = this.visibleColumns.map((c, i) => {
+        if (c.type === 'date') return Math.max(minW[i], 120);
+        if (c.type === 'boolean') return Math.max(minW[i], 70);
+        // Numeric default ~72px unless a higher min is specified
+        if (c.filterType === 'numeric') return Math.max(minW[i], 72);
+        if (c.type === 'checkbox' || c.type === 'expander' || c.type === 'lineNumber') return Math.max(minW[i], 30);
+        return minW[i];
+      });
+      const flexIdx: number[] = [];
+      base.forEach((_, i) => { if (isFlexible(this.visibleColumns[i])) flexIdx.push(i); });
+      const baseSum = base.reduce((s, v) => s + v, 0);
+      const room = Math.max(0, container - baseSum);
+      const addEach = flexIdx.length > 0 ? Math.floor(room / Math.max(1, flexIdx.length)) : 0;
+      flexIdx.forEach(i => base[i] += addEach);
+      const remainder = container - base.reduce((s, v) => s + v, 0);
+      if (remainder > 0 && flexIdx.length > 0) base[flexIdx[flexIdx.length - 1]] += remainder;
+      return base.map(px => Math.round(px) + 'px');
+    } catch {
+      return this.visibleColumns.map(() => '120px');
+    }
+  }
+
+  private fitWidthsToContainer(widths: (string | undefined)[]): (string | undefined)[] {
+    try {
+      const container = this.getContainerWidth();
+      const minW = this.getMinWidths();
+      let arr = widths.map(w => this.parsePx(String(w), 120));
+      arr = arr.map((w, i) => Math.max(minW[i] || 30, w));
+      const sum = arr.reduce((s, v) => s + v, 0);
+      const isFlexible = (i: number) => {
+        const t = this.visibleColumns[i]?.type;
+        return t === 'string' || t === 'list' || t === undefined;
+      };
+      const flexIdx = arr.map((_, i) => i).filter(isFlexible);
+      if (container > 0 && flexIdx.length > 0) {
+        let diff = Math.round(container - sum);
+        if (diff !== 0) {
+          const step = diff > 0 ? 1 : -1;
+          let guard = Math.min(5000, Math.abs(diff) * 5);
+          while (diff !== 0 && guard-- > 0) {
+            let progressed = false;
+            for (const i of flexIdx) {
+              const next = arr[i] + step;
+              if (step < 0 && next < (minW[i] || 30)) continue;
+              arr[i] = next;
+              diff -= step;
+              progressed = true;
+              if (diff === 0) break;
+            }
+            if (!progressed) break;
+          }
+        }
+      }
+      // Round and correct to avoid tiny overflow
+      let rounded = arr.map(px => Math.max(30, Math.round(px)));
+      let total = rounded.reduce((s, v) => s + v, 0);
+      let delta = Math.round(container - total);
+      if (delta !== 0) {
+        const target = flexIdx.length > 0 ? flexIdx[flexIdx.length - 1] : (rounded.length - 1);
+        const minVal = minW[target] || 30;
+        rounded[target] = Math.max(minVal, rounded[target] + delta);
+      }
+      return rounded.map(px => px + 'px');
+    } catch {
+      return widths;
+    }
+  }
+
   private updateTableStyleWidth(): void {
     try {
       const total = this.visibleColumns.reduce((sum, c) => sum + this.parsePx(c.width, 120), 0);
-      this.tableStyle = { width: Math.max(100, Math.round(total)) + 'px', 'table-layout': 'fixed' };
+      const container = this.getContainerWidth();
+      const width = container > 0 ? Math.min(container, Math.floor(total)) : Math.floor(total);
+      this.tableStyle = { width: Math.max(100, width) + 'px', 'table-layout': 'fixed' };
       this.cdr.markForCheck();
+    } catch {}
+  }
+
+  private adjustToMeasuredContainer(): void {
+    try {
+      if (!this.pTable?.el) return;
+      const host = this.pTable.el.nativeElement as HTMLElement;
+      const container = this.getContainerWidth();
+      const ths: NodeListOf<HTMLTableCellElement> = host.querySelectorAll('thead th');
+      const firstRow = host.querySelector('.p-datatable-tbody tr');
+      // Measure header sum
+      let sumHeader = 0;
+      if (ths && ths.length) ths.forEach(th => (sumHeader += th.offsetWidth));
+      // Measure first body row sum (if present)
+      let sumBody = 0;
+      if (firstRow) {
+        const tds = firstRow.querySelectorAll('td');
+        if (tds && tds.length) tds.forEach(td => (sumBody += (td as HTMLTableCellElement).offsetWidth));
+      }
+      const actual = Math.max(sumHeader, sumBody);
+      let delta = Math.round(container - actual);
+      if (delta === 0) return;
+      // Adjust the last flexible column to absorb the delta
+      const isFlexible = (i: number) => {
+        const t = this.visibleColumns[i]?.type;
+        return t === 'string' || t === 'list' || t === undefined;
+      };
+      const flexIdx = this.visibleColumns.map((_, i) => i).filter(isFlexible);
+      const target = flexIdx.length > 0 ? flexIdx[flexIdx.length - 1] : (this.visibleColumns.length - 1);
+      const current = this._getColumnWidths() || this.visibleColumns.map(c => c.width || '120px');
+      const minW = this.getMinWidths();
+      const now = current.map(w => this.parsePx(String(w), 120));
+      const newVal = Math.max(minW[target] || 30, now[target] + delta);
+      this.applyWidthsByIndex([[target, newVal]]);
+      this.updateTableStyleWidth();
     } catch {}
   }
 

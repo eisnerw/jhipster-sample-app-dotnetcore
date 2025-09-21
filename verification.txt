@@ -57,3 +57,15 @@ The template will be assumed to have been validated, so there is no reason to ad
 
 Before we begin you should know that the way to build the back end is to use dotnet build  -p:SkipClientBuild=true.  Also, you can't build the front end because that may cause the computer to lock up.  Fortunately, I'm running HMR, so I will tell you if there are any ng or ts errors.
 
+I'm not sure.  My goal is complicated.  I would like numerical fields to default to a reasonable width that       
+   shows a number comfortably.  Likewise for dates and booleans.  For text, I would like the remainder of the        
+   space to be divided up among the text fields.  I would like moving of columns to affect only the the columns to   
+   the left and right of the column resizer with the exception that if a column becomes, by virtue of the resizer,   
+   smaller than a minimum width, additional columns in the direction of the movement sould also move until ther      
+   rightmost or leftmost (depending on the direction) should reach the minimum, in which case the the resizer        
+   should have no further affect.  I would like the minimum width to be defaulted to the width of the column         
+   header's text unless overriden by a "minWidth" specification on the column.  In all cases, I would like the sum   
+   of all columns to exactly match the width of the screen such that if the browser should be resized, the default   
+   heuristic should take over.  I believe that persistence should only be honored if the resulting layout meets      
+   the objective of no column being less wide than the minimum width and the sum of all column widths exactly        
+   matching the width of the avaiable space.                                 
