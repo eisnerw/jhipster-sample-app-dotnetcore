@@ -105,6 +105,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   categoryState: Record<string, boolean> = {};
   newCategoryText = '';
   newCategoryChecked = false;
+  private tempNewCategory: string | null = null;
   rowsToCategorizeCount = 0;
 
   expandedRowKeys: { [key: string]: boolean } = {};
@@ -454,9 +455,33 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   hasCategorizeChanges(): boolean { return true; }
   cancelCategorize(): void { this.showCategorizeDialog = false; }
   filterCategoriesList(): void {
-    const q = (this.newCategoryText||'').trim().toLowerCase();
+    const raw = (this.newCategoryText || '').trim();
+    const q = raw.toLowerCase();
     const src = this.allCategories;
-    const arr = !q ? [...src] : src.filter(c => c.toLowerCase().includes(q));
+    let arr = !q ? [...src] : src.filter(c => c.toLowerCase().includes(q));
+    // Dynamically add a new entry when there are no matches and the filter has content
+    if (q && arr.length === 0) {
+      // carry forward check state from previous temp if any
+      const prev = this.tempNewCategory;
+      this.tempNewCategory = raw;
+      if (prev && prev !== this.tempNewCategory) {
+        const prevChecked = !!this.categoryState[prev];
+        // remove old temp entry state to avoid clutter
+        delete this.categoryState[prev];
+        // initialize new temp with previous checked state
+        this.categoryState[this.tempNewCategory] = prevChecked;
+      } else if (!this.categoryState[this.tempNewCategory]) {
+        this.categoryState[this.tempNewCategory] = false;
+      }
+      arr = [this.tempNewCategory];
+    } else {
+      // If matches exist, clear temp new entry so it doesn't linger
+      if (this.tempNewCategory && !arr.includes(this.tempNewCategory)) {
+        // keep state only if it exists in the full list
+        delete this.categoryState[this.tempNewCategory];
+      }
+      this.tempNewCategory = null;
+    }
     // Sort with checked first, then alphabetical
     arr.sort((a,b) => {
       const sa = this.categoryState[a] ? 0 : 1;
