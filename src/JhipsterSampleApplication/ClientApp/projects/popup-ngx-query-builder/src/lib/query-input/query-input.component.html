@@ -10,7 +10,7 @@
     </div>
   }
   @if (editing) {
-    <input
+    <input #editBox
       pInputText
       [(ngModel)]="query"
       (ngModelChange)="onQueryChange()"
