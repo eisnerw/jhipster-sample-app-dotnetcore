@@ -4,6 +4,8 @@ import {
   Input,
   Output,
   OnInit,
+  OnChanges,
+  SimpleChanges,
   ViewChild,
   inject,
 } from '@angular/core';
@@ -58,7 +60,7 @@ interface NamedQuery {
   styleUrls: ['./query-input.component.scss'],
   templateUrl: './query-input.component.html',
 })
-export class QueryInputComponent implements OnInit {
+export class QueryInputComponent implements OnInit, OnChanges {
   private dialog = inject(MatDialog);
   private http = inject(HttpClient);
 
@@ -94,6 +96,15 @@ export class QueryInputComponent implements OnInit {
     this.loadNamedQueries();
     // Pre-load history so arrow navigation is responsive when editing starts
     this.loadHistory();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // When entity context changes, reset and reload history from backend
+    if (changes['historyEntity'] && !changes['historyEntity'].firstChange) {
+      this.history = [];
+      this.historyIndex = -1;
+      this.loadHistory();
+    }
   }
 
   private loadNamedQueries(): void {
@@ -271,10 +282,11 @@ export class QueryInputComponent implements OnInit {
     if (!this.historyEntity) {
       return;
     }
+    const url = `/api/entity/${encodeURIComponent(this.historyEntity)}/bql-history`;
     this.http
-      .get<HistoryDto[]>('/api/Histories', { params: new HttpParams().set('entity', this.historyEntity) })
+      .get<HistoryDto[]>(url)
       .subscribe(res => {
-        this.history = res.map(h => h.text);
+        this.history = (res || []).map(h => h.text).filter(t => !!t);
         this.historyIndex = -1;
       });
     }

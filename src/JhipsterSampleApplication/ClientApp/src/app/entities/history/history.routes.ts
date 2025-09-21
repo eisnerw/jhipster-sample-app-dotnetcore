@@ -6,6 +6,7 @@ const historyRoute: Routes = [
     path: '',
     loadComponent: () => import('./list/history.component').then(m => m.HistoryComponent),
     canActivate: [UserRouteAccessService],
+    data: { authorities: ['ROLE_ADMIN'] },
   },
 ];
 

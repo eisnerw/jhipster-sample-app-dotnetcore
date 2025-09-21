@@ -15,6 +15,7 @@ using JhipsterSampleApplication.Domain.Entities;
 using System.Text.Json.Nodes;
 using System.Text;
 using System.Net;
+using Microsoft.AspNetCore.Authorization;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -27,14 +28,16 @@ namespace JhipsterSampleApplication.Controllers
         private readonly IEntitySpecRegistry _specRegistry;
         private readonly INamedQueryService _namedQueryService;
         private readonly JhipsterSampleApplication.Domain.Services.EntityService _entityService;
+        private readonly IHistoryService _historyService;
 
-        public EntityController(ElasticsearchClient elasticClient, IConfiguration configuration, IEntitySpecRegistry specRegistry, INamedQueryService namedQueryService, JhipsterSampleApplication.Domain.Services.EntityService jsonService)
+        public EntityController(ElasticsearchClient elasticClient, IConfiguration configuration, IEntitySpecRegistry specRegistry, INamedQueryService namedQueryService, JhipsterSampleApplication.Domain.Services.EntityService jsonService, IHistoryService historyService)
         {
             _elasticClient = elasticClient;
             _configuration = configuration;
             _specRegistry = specRegistry;
             _namedQueryService = namedQueryService;
             _entityService = jsonService;
+            _historyService = historyService;
         }
 
         [HttpGet]
@@ -508,6 +511,21 @@ namespace JhipsterSampleApplication.Controllers
             }
             var json = System.IO.File.ReadAllText(path);
             return Content(json, "application/json");
+        }
+
+        [Authorize]
+        [HttpGet("{entity}/bql-history")]
+        [ProducesResponseType(typeof(IEnumerable<HistoryDto>), 200)]
+        public async Task<IActionResult> GetBqlHistory([FromRoute] string entity)
+        {
+            var user = User?.Identity?.Name;
+            if (string.IsNullOrEmpty(user))
+            {
+                return Unauthorized();
+            }
+            var histories = await _historyService.FindByUserAndEntity(user!, entity);
+            var dto = histories.Select(h => new HistoryDto { Id = h.Id, User = h.User, Entity = h.Entity, Text = h.Text });
+            return Ok(dto);
         }
     }
 }

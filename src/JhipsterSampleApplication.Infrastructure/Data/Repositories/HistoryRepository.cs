@@ -12,6 +12,13 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
         {
         }
 
+        public async Task<IEnumerable<History>> FindAll()
+        {
+            return await QueryHelper()
+                .OrderBy(q => q.OrderByDescending(h => h.Id))
+                .GetAllAsync();
+        }
+
         public async Task<IEnumerable<History>> FindByUserAndEntity(string user, string? entity = null)
         {
             if (string.IsNullOrEmpty(entity))

@@ -15,6 +15,11 @@ namespace JhipsterSampleApplication.Domain.Services
             _historyRepository = historyRepository;
         }
 
+        public async Task<IEnumerable<History>> FindAll()
+        {
+            return await _historyRepository.FindAll();
+        }
+
         public async Task<History> Save(History history)
         {
             if (!string.IsNullOrEmpty(history.User))

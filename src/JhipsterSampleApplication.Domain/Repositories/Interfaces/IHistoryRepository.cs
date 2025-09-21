@@ -6,6 +6,7 @@ namespace JhipsterSampleApplication.Domain.Repositories.Interfaces
 {
     public interface IHistoryRepository : IGenericRepository<History, long>
     {
+        Task<IEnumerable<History>> FindAll();
         Task<IEnumerable<History>> FindByUserAndEntity(string user, string? entity = null);
         Task<History?> FindLatestByUserAndEntity(string user, string? entity = null);
     }
