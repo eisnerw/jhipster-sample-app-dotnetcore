@@ -4,7 +4,7 @@ namespace JhipsterSampleApplication.Dto
     {
         public long Id { get; set; }
         public string? User { get; set; }
-        public string? Domain { get; set; }
+        public string? Entity { get; set; }
         public string Text { get; set; } = string.Empty;
     }
 }

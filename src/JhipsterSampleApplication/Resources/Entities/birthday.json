@@ -1,8 +1,11 @@
 {
     "name": "birthday",
     "title": "Birthday",
-    "elasticSearchIndex": "birthdays",
-    "descriptiveFieds": ["wikipedia"],
+    "elasticsearchIndex": "birthdays",
+    "detailFields": ["wikipedia"],
+    "detailHtmlTemplate":[
+      "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><base target=\\\"_blank\\\"><title>{fname:unlabeled} {lname:unlabeled}</title><style>body{{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111}}.field-name{{font-weight:600}}.field{{margin-bottom:0.7em}}</style></head><body><h3>{fname:unlabeled} {lname:unlabeled} {dob:format-MM/dd/yyyy:label-Born}({sign:unlabeled}) {isAlive:yesno:label-Alive}</h3>{wikipedia:html:unlabeled}"
+    ],
     "dto": {
       "allOf": [
         { "$ref": "#/definitions/BaseDto" },
@@ -88,7 +91,7 @@
           "query": "categories:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "birthdays"
+          "entity": "birthdays"
         },
         {
           "id": "birth year",
@@ -98,7 +101,7 @@
           "query": "*",
           "categoryQuery": "dob:[{}-01-01 TO {}-12-31]",
           "script": "if (doc['dob'].size() == 0) {return '';}\nString st = doc['dob'].value.getYear().toString();\nreturn st.substring(0, 4);",
-          "domain": "birthdays"
+          "entity": "birthdays"
         },
         {
           "id": "sign",
@@ -108,7 +111,7 @@
           "query": "sign:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "birthdays"
+          "entity": "birthdays"
         },
         {
           "id": "first name",
@@ -118,7 +121,7 @@
           "query": "fname:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "birthdays"
+          "entity": "birthdays"
         },
         {
           "id": "sign/birth year",
@@ -128,7 +131,7 @@
           "query": "sign:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "birthdays"
+          "entity": "birthdays"
         },
         {
           "id": "sign/birth year.year of birth",
@@ -139,7 +142,7 @@
           "categoryQuery": "dob:[{}-01-01 TO {}-12-31]",
           "script": "if (doc['dob'].size() == 0) {return '';}\nString st = doc['dob'].value.getYear().toString();\nreturn st.substring(0, 4);",
           "parentViewId": "sign/birth year",
-          "domain": "birthdays"
+          "entity": "birthdays"
         }
       ]
 }

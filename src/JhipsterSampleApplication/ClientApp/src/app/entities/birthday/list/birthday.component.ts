@@ -202,7 +202,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     this.expandedRowKeys[key] = true;
     // Delay iframe source assignment to avoid flicker during DOM expansion
     setTimeout(() => {
-      const url = '/api/birthdays/html/' + row.id;
+      const url = '/api/entity/birthday/html/' + row.id;
       this.iframeSafeSrcById[row.id!] = this.sanitizer.bypassSecurityTrustResourceUrl(url);
     }, 50);
   }
@@ -475,7 +475,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
   }
 
   loadViews(): void {
-    this.viewService.queryByDomain('birthdays').subscribe((res) => {
+    this.viewService.queryByEntity('birthday').subscribe((res) => {
       const body = res.body ?? [];
       this.views = body.map((v) => ({ label: v.name, value: v.id! }));
     });
@@ -730,7 +730,7 @@ export class BirthdayComponent implements OnInit, AfterViewInit {
     const id = this.birthdayDialogId;
     this.dialogSafeSrc = null;
     setTimeout(() => {
-      const url = '/api/birthdays/html/' + id;
+      const url = '/api/entity/birthday/html/' + id;
       this.dialogSafeSrc = this.sanitizer.bypassSecurityTrustResourceUrl(url);
     }, 50);
   }

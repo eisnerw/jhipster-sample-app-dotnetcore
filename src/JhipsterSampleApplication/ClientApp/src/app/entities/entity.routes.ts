@@ -27,11 +27,6 @@ const routes: Routes = [
     loadChildren: () => import('./selector/selector.routes'),
   },
   {
-    path: 'view',
-    data: { pageTitle: 'Views' },
-    loadChildren: () => import('./view/view.routes').then(m => m.VIEW_ROUTE),
-  },
-  {
     path: 'history',
     data: { pageTitle: 'Histories' },
     loadChildren: () => import('./history/history.routes'),

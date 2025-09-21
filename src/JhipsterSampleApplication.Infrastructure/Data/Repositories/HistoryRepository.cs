@@ -12,9 +12,9 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
         {
         }
 
-        public async Task<IEnumerable<History>> FindByUserAndDomain(string user, string? domain = null)
+        public async Task<IEnumerable<History>> FindByUserAndEntity(string user, string? entity = null)
         {
-            if (string.IsNullOrEmpty(domain))
+            if (string.IsNullOrEmpty(entity))
             {
                 return await QueryHelper()
                     .Filter(h => h.User == user)
@@ -23,14 +23,14 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
             }
 
             return await QueryHelper()
-                .Filter(h => h.User == user && h.Domain == domain)
+                .Filter(h => h.User == user && h.Entity == entity)
                 .OrderBy(q => q.OrderByDescending(h => h.Id))
                 .GetAllAsync();
         }
 
-        public async Task<History?> FindLatestByUserAndDomain(string user, string? domain = null)
+        public async Task<History?> FindLatestByUserAndEntity(string user, string? entity = null)
         {
-            var histories = await FindByUserAndDomain(user, domain);
+            var histories = await FindByUserAndEntity(user, entity);
             return histories.FirstOrDefault();
         }
     }

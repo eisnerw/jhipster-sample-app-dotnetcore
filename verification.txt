@@ -30,3 +30,27 @@ user persistence
 
 Bugs:
 Still not positioning scrollbar in grid mode
+
+In the EntityService, you'll find public static string InterpolateTemplate(string[] arTemplate, JsonArray entityValues).  
+That is intended to be a template engine in that consumes an array of strings as the template and a JsonObject as the data.
+The routine will use a stringbuilder to build the output, which will be returned as a string.  
+A "<br>" will be concatenated to each string in arTemplate except the last one.  
+Each string in arTemplate is made up of literal text plus tokens that are surrounded by braces.  In additiona there are double braces ("{{" and "}}") that will be output as single braces.
+Single-braced text is called a token.  Tokens take the form {attibute-name:formatter:formatter...}
+The attribute-name is used as a key to find the attribute value from the entityValues JsonObject that will be automatically converted to a string.
+The value for the attribute-name may be a string, an array of strings, an integer, a boolean or a null
+If the value is an array, it is always joined by ", "
+If the value is an integer, it is converted to a string by default
+If the value is a boolean, it is converted to a string that is either "true" or "false" unless one of the formatters is ":yesno"
+String attribute-values are html-encoded unless one of the formatters is ":html" 
+By default, a token produces "<b>{attribute-name (with "_" replaced by " ")}:</b> {attribute-value}" followed by a space unless the token is at the end of the string 
+By default, if the attribute-value is null or an empty string, the token produces an empty string
+Multiple formatters may be specified:
+	":unlabeled", which means that the output of the token is "{attribute-value}" with no label
+	":missing-...", which means that the attribute-value is replaced by the characters following the "-" if the attribute-value is null or an empty string
+	":label-...", which means that the attribute-name is replaced by the characters following the "-"
+	":format-...", which means that the attribute-value is formatted using the format string that follows the "-"
+	":yesno", which means that the attribute value (a boolean) is replaced by "no" if false, otherwise "yes"
+	":link", which means that the attribute value is replaced by "<a href=\"{attribute-value}\">{label or attribute-name}</a>"
+	":html", which means that the attribute value is not html-encoded
+The template will be assumed to have been validated, so there is no reason to add error checking.  Instead, interpolate the template in a try/catch and emit the error message and the current template string being processed

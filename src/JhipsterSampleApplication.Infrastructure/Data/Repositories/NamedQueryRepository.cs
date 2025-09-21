@@ -28,17 +28,17 @@ namespace JhipsterSampleApplication.Infrastructure.Data.Repositories
             return await QueryHelper().GetPageAsync(pageable);
         }
 
-        public async Task<NamedQuery> FindOneByName(string name, string? domain = null)
+        public async Task<NamedQuery> FindOneByName(string name, string? entity = null)
         {
-            return await _dbSet.FirstOrDefaultAsync(x => x.Name == name && (domain == null || x.Domain == domain))
+            return await _dbSet.FirstOrDefaultAsync(x => x.Name == name && (entity == null || x.Entity == entity))
                 ?? throw new InvalidOperationException($"NamedQuery with name {name} not found");
         }
 
-        public async Task<List<NamedQuery>> FindByOwnerAsync(string owner, string? domain = null)
+        public async Task<List<NamedQuery>> FindByOwnerAsync(string owner, string? entity = null)
         {
             return await _dbSet.AsNoTracking()
                 .Where(nq => (nq.IsSystem == true ? "SYSTEM" : nq.Owner) == owner)
-                .Where(nq => domain == null || nq.Domain == domain)
+                .Where(nq => entity == null || nq.Entity == entity)
                 .ToListAsync();
         }
 

@@ -7,6 +7,7 @@ using FluentAssertions;
 using JhipsterSampleApplication.Test.Setup;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Newtonsoft.Json;
+using JhipsterSampleApplication.Test.Helpers;
 using Xunit;
 using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.QueryDsl;
@@ -46,7 +47,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             };
 
             // Clean up any existing records with the same last name using Birthdays client
-            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>("birthdays", d => d
+            var deleteResponse = _elasticClient.DeleteByQuery<object>("birthdays", d => d
                 .Query(q => q.Term(t => t.Field("lname.keyword").Value(_birthdayDto.Lname))));
             Console.WriteLine($"<><><><><>Deleted {deleteResponse.Deleted} documents");
 
@@ -79,10 +80,20 @@ namespace JhipsterSampleApplication.Test.Controllers
             
             // Wait for the indexing to finish
             _elasticClient.Indices.Refresh("birthdays");
+            await EsAwait.AwaitApiHitsAsync<SearchResultDto<BirthdayDto>>(
+                _client,
+                $"/api/Birthdays/search/lucene?query={Uri.EscapeDataString($"lname:\"{_birthdayDto.Lname}\"")}",
+                r => r.Hits?.Count ?? 0
+            );
 
             // 3. Search with Lucene query (GET /api/Birthdays/search/lucene)
             Console.WriteLine($"<><><><><>Starting LUCENE test");
-            var luceneQuery = $"lname:{_birthdayDto.Lname}";
+            var luceneQuery = $"lname:\"{_birthdayDto.Lname}\"";
+            await EsAwait.AwaitApiHitsAsync<SearchResultDto<BirthdayDto>>(
+                _client,
+                $"/api/Birthdays/search/lucene?query={Uri.EscapeDataString(luceneQuery)}",
+                r => r.Hits?.Count ?? 0, expected: 1
+            );
             var luceneResponse = await _client.GetAsync($"/api/Birthdays/search/lucene?query={Uri.EscapeDataString(luceneQuery)}");
             luceneResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var luceneContent = await luceneResponse.Content.ReadAsStringAsync();
@@ -166,6 +177,11 @@ namespace JhipsterSampleApplication.Test.Controllers
 
             // 8. Get unique values (GET /api/Birthdays/unique-values/{field})
             Console.WriteLine($"<><><><><>Starting UNIQUE test");
+            await EsAwait.AwaitApiHitsAsync<string[]>(
+                _client,
+                "/api/Birthdays/unique-values/fname",
+                r => r?.Length ?? 0
+            );
             var uniqueValuesResponse = await _client.GetAsync("/api/Birthdays/unique-values/fname");
             uniqueValuesResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var uniqueValuesContent = await uniqueValuesResponse.Content.ReadAsStringAsync();
@@ -181,6 +197,12 @@ namespace JhipsterSampleApplication.Test.Controllers
 
             // Wait for the deletion to finish
             _elasticClient.Indices.Refresh("birthdays");
+            // This expectation depends on TestViewOperations seeding; remove cross-test dependency
+            await EsAwait.AwaitApiHitsAsync<SearchResultDto<BirthdayDto>>(
+                _client,
+                $"/api/Birthdays/search/lucene?query={Uri.EscapeDataString(luceneQuery)}",
+                r => r.Hits?.Count ?? 0, expected: 0
+            );
 
             // Verify deletion
             var verifyDeleteResponse = await _client.GetAsync($"/api/Birthdays/{_birthdayDto.Id}");
@@ -204,7 +226,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             };
 
             // Clean up any existing records
-            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>("birthdays", d => d
+            var deleteResponse = _elasticClient.DeleteByQuery<object>("birthdays", d => d
                 .Query(q => q.Term(t => t.Field("lname.keyword").Value(testBirthday.Lname))));
             
             _elasticClient.Indices.Refresh("birthdays");
@@ -215,6 +237,22 @@ namespace JhipsterSampleApplication.Test.Controllers
                 TestUtil.ToJsonContent(testBirthday));
             createResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             _elasticClient.Indices.Refresh("birthdays");
+            await EsAwait.AwaitApiHitsAsync<SearchResultDto<BirthdayDto>>(
+                _client,
+                $"/api/Birthdays/search/lucene?query={Uri.EscapeDataString($"lname:\"{testBirthday.Lname}\"")}",
+                r => r.Hits?.Count ?? 0
+            );
+            // Seed two CatMulti docs so this test is self-contained
+            var seed1 = new BirthdayDto { Id = Guid.NewGuid().ToString(), Lname = "CatMulti", Fname = "One", Sign = "aries" };
+            var seed2 = new BirthdayDto { Id = Guid.NewGuid().ToString(), Lname = "CatMulti", Fname = "Two", Sign = "taurus" };
+            await _client.PostAsync("/api/Birthdays", TestUtil.ToJsonContent(seed1));
+            await _client.PostAsync("/api/Birthdays", TestUtil.ToJsonContent(seed2));
+            _elasticClient.Indices.Refresh("birthdays");
+            await EsAwait.AwaitApiHitsAsync<SearchResultDto<BirthdayDto>>(
+                _client,
+                $"/api/Birthdays/search/lucene?query={Uri.EscapeDataString("lname:\"CatMulti\"")}",
+                r => r.Hits?.Count ?? 0, expected: 2
+            );
 
             // 1. Test BQL to Ruleset conversion
             var bqlQuery = $"lname = {testBirthday.Lname.ToLower()}";
@@ -258,9 +296,17 @@ namespace JhipsterSampleApplication.Test.Controllers
             searchResult.Hits.Should().NotBeEmpty();
             searchResult.Hits.First().Lname.Should().Be(testBirthday.Lname);
 
-            // Clean up
+            // Clean up created records
             var deleteTestResponse = await _client.DeleteAsync($"/api/Birthdays/{testBirthday.Id}");
             deleteTestResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            _elasticClient.Indices.Refresh("birthdays");
+            await EsAwait.AwaitApiHitsAsync<SearchResultDto<JhipsterSampleApplication.Dto.BirthdayDto>>(
+                _client,
+                $"/api/Birthdays/search/lucene?query={Uri.EscapeDataString("lname:\"CatMulti\"")}",
+                r => r.Hits?.Count ?? 0, expected: 2
+            );
+            (await _client.DeleteAsync($"/api/Birthdays/{seed1.Id}")).StatusCode.Should().Be(HttpStatusCode.OK);
+            (await _client.DeleteAsync($"/api/Birthdays/{seed2.Id}")).StatusCode.Should().Be(HttpStatusCode.OK);
             _elasticClient.Indices.Refresh("birthdays");
         }
 
@@ -289,7 +335,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             };
 
             // Clean up any existing records
-            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>("birthdays", d => d
+            var deleteResponse = _elasticClient.DeleteByQuery<object>("birthdays", d => d
                 .Query(q => q.Terms(t => t.Field("lname.keyword").Terms(new TermsQueryField(new List<FieldValue> { testBirthday1.Lname, testBirthday2.Lname })))));
             
             _elasticClient.Indices.Refresh("birthdays");
@@ -298,6 +344,11 @@ namespace JhipsterSampleApplication.Test.Controllers
             await _client.PostAsync("/api/Birthdays", TestUtil.ToJsonContent(testBirthday1));
             await _client.PostAsync("/api/Birthdays", TestUtil.ToJsonContent(testBirthday2));
             _elasticClient.Indices.Refresh("birthdays");
+            await EsAwait.AwaitApiHitsAsync<SearchResultDto<BirthdayDto>>(
+                _client,
+                $"/api/Birthdays/search/lucene?query={Uri.EscapeDataString($"lname:\"{testBirthday1.Lname}\" OR lname:\"{testBirthday2.Lname}\"")}",
+                r => r.Hits?.Count ?? 0, expected: 2
+            );
 
             // Test complex BQL query with AND/OR operators
             var complexBqlQuery = $"(lname = {testBirthday1.Lname.ToLower()} & sign = aries) | (lname = {testBirthday2.Lname.ToLower()} & sign = taurus)";
@@ -343,7 +394,7 @@ namespace JhipsterSampleApplication.Test.Controllers
         {
             // Clean up any existing test objects
             Console.WriteLine($"<><><><><>Starting TestViewOperations (cleanup & create new docs)");
-            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>("birthdays", d => d
+            var deleteResponse = _elasticClient.DeleteByQuery<object>("birthdays", d => d
                 .Query(q => q.Term(t => t.Field("fname.keyword").Value("viewTestObject"))));
             
             _elasticClient.Indices.Refresh("birthdays");
@@ -433,7 +484,7 @@ namespace JhipsterSampleApplication.Test.Controllers
             secondaryCategoryResult.Hits.First().Dob.Should().Be(new DateTime(1900, 1, 1));
             Console.WriteLine($"<><><><><>secondaryCategory resulted in {secondaryCategoryContent}.  Cleaning up.");
             // Clean up test objects
-            deleteResponse = _elasticClient.DeleteByQuery<Birthday>("birthdays", d => d
+            deleteResponse = _elasticClient.DeleteByQuery<object>("birthdays", d => d
                 .Query(q => q.Term(t => t.Field("fname.keyword").Value("viewTestObject"))));  
             _elasticClient.Indices.Refresh("birthdays");
             Console.WriteLine($"<><><><><>Deleted {deleteResponse.Deleted} documents.  Done with test.");
@@ -441,7 +492,7 @@ namespace JhipsterSampleApplication.Test.Controllers
         [Fact]
         public async Task TestUncategorizedFirstNameView()
         {
-            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>("birthdays", d => d
+            var deleteResponse = _elasticClient.DeleteByQuery<object>("birthdays", d => d
                 .Query(q => q.Term(t => t.Field("sign.keyword").Value("uncatsign"))));
             _elasticClient.Indices.Refresh("birthdays");
 
@@ -495,8 +546,8 @@ namespace JhipsterSampleApplication.Test.Controllers
             var b2 = new BirthdayDto { Id = id2, Lname = "CatMulti", Fname = "Two", Sign = "taurus" };
 
             // Cleanup any pre-existing
-            var deleteResponse = _elasticClient.DeleteByQuery<Birthday>("birthdays", d => d
-                .Query(q => q.Terms(t => t.Field("_id").Terms(new TermsQueryField(new List<FieldValue> { id1, id2 })))));
+            var deleteResponse = _elasticClient.DeleteByQuery<object>("birthdays", d => d
+                .Query(q => q.Term(t => t.Field("lname.keyword").Value("CatMulti"))));
             _elasticClient.Indices.Refresh("birthdays");
 
             // Create
@@ -514,8 +565,8 @@ namespace JhipsterSampleApplication.Test.Controllers
             addResp.StatusCode.Should().Be(HttpStatusCode.OK);
             _elasticClient.Indices.Refresh("birthdays");
 
-            // Verify both have A and B
-            var verifyQuery = new { term = new Dictionary<string, object> { { "lname.keyword", "CatMulti" } } };
+            // Verify both have A and B (by ids to avoid stray docs)
+            var verifyQuery = new { terms = new Dictionary<string, object> { { "_id", new[] { id1, id2 } } } };
             var verifyResp = await _client.PostAsync("/api/Birthdays/search/elasticsearch", TestUtil.ToJsonContent(verifyQuery));
             verifyResp.StatusCode.Should().Be(HttpStatusCode.OK);
             var verifyContent = await verifyResp.Content.ReadAsStringAsync();
@@ -550,14 +601,15 @@ namespace JhipsterSampleApplication.Test.Controllers
         #nullable enable
         private class BirthdayDto
         {
-            public string Id { get; set; } = string.Empty;
-            public string Lname { get; set; } = string.Empty;
-            public string? Fname { get; set; }
-            public string Sign { get; set; } = string.Empty;
-            public DateTime? Dob { get; set; }
-            public bool? IsAlive { get; set; }
-            public string Text { get; set; } = string.Empty;
-            public string Wikipedia { get; set; } = string.Empty;
+            [JsonProperty("id")] public string Id { get; set; } = string.Empty;
+            [JsonProperty("lname")] public string Lname { get; set; } = string.Empty;
+            [JsonProperty("fname")] public string? Fname { get; set; }
+            [JsonProperty("sign")] public string Sign { get; set; } = string.Empty;
+            [JsonProperty("dob")] public DateTime? Dob { get; set; }
+            [JsonProperty("isAlive")] public bool? IsAlive { get; set; }
+            [JsonProperty("text")] public string Text { get; set; } = string.Empty;
+            [JsonProperty("wikipedia")] public string Wikipedia { get; set; } = string.Empty;
+            [JsonProperty("categories")] public List<string>? Categories { get; set; }
         }
 
         private class ClusterHealthDto

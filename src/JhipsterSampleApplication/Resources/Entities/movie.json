@@ -1,8 +1,17 @@
 {
     "name": "movie",
     "title": "Movie",
-    "elasticSearchIndex": "movies",
-    "descriptiveFieds": ["synopsis"],
+    "elasticsearchIndex": "movies",
+    "detailFields": ["synopsis"],
+    "detailHtmlTemplate":[
+      "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><base target=\\\"_blank\\\"><title>{title:unlabeled}</title><style>body{{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111}}.field-name{{font-weight:600}}.field{{margin-bottom:0.7em}}</style></head><body><b>{title:unlabeled} ({release_year:unlabeled:date-yyyy:default-unknown date})</b> {languages:unlabeled} {runtime_minutes:label-Runtime}{languages,unlabeled}{rotten_tomatoes_score:label-Rotten Tomatos}",
+      "{directors}{producers}{writers}",
+      "{cast}",
+      "{genres}{country}",
+      "{budget_usd:label-Budget}{gross_usd:label-Gross}",
+      "{summary:ifDifferentFrom-synopsis}",
+      "{synopsis}"
+    ],
     "dto": {
       "allOf": [
         { "$ref": "#/definitions/BaseDto" },
@@ -126,7 +135,7 @@
           "query": "directors:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         },
         {
           "id": "producers",
@@ -136,7 +145,7 @@
           "query": "producers:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         },
         {
           "id": "writers",
@@ -146,7 +155,7 @@
           "query": "writers:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         },
         {
           "id": "cast",
@@ -156,7 +165,7 @@
           "query": "cast:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         },
         {
           "id": "year",
@@ -166,7 +175,7 @@
           "query": "year:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         },
         {
           "id": "genres",
@@ -176,7 +185,7 @@
           "query": "genres:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         },
         {
           "id": "languages",
@@ -186,7 +195,7 @@
           "query": "languages:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         },
         {
           "id": "country",
@@ -196,7 +205,7 @@
           "query": "country:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         },
         {
           "id": "rotten_tomatoes_score",
@@ -206,7 +215,7 @@
           "query": "rotten_tomatoes_score:*",
           "categoryQuery": "",
           "script": "",
-          "domain": "movie"
+          "entity": "movie"
         }
     ]
 }

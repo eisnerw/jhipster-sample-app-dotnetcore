@@ -60,11 +60,9 @@ public class Startup : IStartup
 
         var esClient = new ElasticsearchClient(settings);
         services.AddSingleton(esClient);
-        services.AddSingleton<IEntitySpecRegistry, EntitySpecRegistry>();
-        services.AddScoped<IViewRepository, ViewRepository>();
-        services.AddScoped<IViewService, ViewService>();
-        services.AddScoped<ViewInitializationService>();
+        services.AddSingleton<JhipsterSampleApplication.Domain.Services.IEntitySpecRegistry, JhipsterSampleApplication.Domain.Services.EntitySpecRegistry>();
         services.AddScoped<NamedQueryInitializationService>();
+        services.AddScoped<JhipsterSampleApplication.Domain.Services.EntityService>();
     }
 
     public virtual void ConfigureMiddleware(IApplicationBuilder app, IHostEnvironment environment)
@@ -83,12 +81,9 @@ public class Startup : IStartup
                 await next(context); // Pass control to the next middleware.
             })*/;
 
-        // Initialize views from JSON files
+        // Initialize named queries (views now come from entity specs)
         using (var scope = app.ApplicationServices.CreateScope())
         {
-            var viewInitializationService = scope.ServiceProvider.GetRequiredService<ViewInitializationService>();
-            viewInitializationService.InitializeViewsAsync().GetAwaiter().GetResult();
-
             var namedQueryInitializationService = scope.ServiceProvider.GetRequiredService<NamedQueryInitializationService>();
             namedQueryInitializationService.InitializeNamedQueriesAsync().GetAwaiter().GetResult();
         }

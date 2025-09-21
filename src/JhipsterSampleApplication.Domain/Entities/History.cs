@@ -13,7 +13,7 @@ namespace JhipsterSampleApplication.Domain.Entities
 
         [Required]
         [StringLength(50)]
-        public string Domain { get; set; } = string.Empty;
+        public string Entity { get; set; } = string.Empty;
 
         [Required]
         [Column(TypeName = "text")]
@@ -38,7 +38,7 @@ namespace JhipsterSampleApplication.Domain.Entities
             return "History{" +
                    $"ID='{Id}'" +
                    $", User='{User}'" +
-                   $", Domain='{Domain}'" +
+                   $", Entity='{Entity}'" +
                    $", Text='{Text}'" +
                    "}";
         }

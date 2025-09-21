@@ -1,8 +1,21 @@
 {
     "name": "supreme",
     "title": "Supreme",
-    "elasticSearchIndex": "supreme",
-    "descriptiveFieds": ["facts_of_the_case","question","conclusion"],
+    "elasticsearchIndex": "supreme",
+    "detailFields": ["facts_of_the_case","conclusion"],
+    "detailHtmlTemplate":[
+      "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><base target=\\\"_blank\\\"><title>{name:unlabeled}</title><style>body{{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111}}.field-name{{font-weight:600}}.field{{margin-bottom:0.7em}}</style></head><body><b>{name:unlabeled} ({docket_number:unlabeled})</b>&nbsp;&nbsp;&nbsp;{term}{lower_court}{manner_of_jurisdiction:label-Jurisdiction}{decision}{advocates}",
+      "{description}",
+      "{question}",
+      "{facts_of_the_case}",
+      "{conclusion}",
+      "{opinion}",
+      "{dissent}",
+      "<b>Links:</b> {justia_url:label-Justia:link} {argument2_url:label-Oyez:link}",
+      "{majority}",
+      "{minority}",
+      "{recused}</body></html>"
+    ],
     "dto": {
       "allOf": [
         { "$ref": "#/definitions/BaseDto" },
@@ -131,7 +144,7 @@
             "query": "term:*",
             "categoryQuery": "",
             "script": "",
-            "domain": "supreme"
+            "entity": "supreme"
         },
         {
             "id": "term_heard by",
@@ -142,7 +155,7 @@
             "categoryQuery": "",
             "script": "",
             "parentViewId": "heard_term",
-            "domain": "supreme"
+            "entity": "supreme"
         },
         {
             "id": "advocates",
@@ -152,7 +165,7 @@
             "query": "advocates:*",
             "categoryQuery": "",
             "script": "",
-            "domain": "supreme"
+            "entity": "supreme"
         },
         {
             "id": "lower court",
@@ -162,7 +175,7 @@
             "query": "lower_court:*",
             "categoryQuery": "",
             "script": "",
-            "domain": "supreme"
+            "entity": "supreme"
         },
         {
             "id": "decision_term",
@@ -172,7 +185,7 @@
             "query": "term:*",
             "categoryQuery": "",
             "script": "",
-            "domain": "supreme"
+            "entity": "supreme"
         },	
         {
             "id": "decision",
@@ -183,7 +196,7 @@
             "categoryQuery": "",
             "script": "",
             "parentViewId": "decision_term",
-            "domain": "supreme"
+            "entity": "supreme"
         },
         {
             "id": "term",
@@ -193,7 +206,7 @@
             "query": "term:*",
             "categoryQuery": "",
             "script": "",
-            "domain": "supreme"
+            "entity": "supreme"
         },
         {
             "id": "majority",
@@ -203,7 +216,7 @@
             "query": "majority:*",
             "categoryQuery": "",
             "script": "",
-            "domain": "supreme"
+            "entity": "supreme"
         },
         {
             "id": "minority",
@@ -213,7 +226,7 @@
             "query": "minority:*",
             "categoryQuery": "",
             "script": "",
-            "domain": "supreme"
+            "entity": "supreme"
         },
         {
             "id": "recused",
@@ -223,7 +236,7 @@
             "query": "recused:*",
             "categoryQuery": "",
             "script": "",
-            "domain": "supreme"
+            "entity": "supreme"
         }
     ]
 }

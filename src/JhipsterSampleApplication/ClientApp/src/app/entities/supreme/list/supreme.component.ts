@@ -212,7 +212,7 @@ export class SupremeComponent implements OnInit, AfterViewInit {
     const key = (row as any)?.id || JSON.stringify(row);
     this.expandedRowKeys[key] = true;
     setTimeout(() => {
-      const url = '/api/supreme/html/' + (row as any).id;
+      const url = '/api/entity/supreme/html/' + (row as any).id;
       this.iframeSafeSrcById[(row as any).id!] = this.sanitizer.bypassSecurityTrustResourceUrl(url);
     }, 50);
   }
@@ -373,7 +373,7 @@ export class SupremeComponent implements OnInit, AfterViewInit {
   }
 
   loadViews(): void {
-    this.viewService.queryByDomain('supreme').subscribe((res) => {
+    this.viewService.queryByEntity('supreme').subscribe((res) => {
       const body = res.body ?? [];
       this.views = body.map((v: any) => ({ label: v.name, value: v.id! }));
     });

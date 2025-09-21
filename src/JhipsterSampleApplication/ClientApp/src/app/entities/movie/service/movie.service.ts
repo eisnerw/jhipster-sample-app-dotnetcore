@@ -27,11 +27,11 @@ export class MovieService {
   protected http = inject(HttpClient);
   protected applicationConfigService = inject(ApplicationConfigService);
 
-  protected resourceUrl = this.applicationConfigService.getEndpointFor('api/movies');
-  protected searchUrl = this.applicationConfigService.getEndpointFor('api/movies/search/lucene');
-  protected rulesetSearchUrl = this.applicationConfigService.getEndpointFor('api/movies/search/ruleset');
-  protected bqlSearchUrl = this.applicationConfigService.getEndpointFor('api/movies/search/bql');
-  protected qbSpecUrl = this.applicationConfigService.getEndpointFor('api/movies/query-builder-spec');
+  protected resourceUrl = this.applicationConfigService.getEndpointFor('api/entity/movie');
+  protected searchUrl = this.applicationConfigService.getEndpointFor('api/entity/movie/search/lucene');
+  protected rulesetSearchUrl = this.applicationConfigService.getEndpointFor('api/entity/movie/search/ruleset');
+  protected bqlSearchUrl = this.applicationConfigService.getEndpointFor('api/entity/movie/search/bql');
+  protected qbSpecUrl = this.applicationConfigService.getEndpointFor('api/entity/movie/query-builder-spec');
 
   query(req?: any): Observable<EntityArrayResponseType> {
     const options = createRequestOption(req);

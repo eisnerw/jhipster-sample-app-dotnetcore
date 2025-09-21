@@ -8,7 +8,7 @@ export interface IView {
   script?: string;
   parentViewId?: string;
   ParentView?: IView;
-  domain: string;
+  entity: string;
 }
 
 export class View implements IView {
@@ -22,6 +22,6 @@ export class View implements IView {
     public script?: string,
     public parentViewId?: string,
     public ParentView?: IView,
-    public domain = 'birthdays',
+    public entity = 'birthdays',
   ) {}
 }

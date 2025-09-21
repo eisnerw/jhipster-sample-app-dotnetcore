@@ -3,6 +3,6 @@ namespace JhipsterSampleApplication.Domain.Entities
 {
     public abstract class CategorizedEntity<TKey> : BaseEntity<TKey>
     {
-        public List<string> Categories { get; set; } = new List<string>();
+        public List<string> categories { get; set; } = new List<string>();
     }
 }

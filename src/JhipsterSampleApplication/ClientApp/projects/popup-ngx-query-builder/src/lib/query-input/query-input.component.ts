@@ -38,7 +38,7 @@ interface NamedQuery {
   name: string;
   text: string;
   owner?: string;
-  domain?: string;
+  entity?: string;
 }
 
 @Component({
@@ -75,8 +75,8 @@ export class QueryInputComponent implements OnInit {
   @Input() ruleName = 'Rule';
   @Input() rulesetName = 'Ruleset';
   @Input() defaultRuleAttribute: string | null = null;
-  @Input() namedQueryDomain: string | null = null;
-  @Input() historyDomain: string | null = null;
+  @Input() namedQueryEntity: string | null = null;
+  @Input() historyEntity: string | null = null;
   @Output() queryChange = new EventEmitter<string>();
 
   editing = false;
@@ -98,8 +98,8 @@ export class QueryInputComponent implements OnInit {
 
   private loadNamedQueries(): void {
     let params = new HttpParams();
-    if (this.namedQueryDomain) {
-      params = params.set('domain', this.namedQueryDomain);
+    if (this.namedQueryEntity) {
+      params = params.set('entity', this.namedQueryEntity);
     }
     this.http
       .get<NamedQuery[]>('/api/NamedQueries', { params })
@@ -223,9 +223,9 @@ export class QueryInputComponent implements OnInit {
     this.editing = false;
     this.previousQuery = this.query;
     this.queryChange.emit(this.query);
-    if (this.historyDomain && this.query) {
+    if (this.historyEntity && this.query) {
       if (this.history[0] !== this.query) {
-        this.http.post('/api/Histories', { domain: this.historyDomain, text: this.query }).subscribe();
+        this.http.post('/api/Histories', { entity: this.historyEntity, text: this.query }).subscribe();
         this.history.unshift(this.query);
       }
       this.historyIndex = -1;
@@ -268,11 +268,11 @@ export class QueryInputComponent implements OnInit {
   }
 
   private loadHistory(): void {
-    if (!this.historyDomain) {
+    if (!this.historyEntity) {
       return;
     }
     this.http
-      .get<HistoryDto[]>('/api/Histories', { params: new HttpParams().set('domain', this.historyDomain) })
+      .get<HistoryDto[]>('/api/Histories', { params: new HttpParams().set('entity', this.historyEntity) })
       .subscribe(res => {
         this.history = res.map(h => h.text);
         this.historyIndex = -1;
@@ -389,7 +389,7 @@ export class QueryInputComponent implements OnInit {
       const payload: NamedQuery = {
         name: rs.name,
         text: bql,
-        domain: this.namedQueryDomain ?? undefined,
+        entity: this.namedQueryEntity ?? undefined,
       };
       const id = this.namedQueryIds[rs.name];
       if (id) {
@@ -462,12 +462,12 @@ export class QueryInputComponent implements OnInit {
 
 interface HistoryDto {
   id?: number;
-  domain?: string;
+  entity?: string;
   text: string;
 }
 
 interface HistoryDto {
   id?: number;
-  domain?: string;
+  entity?: string;
   text: string;
 }

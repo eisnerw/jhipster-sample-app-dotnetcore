@@ -14,7 +14,7 @@
       "name": "Name",
       "text": "Text",
       "owner": "Owner",
-      "domain": "Domain"
+      "entity": "Entity"
     }
   }
 }

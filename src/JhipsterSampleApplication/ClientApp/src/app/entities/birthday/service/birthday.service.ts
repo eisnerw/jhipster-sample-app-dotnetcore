@@ -40,11 +40,11 @@ export class BirthdayService {
   protected http = inject(HttpClient);
   protected applicationConfigService = inject(ApplicationConfigService);
 
-  protected resourceUrl = this.applicationConfigService.getEndpointFor('api/birthdays');
-  protected searchUrl = this.applicationConfigService.getEndpointFor('api/birthdays/search/lucene');
-  protected rulesetSearchUrl = this.applicationConfigService.getEndpointFor('api/birthdays/search/ruleset');
-  protected bqlSearchUrl = this.applicationConfigService.getEndpointFor('api/birthdays/search/bql');
-  protected qbSpecUrl = this.applicationConfigService.getEndpointFor('api/birthdays/query-builder-spec');
+  protected resourceUrl = this.applicationConfigService.getEndpointFor('api/entity/birthday');
+  protected searchUrl = this.applicationConfigService.getEndpointFor('api/entity/birthday/search/lucene');
+  protected rulesetSearchUrl = this.applicationConfigService.getEndpointFor('api/entity/birthday/search/ruleset');
+  protected bqlSearchUrl = this.applicationConfigService.getEndpointFor('api/entity/birthday/search/bql');
+  protected qbSpecUrl = this.applicationConfigService.getEndpointFor('api/entity/birthday/query-builder-spec');
 
   create(birthday: IBirthday): Observable<EntityResponseType> {
     return this.http.post<IBirthday>(this.resourceUrl, birthday, {

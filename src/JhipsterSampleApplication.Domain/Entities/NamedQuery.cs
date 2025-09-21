@@ -22,7 +22,7 @@ namespace JhipsterSampleApplication.Domain.Entities
 
         [Required]
         [StringLength(50)]
-        public required string Domain { get; set; }
+        public required string Entity { get; set; }
 
         public bool? IsSystem { get; set; }
 
@@ -47,7 +47,7 @@ namespace JhipsterSampleApplication.Domain.Entities
                     $", Name='{Name}'" +
                     $", Text='{Text}'" +
                     $", Owner='{Owner}'" +
-                    $", Domain='{Domain}'" +
+                    $", Entity='{Entity}'" +
                     "}";
         }
     }

@@ -7,18 +7,17 @@ using JhipsterSampleApplication.Dto;
 
 namespace JhipsterSampleApplication.Domain.Services.Interfaces
 {
-    public interface IEntityService<T> where T : class
+    public interface IEntityService
     {
-        Task<AppSearchResponse<T>> SearchAsync(SearchSpec<T> spec);
-        Task<WriteResult> IndexAsync(T document);
-        Task<WriteResult> UpdateAsync(string id, T document);
-        Task<WriteResult> DeleteAsync(string id);
-        Task<List<string>> GetUniqueFieldValuesAsync(string field);
-        Task<AppSearchResponse<T>> SearchWithRulesetAsync(Ruleset ruleset, int size = 20, int from = 0, string? sort = null);
-        Task<JObject> ConvertRulesetToElasticSearch(Ruleset rr);
-        Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(JObject queryObject, ViewDto view, int size = 20, int from = 0, string? sort = null);
-        Task<SimpleApiResponse> CategorizeAsync(CategorizeRequestDto request);
-        Task<SimpleApiResponse> CategorizeMultipleAsync(CategorizeMultipleRequestDto request);
+        Task<AppSearchResponse<JObject>> SearchAsync(string entity, SearchSpec<JObject> spec);
+        Task<WriteResult> IndexAsync(string entity, JObject document);
+        Task<WriteResult> UpdateAsync(string entity, string id, JObject document);
+        Task<WriteResult> DeleteAsync(string entity, string id);
+        Task<List<string>> GetUniqueFieldValuesAsync(string entity, string field);
+        Task<JObject> ConvertRulesetToElasticSearch(string entity, Ruleset rr);
+        Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(string entity, JObject queryObject, ViewDto view, int size = 20, int from = 0, string? sort = null);
+        Task<SimpleApiResponse> CategorizeAsync(string entity, CategorizeRequestDto request);
+        Task<SimpleApiResponse> CategorizeMultipleAsync(string entity, CategorizeMultipleRequestDto request);
         Task<ClusterHealthDto> GetHealthAsync();
     }
 } 

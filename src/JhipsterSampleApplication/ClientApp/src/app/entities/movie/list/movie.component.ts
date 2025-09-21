@@ -95,14 +95,14 @@ export class MovieComponent implements OnInit, AfterViewInit {
     { field: 'lineNumber', header: '#', type: 'lineNumber', width: '4rem' },
     { field: 'checkbox', header: '', type: 'checkbox', width: '2rem' },
     { field: 'title', header: 'Title', filterType: 'text', type: 'string', width: '220px' },
-    { field: 'releaseYear', header: 'Year', filterType: 'numeric', type: 'string', width: '6rem' },
+    { field: 'release_year', header: 'Year', filterType: 'numeric', type: 'string', width: '6rem' },
     { field: 'genres', header: 'Genres', filterType: 'text', type: 'string', width: '180px' },
     { field: 'runtimeMinutes', header: 'Runtime', filterType: 'numeric', type: 'string', width: '6rem' },
     { field: 'country', header: 'Country', filterType: 'text', type: 'string', width: '8rem' },
     { field: 'languages', header: 'Languages', filterType: 'text', type: 'string', width: '8rem' },
-    { field: 'budgetUsd', header: 'Budget', filterType: 'numeric', type: 'string', width: '8rem' },
-    { field: 'grossUsd', header: 'Gross', filterType: 'numeric', type: 'string', width: '8rem' },
-    { field: 'rottenTomatoesScore', header: 'Rotten Tomatoes', filterType: 'numeric', type: 'string', width: '8rem' },
+    { field: 'budget_usd', header: 'Budget', filterType: 'numeric', type: 'string', width: '8rem' },
+    { field: 'gross_usd', header: 'Gross', filterType: 'numeric', type: 'string', width: '8rem' },
+    { field: 'rotten_tomatoes_score', header: 'Rotten Tomatoes', filterType: 'numeric', type: 'string', width: '8rem' },
     { field: 'expander', header: '', type: 'expander', width: '25px', style: 'font-weight: 700;' },
   ];
 
@@ -216,7 +216,7 @@ export class MovieComponent implements OnInit, AfterViewInit {
     const key = (row as any)?.id || JSON.stringify(row);
     this.expandedRowKeys[key] = true;
     setTimeout(() => {
-      const url = '/api/movies/html/' + (row as any).id;
+      const url = '/api/entity/movie/html/' + (row as any).id;
       this.iframeSafeSrcById[(row as any).id!] = this.sanitizer.bypassSecurityTrustResourceUrl(url);
     }, 50);
   }
@@ -377,7 +377,7 @@ export class MovieComponent implements OnInit, AfterViewInit {
   }
 
   loadViews(): void {
-    this.viewService.queryByDomain('movie').subscribe((res) => {
+    this.viewService.queryByEntity('movie').subscribe((res) => {
       const body = res.body ?? [];
       this.views = body.map((v: any) => ({ label: v.name, value: v.id! }));
     });

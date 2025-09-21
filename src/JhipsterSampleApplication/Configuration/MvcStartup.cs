@@ -34,7 +34,8 @@ public static class WebConfiguration
             options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
             options.SerializerSettings.Formatting = Formatting.Indented;
             options.SerializerSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
-        });
+        })
+        .AddControllersAsServices();
 
         services.AddSpaStaticFiles(configuration =>
         {

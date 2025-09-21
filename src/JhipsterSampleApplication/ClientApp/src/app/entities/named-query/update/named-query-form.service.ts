@@ -8,7 +8,7 @@ type NamedQueryFormGroupContent = {
   name: FormControl<INamedQuery['name'] | null>;
   text: FormControl<INamedQuery['text'] | null>;
   owner: FormControl<INamedQuery['owner'] | null>;
-  domain: FormControl<INamedQuery['domain'] | null>;
+  entity: FormControl<INamedQuery['entity'] | null>;
 };
 
 export type NamedQueryFormGroup = FormGroup<NamedQueryFormGroupContent>;
@@ -39,7 +39,7 @@ export class NamedQueryFormService {
       owner: new FormControl(namedQueryRawValue.owner ?? '', {
         nonNullable: true,
       }),
-      domain: new FormControl(namedQueryRawValue.domain ?? '', {
+      entity: new FormControl(namedQueryRawValue.entity ?? '', {
         nonNullable: true,
         validators: [Validators.required],
       }),
@@ -74,5 +74,5 @@ type NamedQueryFormGroupInput = {
   name?: INamedQuery['name'] | null;
   text?: INamedQuery['text'] | null;
   owner?: INamedQuery['owner'] | null;
-  domain?: INamedQuery['domain'] | null;
+  entity?: INamedQuery['entity'] | null;
 };
