@@ -315,6 +315,8 @@ public class EntityService : IEntityService
                 var excludes = new JArray();
                 foreach (var f in allDefinedFields)
                 {
+                    // Never exclude categories so UI can highlight/tool-tip even when not in columns
+                    if (string.Equals(f, "categories", StringComparison.OrdinalIgnoreCase)) continue;
                     if (!selected.Contains(f)) excludes.Add(f);
                 }
                 root["_source"] = new JObject { ["excludes"] = excludes };

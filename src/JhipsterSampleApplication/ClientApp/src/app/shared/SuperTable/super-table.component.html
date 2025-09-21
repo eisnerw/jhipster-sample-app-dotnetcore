@@ -131,8 +131,12 @@
     }
     <ng-template pTemplate="body" let-rowData let-columns="columns" let-rowIndex="rowIndex">
       <tr [pContextMenuRow]="rowData">
-        @for (col of columns; track col) {
-          <td [ngClass]="{ 'numeric-cell': col.filterType === 'numeric' }">
+        @for (col of columns; track col; let i = $index) {
+          <td
+            [ngClass]="{ 'numeric-cell': col.filterType === 'numeric' }"
+            [attr.data-catcount]="(((i === 0 && col.type !== 'checkbox' && col.type !== 'lineNumber') || (i === 1 && (columns[0]?.type === 'checkbox' || columns[0]?.type === 'lineNumber'))) && (rowData.categories?.length || 0) > 0) ? rowData.categories.length : null"
+            [attr.title]="(((i === 0 && col.type !== 'checkbox' && col.type !== 'lineNumber') || (i === 1 && (columns[0]?.type === 'checkbox' || columns[0]?.type === 'lineNumber'))) && (rowData.categories?.length || 0) > 0) ? (rowData.categories || []).join(', ') : null"
+          >
             @switch (col.type) {
               @case ('checkbox') {
                 <p-tableCheckbox [value]="rowData" dataKey="id"></p-tableCheckbox>
