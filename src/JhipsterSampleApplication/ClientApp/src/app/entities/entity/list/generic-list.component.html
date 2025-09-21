@@ -108,6 +108,31 @@
 
   <p-confirmDialog></p-confirmDialog>
 
+  <!-- Categorize dialog -->
+  <p-dialog
+    [(visible)]="showCategorizeDialog"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    header="Categorize ({{ rowsToCategorizeCount }} row{{ rowsToCategorizeCount === 1 ? '' : 's' }})"
+    [style]="{ width: '520px' }"
+  >
+    <div class="mb-2" style="display:flex; gap: .5rem; align-items: center;">
+      <input pInputText type="text" placeholder="Filter categories" (input)="filterCategoriesList()" [(ngModel)]="newCategoryText" style="flex:1" />
+      <button pButton type="button" icon="pi pi-plus" class="p-button-text" (click)="newCategoryChecked = !newCategoryChecked"></button>
+    </div>
+    <div style="max-height: 40vh; overflow: auto; border: 1px solid var(--surface-border, #dee2e6); border-radius: 4px; padding: .25rem .5rem;">
+      <div *ngFor="let c of filteredCategories" style="display:flex; align-items:center; gap:.5rem; padding:.125rem 0;">
+        <p-checkbox [binary]="true" [(ngModel)]="categoryState[c]" [ngModelOptions]="{standalone:true}"></p-checkbox>
+        <span>{{ c }}</span>
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <button pButton type="button" label="Cancel" class="p-button-text" (click)="cancelCategorize()"></button>
+      <button pButton type="button" label="Apply" class="p-button-primary" (click)="applyCategorize()"></button>
+    </ng-template>
+  </p-dialog>
+
   <p-dialog [(visible)]="bDisplayDetail" [modal]="true" [resizable]="true" [draggable]="true" [style]="{ width: '60vw', height: '80vh' }" [contentStyle]="{ height: 'calc(100% - 3.5rem)', padding: '0', overflow: 'hidden' }" [header]="detailDialogTitle" (onShow)="onDetailDialogShow()" (onHide)="onDetailDialogHide()">
     <div style="height: 100%; width: 100%">
       <ng-container *ngIf="dialogSafeSrc; else dialogWaiting">

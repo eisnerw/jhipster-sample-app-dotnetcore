@@ -102,7 +102,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   showCategorizeDialog = false;
   allCategories: string[] = [];
   filteredCategories: string[] = [];
-  categoryState: Record<string, 'checked' | 'indeterminate' | 'unchecked'> = {};
+  categoryState: Record<string, boolean> = {};
   newCategoryText = '';
   newCategoryChecked = false;
   rowsToCategorizeCount = 0;
@@ -416,17 +416,70 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     this.chipMenuRow = null; this.chipMenuIsCount = false;
     if (!rows.length) { this.messageService.add({ severity: 'warn', summary: 'No rows selected' }); return; }
     this.rowsToCategorizeCount = rows.length;
-    const set = new Set<string>(); rows.forEach(r => (r.categories || []).forEach((c: string) => set.add(c)));
-    this.allCategories = Array.from(set.values()).sort();
-    this.categoryState = Object.fromEntries(this.allCategories.map(c => [c, 'checked'] as const));
-    this.filteredCategories = [...this.allCategories];
-    this.newCategoryText = ''; this.newCategoryChecked = false; this.showCategorizeDialog = true;
+    // Fetch all categories for this entity (union across index)
+    this.entityService.getUniqueFieldValues(this.entity, 'categories').subscribe({
+      next: (list: string[]) => {
+        const all = Array.from(new Set(list || [])).filter(Boolean);
+        // Also include any categories present on selected rows even if not in the index-wide list
+        const unionSel = new Set<string>();
+        rows.forEach(r => (r.categories || []).forEach((c: string) => unionSel.add(c)));
+        const allCombined = Array.from(new Set([...all, ...Array.from(unionSel)])).sort((a,b)=>a.localeCompare(b));
+        // Determine which categories are common across all selected rows
+        const isCommon = (cat: string) => rows.every(r => Array.isArray(r.categories) && r.categories.includes(cat));
+        // Build state: checked if common, otherwise unchecked. Checked ones first in ordering
+        const checkedCats: string[] = [];
+        const uncheckedCats: string[] = [];
+        this.categoryState = {};
+        for (const c of allCombined) {
+          if (isCommon(c)) { this.categoryState[c] = true; checkedCats.push(c); } else { this.categoryState[c] = false; uncheckedCats.push(c); }
+        }
+        this.allCategories = [...checkedCats.sort((a,b)=>a.localeCompare(b)), ...uncheckedCats.sort((a,b)=>a.localeCompare(b))];
+        this.filteredCategories = [...this.allCategories];
+        this.newCategoryText = ''; this.newCategoryChecked = false; this.showCategorizeDialog = true;
+      },
+      error: () => {
+        // Fallback: derive from selected rows only
+        const union = new Set<string>(); rows.forEach(r => (r.categories || []).forEach((c: string) => union.add(c)));
+        const allCombined = Array.from(union.values()).sort((a,b)=>a.localeCompare(b));
+        const isCommon = (cat: string) => rows.every(r => Array.isArray(r.categories) && r.categories.includes(cat));
+        this.categoryState = {};
+        const checked: string[] = []; const unchecked: string[] = [];
+        for (const c of allCombined) { if (isCommon(c)) { this.categoryState[c] = true; checked.push(c); } else { this.categoryState[c] = false; unchecked.push(c);} }
+        this.allCategories = [...checked, ...unchecked];
+        this.filteredCategories = [...this.allCategories];
+        this.newCategoryText = ''; this.newCategoryChecked = false; this.showCategorizeDialog = true;
+      }
+    });
   }
   hasCategorizeChanges(): boolean { return true; }
   cancelCategorize(): void { this.showCategorizeDialog = false; }
-  filterCategoriesList(): void { const q = (this.newCategoryText||'').trim().toLowerCase(); this.filteredCategories = !q ? [...this.allCategories] : this.allCategories.filter(c => c.toLowerCase().includes(q)); }
-  toggleCategory(cat: string): void { const st = this.categoryState[cat] || 'unchecked'; this.categoryState[cat] = st === 'unchecked' ? 'checked' : 'unchecked'; }
-  applyCategorize(): void { const rows = this.selection && this.selection.length > 0 ? this.selection : (this.contextSelectedRow ? [this.contextSelectedRow] : []); if (!rows.length) { this.showCategorizeDialog = false; return; } const adds: string[] = Object.keys(this.categoryState).filter(k => this.categoryState[k] === 'checked'); let newCat = (this.newCategoryText || '').trim(); if (newCat && this.newCategoryChecked && !adds.some(a => a.toLowerCase() === newCat.toLowerCase())) adds.push(newCat); const rowIds = rows.map(r => r.id).filter(Boolean) as string[]; const payload = { rows: rowIds, add: adds, remove: [] }; this.entityService.categorizeMultiple(this.entity, payload).subscribe({ next: () => { this.showCategorizeDialog = false; this.refreshData(); }, error: () => { this.showCategorizeDialog = false; this.refreshData(); } }); }
+  filterCategoriesList(): void {
+    const q = (this.newCategoryText||'').trim().toLowerCase();
+    const src = this.allCategories;
+    const arr = !q ? [...src] : src.filter(c => c.toLowerCase().includes(q));
+    // Sort with checked first, then alphabetical
+    arr.sort((a,b) => {
+      const sa = this.categoryState[a] ? 0 : 1;
+      const sb = this.categoryState[b] ? 0 : 1;
+      if (sa !== sb) return sa - sb;
+      return a.localeCompare(b);
+    });
+    this.filteredCategories = arr;
+  }
+  toggleCategory(cat: string): void { this.categoryState[cat] = !this.categoryState[cat]; this.filterCategoriesList(); }
+  applyCategorize(): void {
+    const rows = this.selection && this.selection.length > 0 ? this.selection : (this.contextSelectedRow ? [this.contextSelectedRow] : []);
+    if (!rows.length) { this.showCategorizeDialog = false; return; }
+    const add: string[] = []; const remove: string[] = [];
+    for (const c of Object.keys(this.categoryState)) {
+      if (this.categoryState[c]) add.push(c); else remove.push(c);
+    }
+    let newCat = (this.newCategoryText || '').trim();
+    if (newCat && this.newCategoryChecked && !add.some(a => a.toLowerCase() === newCat.toLowerCase())) add.push(newCat);
+    const rowIds = rows.map(r => r.id).filter(Boolean) as string[];
+    const payload = { rows: rowIds, add, remove };
+    this.entityService.categorizeMultiple(this.entity, payload).subscribe({ next: () => { this.showCategorizeDialog = false; this.refreshData(); }, error: () => { this.showCategorizeDialog = false; this.refreshData(); } });
+  }
 
   viewIframeFromContext(): void { const row = (this.contextSelectedRow || (this.selection && this.selection[0])) as AnyRow | undefined; const id = row?.id; if (!id) return; this.detailDialogId = id; this.detailDialogTitle = this.buildTitle(row); this.bDisplayDetail = true; }
   onDetailDialogShow(): void { const id = this.detailDialogId; this.dialogSafeSrc = null; setTimeout(() => { const url = `/api/entity/${encodeURIComponent(this.entity)}/html/${encodeURIComponent(String(id))}`; this.dialogSafeSrc = this.sanitizer.bypassSecurityTrustResourceUrl(url); }, 50); }
