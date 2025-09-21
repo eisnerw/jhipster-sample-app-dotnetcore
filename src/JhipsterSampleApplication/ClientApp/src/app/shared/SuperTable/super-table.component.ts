@@ -133,6 +133,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   tableStyle: { [k: string]: any } = {};
   private autoExpandedApplied = false;
   private justResized = false;
+  private applyingWidths = false; // guard to prevent ngOnChanges loop
   private purgeAllPersistedWidths(): void {
     try {
       if (typeof localStorage === 'undefined') return;
@@ -334,7 +335,12 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       this.groupLoaders = {};
       this.expandedRowKeys = {};
     }
-    if ((changes['columns'] && !changes['columns'].firstChange) || changes['initialWidths'] || changes['widthKey'] || changes['specSignature']) {
+    // Avoid re-entrancy: ignore change events we caused while applying widths
+    if (this.applyingWidths) {
+      return;
+    }
+    // Trigger enforcement only for external shape/signature changes, not for internal 'columns' clones
+    if (changes['initialWidths'] || changes['widthKey'] || changes['specSignature']) {
       this.autoExpandedApplied = false;
       this.enforceWidthsAfterLayout();
     }
@@ -841,6 +847,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   private applyWidthsToDom(widths: (string | undefined)[]): void {
+    this.applyingWidths = true;
     this.visibleColumns.forEach((c, i) => {
       const w = widths[i];
       if (w && typeof w === 'string' && w.trim()) c.width = w;
@@ -854,6 +861,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         if (!w || !ths[i]) return;
         ths[i].style.width = w;
       });
+      this.applyingWidths = false;
     }, 0);
   }
 
@@ -890,6 +898,13 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     // Apply immediately once
     requestAnimationFrame(applyNow);
 
+    // If this is a nested table (rendered inside another SuperTable),
+    // skip the enforcement loop to avoid multiple concurrent timers and
+    // heavy layout churn when many nested tables are expanded.
+    if (this.superTableParent) {
+      return;
+    }
+
     // Then enforce until stable for a short window, to outlast PrimeNG adjustments
     const start = Date.now();
     let lastMismatchAt = Date.now();
@@ -918,8 +933,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       // Skip auto-expand; widths are already fit to container by heuristic
       const elapsed = Date.now() - start;
       const sinceLastMismatch = Date.now() - lastMismatchAt;
-      // Stop if stable for 250ms or after 1500ms total
-      if (sinceLastMismatch > 250 || elapsed > 1500) {
+      // Stop if stable for 200ms or after 800ms total (tighter guard)
+      if (sinceLastMismatch > 200 || elapsed > 800) {
         if (this.enforceHandle) {
           clearInterval(this.enforceHandle);
           this.enforceHandle = null;
