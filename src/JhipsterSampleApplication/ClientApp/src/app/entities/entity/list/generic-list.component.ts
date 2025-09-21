@@ -242,7 +242,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
           if (EXCLUDE.has(lf.toLowerCase())) continue;
           const meta = qbFieldsAll[lf] || {};
           const header = (meta.column || meta.name || this.prettyHeader(lf));
-          const width = meta.width ? String(meta.width) : undefined;
+          const width = this.normalizeWidth(meta.width);
           const t = String(meta.type || 'string').toLowerCase();
           const col: ColumnConfig = { field: lf, header, width } as any;
           if (t === 'date' || t === 'datetime') { col.type = 'date'; col.filterType = 'date'; col.dateFormat = meta.dateFormat || 'MM/dd/yyyy'; }
@@ -260,7 +260,8 @@ export class GenericListComponent implements OnInit, AfterViewInit {
           else if (t === 'number' || t === 'numeric') { col.type = 'string'; col.filterType = 'numeric'; }
           else if (t === 'boolean') { col.type = 'boolean'; col.filterType = 'boolean'; }
           else { col.type = 'string'; col.filterType = 'text'; }
-          if (!col.width && meta.width) col.width = String(meta.width);
+          if (!col.width && (lf as any).width) col.width = this.normalizeWidth((lf as any).width);
+          if (!col.width && meta.width) col.width = this.normalizeWidth(meta.width);
           cols.push(col);
         }
       }
@@ -296,7 +297,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
         } else {
           col = { field: k, header, type: 'string', filterType: 'text' };
         }
-        if (f.width) col.width = String(f.width);
+        if (f.width) col.width = this.normalizeWidth(f.width);
         cols.push(col);
       }
     }
@@ -306,6 +307,15 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   }
 
   private prettyHeader(k: string): string { return (k || '').replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()); }
+
+  private normalizeWidth(w: any): string | undefined {
+    if (w === null || w === undefined) return undefined;
+    const s = String(w).trim();
+    if (!s) return undefined;
+    if (/^(\d+\.?\d*)(px|rem|%)$/.test(s)) return s;
+    const n = parseFloat(s);
+    return isFinite(n) ? `${Math.max(1, Math.round(n))}px` : undefined;
+  }
 
   onQueryChange(query: string, restoreState = false): void { this.currentQuery = query || ''; if (this.viewName) { this.loadRootGroups(restoreState); } else { this.loadPage(); } }
 

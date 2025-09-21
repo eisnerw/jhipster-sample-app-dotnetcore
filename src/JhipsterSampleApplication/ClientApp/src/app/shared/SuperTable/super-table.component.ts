@@ -925,13 +925,17 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private getMinWidths(): number[] {
     if (this.minWidthsCache && this.minWidthsCache.length === this.visibleColumns.length) return this.minWidthsCache;
     const arr = this.visibleColumns.map(c => {
+      // Respect explicit width as the floor if provided
+      const explicit = this.parsePx(c.width, NaN);
       if (c.minWidth) return this.parsePx(c.minWidth, 30);
       const label = (c.header || '').trim();
       const approx = Math.max(40, Math.min(240, Math.round(label.length * 9 + 24)));
       if (c.type === 'boolean' || c.type === 'checkbox' || c.type === 'expander' || c.type === 'lineNumber') return Math.max(30, Math.min(approx, 80));
       if (c.type === 'date') return Math.max(80, approx);
-      // Numeric columns: tighter minimum, ignore long headers
-      if (c.filterType === 'numeric') return 52;
+      // Numeric columns: readable default minimum
+      if (c.filterType === 'numeric') return 80;
+      // If width is explicitly set, treat that as the minimum to avoid auto-shrinking
+      if (!isNaN(explicit)) return explicit;
       return approx;
     });
     this.minWidthsCache = arr;
@@ -942,12 +946,15 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     try {
       const container = this.getContainerWidth();
       const minW = this.getMinWidths();
-      const isFlexible = (c: ColumnConfig) => (c.type === 'string' || c.type === 'list' || c.type === undefined);
+      // Only text-like columns without an explicit width are flexible
+      const isFlexible = (c: ColumnConfig) => ((c.type === 'string' || c.type === 'list' || c.type === undefined) && c.filterType !== 'numeric' && !c.width);
       const base = this.visibleColumns.map((c, i) => {
+        const explicit = this.parsePx(c.width, NaN);
+        if (!isNaN(explicit)) return Math.max(minW[i], explicit);
         if (c.type === 'date') return Math.max(minW[i], 120);
         if (c.type === 'boolean') return Math.max(minW[i], 70);
-        // Numeric default ~64px unless a higher min is specified
-        if (c.filterType === 'numeric') return Math.max(minW[i], 64);
+        // Numeric default ~120px unless a higher min is specified
+        if (c.filterType === 'numeric') return Math.max(minW[i], 120);
         if (c.type === 'checkbox' || c.type === 'expander' || c.type === 'lineNumber') return Math.max(minW[i], 30);
         return minW[i];
       });
@@ -973,8 +980,11 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       arr = arr.map((w, i) => Math.max(minW[i] || 30, w));
       const sum = arr.reduce((s, v) => s + v, 0);
       const isFlexible = (i: number) => {
-        const t = this.visibleColumns[i]?.type;
-        return t === 'string' || t === 'list' || t === undefined;
+        const col = this.visibleColumns[i];
+        const t = col?.type;
+        const ft = (col as any)?.filterType as any;
+        const hasExplicit = !!col?.width;
+        return (t === 'string' || t === 'list' || t === undefined) && ft !== 'numeric' && !hasExplicit;
       };
       const flexIdx = arr.map((_, i) => i).filter(isFlexible);
       if (container > 0 && flexIdx.length > 0) {
