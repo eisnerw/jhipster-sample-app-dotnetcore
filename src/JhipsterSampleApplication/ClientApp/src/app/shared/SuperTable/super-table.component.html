@@ -135,13 +135,23 @@
           <td
             [ngClass]="{ 'numeric-cell': col.filterType === 'numeric' }"
             [attr.data-catcount]="(((i === 0 && col.type !== 'checkbox' && col.type !== 'lineNumber') || (i === 1 && (columns[0]?.type === 'checkbox' || columns[0]?.type === 'lineNumber'))) && (rowData.categories?.length || 0) > 0) ? rowData.categories.length : null"
-            [attr.title]="(((i === 0 && col.type !== 'checkbox' && col.type !== 'lineNumber') || (i === 1 && (columns[0]?.type === 'checkbox' || columns[0]?.type === 'lineNumber'))) && (rowData.categories?.length || 0) > 0) ? (rowData.categories || []).join(', ') : null"
           >
             @switch (col.type) {
               @case ('checkbox') {
                 <p-tableCheckbox [value]="rowData" dataKey="id"></p-tableCheckbox>
               }
               @case ('string') {
+                @if ((((i === 0) && (col.type !== 'checkbox' && col.type !== 'lineNumber')) ||
+                      ((i === 1) && ((columns[0]?.type === 'checkbox' || columns[0]?.type === 'lineNumber'))))
+                      && (rowData.categories?.length || 0) > 0) {
+                  <span class="cat-pill"
+                        [pTooltip]="(rowData.categories || []).join(', ')"
+                        tooltipPosition="right"
+                        appendTo="body"
+                        [tooltipStyleClass]="'cat-tooltip'">
+                    {{ rowData.categories.length }}
+                  </span>
+                }
                 <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
               }
               @case ('date') {
@@ -153,6 +163,17 @@
                 <span class="cell-content" [pTooltip]="rowData[col.field] ? 'Yes' : 'No'">{{ rowData[col.field] ? 'Yes' : 'No' }}</span>
               }
               @case ('list') {
+                @if ((((i === 0) && (col.type !== 'checkbox' && col.type !== 'lineNumber')) ||
+                      ((i === 1) && ((columns[0]?.type === 'checkbox' || columns[0]?.type === 'lineNumber'))))
+                      && (rowData.categories?.length || 0) > 0) {
+                  <span class="cat-pill"
+                        [pTooltip]="(rowData.categories || []).join(', ')"
+                        tooltipPosition="right"
+                        appendTo="body"
+                        [tooltipStyleClass]="'cat-tooltip'">
+                    {{ rowData.categories.length }}
+                  </span>
+                }
                 <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
               }
               @case ('lineNumber') {

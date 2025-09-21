@@ -151,8 +151,7 @@
   position: relative;
   padding-left: 1rem;
 }
-:host ::ng-deep td[data-catcount]::before {
-  content: attr(data-catcount);
+:host ::ng-deep td[data-catcount] .cat-pill {
   position: absolute;
   left: 2px;
   top: 50%;
@@ -167,7 +166,6 @@
   color: var(--primary-800, #052c65);
   font-size: 0.6rem;
   text-align: center;
-  pointer-events: none;
 }
 
 /* Ensure text shifts right and stays single-line with ellipsis when pill is present */
@@ -175,4 +173,11 @@
   display: inline-block !important;
   margin-left: 1rem !important;
   min-width: 0;
+}
+
+/* PrimeNG tooltip styling for categories */
+:host ::ng-deep .cat-tooltip {
+  white-space: pre-wrap;
+  max-width: 24rem;
+  font-size: 0.75rem;
 }
