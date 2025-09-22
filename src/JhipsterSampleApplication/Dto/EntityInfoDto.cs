@@ -1,3 +1,4 @@
+#nullable enable
 namespace JhipsterSampleApplication.Dto;
 
 public sealed class EntityInfoDto
