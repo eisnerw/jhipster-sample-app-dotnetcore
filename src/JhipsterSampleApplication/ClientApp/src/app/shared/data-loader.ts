@@ -28,8 +28,7 @@ export class DataLoader<T> {
   private searchAfter: string[] = [];
 
   private itemsPerPage = 50;
-  private predicate = 'id';
-  private ascending = true;
+  private sort = 'id';
   private filter: any;
   private readonly dataLoadLimit = 1000;
 
@@ -43,13 +42,12 @@ export class DataLoader<T> {
     this.loadingMessage$ = this.loadingMessageSubject.asObservable();
   }
 
-  load(itemsPerPage: number, predicate: string, ascending: boolean, filter?: any): void {
+  load(itemsPerPage: number, sort: string, filter?: any): void {
     this.loadingSubject.next(true);
     this.loadingMessageSubject.next('Loading... ');
 
     this.itemsPerPage = itemsPerPage;
-    this.predicate = predicate;
-    this.ascending = ascending;
+    this.sort = sort;
     this.filter = filter;
 
     // Increment generation and reset pagination state to ensure a fresh search
@@ -61,7 +59,7 @@ export class DataLoader<T> {
 
     const queryParams: any = {
       pageSize: this.itemsPerPage,
-      sort: this.getSortQueryParam(this.predicate, this.ascending),
+      sort: this.getSortQueryParam(this.sort),
       ...this.filter,
       page: 0,
     };
@@ -86,7 +84,7 @@ export class DataLoader<T> {
 
     const queryParams = {
       pageSize: this.itemsPerPage,
-      sort: this.getSortQueryParam(this.predicate, this.ascending),
+      sort: this.getSortQueryParam(this.sort),
       pitId: this.pitId,
       searchAfter: this.searchAfter,
       ...this.filter,
@@ -172,8 +170,7 @@ export class DataLoader<T> {
     this.loadingSubject.next(false);
   }
 
-  private getSortQueryParam(predicate: string, ascending: boolean): string[] {
-    const direction = ascending ? 'asc' : 'desc';
-    return [`${predicate},${direction}`];
+  private getSortQueryParam(sort: string): string[] {
+    return sort.split(';');
   }
 }

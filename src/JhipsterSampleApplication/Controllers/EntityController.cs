@@ -112,7 +112,7 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<IActionResult> SearchWithBql([FromRoute] string entity, [FromBody] string bqlQuery,
             [FromQuery] string? view = null, [FromQuery] string? category = null, [FromQuery] string? secondaryCategory = null,
             [FromQuery] bool includeDetails = false, [FromQuery] int from = 0, [FromQuery] int pageSize = 20,
-            [FromQuery] string? sort = null, [FromQuery] string? pitId = null, [FromQuery] string[]? searchAfter = null)
+            [FromQuery] string[]? sort = null, [FromQuery] string? pitId = null, [FromQuery] string[]? searchAfter = null)
         {
             if (string.IsNullOrWhiteSpace(bqlQuery)) return BadRequest("Query cannot be empty");
             // Use only top-level fields from entity spec (no legacy fallback)
@@ -139,7 +139,7 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<IActionResult> SearchWithRuleset([FromRoute] string entity, [FromBody] RulesetDto rulesetDto,
             [FromQuery] string? view = null, [FromQuery] string? category = null, [FromQuery] string? secondaryCategory = null,
             [FromQuery] bool includeDetails = false, [FromQuery] int from = 0, [FromQuery] int pageSize = 20,
-            [FromQuery] string? sort = null, [FromQuery] string? pitId = null, [FromQuery] string[]? searchAfter = null)
+            [FromQuery] string[]? sort = null, [FromQuery] string? pitId = null, [FromQuery] string[]? searchAfter = null)
         {
             var ruleset = MapRuleset(rulesetDto);
             var queryObject = await _entityService.ConvertRulesetToElasticSearch(entity, ruleset);
@@ -153,7 +153,7 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<IActionResult> Search([FromRoute] string entity, [FromBody] JObject elasticsearchQuery,
             [FromQuery] string? view = null, [FromQuery] string? category = null, [FromQuery] string? secondaryCategory = null,
             [FromQuery] bool includeDetails = false, [FromQuery] int from = 0, [FromQuery] int pageSize = 20,
-            [FromQuery] string? sort = null, [FromQuery] string? pitId = null, [FromQuery] string[]? searchAfter = null)
+            [FromQuery] string[]? sort = null, [FromQuery] string? pitId = null, [FromQuery] string[]? searchAfter = null)
         {
             bool isHitFromViewDrilldown = false;
             if (!string.IsNullOrEmpty(view))
@@ -250,13 +250,13 @@ namespace JhipsterSampleApplication.Controllers
             }
 
             var sortDescriptor = new List<SortSpec>();
-            if (!string.IsNullOrEmpty(sort))
+            if (sort != null)
             {
-                var sortParts = sort.Contains(',') ? sort.Split(',') : sort.Split(':');
-                if (sortParts.Length == 2)
+                foreach (var item in sort)
                 {
+                    var sortParts = item.Split(',');
                     var field = sortParts[0];
-                    var order = sortParts[1].ToLower();
+                    var order = sortParts.Length > 1 ? sortParts[1].ToLower() : "asc";
                     sortDescriptor.Add(new SortSpec { Field = field, Order = order });
                 }
             }
@@ -296,7 +296,7 @@ namespace JhipsterSampleApplication.Controllers
         public async Task<IActionResult> SearchWithLuceneQuery([FromRoute] string entity, [FromQuery] string query,
             [FromQuery] string? view = null, [FromQuery] string? category = null, [FromQuery] string? secondaryCategory = null,
             [FromQuery] bool includeDetails = false, [FromQuery] int from = 0, [FromQuery] int pageSize = 20,
-            [FromQuery] string? sort = null, [FromQuery] string? pitId = null, [FromQuery] string[]? searchAfter = null)
+            [FromQuery] string[]? sort = null, [FromQuery] string? pitId = null, [FromQuery] string[]? searchAfter = null)
         {
             if (string.IsNullOrWhiteSpace(query)) return BadRequest("Query cannot be empty");
             JObject queryObject = new JObject { ["query_string"] = new JObject { ["query"] = query } };

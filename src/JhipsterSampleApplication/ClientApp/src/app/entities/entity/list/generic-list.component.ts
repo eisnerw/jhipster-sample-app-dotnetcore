@@ -121,8 +121,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   detailDialogId: string | null = null;
 
   itemsPerPage = 50;
-  predicate = '';
-  ascending = true;
+  sort = '';
 
   constructor() {
     const fetch: FetchFunction<AnyRow> = (queryParams: any) => {
@@ -194,12 +193,9 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       next: ({ spec, entitySpec}) => {
         this.spec = spec;
 
-        // Ensure predicate is initialized using entitySpec
+        // Ensure sort is initialized using entitySpec
         if (entitySpec?.sort) {
-          this.predicate = entitySpec.sort.split(',')[0];
-          if (/,desc$/.test(entitySpec.sort)){
-            this.ascending = false;
-          }
+          this.sort = entitySpec.sort;
         }
 
         // Proceed to load columns and views after both specs are available
@@ -362,7 +358,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
           this.groups = [];
           const filter: any = { view: this.viewName! };
           filter.bqlQuery = this.currentQuery.trim();
-          this.dataLoader.load(this.itemsPerPage, this.predicate, this.ascending, filter);
+          this.dataLoader.load(this.itemsPerPage, this.sort, filter);
           this.viewMode = 'grid';
           setTimeout(() => this.superTable.applyCapturedHeaderState(), 300);
         }
@@ -377,7 +373,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
         } else {
           this.groups = [];
           const filter: any = { view: this.viewName!, query: '*' };
-          this.dataLoader.load(this.itemsPerPage, this.predicate, this.ascending, filter);
+          this.dataLoader.load(this.itemsPerPage, this.sort, filter);
           this.viewMode = 'grid';
           setTimeout(() => this.superTable.applyCapturedHeaderState(), 300);
         }
@@ -395,7 +391,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     const filter: any = {};
     if (this.currentQuery && this.currentQuery.trim().length > 0) filter.bqlQuery = this.currentQuery.trim(); else filter.luceneQuery = '*';
     if (this.viewName) filter.view = this.viewName;
-    this.dataLoader.load(this.itemsPerPage, this.predicate, this.ascending, filter);
+    this.dataLoader.load(this.itemsPerPage, this.sort, filter);
     setTimeout(() => this.superTable.applyCapturedHeaderState(), 300);
   }
 
@@ -545,7 +541,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
           filter.bqlQuery = this.currentQuery.trim();
           if (path.length >= 1) filter.category = path[0];
           if (path.length >= 2) filter.secondaryCategory = path[1];
-          loader.load(this.itemsPerPage, this.predicate, this.ascending, filter);
+          loader.load(this.itemsPerPage, this.sort, filter);
           groupData.mode = 'grid';
           groupData.loader = loader;
         }
@@ -562,7 +558,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
           const filter: any = { view: this.viewName!, query: '*' };
           if (path.length >= 1) filter.category = path[0];
           if (path.length >= 2) filter.secondaryCategory = path[1];
-          loader.load(this.itemsPerPage, this.predicate, this.ascending, filter);
+          loader.load(this.itemsPerPage, this.sort, filter);
           groupData.mode = 'grid';
           groupData.loader = loader;
         }
