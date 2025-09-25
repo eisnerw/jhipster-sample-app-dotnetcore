@@ -19,6 +19,7 @@ import { MenuModule } from 'primeng/menu';
 import { ChipModule } from 'primeng/chip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { forkJoin } from 'rxjs';
 
 import SharedModule from 'app/shared/shared.module';
 import { ViewService } from '../../view/service/view.service';
@@ -117,7 +118,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   detailDialogId: string | null = null;
 
   itemsPerPage = 50;
-  predicate = 'id';
+  predicate = '';
   ascending = true;
 
   constructor() {
@@ -144,7 +145,9 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     }
   }
 
-  ngAfterViewInit(): void { this.onQueryChange(this.currentQuery); }
+  ngAfterViewInit(): void {
+    //this.onQueryChange(this.currentQuery);
+  }
 
   private capitalize(s: string): string { return !s ? s : s.charAt(0).toUpperCase() + s.slice(1); }
 
@@ -155,46 +158,15 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     });
   }
 
-  private loadColumnsFromSpec(): void {
-    this.entityService.getEntitySpec(this.entity).subscribe({
-      next: (spec: any) => {
-        if (!this.pageTitle && spec?.title) this.pageTitle = String(spec.title);
-        const columns = this.buildColumnsFromSpec(spec);
-        this.columns = columns;
-        this.initialWidths = this.columns.map(c => c.width || undefined);
-        this.specSignature = this.columns.map(c => `${c.field}:${c.width || ''}`).join('|');
-        this.globalFilterFields = columns
-          .filter(c => (c.type === 'string' || !c.type) && !!c.field && c.field !== 'lineNumber' && c.field !== 'checkbox')
-          .map(c => c.field);
-      },
-      error: () => {
-        // Fallback: try to build from query-builder spec if entity spec fetch fails
-        this.entityService.getQueryBuilderSpec(this.entity).subscribe({
-          next: (qb: any) => {
-            const specShim = { fields: qb?.fields || {} };
-            const columns = this.buildColumnsFromSpec(specShim);
-            this.columns = columns;
-            this.initialWidths = this.columns.map(c => c.width || undefined);
-            this.specSignature = this.columns.map(c => `${c.field}:${c.width || ''}`).join('|');
-            this.globalFilterFields = columns
-              .filter(c => (c.type === 'string' || !c.type) && !!c.field && c.field !== 'lineNumber' && c.field !== 'checkbox')
-              .map(c => c.field);
-          },
-          error: () => {
-            // Final fallback: safe minimal columns
-            this.columns = [
-              { field: 'lineNumber', header: '#', type: 'lineNumber', width: '4rem' },
-              { field: 'checkbox', header: '', type: 'checkbox', width: '2rem' },
-              { field: 'id', header: 'Id', type: 'string' },
-              { field: 'expander', header: '', type: 'expander', width: '25px', style: 'font-weight: 700;' },
-            ];
-            this.initialWidths = this.columns.map(c => c.width || undefined);
-            this.specSignature = this.columns.map(c => `${c.field}:${c.width || ''}`).join('|');
-            this.globalFilterFields = ['id'];
-          },
-        });
-      },
-    });
+  private loadColumnsFromSpec(spec: any): void {
+    if (!this.pageTitle && spec?.title) this.pageTitle = String(spec.title);
+    const columns = this.buildColumnsFromSpec(spec);
+    this.columns = columns;
+    this.initialWidths = this.columns.map(c => c.width || undefined);
+    this.specSignature = this.columns.map(c => `${c.field}:${c.width || ''}`).join('|');
+    this.globalFilterFields = columns
+      .filter(c => (c.type === 'string' || !c.type) && !!c.field && c.field !== 'lineNumber' && c.field !== 'checkbox')
+      .map(c => c.field);
   }
 
   private initForEntity(e: string | null): void {
@@ -212,13 +184,39 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     };
     this.dataLoader = new DataLoader<AnyRow>(fetch);
 
-    this.entityService.getQueryBuilderSpec(this.entity).subscribe({ next: spec => (this.spec = spec), error: () => (this.spec = undefined) });
-    this.loadColumnsFromSpec();
-    this.loadViews();
+    forkJoin({
+      spec: this.entityService.getQueryBuilderSpec(this.entity),
+      entitySpec: this.entityService.getEntitySpec(this.entity)
+    }).subscribe({
+      next: ({ spec, entitySpec}) => {
+        this.spec = spec;
 
-    this.viewName = null;
-    this.currentQuery = '';
-    this.loadPage();
+        // Ensure predicate is initialized using entitySpec
+        if (entitySpec?.sort) {
+          this.predicate = entitySpec.sort.split(',')[0];
+          if (/,desc$/.test(entitySpec.sort)){
+            this.ascending = false;
+          }
+        }
+
+        // Proceed to load columns and views after both specs are available
+        this.loadColumnsFromSpec(entitySpec);
+        this.loadViews();
+        this.viewName = null;
+        this.currentQuery = '';
+        this.loadPage();
+      },
+      error: () => {
+        this.spec = undefined;
+
+        // As a fallback, load columns and views even if spec fetch fails
+        this.loadColumnsFromSpec(undefined);
+        this.loadViews();
+        this.viewName = null;
+        this.currentQuery = '';
+        this.loadPage();
+      }
+    });
   }
 
   private buildColumnsFromSpec(spec: any): ColumnConfig[] {
@@ -337,7 +335,14 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     return Array.from(new Set(parts));
   }
 
-  onQueryChange(query: string, restoreState = false): void { this.currentQuery = query || ''; if (this.viewName) { this.loadRootGroups(restoreState); } else { this.loadPage(); } }
+  onQueryChange(query: string, restoreState = false): void {
+    this.currentQuery = query || '';
+    if (this.viewName) {
+      this.loadRootGroups(restoreState);
+    } else {
+      this.loadPage();
+    }
+  }
 
   loadRootGroups(restoreState: boolean = false): void {
     if (!this.viewName) { this.groups = []; this.loadPage(); this.viewMode = 'grid'; setTimeout(() => this.superTable.applyCapturedHeaderState(), 300); return; }

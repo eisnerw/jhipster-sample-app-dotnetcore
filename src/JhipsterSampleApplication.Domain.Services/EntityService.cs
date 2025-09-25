@@ -66,11 +66,23 @@ public class EntityService : IEntityService
 
         return (index, idField);
     }
-
     private string NormalizeSortField(string entity, string field)
     {
-        if (string.Equals(field, "_id", StringComparison.OrdinalIgnoreCase)) return "_id";
-        if (string.Equals(field, "id", StringComparison.OrdinalIgnoreCase)) return "_id";
+        if (_specRegistry.TryGetObject(entity, "fields", out var fieldsNode))
+        {
+            var flds = JObject.Parse(fieldsNode.ToJsonString());
+            var arType = flds.Properties()
+                .Where(p => p.Name == field)
+                .SelectMany(f => ((JObject)f.Value)
+                .Properties()
+                .Where(vp => vp.Name == "type")
+                .Select(vp => vp.Value.ToString()))
+                .ToArray();
+            if (arType != null && arType.Length == 1 && (arType[0] == "date" || arType[0] == "number"))
+            {
+                return field;
+            }
+        }
         if (!field.Contains(".keyword")){
             field = $"{field}.keyword";
         }
@@ -227,14 +239,16 @@ public class EntityService : IEntityService
         {
             try
             {
-                var pitResponse = await _elasticClient.OpenPointInTimeAsync(new OpenPointInTimeRequest(indexName)
-                {
-                    KeepAlive = "2m"
-                });
-                if (pitResponse.IsValidResponse)
-                {
-                    pitId = pitResponse.Id;
-                }
+                var qp = new OpenPointInTimeRequestParameters { KeepAlive = "2m" };
+                var pathAndQuery = qp.CreatePathWithQueryStrings($"{indexName}/_pit", _elasticClient.ElasticsearchClientSettings);
+                var pitEndpoint = new EndpointPath(Elastic.Transport.HttpMethod.POST, pathAndQuery);
+                var pitResponse = await _elasticClient.Transport.RequestAsync<StringResponse>(
+                    pitEndpoint,
+                    postData: null,
+                    default
+                );
+                var pitJson = JsonDocument.Parse(pitResponse.Body);
+                pitId = pitJson.RootElement.GetProperty("id").GetString();
             }
             catch
             {
@@ -324,14 +338,12 @@ public class EntityService : IEntityService
         }
         // Sorts
         var sorts = new JArray();
-        bool hasExplicitIdSort = false;
         if (spec.Sorts != null && spec.Sorts.Count > 0)
         {
             foreach (var s in spec.Sorts)
             {
                 if (!string.IsNullOrWhiteSpace(s.Script)) continue; // skip script for now
                 var fld = NormalizeSortField(entity, s.Field);
-                if (string.Equals(fld, "_id", StringComparison.OrdinalIgnoreCase)) hasExplicitIdSort = true;
                 sorts.Add(new JObject { [fld] = new JObject { ["order"] = (s.Order?.ToLower() == "desc" ? "desc" : "asc") } });
             }
         }
@@ -342,14 +354,8 @@ public class EntityService : IEntityService
             {
                 var fld = NormalizeSortField(entity, parts[0].Trim());
                 var ord = parts[1].Trim().ToLower() == "desc" ? "desc" : "asc";
-                if (string.Equals(fld, "_id", StringComparison.OrdinalIgnoreCase)) hasExplicitIdSort = true;
                 sorts.Add(new JObject { [fld] = new JObject { ["order"] = ord } });
             }
-        }
-        // Always add _id tie-breaker if not already explicitly sorted by _id
-        if (!hasExplicitIdSort)
-        {
-            sorts.Add(new JObject { ["_id"] = new JObject { ["order"] = "asc" } });
         }
         root["sort"] = sorts;
 
