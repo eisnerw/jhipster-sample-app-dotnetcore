@@ -25,9 +25,12 @@ import SharedModule from 'app/shared/shared.module';
 import { ViewService } from '../../view/service/view.service';
 import { EntityGenericService } from '../service/entity-generic.service';
 import { DataLoader, FetchFunction } from 'app/shared/data-loader';
-import { QueryInputComponent } from 'popup-ngx-query-builder';
+import { QueryInputComponent,  bqlToRuleset} from 'popup-ngx-query-builder';
 import { QueryLanguageSpec } from 'ngx-query-builder';
 import { SuperTable, ColumnConfig, GroupData, GroupDescriptor } from 'app/shared/SuperTable/super-table.component';
+
+type LocalRuleSet = { condition: string; rules: Array<LocalRuleSet | LocalRule>; name?: string; not?: boolean; isChild?: boolean };
+type LocalRule = { field: string; operator: string; value?: any };
 
 type AnyRow = { id?: string; [k: string]: any };
 
@@ -571,5 +574,123 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   private buildTitle(row: AnyRow): string { const name = row['title'] || row['name'] || [row['fname'], row['lname']].filter(Boolean).join(' '); return name || 'Details'; }
   trackById(index: number, row: AnyRow): any { return row?.id ?? index; }
   onSort(event: any): void { /* capture if needed */ }
-  onExpandedIframeLoad(id: string, ev: Event): void { /* no-op for generic */ }
+
+  // Highlighting support for expanded Wikipedia iframe only
+  private getHighlightTermsFromBql(bql: string): string[] {
+    const terms: string[] = [];
+    if (!bql || !bql.trim()) return terms;
+    try {
+      const rs = bqlToRuleset(bql, this.queryInput.queryBuilderConfig) as LocalRuleSet;
+      const visit = (node: LocalRuleSet | LocalRule) => {
+        const asRule = node as LocalRule;
+        if ((asRule as any).field !== undefined) {
+          const field = (asRule.field || '').toLowerCase();
+          const operator = (asRule.operator || '').toLowerCase();
+          const value: any = (asRule as any).value;
+          const pushVal = (v: any) => {
+            if (v === null || v === undefined) return;
+            const s = String(v).trim();
+            if (s) terms.push(s);
+          };
+          // document contains "x" or generic value searches should highlight value
+          if (operator && (operator.includes('contains') || operator.includes('like') || operator === '=' || operator === '==' || operator === 'in' || operator === '!in')) {
+            if (Array.isArray(value)) value.forEach(pushVal);
+            else pushVal(value);
+          } else if (field === 'document') {
+            if (Array.isArray(value)) value.forEach(pushVal);
+            else pushVal(value);
+          }
+        } else {
+          const asSet = node as LocalRuleSet;
+          if (asSet && Array.isArray(asSet.rules)) asSet.rules.forEach(visit);
+        }
+      };
+      visit(rs);
+    } catch {}
+    // Deduplicate and limit to reasonable length
+    const dedup = Array.from(new Set(terms.map(t => t))).filter(t => t.length <= 256).slice(0, 50);
+    return dedup;
+  }
+
+  onExpandedIframeLoad(id: string, ev: Event): void {
+    try {
+      const iframe = ev.target as HTMLIFrameElement;
+      if (!iframe || !iframe.contentDocument) return;
+      const doc = iframe.contentDocument;
+      const terms = this.getHighlightTermsFromBql(this.currentQuery);
+      if (!terms.length) return;
+      // Inject simple CSS for highlight
+      const style = doc.createElement('style');
+      style.textContent = '.__bql-hl{background:yellow; color:#111;}';
+      doc.head?.appendChild(style);
+      // Build matchers from terms; support regex literals (/.../flags) with case sensitivity per 'i' flag
+      const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regexes: { re: RegExp }[] = [];
+      const words: string[] = [];
+      for (const t of terms) {
+        const m = t.match(/^\/(.*)\/([a-z]*)$/);
+        if (m) {
+          const body = m[1];
+          const flags = (m[2] || '').includes('i') ? 'gi' : 'g';
+          try { regexes.push({ re: new RegExp(body, flags) }); } catch {}
+        } else {
+          words.push(esc(t));
+        }
+      }
+      if (words.length) {
+        try { regexes.push({ re: new RegExp('(' + words.join('|') + ')', 'gi') }); } catch {}
+      }
+      if (regexes.length === 0) return;
+      // Tree-walk and collect text nodes to process
+      const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null as any);
+      const textNodes: Text[] = [];
+      let n: any;
+      while ((n = walker.nextNode())) {
+        if (n && n.nodeValue && String(n.nodeValue).trim().length > 0) {
+          textNodes.push(n as Text);
+        }
+      }
+      textNodes.forEach(tn => {
+        const parent = tn.parentNode as HTMLElement | null;
+        if (!parent) return;
+        const text = tn.nodeValue || '';
+        // Collect match ranges across all regexes
+        type Range = { s: number; e: number };
+        const ranges: Range[] = [];
+        for (const { re } of regexes) {
+          re.lastIndex = 0;
+          let m: RegExpExecArray | null;
+          while ((m = re.exec(text)) !== null) {
+            const s = m.index;
+            const e = s + (m[0]?.length || 0);
+            if (e > s) ranges.push({ s, e });
+            if (m[0].length === 0) re.lastIndex++;
+          }
+        }
+        if (ranges.length === 0) return;
+        // Merge overlapping
+        ranges.sort((a, b) => a.s - b.s || a.e - b.e);
+        const merged: Range[] = [];
+        for (const r of ranges) {
+          if (!merged.length || r.s > merged[merged.length - 1].e) {
+            merged.push({ ...r });
+          } else {
+            merged[merged.length - 1].e = Math.max(merged[merged.length - 1].e, r.e);
+          }
+        }
+        const frag = doc.createDocumentFragment();
+        let last = 0;
+        for (const r of merged) {
+          if (r.s > last) frag.appendChild(doc.createTextNode(text.slice(last, r.s)));
+          const mark = doc.createElement('mark');
+          mark.className = '__bql-hl';
+          mark.textContent = text.slice(r.s, r.e);
+          frag.appendChild(mark);
+          last = r.e;
+        }
+        if (last < text.length) frag.appendChild(doc.createTextNode(text.slice(last)));
+        parent.replaceChild(frag, tn);
+      });
+    } catch {}
+  }
 }
