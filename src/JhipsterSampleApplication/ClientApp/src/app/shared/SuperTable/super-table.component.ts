@@ -987,8 +987,6 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private getMinWidths(): number[] {
     if (this.minWidthsCache && this.minWidthsCache.length === this.visibleColumns.length) return this.minWidthsCache;
     const arr = this.visibleColumns.map(c => {
-      // Respect explicit width as the floor if provided
-      const explicit = this.parsePx(c.width, NaN);
       if (c.minWidth) return this.parsePx(c.minWidth, 30);
       const label = (c.header || '').trim();
       const approx = Math.max(40, Math.min(240, Math.round(label.length * 9 + 24)));
@@ -996,8 +994,6 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       if (c.type === 'date') return Math.max(80, approx);
       // Numeric columns: readable default minimum
       if (c.filterType === 'numeric') return 80;
-      // If width is explicitly set, treat that as the minimum to avoid auto-shrinking
-      if (!isNaN(explicit)) return explicit;
       return approx;
     });
     this.minWidthsCache = arr;
