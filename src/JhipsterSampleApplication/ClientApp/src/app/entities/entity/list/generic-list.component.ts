@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, OnInit, ViewChild, TemplateRef, AfterViewInit, inject, Input } from '@angular/core';
+import { Component, OnInit, ViewChild, TemplateRef, AfterViewInit, inject, Input, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
@@ -85,6 +85,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   columns: ColumnConfig[] = [];
   initialWidths: (string | undefined)[] = [];
   specSignature: string | undefined;
+  private baseSpecSignature: string | undefined;
   globalFilterFields: string[] = [];
 
   viewName: string | null = null;
@@ -165,7 +166,9 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     const columns = this.buildColumnsFromSpec(spec);
     this.columns = columns;
     this.initialWidths = this.columns.map(c => c.width || undefined);
-    this.specSignature = this.columns.map(c => `${c.field}:${c.width || ''}`).join('|');
+    // Base signature tied to column spec only (no viewport). Kept for recomputation on resize.
+    this.baseSpecSignature = this.columns.map(c => `${c.field}:${c.width || ''}`).join('|');
+    this.specSignature = this.baseSpecSignature;
     this.globalFilterFields = columns
       .filter(c => (c.type === 'string' || !c.type) && !!c.field && c.field !== 'lineNumber' && c.field !== 'checkbox')
       .map(c => c.field);
@@ -396,6 +399,23 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   }
 
   refreshData(): void { try { this.superTable.captureHeaderState(); this.onQueryChange(this.currentQuery, true); } catch {} }
+
+  // Clear saved column widths and nudge SuperTable to recompute on resize
+  private resizeDebounce: any;
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    if (this.resizeDebounce) clearTimeout(this.resizeDebounce);
+    this.resizeDebounce = setTimeout(() => {
+      try {
+        const key = `supertable.widths:list:${this.entity}`;
+        if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
+      } catch {}
+      const vw = typeof window !== 'undefined' ? window.innerWidth : 0;
+      const base = this.baseSpecSignature || this.specSignature || '';
+      this.specSignature = `${base}|vw:${vw}`;
+      try { (this.superTable as any)['lastColumnWidths'] = undefined; } catch {}
+    }, 150);
+  }
 
   onCheckboxChange(): void { this.checkboxSelectedRows = this.selection || []; this.chipSelectedRows = this.checkboxSelectedRows.slice(0, 2); }
   getChipLabel(row: AnyRow): string { const titleFields = ['title','name','lname','fname']; let text = ''; for (const f of titleFields) { if (row[f]) { text = text ? `${text} ${row[f]}` : `${row[f]}`; } } return text || (row.id || ''); }

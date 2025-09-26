@@ -219,6 +219,25 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         try {
           // Abandon ALL persisted widths on resize to let defaults take over
           this.purgeAllPersistedWidths();
+          // Reset column explicit widths back to their initial spec so columns
+          // become flexible again before recalculation. Otherwise previously
+          // applied pixel widths will be treated as explicit and block growth
+          // when the container gets larger (e.g., restore -> maximize).
+          if (this.initialWidths && this.initialWidths.length === this.visibleColumns.length) {
+            this.visibleColumns.forEach((c, i) => (c.width = this.initialWidths![i]));
+            this.columns = [...this.columns];
+          } else {
+            // No explicit initial widths captured; clear widths on flexible columns
+            this.visibleColumns.forEach((c) => {
+              const t = c.type;
+              const isUtility = t === 'lineNumber' || t === 'checkbox' || t === 'expander';
+              if (!isUtility) c.width = undefined;
+            });
+            this.columns = [...this.columns];
+          }
+          // Clear any cached widths captured from prior renders
+          this.lastColumnWidths = undefined;
+          this.minWidthsCache = null;
           const defaults = this.computeDefaultWidths();
           const fitted = this.fitWidthsToContainer(defaults);
           this.applyWidthsToDom(fitted);
