@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Serilog;
+using Serilog.Enrichers.CallerInfo;
 using System;
 using System.IO;
 using System.Security.Authentication;
@@ -33,7 +34,51 @@ try
     };
     var builder = WebApplication.CreateBuilder(webAppOptions);
 
-    builder.Logging.AddSerilog(builder.Configuration);
+    // Use Serilog with host integration (auto-registers DiagnosticContext etc.)
+    builder.Host.UseSerilog((ctx, services, lc) =>
+    {
+        var configuration = ctx.Configuration;
+        var port = 6514;
+        if (int.TryParse(configuration.GetSection("Serilog")["SyslogPort"], out var portFromConf)) port = portFromConf;
+        var url = configuration.GetSection("Serilog")["SyslogUrl"] ?? "localhost";
+        var appName = configuration.GetSection("Serilog")["SyslogAppName"] ?? "JhipsterSampleApplicationApp";
+
+        lc.Enrich.FromLogContext()
+          .Enrich.With<JHipsterNet.Web.Logging.LoggerNameEnricher>()
+          .Enrich.WithMachineName()
+          .Enrich.WithEnvironmentName()
+          .Enrich.WithProcessId()
+          .Enrich.WithThreadId()
+          .Enrich.WithProperty("service.name", appName)
+          .Enrich.WithProperty("service.environment", configuration["ASPNETCORE_ENVIRONMENT"] ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development")
+          .Enrich.WithCallerInfo(includeFileInfo: true, assemblyPrefix: "JhipsterSampleApplication")
+          .WriteTo.TcpSyslog(url, port, appName)
+          .ReadFrom.Configuration(configuration);
+
+        // Optional Elasticsearch sink with ECS
+        var esUrl = configuration.GetValue<string>("Elasticsearch:Url");
+        if (!string.IsNullOrWhiteSpace(esUrl))
+        {
+            var esUser = configuration.GetValue<string>("Elasticsearch:Username");
+            var esPass = configuration.GetValue<string>("Elasticsearch:Password");
+            var indexFormat = configuration.GetValue<string>("Serilog:Elasticsearch:IndexFormat") ?? "app-logs";
+            var esOptions = new Serilog.Sinks.Elasticsearch.ElasticsearchSinkOptions(new Uri(esUrl))
+            {
+                AutoRegisterTemplate = true,
+                AutoRegisterTemplateVersion = Serilog.Sinks.Elasticsearch.AutoRegisterTemplateVersion.ESv8,
+                IndexFormat = indexFormat,
+                DetectElasticsearchVersion = true,
+                CustomFormatter = new Elastic.CommonSchema.Serilog.EcsTextFormatter(),
+                FailureCallback = (logEvent, ex) => Console.Error.WriteLine($"[Serilog-ES] {ex?.Message}"),
+                BufferBaseFilename = Path.Combine(AppContext.BaseDirectory, "logs", "es-buffer")
+            };
+            if (!string.IsNullOrWhiteSpace(esUser) && !string.IsNullOrWhiteSpace(esPass))
+            {
+                esOptions.ModifyConnectionSettings = c => c.BasicAuthentication(esUser, esPass);
+            }
+            lc.WriteTo.Elasticsearch(esOptions);
+        }
+    });
 
     IStartup startup = new Startup();
 

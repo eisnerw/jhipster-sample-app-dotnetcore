@@ -17,6 +17,9 @@ using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Domain.Repositories;
 using JhipsterSampleApplication.Infrastructure.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
+using JhipsterSampleApplication.Middleware;
+using Serilog.Extensions.Hosting;
 
 [assembly: ApiController]
 
@@ -43,6 +46,8 @@ public class Startup : IStartup
             .AddWebModule()
             .AddRepositoryModule()
             .AddServiceModule();
+
+        // Serilog services are registered via Host.UseSerilog() in Program.cs
 
         // Add ElasticSearch services
         var elasticsearchSettings = configuration.GetSection("Elasticsearch").Get<ElasticsearchSettings>();
@@ -75,6 +80,8 @@ public class Startup : IStartup
             .UseApplicationProblemDetails(environment)
             .UseApplicationDatabase(environment)
             .UseApplicationIdentity()
+            .UseSerilogRequestLogging()
+            .UseMiddleware<SerilogUserEnricherMiddleware>()
             /*.Use(async (context, next) => {
                 // This code will execute for every request.
                 // Console.WriteLine("Request received: " + context.Request.Path + " from " + context.Request.Headers["Origin"]);

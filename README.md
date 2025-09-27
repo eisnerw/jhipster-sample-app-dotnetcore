@@ -239,6 +239,104 @@ Manually :
 
 4. (Only for chronograf) Change kapacitor connection string by `YourApp-kapacitor`
 
+## Logging to Elasticsearch (Serilog + ECS)
+
+This application emits structured logs to Elasticsearch using Serilog with the Elastic Common Schema (ECS). Logged fields include:
+
+- Time: `@timestamp`
+- Level: `log.level`
+- User: `user.name`
+- Module: `log.logger` (class/module)
+- Routine: `origin.function` (method)
+- Service: `service.name`, `service.environment`
+
+We use a single logical index name via an alias: `app-logs`. Elasticsearch manages rollover and a 3‑day retention transparently, so you can always query/tail `app-logs`.
+
+### One‑time Elasticsearch setup (alias + rollover + 3‑day retention)
+
+Run one of these scripts (idempotent):
+
+- Bash
+
+```bash
+chmod +x elastic/configure-elasticsearch-alias-rollover.sh
+./elastic/configure-elasticsearch-alias-rollover.sh \
+  --url http://localhost:9200 \
+  --retention 3d \
+  --rollover 1d \
+  --shards 1 --replicas 0
+```
+
+- PowerShell
+
+```powershell
+.\elastic\configure-elasticsearch-alias-rollover.ps1 -Url http://localhost:9200 -Retention 3d -Rollover 1d -Shards 1 -Replicas 0
+```
+
+The script creates:
+
+- ILM policy `app-logs-ilm` (rollover after 1 day; delete after 3 days)
+- Index template `app-logs-template` (applies ILM and alias settings)
+- Initial backing index `app-logs-000001` with write alias `app-logs`
+
+We intentionally do not add mappings to avoid conflicts; the Serilog sink auto‑registers ECS mappings on first write.
+
+### App configuration
+
+Set your Elasticsearch endpoint and credentials in `src/JhipsterSampleApplication/appsettings.json`:
+
+```json
+"Elasticsearch": {
+  "Url": "http://localhost:9200",
+  "Username": "",
+  "Password": ""
+},
+"Serilog": {
+  "Elasticsearch": {
+    "IndexFormat": "app-logs"
+  }
+}
+```
+
+The Serilog sink is configured in `Program.cs` with ECS formatting and a durable on‑disk buffer (`logs/es-buffer*`).
+
+### Verify and tail logs
+
+Basic checks:
+
+```bash
+# Alias and backing indices
+curl -sS http://localhost:9200/_alias/app-logs?pretty
+
+# Mapping (selected index or alias)
+curl -sS http://localhost:9200/app-logs/_mapping?pretty
+
+# Last 10 logs with selected fields
+curl -sS -H 'Content-Type: application/json' \
+  http://localhost:9200/app-logs/_search \
+  -d '{"size":10,"sort":[{"@timestamp":{"order":"desc"}}],"_source":["@timestamp","log.level","message","user.name","log.logger","origin.function","trace.id"]}' | jq '.hits.hits[]._source'
+```
+
+Tail from the terminal (prints only new logs):
+
+```bash
+chmod +x elastic/tail-logs-ecs.sh
+./elastic/tail-logs-ecs.sh --url http://localhost:9200 --prefix app-logs
+```
+
+Output format:
+
+```
+YYYY-MM-DDTHH:MM:SS [Level] Namespace.Class::Method | Message
+```
+
+Options: `--level Error`, `--window 10m`, `--interval 2`, `--size 50`.
+
+### Adjust retention / rollover
+
+Re-run the setup script with new `--retention` (e.g., `7d`) or `--rollover` (e.g., `12h`, `1gb`). New indices will inherit the updated policy.
+
+
 5. (Only for chronograf) You can now add dashboard (like docker), see your app log in Cronograf Log viewer and send alert with kapacitor
 
 ### Build a Docker image

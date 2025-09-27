@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Security.Authentication;
 using System.Threading.Tasks;
 using JhipsterSampleApplication.Domain.Entities;
@@ -11,6 +12,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Sinks.Syslog;
+using Serilog.Sinks.Elasticsearch;
+using Elastic.CommonSchema.Serilog;
+using Serilog.Context;
+using Serilog.Enrichers.CallerInfo;
 
 namespace JhipsterSampleApplication.Configuration;
 
@@ -46,9 +51,43 @@ public static class SerilogConfiguration
             ? appConfiguration.GetSection(SerilogSection)[SyslogAppName]
             : "JhipsterSampleApplicationApp";
         var loggerConfiguration = new LoggerConfiguration()
+            .Enrich.FromLogContext()
             .Enrich.With<LoggerNameEnricher>()
+            .Enrich.WithMachineName()
+            .Enrich.WithEnvironmentName()
+            .Enrich.WithProcessId()
+            .Enrich.WithThreadId()
+            .Enrich.WithProperty("service.name", appName)
+            .Enrich.WithProperty("service.environment", appConfiguration["ASPNETCORE_ENVIRONMENT"] ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development")
+            // Include caller info (method, type, file, line) for routine attribution
+            .Enrich.WithCallerInfo(includeFileInfo: true, assemblyPrefix: "JhipsterSampleApplication")
             .WriteTo.TcpSyslog(url, port, appName)
             .ReadFrom.Configuration(appConfiguration);
+
+        // Optional: Elasticsearch sink with ECS formatter
+        var esUrl = appConfiguration.GetValue<string>("Elasticsearch:Url");
+        if (!string.IsNullOrWhiteSpace(esUrl))
+        {
+            var esUser = appConfiguration.GetValue<string>("Elasticsearch:Username");
+            var esPass = appConfiguration.GetValue<string>("Elasticsearch:Password");
+            var indexFormat = appConfiguration.GetValue<string>("Serilog:Elasticsearch:IndexFormat") ?? "app-logs-{0:yyyy.MM.dd}";
+
+            var esOptions = new ElasticsearchSinkOptions(new Uri(esUrl))
+            {
+                AutoRegisterTemplate = true,
+                AutoRegisterTemplateVersion = AutoRegisterTemplateVersion.ESv8,
+                IndexFormat = indexFormat,
+                DetectElasticsearchVersion = true,
+                CustomFormatter = new EcsTextFormatter(),
+                FailureCallback = (logEvent, ex) => Console.Error.WriteLine($"[Serilog-ES] {ex?.Message}"),
+                BufferBaseFilename = Path.Combine(AppContext.BaseDirectory, "logs", "es-buffer")
+            };
+            if (!string.IsNullOrWhiteSpace(esUser) && !string.IsNullOrWhiteSpace(esPass))
+            {
+                esOptions.ModifyConnectionSettings = (c) => c.BasicAuthentication(esUser, esPass);
+            }
+            loggerConfiguration = loggerConfiguration.WriteTo.Elasticsearch(esOptions);
+        }
 
         Log.Logger = loggerConfiguration.CreateLogger();
 
