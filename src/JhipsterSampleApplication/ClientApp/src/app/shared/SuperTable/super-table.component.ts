@@ -796,6 +796,53 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     this.startWidthsPx = null;
   }
 
+  // Double-click on a resize handle resets widths to algorithm-determined defaults
+  onResizeReset(index: number, ev: MouseEvent): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    this.resetColumnWidthsToDefaults();
+  }
+
+  private resetColumnWidthsToDefaults(): void {
+    try {
+      // Remove only the current profile from persisted storage
+      if (this.widthKey) {
+        const key = `supertable.widths:${this.widthKey}`;
+        let obj: any = null;
+        try { obj = JSON.parse(localStorage.getItem(key) || 'null'); } catch { obj = null; }
+        if (obj && obj.v === SuperTable.WIDTHS_STORAGE_VERSION && obj.profiles) {
+          const sig = this.specSignature || 'default';
+          if (obj.profiles[sig]) {
+            delete obj.profiles[sig];
+            // Clean up if empty
+            if (Object.keys(obj.profiles).length === 0) {
+              localStorage.removeItem(key);
+            } else {
+              localStorage.setItem(key, JSON.stringify(obj));
+            }
+          }
+        }
+      }
+    } catch {}
+
+    // Restore initial/implicit widths as a starting point
+    if (this.initialWidths && this.initialWidths.length === this.visibleColumns.length) {
+      this.visibleColumns.forEach((c, i) => (c.width = this.initialWidths![i]));
+    } else {
+      this.visibleColumns.forEach((c) => {
+        const t = c.type;
+        const isUtility = t === 'lineNumber' || t === 'checkbox' || t === 'expander';
+        if (!isUtility) c.width = undefined;
+      });
+    }
+    this.columns = [...this.columns];
+    this.lastColumnWidths = undefined;
+    this.minWidthsCache = null;
+    const defaults = this.computeDefaultWidths();
+    const fitted = this.fitWidthsToContainer(defaults);
+    this.applyWidthsToDom(fitted);
+  }
+
   private findResizableIndexFrom(start: number, dir: number): number | null {
     const n = this.visibleColumns.length;
     for (let i = start; i >= 0 && i < n; i += (dir === 0 ? 1 : dir)) {

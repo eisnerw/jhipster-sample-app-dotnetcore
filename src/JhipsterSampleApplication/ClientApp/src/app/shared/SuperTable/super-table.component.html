@@ -115,7 +115,7 @@
                 (mousedown)="onResizeStart(i, $event)"
                 (mouseup)="$event.stopPropagation()"
                 (click)="$event.stopPropagation()"
-                (dblclick)="$event.stopPropagation()"
+                (dblclick)="onResizeReset(i, $event)"
               ></span>
             </th>
           }
@@ -306,7 +306,7 @@
                 (mousedown)="onResizeStart(i, $event)"
                 (mouseup)="$event.stopPropagation()"
                 (click)="$event.stopPropagation()"
-                (dblclick)="$event.stopPropagation()"
+                (dblclick)="onResizeReset(i, $event)"
               ></span>
             </th>
           }
