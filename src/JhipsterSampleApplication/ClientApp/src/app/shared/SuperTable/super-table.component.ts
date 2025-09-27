@@ -739,9 +739,40 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       const stolen = delta - need;
       newWidths[left] = this.startLeftWidth + stolen;
     } else if (delta < 0) {
-      const give = -delta;
-      newWidths[left] = this.startLeftWidth - give;
-      if (right < newWidths.length) newWidths[right] = start[right] + give;
+      // Symmetric algorithm for moving handle to the left.
+      // 1) Decrease the left column down to its minimum.
+      // 2) If more movement is requested, reduce columns to the LEFT (left-1, left-2, ...)
+      // 3) Increase the immediate right column by the total movement amount to keep total width constant.
+
+      // Total requested shrink from the left side based on pointer movement
+      const want = Math.round(-dx); // positive pixels desired to move left
+      if (want <= 0) return;
+
+      // Available pixels from the left side (left column + columns to its left)
+      let available = Math.max(0, start[left] - (minLeft));
+      for (let i = left - 1; i >= 0; i--) {
+        available += Math.max(0, start[i] - (minW[i] || 30));
+      }
+      const grant = Math.min(want, available);
+
+      // Apply shrink to the left column first
+      let remaining = grant;
+      const shrinkLeft = Math.min(remaining, Math.max(0, start[left] - (minLeft)));
+      newWidths[left] = start[left] - shrinkLeft;
+      remaining -= shrinkLeft;
+
+      // Then steal from columns to the left, right-to-left
+      if (remaining > 0) {
+        for (let i = left - 1; i >= 0 && remaining > 0; i--) {
+          const headroom = Math.max(0, start[i] - (minW[i] || 30));
+          const take = Math.min(headroom, remaining);
+          newWidths[i] = start[i] - take;
+          remaining -= take;
+        }
+      }
+
+      // Grow the immediate right column by the total granted movement
+      if (right < newWidths.length) newWidths[right] = start[right] + grant;
     } else {
       // no change
     }
