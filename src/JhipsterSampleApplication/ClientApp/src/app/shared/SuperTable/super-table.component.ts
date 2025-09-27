@@ -11,6 +11,7 @@ import { Table } from 'primeng/table';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { FormsModule } from '@angular/forms';
 import { DataLoader } from '../data-loader';
+import { environment } from 'environments/environment';
 
 export interface ColumnConfig {
   field: string;
@@ -63,6 +64,9 @@ export interface GroupData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
+  // Increment this to invalidate/ignore all previously persisted widths when
+  // the algorithm or persisted object shape changes.
+  private static readonly WIDTHS_STORAGE_VERSION = 2;
   private cdr = inject(ChangeDetectorRef);
 
   @Input() dataLoader: DataLoader<any> | undefined;
@@ -213,12 +217,21 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   ngOnInit(): void {
+    // Dev helper: allow clean test runs by adding ?stReset=1 or ?cleanWidths=1
+    if (environment.DEBUG_INFO_ENABLED) {
+      try {
+        const qs = typeof location !== 'undefined' ? location.search : '';
+        if (/([?&])(stReset|cleanWidths)(=1)?(&|$)/.test(qs)) {
+          this.purgeAllPersistedWidths();
+        }
+      } catch {}
+    }
     // Recompute layout on browser resize using default heuristic
     if (typeof window !== 'undefined') {
       this.windowResizeHandler = () => {
         try {
-          // Abandon ALL persisted widths on resize to let defaults take over
-          this.purgeAllPersistedWidths();
+          // Do not purge persisted widths globally; instead, widths are scoped
+          // by spec signature (which includes viewport width from parent).
           // Reset column explicit widths back to their initial spec so columns
           // become flexible again before recalculation. Otherwise previously
           // applied pixel widths will be treated as explicit and block growth
@@ -845,12 +858,15 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       const raw = localStorage.getItem(`supertable.widths:${this.widthKey}`);
       if (!raw) return null;
       const obj = JSON.parse(raw);
-      // Ignore legacy array format to prefer current spec widths on first load after changes
-      if (Array.isArray(obj)) return null;
-      if (obj && Array.isArray(obj.widths)) {
-        if (!this.specSignature || obj.sig === this.specSignature) return obj.widths as string[];
-        return null;
-      }
+      // Strictly accept only the current versioned payload. Any other shape
+      // or older version is ignored by design to avoid cross-run interference.
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
+      if (obj.v !== SuperTable.WIDTHS_STORAGE_VERSION) return null;
+      const profiles = obj.profiles;
+      if (!profiles || typeof profiles !== 'object') return null;
+      const sig = this.specSignature || '';
+      const candidate = profiles[sig];
+      if (Array.isArray(candidate)) return candidate as string[];
       return null;
     } catch {
       return null;
@@ -860,8 +876,17 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private writePersistedWidths(widths: string[]): void {
     try {
       if (!this.widthKey) return;
-      const payload = this.specSignature ? { widths, sig: this.specSignature } : { widths };
-      localStorage.setItem(`supertable.widths:${this.widthKey}`, JSON.stringify(payload));
+      const key = `supertable.widths:${this.widthKey}`;
+      let obj: any = null;
+      try { obj = JSON.parse(localStorage.getItem(key) || 'null'); } catch { obj = null; }
+      // Start fresh unless the stored object matches the current version/shape
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj) || obj.v !== SuperTable.WIDTHS_STORAGE_VERSION) {
+        obj = { v: SuperTable.WIDTHS_STORAGE_VERSION, profiles: {} };
+      }
+      if (!obj.profiles || typeof obj.profiles !== 'object') obj.profiles = {};
+      const sig = this.specSignature || 'default';
+      obj.profiles[sig] = widths;
+      localStorage.setItem(key, JSON.stringify(obj));
     } catch {}
   }
 

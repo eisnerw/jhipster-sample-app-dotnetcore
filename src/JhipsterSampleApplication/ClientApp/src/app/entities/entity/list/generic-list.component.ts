@@ -166,9 +166,11 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     const columns = this.buildColumnsFromSpec(spec);
     this.columns = columns;
     this.initialWidths = this.columns.map(c => c.width || undefined);
-    // Base signature tied to column spec only (no viewport). Kept for recomputation on resize.
+    // Base signature tied to column spec
     this.baseSpecSignature = this.columns.map(c => `${c.field}:${c.width || ''}`).join('|');
-    this.specSignature = this.baseSpecSignature;
+    // Include a stable viewport width (clientWidth excludes scrollbar)
+    const vw = this.getStableViewportWidth();
+    this.specSignature = `${this.baseSpecSignature}|vw:${vw}`;
     this.globalFilterFields = columns
       .filter(c => (c.type === 'string' || !c.type) && !!c.field && c.field !== 'lineNumber' && c.field !== 'checkbox')
       .map(c => c.field);
@@ -400,21 +402,27 @@ export class GenericListComponent implements OnInit, AfterViewInit {
 
   refreshData(): void { try { this.superTable.captureHeaderState(); this.onQueryChange(this.currentQuery, true); } catch {} }
 
-  // Clear saved column widths and nudge SuperTable to recompute on resize
+  // Nudge SuperTable to recompute on resize and scope persistence to viewport width
   private resizeDebounce: any;
   @HostListener('window:resize')
   onWindowResize(): void {
     if (this.resizeDebounce) clearTimeout(this.resizeDebounce);
     this.resizeDebounce = setTimeout(() => {
-      try {
-        const key = `supertable.widths:list:${this.entity}`;
-        if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
-      } catch {}
-      const vw = typeof window !== 'undefined' ? window.innerWidth : 0;
+      const vw = this.getStableViewportWidth();
       const base = this.baseSpecSignature || this.specSignature || '';
       this.specSignature = `${base}|vw:${vw}`;
       try { (this.superTable as any)['lastColumnWidths'] = undefined; } catch {}
     }, 150);
+  }
+
+  // Prefer documentElement.clientWidth which excludes vertical scrollbar width,
+  // making signatures stable across content-height changes.
+  private getStableViewportWidth(): number {
+    try {
+      const docW = (typeof document !== 'undefined' && (document.documentElement?.clientWidth || 0)) || 0;
+      const winW = (typeof window !== 'undefined' && (window.innerWidth || 0)) || 0;
+      return docW || winW || 0;
+    } catch { return 0; }
   }
 
   onCheckboxChange(): void { this.checkboxSelectedRows = this.selection || []; this.chipSelectedRows = this.checkboxSelectedRows.slice(0, 2); }
