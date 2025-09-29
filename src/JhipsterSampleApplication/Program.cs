@@ -108,6 +108,11 @@ try
                    () => globalLevel.MinimumLevel))
           );
 
+        // Resolve logging directory (can be overridden by configuration: Logging:Directory)
+        var logRoot = configuration.GetValue<string>("Logging:Directory");
+        if (string.IsNullOrWhiteSpace(logRoot)) logRoot = Path.Combine(AppContext.BaseDirectory, "logs");
+        Directory.CreateDirectory(logRoot);
+
         // Optional Elasticsearch sink with ECS
         var esUrl = configuration.GetValue<string>("Elasticsearch:Url");
         if (!string.IsNullOrWhiteSpace(esUrl))
@@ -135,6 +140,14 @@ try
                         {
                             doc.Log ??= new Elastic.CommonSchema.Log();
                             var val = sc.ToString().Trim('"');
+                            doc.Log.Logger = val;
+                            if (doc.Labels == null) doc.Labels = new Elastic.CommonSchema.Labels();
+                            doc.Labels["SourceContext"] = val;
+                        }
+                        else if (evt.Properties.TryGetValue("LoggerName", out var lnProp))
+                        {
+                            doc.Log ??= new Elastic.CommonSchema.Log();
+                            var val = lnProp.ToString().Trim('"');
                             doc.Log.Logger = val;
                             if (doc.Labels == null) doc.Labels = new Elastic.CommonSchema.Labels();
                             doc.Labels["SourceContext"] = val;
@@ -199,7 +212,7 @@ try
             var fileTarget = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
                 .WriteTo.File(
-                    path: Path.Combine(AppContext.BaseDirectory, "logs", "on-demand", "log-.log"),
+                    path: Path.Combine(logRoot, "on-demand-.log"),
                     rollingInterval: RollingInterval.Day,
                     retainedFileCountLimit: 7,
                     shared: true,
@@ -211,6 +224,39 @@ try
                     new JhipsterSampleApplication.Logging.LevelThresholdSink(
                         new JhipsterSampleApplication.Logging.ForwardToLoggerSink(fileTarget),
                         () => fileLevel.MinimumLevel),
+                    ShouldDemote,
+                    Serilog.Events.LogEventLevel.Verbose));
+        });
+
+        // Error file logging: on error, write the error plus buffered verbose context
+        lc.WriteTo.Logger(errLog =>
+        {
+            var errorTarget = new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .WriteTo.File(
+                    path: Path.Combine(logRoot, "error-.log"),
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 14,
+                    shared: true,
+                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3} {SourceContext} {UserName} : {Message:lj}{NewLine}{Exception}")
+                .CreateLogger();
+
+            // Buffer everything (including Information) for context
+            var bufferForError = new JhipsterSampleApplication.Logging.BufferOnErrorSink(
+                new JhipsterSampleApplication.Logging.ForwardToLoggerSink(errorTarget),
+                capacity: 300,
+                ttl: TimeSpan.FromMinutes(2),
+                bufferInformation: true);
+
+            // Predicate: pass if level >= Error OR replayed == true (context)
+            bool PassErrorsAndReplayed(Serilog.Events.LogEvent e)
+                => e.Level >= Serilog.Events.LogEventLevel.Error || (e.Properties.TryGetValue("replayed", out var rv) && rv.ToString() == "True");
+
+            errLog.MinimumLevel.Verbose()
+                .WriteTo.Sink(new JhipsterSampleApplication.Logging.LevelDemotionSink(
+                    new JhipsterSampleApplication.Logging.PredicateFilterSink(
+                        bufferForError,
+                        PassErrorsAndReplayed),
                     ShouldDemote,
                     Serilog.Events.LogEventLevel.Verbose));
         });

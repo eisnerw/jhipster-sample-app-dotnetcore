@@ -67,10 +67,14 @@ poll_once(){
     | map(select(((._source["@timestamp"] // "") > $last_ts) or (((._source["@timestamp"] // "") == $last_ts) and ((._id // "") != $last_id))))
     | .[]
     | ._source as $s
-    | ($s["@timestamp"] | sub("Z$"; "") | gsub("T"; " ")) as $ts
+    | ($s["@timestamp"] | sub("Z$"; "") | gsub("T"; " ")) as $iso
+    | (
+        ($iso | capture("^(?<base>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})\\.(?<frac>\\d+)")? ) as $cap
+        | if $cap != null then ($cap.base + "." + ($cap.frac[0:3])) else ($iso) end
+      ) as $ts
     | ($s.demoted // false) as $dem
     | ($s["log.level"] // $s.level // $s.labels.level_text // "Information") as $lvlraw
-    | ($dem == true ? "Verbose" : $lvlraw) as $lvl
+    | (if $dem == true then "Verbose" else $lvlraw end) as $lvl
     | select(want_level($lvl))
     | ($s["log.logger"] // $s.SourceContext // $s.labels.SourceContext // "-") as $mod
     | ($s["log.origin"]["function"] // $s.origin.function // $s.CallerMemberName // $s.labels.CallerMemberName // null) as $fun

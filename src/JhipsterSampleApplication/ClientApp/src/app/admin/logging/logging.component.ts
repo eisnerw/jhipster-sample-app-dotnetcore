@@ -22,7 +22,6 @@ import { HttpClient } from '@angular/common/http';
           <label class="form-label">Duration (minutes, optional)</label>
           <input type="number" class="form-control" [(ngModel)]="minutes" min="0" placeholder="0 = until changed" (change)="applyGlobal()" />
         </div>
-        <button type="button" class="btn btn-outline-secondary" (click)="refresh()">Refresh</button>
       </div>
     </div>
 
@@ -37,6 +36,11 @@ import { HttpClient } from '@angular/common/http';
         <div>
           <label class="form-label">Duration (minutes)</label>
           <input type="number" class="form-control" [(ngModel)]="fileMinutes" min="0" placeholder="0 = until changed" (change)="applyFile()" />
+        </div>
+        <div class="ms-auto d-flex gap-2 align-items-end">
+          <button type="button" class="btn btn-outline-danger" [disabled]="busy" (click)="truncate()">
+            {{ busy ? 'Truncating…' : 'Truncate' }}
+          </button>
         </div>
       </div>
     </div>
@@ -58,6 +62,7 @@ export default class LoggingComponent {
   minutes: number | null = null;
   fileMinutes: number | null = null;
   info: { filePath?: string; fileExists?: boolean; fileSize?: number | null; latestFilePath?: string } | null = null;
+  busy = false;
 
   async refresh() {
     this.http.get<{ globalLevel: string; fileLevel: string; filePath?: string; fileExists?: boolean; fileSize?: number | null; latestFilePath?: string }>(`/api/admin/logging/level`).subscribe(js => {
@@ -80,4 +85,14 @@ export default class LoggingComponent {
   }
 
   ngOnInit() { this.refresh(); }
+
+  truncate() {
+    if (this.busy) return;
+    this.busy = true;
+    this.http.post(`/api/admin/logging/truncate`, {}, { responseType: 'json' })
+      .subscribe({
+        next: () => { this.refresh(); this.busy = false; },
+        error: () => { this.busy = false; }
+      });
+  }
 }

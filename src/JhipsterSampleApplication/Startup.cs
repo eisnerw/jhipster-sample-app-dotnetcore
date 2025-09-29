@@ -8,6 +8,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Newtonsoft.Json;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Services;
@@ -86,7 +89,30 @@ public class Startup : IStartup
             .UseApplicationIdentity()
             // Enrich request with user before Serilog request logging runs
             .UseMiddleware<SerilogUserEnricherMiddleware>()
-            .UseSerilogRequestLogging()
+            .UseSerilogRequestLogging(opts =>
+            {
+                // Promote controller/method into SourceContext/CallerMemberName so module::method renders correctly
+                opts.EnrichDiagnosticContext = (ctx, http) =>
+                {
+                    var endpoint = http.GetEndpoint();
+                    var display = endpoint?.DisplayName;
+                    // Try to get controller/action via metadata when available
+                    var cad = endpoint?.Metadata?.GetMetadata<Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor>();
+                    if (cad != null)
+                    {
+                        var cls = cad.ControllerTypeInfo?.FullName ?? cad.ControllerName;
+                        var action = cad.ActionName;
+                        if (!string.IsNullOrWhiteSpace(cls)) ctx.Set("SourceContext", cls);
+                        if (!string.IsNullOrWhiteSpace(action)) ctx.Set("CallerMemberName", action);
+                        ctx.Set("labels.SourceContext", cls);
+                        ctx.Set("labels.CallerMemberName", action);
+                    }
+                    else if (!string.IsNullOrWhiteSpace(display))
+                    {
+                        ctx.Set("EndpointName", display);
+                    }
+                };
+            })
             /*.Use(async (context, next) => {
                 // This code will execute for every request.
                 // Console.WriteLine("Request received: " + context.Request.Path + " from " + context.Request.Headers["Origin"]);
