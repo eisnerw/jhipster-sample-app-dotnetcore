@@ -16,6 +16,7 @@ using System.Text.Json.Nodes;
 using System.Text;
 using System.Net;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -23,6 +24,7 @@ namespace JhipsterSampleApplication.Controllers
     [Route("api/entity")]
     public class EntityController : ControllerBase
     {
+        private readonly ILogger<EntityController> _log;
         private readonly ElasticsearchClient _elasticClient;
         private readonly IConfiguration _configuration;
         private readonly IEntitySpecRegistry _specRegistry;
@@ -30,8 +32,9 @@ namespace JhipsterSampleApplication.Controllers
         private readonly JhipsterSampleApplication.Domain.Services.EntityService _entityService;
         private readonly IHistoryService _historyService;
 
-        public EntityController(ElasticsearchClient elasticClient, IConfiguration configuration, IEntitySpecRegistry specRegistry, INamedQueryService namedQueryService, JhipsterSampleApplication.Domain.Services.EntityService jsonService, IHistoryService historyService)
+        public EntityController(ILogger<EntityController> log, ElasticsearchClient elasticClient, IConfiguration configuration, IEntitySpecRegistry specRegistry, INamedQueryService namedQueryService, JhipsterSampleApplication.Domain.Services.EntityService jsonService, IHistoryService historyService)
         {
+            _log = log;
             _elasticClient = elasticClient;
             _configuration = configuration;
             _specRegistry = specRegistry;
@@ -155,6 +158,16 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] bool includeDetails = false, [FromQuery] int from = 0, [FromQuery] int pageSize = 20,
             [FromQuery] string[]? sort = null, [FromQuery] string? pitId = null, [FromQuery] string[]? searchAfter = null)
         {
+            // Ensure non-null to satisfy nullable analysis and downstream usage
+            elasticsearchQuery ??= new JObject();
+            // Debug logging (helps verify dynamic log level and inspect search payloads)
+            if (_log.IsEnabled(LogLevel.Debug))
+            {
+                var sortJoined = sort == null ? null : string.Join(";", sort);
+                string qCompact = TruncateJson(elasticsearchQuery?.ToString(Newtonsoft.Json.Formatting.None) ?? string.Empty, 800);
+                _log.LogDebug("Entity.Search entity={Entity} view={View} category={Category} secondaryCategory={Secondary} includeDetails={IncludeDetails} from={From} size={PageSize} sort={Sort} pitId={PitId} afterCount={AfterCount} query={Query}",
+                    entity, view, category, secondaryCategory, includeDetails, from, pageSize, sortJoined, pitId, searchAfter?.Length ?? 0, qCompact);
+            }
             bool isHitFromViewDrilldown = false;
             if (!string.IsNullOrEmpty(view))
             {
@@ -163,7 +176,7 @@ namespace JhipsterSampleApplication.Controllers
                 if (category == null)
                 {
                     if (secondaryCategory != null) throw new ArgumentException($"secondaryCategory '{secondaryCategory}' should be null because category is null");
-                    var viewResult = await SearchWithElasticQueryAndViewAsync(entity, elasticsearchQuery, viewDto, pageSize, from);
+                    var viewResult = await SearchWithElasticQueryAndViewAsync(entity, elasticsearchQuery!, viewDto, pageSize, from);
                     return Ok(new SearchResultDto<ViewResultDto> { Hits = viewResult, HitType = "view", ViewName = view });
                 }
                 if (category == "(Uncategorized)")
@@ -185,7 +198,7 @@ namespace JhipsterSampleApplication.Controllers
                     {
                         ["bool"] = new JObject
                         {
-                            ["must"] = new JArray { missingFilter, elasticsearchQuery }
+                            ["must"] = new JArray { missingFilter, elasticsearchQuery! }
                         }
                     };
                 }
@@ -199,7 +212,7 @@ namespace JhipsterSampleApplication.Controllers
                             ["must"] = new JArray
                             {
                                 new JObject { ["query_string"] = new JObject { ["query"] = categoryQuery } },
-                                elasticsearchQuery
+                                elasticsearchQuery!
                             }
                         }
                     };
@@ -209,7 +222,7 @@ namespace JhipsterSampleApplication.Controllers
                 {
                     if (secondaryCategory == null)
                     {
-                        var viewSecondaryResult = await SearchWithElasticQueryAndViewAsync(entity, elasticsearchQuery, secondaryViewDto, pageSize, from);
+                        var viewSecondaryResult = await SearchWithElasticQueryAndViewAsync(entity, elasticsearchQuery!, secondaryViewDto, pageSize, from);
                         return Ok(new SearchResultDto<ViewResultDto> { Hits = viewSecondaryResult, HitType = "view", ViewName = view, viewCategory = category });
                     }
                     if (secondaryCategory == "(Uncategorized)")
@@ -228,7 +241,7 @@ namespace JhipsterSampleApplication.Controllers
                                 ["minimum_should_match"] = 1
                             }
                         };
-                        elasticsearchQuery = new JObject { ["bool"] = new JObject { ["must"] = new JArray { secondaryMissing, elasticsearchQuery } } };
+                        elasticsearchQuery = new JObject { ["bool"] = new JObject { ["must"] = new JArray { secondaryMissing, elasticsearchQuery! } } };
                     }
                     else
                     {
@@ -241,7 +254,7 @@ namespace JhipsterSampleApplication.Controllers
                                 ["must"] = new JArray
                                 {
                                     new JObject { ["query_string"] = new JObject { ["query"] = secondaryCategoryQuery } },
-                                    elasticsearchQuery
+                                    elasticsearchQuery!
                                 }
                             }
                         };
@@ -299,6 +312,12 @@ namespace JhipsterSampleApplication.Controllers
             [FromQuery] string[]? sort = null, [FromQuery] string? pitId = null, [FromQuery] string[]? searchAfter = null)
         {
             if (string.IsNullOrWhiteSpace(query)) return BadRequest("Query cannot be empty");
+            if (_log.IsEnabled(LogLevel.Debug))
+            {
+                var sortJoined = sort == null ? null : string.Join(";", sort);
+                _log.LogDebug("Entity.SearchLucene entity={Entity} query={Query} view={View} category={Category} includeDetails={IncludeDetails} from={From} size={PageSize} sort={Sort} pitId={PitId} afterCount={AfterCount}",
+                    entity, query, view, category, includeDetails, from, pageSize, sortJoined, pitId, searchAfter?.Length ?? 0);
+            }
             JObject queryObject = new JObject { ["query_string"] = new JObject { ["query"] = query } };
             return await Search(entity, queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
         }
@@ -431,6 +450,12 @@ namespace JhipsterSampleApplication.Controllers
 
         // All raw searches and aggregations are handled by EntityService now.
         // Controller contains only orchestration and parameter handling.
+
+        private static string TruncateJson(string s, int max)
+        {
+            if (string.IsNullOrEmpty(s) || s.Length <= max) return s;
+            return s.Substring(0, max) + "...";
+        }
 
         private Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(string entity, JObject queryObject, ViewDto viewDto, int size = 20, int from = 0)
             => _entityService.SearchWithElasticQueryAndViewAsync(entity, queryObject, viewDto, size, from);

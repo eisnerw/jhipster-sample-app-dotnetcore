@@ -12,6 +12,11 @@ const routes: Routes = [
     loadComponent: () => import('./docs/docs.component'),
     title: 'global.menu.admin.apidocs',
   },
+  {
+    path: 'logging',
+    loadComponent: () => import('./logging/logging.component'),
+    title: 'Logging Control',
+  },
   /* jhipster-needle-add-admin-route - JHipster will add admin routes here */
 ];
 

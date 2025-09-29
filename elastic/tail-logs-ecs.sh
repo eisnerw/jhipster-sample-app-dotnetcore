@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Tail ECS Serilog logs from Elasticsearch with compact formatting:
-# 2025-09-27T01:53:03 [Information] Namespace.Class::Method | Message
+# Tail ECS Serilog logs from Elasticsearch with compact formatting.
+# Now prints 3-letter level abbreviations (INF, DBG, VRB, WRN, ERR, FTL):
+# 2025-09-27T01:53:03 [INF] Namespace.Class::Method | Message
 
 URL="http://localhost:9200"
 USER=""; PASS=""; INSECURE=0
@@ -37,7 +38,7 @@ else
 fi
 
 build_query(){
-  printf '{ "size": %s, "sort":[{"@timestamp":{"order":"desc"}}], "query":{"range":{"@timestamp":{"gte":"now-%s"}}}, "_source":["@timestamp","log.level","log.logger","SourceContext","origin.function","CallerMemberName","message"] }' "$SIZE" "$WINDOW"
+  printf '{ "size": %s, "sort":[{"@timestamp":{"order":"desc"}}], "query":{"range":{"@timestamp":{"gte":"now-%s"}}}, "_source":["@timestamp","log.level","level","labels.level_text","log.logger","SourceContext","labels.SourceContext","origin.function","log.origin.function","CallerMemberName","labels.CallerMemberName","message"] }' "$SIZE" "$WINDOW"
 }
 
 poll_once(){
@@ -50,18 +51,33 @@ poll_once(){
   [[ "${LAST_ID:-}" == "$newest_id" ]] && return 0
 
   jq -r --arg last_ts "${LAST_TS:-}" --arg last_id "${LAST_ID:-}" --arg level "$LEVEL" '
+    def abbr(l):
+      (l // "Information" | tostring | ascii_upcase) as $L |
+      if   ($L|startswith("VERB")) then "VRB"
+      elif ($L|startswith("DEBU")) then "DBG"
+      elif ($L|startswith("INFO")) then "INF"
+      elif ($L|startswith("WARN")) then "WRN"
+      elif ($L|startswith("ERRO")) then "ERR"
+      elif ($L|startswith("FATA")) then "FTL"
+      else ($L[0:3]) end;
+    def want_level(lvl):
+      ($level|length)==0 or (lvl == $level) or (abbr(lvl) == ($level|ascii_upcase));
     .hits.hits
     | reverse
     | map(select(((._source["@timestamp"] // "") > $last_ts) or (((._source["@timestamp"] // "") == $last_ts) and ((._id // "") != $last_id))))
     | .[]
     | ._source as $s
-    | ($s["@timestamp"] | sub("\\..*$"; "") | sub("Z$"; "")) as $ts
-    | ($s["log.level"] // $s.level // $s.log.level // "Information") as $lvl
-    | select(($level == "") or ($lvl == $level))
-    | ($s["log.logger"] // $s.SourceContext // "-") as $mod
-    | ($s.origin.function // $s.CallerMemberName // null) as $fun
+    | ($s["@timestamp"] | sub("Z$"; "") | gsub("T"; " ")) as $ts
+    | ($s.demoted // false) as $dem
+    | ($s["log.level"] // $s.level // $s.labels.level_text // "Information") as $lvlraw
+    | ($dem == true ? "Verbose" : $lvlraw) as $lvl
+    | select(want_level($lvl))
+    | ($s["log.logger"] // $s.SourceContext // $s.labels.SourceContext // "-") as $mod
+    | ($s["log.origin"]["function"] // $s.origin.function // $s.CallerMemberName // $s.labels.CallerMemberName // null) as $fun
+    | ($s.user.name // $s["user.name"] // $s.labels["user.name"] // null) as $usr
     | (if $fun then ($mod + "::" + $fun) else $mod end) as $where
-    | "\($ts) [\($lvl)] \($where) | \($s.message)"
+    | (if $usr then (" ["+$usr+"]") else " []" end) as $userfrag
+    | "\($ts) [\(abbr($lvl))] \($where)\($userfrag) | \($s.message)"
   ' <<<"$resp"
 
   LAST_ID="$newest_id"; LAST_TS="$newest_ts"

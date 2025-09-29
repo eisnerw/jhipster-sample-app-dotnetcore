@@ -59,9 +59,15 @@ public static class SerilogConfiguration
             .Enrich.WithThreadId()
             .Enrich.WithProperty("service.name", appName)
             .Enrich.WithProperty("service.environment", appConfiguration["ASPNETCORE_ENVIRONMENT"] ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development")
-            // Include caller info (method, type, file, line) for routine attribution
-            .Enrich.WithCallerInfo(includeFileInfo: true, assemblyPrefix: "JhipsterSampleApplication")
-            .WriteTo.TcpSyslog(url, port, appName)
+            // Syslog is optional; enable only if explicitly configured
+            .WriteTo.Logger(lc =>
+            {
+                bool syslogEnabled = string.Equals(appConfiguration.GetSection(SerilogSection)["SyslogEnabled"], "true", StringComparison.OrdinalIgnoreCase);
+                if (syslogEnabled)
+                {
+                    lc.WriteTo.TcpSyslog(url, port, appName);
+                }
+            })
             .ReadFrom.Configuration(appConfiguration);
 
         // Optional: Elasticsearch sink with ECS formatter

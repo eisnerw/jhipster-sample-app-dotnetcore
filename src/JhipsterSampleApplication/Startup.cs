@@ -20,6 +20,7 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using JhipsterSampleApplication.Middleware;
 using Serilog.Extensions.Hosting;
+using JhipsterSampleApplication.Services;
 
 [assembly: ApiController]
 
@@ -46,6 +47,9 @@ public class Startup : IStartup
             .AddWebModule()
             .AddRepositoryModule()
             .AddServiceModule();
+
+        // Logging control endpoints support
+        services.AddSingleton<LoggingControlService>();
 
         // Serilog services are registered via Host.UseSerilog() in Program.cs
 
@@ -80,8 +84,9 @@ public class Startup : IStartup
             .UseApplicationProblemDetails(environment)
             .UseApplicationDatabase(environment)
             .UseApplicationIdentity()
-            .UseSerilogRequestLogging()
+            // Enrich request with user before Serilog request logging runs
             .UseMiddleware<SerilogUserEnricherMiddleware>()
+            .UseSerilogRequestLogging()
             /*.Use(async (context, next) => {
                 // This code will execute for every request.
                 // Console.WriteLine("Request received: " + context.Request.Path + " from " + context.Request.Headers["Origin"]);

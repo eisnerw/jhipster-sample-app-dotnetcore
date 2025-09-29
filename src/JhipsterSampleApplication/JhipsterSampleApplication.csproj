@@ -35,6 +35,7 @@
         <PackageReference Include="Serilog.Enrichers.Thread" />
         <PackageReference Include="Serilog.Sinks.SyslogMessages" />
         <PackageReference Include="Serilog.Extensions.Hosting" />
+        <PackageReference Include="Serilog.Sinks.Async" />
         <PackageReference Include="Serilog.Sinks.Elasticsearch" />
         <PackageReference Include="Elastic.CommonSchema.Serilog" />
         <PackageReference Include="Serilog.Enrichers.Environment" />
