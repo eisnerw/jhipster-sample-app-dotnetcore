@@ -38,7 +38,13 @@ else
 fi
 
 build_query(){
-  printf '{ "size": %s, "sort":[{"@timestamp":{"order":"desc"}}], "query":{"range":{"@timestamp":{"gte":"now-%s"}}}, "_source":["@timestamp","log.level","level","labels.level_text","log.logger","SourceContext","labels.SourceContext","origin.function","log.origin.function","CallerMemberName","labels.CallerMemberName","message"] }' "$SIZE" "$WINDOW"
+  printf '{ "size": %s, "sort":[{"@timestamp":{"order":"desc"}}], "query":{"range":{"@timestamp":{"gte":"now-%s"}}}, "_source":[
+    "@timestamp","message",
+    "log.level","level","labels.level_text",
+    "log.logger","SourceContext","labels.SourceContext","fields.SourceContext",
+    "origin.function","log.origin.function","CallerMemberName","labels.CallerMemberName","fields.CallerMemberName",
+    "user.name","labels.user.name","fields.UserName"
+  ] }' "$SIZE" "$WINDOW"
 }
 
 poll_once(){
@@ -62,23 +68,27 @@ poll_once(){
       else ($L[0:3]) end;
     def want_level(lvl):
       ($level|length)==0 or (lvl == $level) or (abbr(lvl) == ($level|ascii_upcase));
+    def ts3:
+      (sub("Z$"; "") | gsub("T"; " ")) as $t
+      | (if ($t | index(".")) then ($t | split(".") | .[0] + "." + (.[1][0:3])) else $t end);
+    def dequote(x): if (x|type)=="string" then (x | gsub("^\\\"|\\\"$"; "")) else x end;
     .hits.hits
     | reverse
     | map(select(((._source["@timestamp"] // "") > $last_ts) or (((._source["@timestamp"] // "") == $last_ts) and ((._id // "") != $last_id))))
     | .[]
     | ._source as $s
-    | ($s["@timestamp"] | sub("Z$"; "") | gsub("T"; " ")) as $iso
-    | (
-        ($iso | capture("^(?<base>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})\\.(?<frac>\\d+)")? ) as $cap
-        | if $cap != null then ($cap.base + "." + ($cap.frac[0:3])) else ($iso) end
-      ) as $ts
+    | ($s["@timestamp"] | ts3) as $ts
     | ($s.demoted // false) as $dem
     | ($s["log.level"] // $s.level // $s.labels.level_text // "Information") as $lvlraw
     | (if $dem == true then "Verbose" else $lvlraw end) as $lvl
     | select(want_level($lvl))
-    | ($s["log.logger"] // $s.SourceContext // $s.labels.SourceContext // "-") as $mod
-    | ($s["log.origin"]["function"] // $s.origin.function // $s.CallerMemberName // $s.labels.CallerMemberName // null) as $fun
-    | ($s.user.name // $s["user.name"] // $s.labels["user.name"] // null) as $usr
+    | ($s["log.logger"] // $s.SourceContext // $s.labels.SourceContext // $s.fields.SourceContext // "-") as $modraw
+    | dequote($modraw) as $mod
+    | ($s["log.origin"]["function"] // $s.origin.function // $s.CallerMemberName // $s.labels.CallerMemberName // $s.fields.CallerMemberName // null) as $funraw
+    | dequote($funraw) as $fun
+    | ($s.user.name // $s["user.name"] // $s.labels["user.name"] // null) as $usr1
+    | ($s.fields.UserName // null) as $usr2raw
+    | (if $usr1 then $usr1 else (if $usr2raw then (dequote($usr2raw) | gsub("^\\[|\\]$"; "")) else null end) end) as $usr
     | (if $fun then ($mod + "::" + $fun) else $mod end) as $where
     | (if $usr then (" ["+$usr+"]") else " []" end) as $userfrag
     | "\($ts) [\(abbr($lvl))] \($where)\($userfrag) | \($s.message)"
