@@ -148,11 +148,14 @@
                         [pTooltip]="(rowData.categories || []).join(', ')"
                         tooltipPosition="right"
                         appendTo="body"
+                        [autoHide]="false"
+                        [showDelay]="120"
+                        [hideDelay]="350"
                         [tooltipStyleClass]="'cat-tooltip'">
                     {{ rowData.categories.length }}
                   </span>
                 }
-                <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
+                <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
               }
               @case ('date') {
                 <span class="cell-content">
@@ -160,7 +163,7 @@
                 </span>
               }
               @case ('boolean') {
-                <span class="cell-content" [pTooltip]="rowData[col.field] ? 'Yes' : 'No'">{{ rowData[col.field] ? 'Yes' : 'No' }}</span>
+                <span class="cell-content" [pTooltip]="rowData[col.field] ? 'Yes' : 'No'" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350">{{ rowData[col.field] ? 'Yes' : 'No' }}</span>
               }
               @case ('list') {
                 @if ((((i === 0) && (col.type !== 'checkbox' && col.type !== 'lineNumber')) ||
@@ -170,14 +173,17 @@
                         [pTooltip]="(rowData.categories || []).join(', ')"
                         tooltipPosition="right"
                         appendTo="body"
+                        [autoHide]="false"
+                        [showDelay]="120"
+                        [hideDelay]="350"
                         [tooltipStyleClass]="'cat-tooltip'">
                     {{ rowData.categories.length }}
                   </span>
                 }
-                <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
+                <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
               }
               @case ('lineNumber') {
-                <span class="cell-content" [pTooltip]="rowIndex + 1">{{ rowIndex + 1 }}</span>
+                <span class="cell-content" [pTooltip]="rowIndex + 1" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350">{{ rowIndex + 1 }}</span>
               }
               @case ('expander') {
                 <button

@@ -199,6 +199,21 @@ a:hover {
   }
 }
 
+/* ===== SuperTable tooltip debug: ensure custom tooltip class takes effect ===== */
+/* Temporary: force style to verify binding; remove red after confirmation. */
+.p-tooltip.cell-tooltip .p-tooltip-text {
+  color: #ffffff !important; /* ensure white text for contrast */
+  font-size: 0.75rem !important; /* ~12px: more readable */
+  line-height: 1.25;
+  font-weight: 400; /* reduce boldness for readability */
+  user-select: text; /* allow copying */
+}
+
+/* Also allow selecting from category tooltips */
+.p-tooltip.cat-tooltip .p-tooltip-text {
+  user-select: text;
+}
+
 /* ==========================================================================
    UI Bootstrap tweaks
 ========================================================================== */
