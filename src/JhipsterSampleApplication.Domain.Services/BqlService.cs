@@ -325,13 +325,67 @@ namespace JhipsterSampleApplication.Domain.Services
                         .Where(s => !string.IsNullOrWhiteSpace(s))
                         .ToList() ?? new List<string>();
 
+                    // Case-insensitive IN: combine a cheap match OR with an exact keyword script check against lower-cased set
+                    var lowerValues = values.Select(s => s.ToLowerInvariant()).ToList();
+                    var matchQuery = string.Join(" ", lowerValues);
+
                     ret = new JObject
                     {
                         {
-                            "terms",
+                            "bool",
                             new JObject
                             {
-                                { ruleset.field + ".keyword", JArray.FromObject(values) }
+                                {
+                                    "must",
+                                    new JArray
+                                    {
+                                        // Analyzer-based prefilter (OR across values)
+                                        new JObject
+                                        {
+                                            {
+                                                "match",
+                                                new JObject
+                                                {
+                                                    {
+                                                        ruleset.field!,
+                                                        new JObject
+                                                        {
+                                                            { "query", matchQuery },
+                                                            { "operator", "or" }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        // Exact, case-insensitive check on keyword field
+                                        new JObject
+                                        {
+                                            {
+                                                "script",
+                                                new JObject
+                                                {
+                                                    {
+                                                        "script",
+                                                        new JObject
+                                                        {
+                                                            {
+                                                                "source",
+                                                                $"def f = doc['{ruleset.field}.keyword']; if (f.size()==0) return false; def v = f.value; if (v == null) return false; return params.values.contains(v.toLowerCase());"
+                                                            },
+                                                            {
+                                                                "params",
+                                                                new JObject
+                                                                {
+                                                                    { "values", JArray.FromObject(lowerValues) }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     };
