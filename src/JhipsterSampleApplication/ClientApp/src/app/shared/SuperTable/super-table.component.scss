@@ -91,9 +91,13 @@
   font-weight: 400;
   color: #333333;
 
-  /* Spacing similar to body cells; keep slight left nudge for alignment */
-  padding: 0.5rem 0.75rem;
-  padding-left: 0.5rem; /* align with first column content */
+  /* Match data-row height exactly (22px overall) */
+  height: 22px;
+  line-height: 22px;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px; /* align with first column content */
+  padding-right: 4px;
 
   /* Ensure header background does not bleed; mimic body background */
   background: var(--surface-card, #ffffff);
