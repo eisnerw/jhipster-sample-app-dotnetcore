@@ -6,7 +6,15 @@ curl -X PUT "http://localhost:9200/movies" -H 'Content-Type: application/json' -
 {
   "settings": {
     "number_of_shards": 1,
-    "number_of_replicas": 0
+    "number_of_replicas": 0,
+    "analysis": {
+      "normalizer": {
+        "lowercase": {
+          "type": "custom",
+          "filter": ["lowercase", "asciifolding"]
+        }
+      }
+    }
   },
   "mappings": {
     "properties": {
@@ -22,7 +30,13 @@ curl -X PUT "http://localhost:9200/movies" -H 'Content-Type: application/json' -
       "genres":     { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
       "categories": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
       "languages":  { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
-      "country":    { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "country":    {
+        "type": "text",
+        "fields": {
+          "keyword": { "type": "keyword", "ignore_above": 256 },
+          "ci":      { "type": "keyword", "normalizer": "lowercase" }
+        }
+      },
 
       "summary":  { "type": "text" },
       "synopsis": { "type": "text" },

@@ -27,6 +27,8 @@ namespace JhipsterSampleApplication.Domain.Services
         private readonly Dictionary<string, HashSet<string>> _allowedBqlTokensUpperByField = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         private readonly Dictionary<string, HashSet<string>> _categoryAllowedValuesByField = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         private readonly HashSet<string> _allOperatorTokensUpper = new HashSet<string>(StringComparer.Ordinal);
+        // Case-insensitive keyword support per field (e.g., country.ci)
+        private readonly Dictionary<string, string> _ciFieldByName = new Dictionary<string, string>(StringComparer.Ordinal);
         		private string? _defaultFullTextField;
 		private readonly Regex _tokenizer;
 
@@ -39,6 +41,13 @@ namespace JhipsterSampleApplication.Domain.Services
 
             BuildSpecCaches();
             _tokenizer = BuildTokenizer();
+        }
+
+        private bool TryGetCiField(string? field, out string? ciField)
+        {
+            ciField = string.Empty;
+            if (string.IsNullOrWhiteSpace(field)) return false;
+            return _ciFieldByName.TryGetValue(field, out ciField);
         }
 
         public static JObject LoadSpec(string entity)
@@ -259,53 +268,56 @@ namespace JhipsterSampleApplication.Domain.Services
 
                     var valueLower = valueStr.ToLowerInvariant();
 
-                    ret = new JObject
+                    if (TryGetCiField(ruleset.field, out var ciField))
                     {
+                        // Fast path: exact case-insensitive keyword
+                        ret = new JObject
                         {
-                            "bool",
-                            new JObject
+                            { "term", new JObject { { ciField!, valueLower } } }
+                        };
+                    }
+                    else
+                    {
+                        // Fallback: analyzer prefilter + exact script compare
+                        ret = new JObject
+                        {
                             {
+                                "bool",
+                                new JObject
                                 {
-                                    "must",
-                                    new JArray
                                     {
-                                        new JObject
+                                        "must",
+                                        new JArray
                                         {
+                                            new JObject
                                             {
-                                                "match",
-                                                new JObject
                                                 {
+                                                    "match",
+                                                    new JObject
                                                     {
-                                                        ruleset.field!,
-                                                        new JObject
                                                         {
-                                                            { "query", valueLower },
-                                                            { "operator", "and" }
+                                                            ruleset.field!,
+                                                            new JObject
+                                                            {
+                                                                { "query", valueLower },
+                                                                { "operator", "and" }
+                                                            }
                                                         }
                                                     }
                                                 }
-                                            }
-                                        },
-                                        new JObject
-                                        {
+                                            },
+                                            new JObject
                                             {
-                                                "script",
-                                                new JObject
                                                 {
+                                                    "script",
+                                                    new JObject
                                                     {
-                                                        "script",
-                                                        new JObject
                                                         {
+                                                            "script",
+                                                            new JObject
                                                             {
-                                                                "source",
-                                                                $"doc['{ruleset.field}.keyword'].value.toLowerCase() == params.query"
-                                                            },
-                                                            {
-                                                                "params",
-                                                                new JObject
-                                                                {
-                                                                    { "query", valueLower }
-                                                                }
+                                                                { "source", $"def f = doc['{ruleset.field}.keyword']; if (f.size()==0) return false; for (def v : f) {{ if (v != null && v.toLowerCase() == params.query) return true; }} return false;" },
+                                                                { "params", new JObject { { "query", valueLower } } }
                                                             }
                                                         }
                                                     }
@@ -315,8 +327,8 @@ namespace JhipsterSampleApplication.Domain.Services
                                     }
                                 }
                             }
-                        }
-                    };
+                        };
+                    }
                 }
                 else if (ruleset.@operator?.Contains("in") == true)
                 {
@@ -325,59 +337,59 @@ namespace JhipsterSampleApplication.Domain.Services
                         .Where(s => !string.IsNullOrWhiteSpace(s))
                         .ToList() ?? new List<string>();
 
-                    // Case-insensitive IN: combine a cheap match OR with an exact keyword script check against lower-cased set
-                    var lowerValues = values.Select(s => s.ToLowerInvariant()).ToList();
-                    var matchQuery = string.Join(" ", lowerValues);
-
-                    ret = new JObject
+                    // Prefer fast CI subfield if available; otherwise fallback to match+script
+                    if (TryGetCiField(ruleset.field, out var ciField))
                     {
+                        var lowerValues = values.Select(s => s.ToLowerInvariant()).ToList();
+                        ret = new JObject
                         {
-                            "bool",
-                            new JObject
+                            { "terms", new JObject { { ciField!, JArray.FromObject(lowerValues) } } }
+                        };
+                    }
+                    else
+                    {
+                        // Case-insensitive IN: analyzer prefilter OR + exact check via script
+                        var lowerValues = values.Select(s => s.ToLowerInvariant()).ToList();
+                        var matchQuery = string.Join(" ", lowerValues);
+                        ret = new JObject
+                        {
                             {
+                                "bool",
+                                new JObject
                                 {
-                                    "must",
-                                    new JArray
                                     {
-                                        // Analyzer-based prefilter (OR across values)
-                                        new JObject
+                                        "must",
+                                        new JArray
                                         {
+                                            new JObject
                                             {
-                                                "match",
-                                                new JObject
                                                 {
+                                                    "match",
+                                                    new JObject
                                                     {
-                                                        ruleset.field!,
-                                                        new JObject
                                                         {
-                                                            { "query", matchQuery },
-                                                            { "operator", "or" }
+                                                            ruleset.field!,
+                                                            new JObject
+                                                            {
+                                                                { "query", matchQuery },
+                                                                { "operator", "or" }
+                                                            }
                                                         }
                                                     }
                                                 }
-                                            }
-                                        },
-                                        // Exact, case-insensitive check on keyword field
-                                        new JObject
-                                        {
+                                            },
+                                            new JObject
                                             {
-                                                "script",
-                                                new JObject
                                                 {
+                                                    "script",
+                                                    new JObject
                                                     {
-                                                        "script",
-                                                        new JObject
                                                         {
+                                                            "script",
+                                                            new JObject
                                                             {
-                                                                "source",
-                                                                $"def f = doc['{ruleset.field}.keyword']; if (f.size()==0) return false; def v = f.value; if (v == null) return false; return params.values.contains(v.toLowerCase());"
-                                                            },
-                                                            {
-                                                                "params",
-                                                                new JObject
-                                                                {
-                                                                    { "values", JArray.FromObject(lowerValues) }
-                                                                }
+                                                                { "source", $"def f = doc['{ruleset.field}.keyword']; if (f.size()==0) return false; for (def v : f) {{ if (v != null && params.values.contains(v.toLowerCase())) return true; }} return false;" },
+                                                                { "params", new JObject { { "values", JArray.FromObject(lowerValues) } } }
                                                             }
                                                         }
                                                     }
@@ -387,8 +399,8 @@ namespace JhipsterSampleApplication.Domain.Services
                                     }
                                 }
                             }
-                        }
-                    };
+                        };
+                    }
                 }
                 else if (ruleset.@operator?.Contains("exists") == true)
                 {
@@ -618,6 +630,18 @@ namespace JhipsterSampleApplication.Domain.Services
                 var fieldObj = (JObject?)kv.Value ?? new JObject();
                 var type = fieldObj.Value<string>("type") ?? "string";
                 _fieldTypeByName[fieldName] = type;
+
+                // Discover case-insensitive keyword capability from spec
+                var ciExplicit = fieldObj.Value<string>("ciField");
+                var hasCi = fieldObj.Value<bool?>("hasCiKeyword") == true;
+                if (!string.IsNullOrWhiteSpace(ciExplicit))
+                {
+                    _ciFieldByName[fieldName] = ciExplicit!;
+                }
+                else if (hasCi)
+                {
+                    _ciFieldByName[fieldName] = fieldName + ".ci";
+                }
 
                 // field-specific operators (lowercase as in spec)
                 var opsLower = fieldObj["operators"]?.Select(v => v?.ToString()?.Trim().ToLowerInvariant() ?? string.Empty)
