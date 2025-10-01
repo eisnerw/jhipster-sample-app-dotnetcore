@@ -24,7 +24,7 @@ export interface SimpleApiResponse {
   message?: string;
 }
 
-export interface CategorizeMultipleRequest {
+export interface CategorizeRequest {
   rows: string[];
   add: string[];
   remove: string[];
@@ -106,8 +106,7 @@ export class EntityGenericService {
     return this.http.delete(`${this.url(entity)}/${encodeURIComponent(id)}`, { observe: 'response' });
   }
 
-  categorizeMultiple(entity: string, payload: CategorizeMultipleRequest): Observable<HttpResponse<SimpleApiResponse>> {
-    // Endpoint renamed: consolidate to single /categorize route
+  categorize(entity: string, payload: CategorizeRequest): Observable<HttpResponse<SimpleApiResponse>> {
     return this.http.post<SimpleApiResponse>(`${this.url(entity)}/categorize`, payload, { observe: 'response' });
   }
 

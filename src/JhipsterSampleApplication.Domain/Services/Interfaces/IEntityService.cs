@@ -17,7 +17,6 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
         Task<JObject> ConvertRulesetToElasticSearch(string entity, Ruleset rr);
         Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(string entity, JObject queryObject, ViewDto view, int size = 20, int from = 0, string? sort = null);
         Task<SimpleApiResponse> CategorizeAsync(string entity, CategorizeRequestDto request);
-        Task<SimpleApiResponse> CategorizeMultipleAsync(string entity, CategorizeMultipleRequestDto request);
         Task<ClusterHealthDto> GetHealthAsync();
     }
 } 

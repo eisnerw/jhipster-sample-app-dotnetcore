@@ -9,8 +9,6 @@ using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Search;
 using JhipsterSampleApplication.Dto;
-// Alias rename: consolidate to a single CategorizeRequestDto that maps to the previous multiple-request DTO
-using CategorizeRequestDto = JhipsterSampleApplication.Dto.CategorizeMultipleRequestDto;
 using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.Configuration;
 using JhipsterSampleApplication.Domain.Entities;
@@ -313,14 +311,14 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(values);
         }
 
-        // Consolidated categorize endpoint (replaces previous 'categorize-multiple')
+        // Categorize endpoint (accepts multiple IDs)
         [HttpPost("{entity}/categorize")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> Categorize([FromRoute] string entity, [FromBody] CategorizeRequestDto request)
         {
             if (request.Rows == null || !request.Rows.Any()) return BadRequest("At least one row ID must be provided");
-            var result = await _entityService.CategorizeMultipleAsync(entity, request);
+            var result = await _entityService.CategorizeAsync(entity, request);
             return Ok(result);
         }
 
@@ -428,7 +426,7 @@ namespace JhipsterSampleApplication.Controllers
             => _entityService.SearchWithElasticQueryAndViewAsync(entity, queryObject, viewDto, size, from);
 
         private Task<SimpleApiResponse> CategorizeAsync(string entity, CategorizeRequestDto request)
-            => _entityService.CategorizeMultipleAsync(entity, request);
+            => _entityService.CategorizeAsync(entity, request);
 
         private ViewDto? GetViewById(string entity, string idOrName)
         {

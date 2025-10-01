@@ -543,7 +543,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     if (newCat && this.newCategoryChecked && !add.some(a => a.toLowerCase() === newCat.toLowerCase())) add.push(newCat);
     const rowIds = rows.map(r => r.id).filter(Boolean) as string[];
     const payload = { rows: rowIds, add, remove };
-    this.entityService.categorizeMultiple(this.entity, payload).subscribe({ next: () => { this.showCategorizeDialog = false; this.refreshData(); }, error: () => { this.showCategorizeDialog = false; this.refreshData(); } });
+    this.entityService.categorize(this.entity, payload).subscribe({ next: () => { this.showCategorizeDialog = false; this.refreshData(); }, error: () => { this.showCategorizeDialog = false; this.refreshData(); } });
   }
 
   viewIframeFromContext(): void { const row = (this.contextSelectedRow || (this.selection && this.selection[0])) as AnyRow | undefined; const id = row?.id; if (!id) return; this.detailDialogId = id; this.detailDialogTitle = this.buildTitle(row); this.bDisplayDetail = true; }

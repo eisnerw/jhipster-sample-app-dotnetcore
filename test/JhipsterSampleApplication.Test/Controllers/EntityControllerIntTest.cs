@@ -536,7 +536,7 @@ namespace JhipsterSampleApplication.Test.Controllers
         }
 
         [Fact]
-        public async Task TestCategorizeMultiple()
+        public async Task TestCategorize()
         {
             var id1 = Guid.NewGuid().ToString();
             var id2 = Guid.NewGuid().ToString();
@@ -559,7 +559,7 @@ namespace JhipsterSampleApplication.Test.Controllers
                 add = new[] { "A", "B" },
                 remove = Array.Empty<string>()
             };
-            var addResp = await _client.PostAsync("/api/entity/birthday/categorize-multiple", TestUtil.ToJsonContent(addReq));
+            var addResp = await _client.PostAsync("/api/entity/birthday/categorize", TestUtil.ToJsonContent(addReq));
             addResp.StatusCode.Should().Be(HttpStatusCode.OK);
             await _elasticClient.Indices.RefreshAsync("birthdays");
 
@@ -578,7 +578,7 @@ namespace JhipsterSampleApplication.Test.Controllers
                 add = new[] { "c" },
                 remove = new[] { "b" }
             };
-            var updateResp = await _client.PostAsync("/api/entity/birthday/categorize-multiple", TestUtil.ToJsonContent(updateReq));
+            var updateResp = await _client.PostAsync("/api/entity/birthday/categorize", TestUtil.ToJsonContent(updateReq));
             updateResp.StatusCode.Should().Be(HttpStatusCode.OK);
             await _elasticClient.Indices.RefreshAsync("birthdays");
 
