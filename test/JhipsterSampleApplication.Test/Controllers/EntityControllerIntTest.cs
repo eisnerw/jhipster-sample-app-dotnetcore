@@ -570,7 +570,12 @@ namespace JhipsterSampleApplication.Test.Controllers
             var verifyContent = await verifyResp.Content.ReadAsStringAsync();
             var result = JsonConvert.DeserializeObject<SearchResultDto<JObject>>(verifyContent);
             result.Hits.Should().HaveCount(2);
-            result.Hits.All(h => h["categories"] != null && h["categories"]!.ToObject<List<string>>()!.Contains("A") && h["categories"]!.ToObject<List<string>>()!.Contains("B")).Should().BeTrue();
+            result.Hits.All(h => {
+                var cats = h["categories"]?.ToObject<List<string>>() ?? new List<string>();
+                bool hasA = cats.Any(x => string.Equals(x, "A", StringComparison.OrdinalIgnoreCase));
+                bool hasB = cats.Any(x => string.Equals(x, "B", StringComparison.OrdinalIgnoreCase));
+                return hasA && hasB;
+            }).Should().BeTrue();
 
             // Remove B and add C (case-insensitive remove)
             var updateReq = new {
@@ -588,7 +593,13 @@ namespace JhipsterSampleApplication.Test.Controllers
             var verifyContent2 = await verifyResp2.Content.ReadAsStringAsync();
             var result2 = JsonConvert.DeserializeObject<SearchResultDto<JObject>>(verifyContent2);
             result2.Hits.Should().HaveCount(2);
-            result2.Hits.All(h => h["categories"] != null && h["categories"]!.ToObject<List<string>>()!.Contains("A") && h["categories"]!.ToObject<List<string>>()!.Contains("C") && !h["categories"]!.ToObject<List<string>>()!.Contains("B")).Should().BeTrue();
+            result2.Hits.All(h => {
+                var cats = h["categories"]?.ToObject<List<string>>() ?? new List<string>();
+                bool hasA = cats.Any(x => string.Equals(x, "A", StringComparison.OrdinalIgnoreCase));
+                bool hasC = cats.Any(x => string.Equals(x, "C", StringComparison.OrdinalIgnoreCase));
+                bool hasB = cats.Any(x => string.Equals(x, "B", StringComparison.OrdinalIgnoreCase));
+                return hasA && hasC && !hasB;
+            }).Should().BeTrue();
 
             // Cleanup
             (await _client.DeleteAsync($"/api/entity/birthday/{id1}")).StatusCode.Should().Be(HttpStatusCode.OK);

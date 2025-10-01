@@ -687,16 +687,40 @@ private static RulesetDto MapToDto(Ruleset rr)
     public async Task<SimpleApiResponse> CategorizeAsync(string entity, CategorizeRequestDto request)
     {
         var (indexName, _) = GetEntitySpec(entity);
-        var toAdd = (request.Add ?? new List<string>())
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .Select(s => s.Trim().ToUpperInvariant())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        var toRemove = (request.Remove ?? new List<string>())
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .Select(s => s.Trim().ToUpperInvariant())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
+
+        // Build canonical map of existing categories in the index: case-insensitive key -> first-seen casing
+        var existingCategories = await GetUniqueFieldValuesAsync(entity, "categories.keyword");
+        var canonical = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var v in existingCategories)
+        {
+            if (string.IsNullOrWhiteSpace(v)) continue;
+            if (!canonical.ContainsKey(v)) canonical[v] = v; // preserve first encountered casing
+        }
+
+        // Normalize inputs without forcing casing; dedupe ignoring case while preserving first casing
+        var toAdd = new List<string>();
+        var addSeen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var s in (request.Add ?? new List<string>()))
+        {
+            var t = (s ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(t)) continue;
+            if (addSeen.Contains(t)) continue;
+            string chosen;
+            if (canonical.TryGetValue(t, out var canonVal)) chosen = canonVal; // use existing canonical casing
+            else { chosen = t; canonical[t] = t; } // first time: capture casing
+            toAdd.Add(chosen);
+            addSeen.Add(t);
+        }
+
+        // For removals, only need case-insensitive set (no casing changes to store)
+        var toRemove = new List<string>();
+        var removeSeen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var s in (request.Remove ?? new List<string>()))
+        {
+            var t = (s ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(t)) continue;
+            if (removeSeen.Add(t)) toRemove.Add(t);
+        }
 
         if (!toAdd.Any() && !toRemove.Any())
         {
@@ -727,6 +751,7 @@ private static RulesetDto MapToDto(Ruleset rr)
 
                 foreach (var add in toAdd)
                 {
+                    // If an equivalent (case-insensitive) category already exists, keep its original casing
                     if (!current.Any(t => string.Equals(t?.ToString() ?? string.Empty, add, StringComparison.OrdinalIgnoreCase)))
                     {
                         current.Add(add);
