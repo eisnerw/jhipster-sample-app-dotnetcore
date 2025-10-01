@@ -107,7 +107,8 @@ export class EntityGenericService {
   }
 
   categorizeMultiple(entity: string, payload: CategorizeMultipleRequest): Observable<HttpResponse<SimpleApiResponse>> {
-    return this.http.post<SimpleApiResponse>(`${this.url(entity)}/categorize-multiple`, payload, { observe: 'response' });
+    // Endpoint renamed: consolidate to single /categorize route
+    return this.http.post<SimpleApiResponse>(`${this.url(entity)}/categorize`, payload, { observe: 'response' });
   }
 
   getQueryBuilderSpec(entity: string): Observable<any> {

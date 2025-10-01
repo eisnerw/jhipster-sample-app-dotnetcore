@@ -9,6 +9,8 @@ using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Domain.Search;
 using JhipsterSampleApplication.Dto;
+// Alias rename: consolidate to a single CategorizeRequestDto that maps to the previous multiple-request DTO
+using CategorizeRequestDto = JhipsterSampleApplication.Dto.CategorizeMultipleRequestDto;
 using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.Configuration;
 using JhipsterSampleApplication.Domain.Entities;
@@ -311,21 +313,11 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(values);
         }
 
+        // Consolidated categorize endpoint (replaces previous 'categorize-multiple')
         [HttpPost("{entity}/categorize")]
         [ProducesResponseType(typeof(SimpleApiResponse), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> Categorize([FromRoute] string entity, [FromBody] CategorizeRequestDto request)
-        {
-            if (request.Ids == null || !request.Ids.Any()) return BadRequest("At least one ID must be provided");
-            if (string.IsNullOrWhiteSpace(request.Category)) return BadRequest("Category cannot be empty");
-            var result = await _entityService.CategorizeAsync(entity, request);
-            return Ok(result);
-        }
-
-        [HttpPost("{entity}/categorize-multiple")]
-        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
-        [ProducesResponseType(400)]
-        public async Task<IActionResult> CategorizeMultiple([FromRoute] string entity, [FromBody] CategorizeMultipleRequestDto request)
         {
             if (request.Rows == null || !request.Rows.Any()) return BadRequest("At least one row ID must be provided");
             var result = await _entityService.CategorizeMultipleAsync(entity, request);
@@ -436,9 +428,6 @@ namespace JhipsterSampleApplication.Controllers
             => _entityService.SearchWithElasticQueryAndViewAsync(entity, queryObject, viewDto, size, from);
 
         private Task<SimpleApiResponse> CategorizeAsync(string entity, CategorizeRequestDto request)
-            => _entityService.CategorizeAsync(entity, request);
-
-        private Task<SimpleApiResponse> CategorizeMultipleAsync(string entity, CategorizeMultipleRequestDto request)
             => _entityService.CategorizeMultipleAsync(entity, request);
 
         private ViewDto? GetViewById(string entity, string idOrName)
