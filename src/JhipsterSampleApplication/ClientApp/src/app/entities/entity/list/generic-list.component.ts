@@ -502,8 +502,9 @@ export class GenericListComponent implements OnInit, AfterViewInit {
         delete this.categoryState[prev];
         // initialize new temp with previous checked state
         this.categoryState[this.tempNewCategory] = prevChecked;
-      } else if (!this.categoryState[this.tempNewCategory]) {
-        this.categoryState[this.tempNewCategory] = false;
+      } else if (!(this.tempNewCategory in this.categoryState)) {
+        // default new category to checked when first shown
+        this.categoryState[this.tempNewCategory] = true;
       }
       arr = [this.tempNewCategory];
     } else {
@@ -514,6 +515,13 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       }
       this.tempNewCategory = null;
     }
+    // Always include currently-checked categories regardless of filter text
+    if (Object.keys(this.categoryState).length) {
+      const ensured = new Set(arr);
+      for (const c of Object.keys(this.categoryState)) { if (this.categoryState[c]) ensured.add(c); }
+      arr = Array.from(ensured);
+    }
+
     // Sort with checked first, then alphabetical
     arr.sort((a,b) => {
       const sa = this.categoryState[a] ? 0 : 1;
