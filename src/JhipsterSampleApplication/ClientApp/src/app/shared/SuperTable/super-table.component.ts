@@ -105,6 +105,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   groupLoaders: { [key: string]: GroupData | undefined } = {};
 
+  // (No-op placeholder removed: child-grid loading is now indicated
+  // within the child table itself via the grid header template.)
+
   private lastSortEvent: any;
   private lastFilterEvent: any;
   private lastColumnWidths: string[] | undefined;

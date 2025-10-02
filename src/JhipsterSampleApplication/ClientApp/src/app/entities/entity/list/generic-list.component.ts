@@ -93,6 +93,10 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   groups: GroupDescriptor[] = [];
   viewMode: 'grid' | 'group' = 'grid';
 
+  // Loading state for group (view) category fetches
+  groupLoading = false;
+  groupLoadingMessage = 'Loading…';
+
   menuItems: MenuItem[] = [];
   contextSelectedRow: AnyRow | null = null;
   selectionMode: 'single' | 'multiple' | null | undefined = 'multiple';
@@ -390,39 +394,52 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   }
 
   loadRootGroups(restoreState: boolean = false): void {
-    if (!this.viewName) { this.groups = []; this.loadPage(); this.viewMode = 'grid'; setTimeout(() => this.superTable.applyCapturedHeaderState(), 300); return; }
+    if (!this.viewName) { this.groups = []; this.groupLoading = false; this.loadPage(); this.viewMode = 'grid'; setTimeout(() => this.superTable.applyCapturedHeaderState(), 300); return; }
     const viewParams: any = { from: 0, pageSize: 1000, view: this.viewName! };
     const hasQuery = this.currentQuery.trim().length > 0;
+    // Signal that the category list is loading in group mode
+    this.groupLoading = true;
+    this.groupLoadingMessage = 'Loading categories…';
     if (hasQuery) {
-      this.entityService.searchWithBql<any>(this.entity, this.currentQuery.trim(), viewParams).subscribe((res: any) => {
-        const hits = res.body?.hits ?? [];
-        if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
-          this.groups = hits.map((h: any) => ({ name: h.categoryName, count: h.count, categories: null }));
-          this.viewMode = 'group';
-          setTimeout(() => (restoreState ? this.superTable.restoreState((this.superTable as any).captureState()) : this.superTable.applyCapturedHeaderState()), 300);
-        } else {
-          this.groups = [];
-          const filter: any = { view: this.viewName! };
-          filter.bqlQuery = this.currentQuery.trim();
-          this.dataLoader.load(this.itemsPerPage, this.sort, filter);
-          this.viewMode = 'grid';
-          setTimeout(() => this.superTable.applyCapturedHeaderState(), 300);
-        }
+      this.entityService.searchWithBql<any>(this.entity, this.currentQuery.trim(), viewParams).subscribe({
+        next: (res: any) => {
+          const hits = res.body?.hits ?? [];
+          if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
+            this.groups = hits.map((h: any) => ({ name: h.categoryName, count: h.count, categories: null }));
+            this.viewMode = 'group';
+            this.groupLoading = false;
+            setTimeout(() => (restoreState ? this.superTable.restoreState((this.superTable as any).captureState()) : this.superTable.applyCapturedHeaderState()), 300);
+          } else {
+            this.groups = [];
+            this.groupLoading = false; // switching to grid mode; detail loader will indicate
+            const filter: any = { view: this.viewName! };
+            filter.bqlQuery = this.currentQuery.trim();
+            this.dataLoader.load(this.itemsPerPage, this.sort, filter);
+            this.viewMode = 'grid';
+            setTimeout(() => this.superTable.applyCapturedHeaderState(), 300);
+          }
+        },
+        error: () => { this.groupLoading = false; this.groups = []; this.viewMode = 'grid'; this.loadPage(); setTimeout(() => this.superTable.applyCapturedHeaderState(), 300); }
       });
     } else {
-      this.entityService.searchView(this.entity, { ...viewParams, query: '*' }).subscribe((res: any) => {
-        const hits = res.body?.hits ?? [];
-        if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
-          this.groups = hits.map((h: any) => ({ name: h.categoryName, count: h.count, categories: null }));
-          this.viewMode = 'group';
-          setTimeout(() => (restoreState ? this.superTable.restoreState((this.superTable as any).captureState()) : this.superTable.applyCapturedHeaderState()), 300);
-        } else {
-          this.groups = [];
-          const filter: any = { view: this.viewName!, query: '*' };
-          this.dataLoader.load(this.itemsPerPage, this.sort, filter);
-          this.viewMode = 'grid';
-          setTimeout(() => this.superTable.applyCapturedHeaderState(), 300);
-        }
+      this.entityService.searchView(this.entity, { ...viewParams, query: '*' }).subscribe({
+        next: (res: any) => {
+          const hits = res.body?.hits ?? [];
+          if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
+            this.groups = hits.map((h: any) => ({ name: h.categoryName, count: h.count, categories: null }));
+            this.viewMode = 'group';
+            this.groupLoading = false;
+            setTimeout(() => (restoreState ? this.superTable.restoreState((this.superTable as any).captureState()) : this.superTable.applyCapturedHeaderState()), 300);
+          } else {
+            this.groups = [];
+            this.groupLoading = false; // switching to grid mode; top-level loader takes over
+            const filter: any = { view: this.viewName!, query: '*' };
+            this.dataLoader.load(this.itemsPerPage, this.sort, filter);
+            this.viewMode = 'grid';
+            setTimeout(() => this.superTable.applyCapturedHeaderState(), 300);
+          }
+        },
+        error: () => { this.groupLoading = false; this.groups = []; this.viewMode = 'grid'; this.loadPage(); setTimeout(() => this.superTable.applyCapturedHeaderState(), 300); }
       });
     }
   }

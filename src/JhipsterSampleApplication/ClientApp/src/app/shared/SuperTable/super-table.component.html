@@ -39,8 +39,8 @@
         }
       </colgroup>
     </ng-template>
-    @if (showHeader && !superTableParent) {
-      <ng-template pTemplate="header" let-columns>
+    <ng-template pTemplate="header" let-columns>
+      @if (!superTableParent && showHeader) {
         <tr class="header-row">
           @for (col of columns; track col; let i = $index) {
             <th
@@ -120,15 +120,15 @@
             </th>
           }
         </tr>
-        @if (dataLoader.loading$ | async) {
-          <tr class="loading-row">
-            <td [attr.colspan]="visibleColumns.length">
-              {{ dataLoader.loadingMessage$ | async }}
-            </td>
-          </tr>
-        }
-      </ng-template>
-    }
+      }
+      @if (dataLoader?.loading$ | async) {
+        <tr class="loading-row">
+          <td [attr.colspan]="visibleColumns.length">
+            {{ dataLoader.loadingMessage$ | async }}
+          </td>
+        </tr>
+      }
+    </ng-template>
     <ng-template pTemplate="body" let-rowData let-columns="columns" let-rowIndex="rowIndex">
       <tr [pContextMenuRow]="rowData">
         @for (col of columns; track col; let i = $index) {
@@ -337,6 +337,14 @@
             </th>
           }
         </tr>
+        <!-- Group mode: show loading row while categories are loading -->
+        @if (loading) {
+          <tr class="loading-row">
+            <td [attr.colspan]="visibleColumns.length">
+              {{ loadingMessage || 'Loading…' }}
+            </td>
+          </tr>
+        }
       </ng-template>
     }
     <ng-template pTemplate="body" let-rowData>
