@@ -121,7 +121,7 @@
           }
         </tr>
       }
-      @if (dataLoader?.loading$ | async) {
+      @if (dataLoader.loading$ | async) {
         <tr class="loading-row">
           <td [attr.colspan]="visibleColumns.length">
             {{ dataLoader.loadingMessage$ | async }}
