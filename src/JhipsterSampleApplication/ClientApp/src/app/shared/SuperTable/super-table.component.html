@@ -150,7 +150,7 @@
                         [showDelay]="120"
                         [hideDelay]="350"
                         [tooltipStyleClass]="'cat-tooltip'">
-                    {{ rowData.categories.length }}
+                    {{ getPillText(rowData) }}
                   </span>
                 }
                 <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
@@ -165,7 +165,7 @@
                         [showDelay]="120"
                         [hideDelay]="350"
                         [tooltipStyleClass]="'cat-tooltip'">
-                    {{ rowData.categories.length }}
+                    {{ getPillText(rowData) }}
                   </span>
                 }
                 <span class="cell-content">
@@ -182,7 +182,7 @@
                         [showDelay]="120"
                         [hideDelay]="350"
                         [tooltipStyleClass]="'cat-tooltip'">
-                    {{ rowData.categories.length }}
+                    {{ getPillText(rowData) }}
                   </span>
                 }
                 <span class="cell-content" [pTooltip]="rowData[col.field] ? 'Yes' : 'No'" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350">{{ rowData[col.field] ? 'Yes' : 'No' }}</span>
@@ -197,7 +197,7 @@
                         [showDelay]="120"
                         [hideDelay]="350"
                         [tooltipStyleClass]="'cat-tooltip'">
-                    {{ rowData.categories.length }}
+                    {{ getPillText(rowData) }}
                   </span>
                 }
                 <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>

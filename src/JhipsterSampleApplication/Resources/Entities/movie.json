@@ -79,6 +79,12 @@
         "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"]
       }
     },
+    "categoryPill": [
+      { "^important$": "I" },
+      { "\\bfive star\\b": "*" },
+      { "ignore": "-" },
+      { "\\*": "star"}
+    ],
     "views": [
         {
           "id": "directors",

@@ -112,6 +112,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   newCategoryChecked = false;
   private tempNewCategory: string | null = null;
   rowsToCategorizeCount = 0;
+  private categoryPillRules: Array<{ pattern: string; label: string }> = [];
 
   expandedRowKeys: { [key: string]: boolean } = {};
   iframeSafeSrcById: Record<string, any> = {};
@@ -135,6 +136,23 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     };
     this.dataLoader = new DataLoader<AnyRow>(fetch);
   }
+
+  // Category pill content driven by optional categoryPill rules in entity spec.
+  // Each rule is an object with a single key/value: pattern -> label. Pattern is a JSON-escaped regular expression (case-insensitive).
+  // If any category matches a rule, use its label; if there are >1 categories, append '+'. Fallback to count.
+  pillContent = (row: AnyRow): string => {
+    const cats: string[] = Array.isArray(row?.categories) ? row.categories : [];
+    if (!cats.length) return '0';
+    for (const rule of this.categoryPillRules) {
+      for (const c of cats) {
+        if (this.regexMatch(rule.pattern, String(c))) {
+          const base = String(rule.label || '');
+          return base + (cats.length > 1 ? '+' : '');
+        }
+      }
+    }
+    return String(cats.length);
+  };
 
   ngOnInit(): void {
     this.route.paramMap.subscribe(pm => {
@@ -176,6 +194,27 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       .map(c => c.field);
   }
 
+  private loadCategoryPillRules(entitySpec: any | undefined): void {
+    const rules: Array<{ pattern: string; label: string }> = [];
+    try {
+      const raw = (entitySpec as any)?.categoryPill;
+      if (Array.isArray(raw)) {
+        for (const item of raw) {
+          if (item && typeof item === 'object') {
+            const entries = Object.entries(item);
+            if (entries.length >= 1) {
+              const [pattern, label] = entries[0];
+              const p = String(pattern || '').trim();
+              const l = String(label ?? '').trim();
+              if (p) rules.push({ pattern: p, label: l });
+            }
+          }
+        }
+      }
+    } catch {}
+    this.categoryPillRules = rules;
+  }
+
   private initForEntity(e: string | null): void {
     if (!e) return;
     this.entity = e;
@@ -205,6 +244,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
 
         // Proceed to load columns and views after both specs are available
         this.loadColumnsFromSpec(entitySpec);
+        this.loadCategoryPillRules(entitySpec);
         this.loadViews();
         this.viewName = null;
         this.currentQuery = '';
@@ -215,6 +255,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
 
         // As a fallback, load columns and views even if spec fetch fails
         this.loadColumnsFromSpec(undefined);
+        this.loadCategoryPillRules(undefined);
         this.loadViews();
         this.viewName = null;
         this.currentQuery = '';
@@ -423,6 +464,17 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       const winW = (typeof window !== 'undefined' && (window.innerWidth || 0)) || 0;
       return docW || winW || 0;
     } catch { return 0; }
+  }
+
+  private regexMatch(pattern: string, value: string): boolean {
+    try {
+      // Interpret pattern directly as a regular expression (already JSON-escaped in spec).
+      // Case-insensitive by default to preserve previous behavior.
+      const re = new RegExp(String(pattern), 'i');
+      return re.test(value || '');
+    } catch {
+      return false;
+    }
   }
 
   onCheckboxChange(): void { this.checkboxSelectedRows = this.selection || []; this.chipSelectedRows = this.checkboxSelectedRows.slice(0, 2); }

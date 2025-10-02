@@ -97,6 +97,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Input() parentKey: string | undefined;
   @Input() expandedRowTemplate: TemplateRef<any> | undefined;
   @Input() highlightPattern: string | null | undefined;
+  // Optional: caller can customize pill text per row (e.g., entity-specific rules)
+  @Input() pillContent: ((row: any) => string) | undefined;
 
   @ViewChild('pTable') pTable!: Table;
   @ViewChildren('detailTable') detailTables!: QueryList<SuperTable>;
@@ -214,6 +216,17 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   trackByFn(index: number, item: any): any {
     return item?.id || index;
+  }
+
+  getPillText(row: any): string {
+    try {
+      if (this.pillContent) {
+        const v = this.pillContent(row);
+        if (v !== undefined && v !== null) return String(v);
+      }
+    } catch {}
+    const n = (row?.categories?.length || 0);
+    return String(n);
   }
 
   ngOnInit(): void {
