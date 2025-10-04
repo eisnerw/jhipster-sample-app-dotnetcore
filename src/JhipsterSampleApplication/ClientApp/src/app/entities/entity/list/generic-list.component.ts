@@ -482,7 +482,9 @@ export class GenericListComponent implements OnInit, AfterViewInit {
         const srcField = String(ann.field || fieldName);
         const ruleType = String(ann.ruleType || '').toLowerCase();
         const rules = Array.isArray(ann.rules) ? ann.rules : [];
-        const tooltipExpr = ann.tooltip ? String(ann.tooltip) : null;
+        // Allow tooltip to be either a string expression or a mapping object { label: tooltip }
+        // Keep reference without coercing to string so maps are preserved.
+        const tooltipSpec: any = (ann && Object.prototype.hasOwnProperty.call(ann, 'tooltip')) ? (ann as any).tooltip : null;
         if (type === 'pill') {
           if (ruleType === 'regex') {
             const compiled = this.compileRegexRules(rules);
@@ -500,7 +502,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
               }
               if (label === null) return null;
               const text = label + (Array.isArray(v) && v.length > 1 ? '+' : '');
-              const tooltip = this.evalTooltip(row, tooltipExpr);
+              const tooltip = this.resolveTooltip(row, tooltipSpec, label, text);
               return { text, tooltip };
             };
             out.push({ type: 'pill', render });
@@ -513,7 +515,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
               for (const r of compiled) {
                 if (this.compare(num, r.op, r.value)) {
                   const text = r.label;
-                  const tooltip = this.evalTooltip(row, tooltipExpr);
+                  const tooltip = this.resolveTooltip(row, tooltipSpec, r.label, text);
                   return { text, tooltip };
                 }
               }
@@ -596,6 +598,34 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       if (Array.isArray(val)) return val.join(', ');
       return String(val);
     } catch { return null; }
+  }
+
+  // Resolve tooltip from either a string expression or a mapping object keyed by label/text
+  private resolveTooltip(row: AnyRow, spec: any, rawLabel: string, finalText: string): string | null {
+    try {
+      if (spec === null || spec === undefined) return null;
+      // String expression path (backward compatible)
+      if (typeof spec === 'string') {
+        return this.evalTooltip(row, spec);
+      }
+      // Object map path: prefer raw rule label, then rendered text
+      if (typeof spec === 'object' && !Array.isArray(spec)) {
+        const map = spec as Record<string, any>;
+        if (Object.prototype.hasOwnProperty.call(map, rawLabel)) {
+          const v = map[rawLabel];
+          return v === null || v === undefined ? null : String(v);
+        }
+        if (Object.prototype.hasOwnProperty.call(map, finalText)) {
+          const v = map[finalText];
+          return v === null || v === undefined ? null : String(v);
+        }
+        return null;
+      }
+      // Unknown type
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   onCheckboxChange(): void { this.checkboxSelectedRows = this.selection || []; this.chipSelectedRows = this.checkboxSelectedRows.slice(0, 2); }

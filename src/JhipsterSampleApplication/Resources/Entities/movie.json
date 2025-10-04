@@ -100,7 +100,7 @@
               { ">=,85": "+" },
               { "<=,30": "-" }
             ],
-             "tooltip": "rotten_tomatoes_score >= 85 ? 'good':'bad'"
+             "tooltip": { "+": "good", "-": "bad" }
           }
         ]
       }
