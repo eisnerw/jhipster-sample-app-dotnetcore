@@ -586,8 +586,15 @@ export class GenericListComponent implements OnInit, AfterViewInit {
         sep = m ? m[1] : ', ';
         return v.join(sep);
       }
-      // Fallback: not supported expression
-      return null;
+      // Fallback: evaluate a constrained expression by injecting row fields as arguments
+      // Only exposes provided fields and Math. No window/document.
+      const keys = Object.keys(row || {});
+      const values = keys.map(k => (row as any)[k]);
+      const fn = new Function(...[...keys, 'Math'], 'return ( ' + s + ' );');
+      const val = fn(...values, Math);
+      if (val === undefined || val === null) return null;
+      if (Array.isArray(val)) return val.join(', ');
+      return String(val);
     } catch { return null; }
   }
 
