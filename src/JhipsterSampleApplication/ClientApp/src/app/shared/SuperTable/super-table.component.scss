@@ -175,7 +175,25 @@
   box-shadow: inset 3px 0 0 0 var(--primary-color, #0d6efd);
 }
 
-/* Category pill via CSS ::before to avoid layout shifts */
+/* Generic inline pill styling (used for annotations in any column) */
+:host ::ng-deep td .cat-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0.9rem; /* ~14px */
+  height: 0.9rem; /* ~14px */
+  line-height: 0.9rem;
+  padding: 0 0.3rem;
+  border-radius: 0.5rem;
+  background: var(--primary-200, #cfe2ff);
+  color: var(--primary-800, #052c65);
+  font-size: 0.6rem;
+  text-align: center;
+  margin-right: 0.25rem;
+  vertical-align: middle;
+}
+
+/* Category pill via absolute positioning in the first data column after checkbox */
 :host ::ng-deep td[data-catcount] {
   position: relative;
 }
@@ -184,16 +202,9 @@
   left: 2px;
   top: 50%;
   transform: translateY(-50%);
-  display: inline-block;
-  min-width: 0.9rem; /* ~14px */
-  height: 0.75rem; /* 12px */
+  height: 0.75rem; /* slightly tighter in the first column */
   line-height: 0.75rem;
   padding: 0 0.25rem;
-  border-radius: 0.5rem;
-  background: var(--primary-200, #cfe2ff);
-  color: var(--primary-800, #052c65);
-  font-size: 0.6rem;
-  text-align: center;
 }
 
 /* Ensure text shifts right and stays single-line with ellipsis when pill is present */
@@ -204,6 +215,16 @@
   padding-left: 1.05rem !important; /* matches pill width + a few px */
   margin-left: 0 !important;
   min-width: 0;
+}
+
+/* Keep pill and value on the same line for non-absolute case */
+:host ::ng-deep td:not([data-catcount]) .cat-pill + .cell-content {
+  display: inline-block !important;
+  vertical-align: middle;
+}
+/* Ensure general non-legacy cells align middle even if pill is not adjacent in DOM */
+:host ::ng-deep td:not([data-catcount]) .cell-content {
+  vertical-align: middle;
 }
 
 /* PrimeNG tooltip styling for categories */

@@ -116,7 +116,8 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   newCategoryChecked = false;
   private tempNewCategory: string | null = null;
   rowsToCategorizeCount = 0;
-  private categoryPillRules: Array<{ pattern: string; label: string }> = [];
+  // Annotation helpers
+  private annotationCache: Record<string, any[]> = {};
 
   expandedRowKeys: { [key: string]: boolean } = {};
   iframeSafeSrcById: Record<string, any> = {};
@@ -141,22 +142,8 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     this.dataLoader = new DataLoader<AnyRow>(fetch);
   }
 
-  // Category pill content driven by optional categoryPill rules in entity spec.
-  // Each rule is an object with a single key/value: pattern -> label. Pattern is a JSON-escaped regular expression (case-insensitive).
-  // If any category matches a rule, use its label; if there are >1 categories, append '+'. Fallback to count.
-  pillContent = (row: AnyRow): string => {
-    const cats: string[] = Array.isArray(row?.categories) ? row.categories : [];
-    if (!cats.length) return '0';
-    for (const rule of this.categoryPillRules) {
-      for (const c of cats) {
-        if (this.regexMatch(rule.pattern, String(c))) {
-          const base = String(rule.label || '');
-          return base + (cats.length > 1 ? '+' : '');
-        }
-      }
-    }
-    return String(cats.length);
-  };
+  // Deprecated legacy pillContent kept for bw-compat if referenced elsewhere
+  pillContent = (row: AnyRow): string => String((row?.categories?.length || 0));
 
   ngOnInit(): void {
     this.route.paramMap.subscribe(pm => {
@@ -198,26 +185,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       .map(c => c.field);
   }
 
-  private loadCategoryPillRules(entitySpec: any | undefined): void {
-    const rules: Array<{ pattern: string; label: string }> = [];
-    try {
-      const raw = (entitySpec as any)?.categoryPill;
-      if (Array.isArray(raw)) {
-        for (const item of raw) {
-          if (item && typeof item === 'object') {
-            const entries = Object.entries(item);
-            if (entries.length >= 1) {
-              const [pattern, label] = entries[0];
-              const p = String(pattern || '').trim();
-              const l = String(label ?? '').trim();
-              if (p) rules.push({ pattern: p, label: l });
-            }
-          }
-        }
-      }
-    } catch {}
-    this.categoryPillRules = rules;
-  }
+  // (annotations now parsed per column; legacy category pill loader removed)
 
   private initForEntity(e: string | null): void {
     if (!e) return;
@@ -248,7 +216,6 @@ export class GenericListComponent implements OnInit, AfterViewInit {
 
         // Proceed to load columns and views after both specs are available
         this.loadColumnsFromSpec(entitySpec);
-        this.loadCategoryPillRules(entitySpec);
         this.loadViews();
         this.viewName = null;
         this.currentQuery = '';
@@ -259,7 +226,6 @@ export class GenericListComponent implements OnInit, AfterViewInit {
 
         // As a fallback, load columns and views even if spec fetch fails
         this.loadColumnsFromSpec(undefined);
-        this.loadCategoryPillRules(undefined);
         this.loadViews();
         this.viewName = null;
         this.currentQuery = '';
@@ -274,6 +240,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       { field: 'checkbox', header: '', type: 'checkbox', width: '2rem' },
     ];
     const qbFieldsAll: Record<string, any> = spec?.fields || {};
+    // Do not show these as visible columns by default
     const EXCLUDE = new Set<string>(['document', 'category', 'categories']);
     const df: any = spec?.detailFields;
     if (Array.isArray(df)) {
@@ -303,6 +270,9 @@ export class GenericListComponent implements OnInit, AfterViewInit {
           }
           else if (t === 'boolean') { col.type = 'boolean'; col.filterType = 'boolean'; }
           else { col.type = 'string'; col.filterType = 'text'; }
+          // Attach annotations, if any
+          const anns = this.parseAnnotationsForField(spec, lf, meta);
+          if (anns && anns.length) (col as any).annotations = anns;
           cols.push(col);
         } else if (lf && typeof lf === 'object') {
           if (EXCLUDE.has(String(lf.field || '').toLowerCase())) continue;
@@ -321,6 +291,9 @@ export class GenericListComponent implements OnInit, AfterViewInit {
           else { col.type = 'string'; col.filterType = 'text'; }
           if (!col.width && (lf as any).width) col.width = this.normalizeWidth((lf as any).width);
           if (!col.width && meta.width) col.width = this.normalizeWidth(meta.width);
+          // Attach annotations, if any (prefer explicit lf.annotations over meta)
+          const anns = this.parseAnnotationsForField(spec, lf.field, (lf as any).annotations ? { annotations: (lf as any).annotations } : meta);
+          if (anns && anns.length) (col as any).annotations = anns;
           cols.push(col);
         }
       }
@@ -358,6 +331,8 @@ export class GenericListComponent implements OnInit, AfterViewInit {
           col = { field: k, header, type: 'string', filterType: 'text' };
         }
         if (f.width) col.width = this.normalizeWidth(f.width);
+        const anns = this.parseAnnotationsForField(spec, k, f);
+        if (anns && anns.length) (col as any).annotations = anns;
         cols.push(col);
       }
     }
@@ -492,6 +467,128 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     } catch {
       return false;
     }
+  }
+
+  // === Annotation parsing and renderers ===
+  private parseAnnotationsForField(spec: any, fieldName: string, meta: any): any[] {
+    try {
+      const anns = (meta && Array.isArray(meta.annotations)) ? meta.annotations : [];
+      if (!anns.length) return [];
+      const key = `${this.entity}:${fieldName}`;
+      const out: any[] = [];
+      for (const ann of anns) {
+        if (!ann || typeof ann !== 'object') continue;
+        const type = String(ann.type || '').toLowerCase();
+        const srcField = String(ann.field || fieldName);
+        const ruleType = String(ann.ruleType || '').toLowerCase();
+        const rules = Array.isArray(ann.rules) ? ann.rules : [];
+        const tooltipExpr = ann.tooltip ? String(ann.tooltip) : null;
+        if (type === 'pill') {
+          if (ruleType === 'regex') {
+            const compiled = this.compileRegexRules(rules);
+            const render = (row: AnyRow) => {
+              const v = row?.[srcField];
+              if (v === null || v === undefined) return null;
+              const arr = Array.isArray(v) ? v : [v];
+              let label: string | null = null;
+              for (const item of arr) {
+                const s = String(item);
+                for (const r of compiled) {
+                  if (r.re.test(s)) { label = r.label; break; }
+                }
+                if (label) break;
+              }
+              if (label === null) return null;
+              const text = label + (Array.isArray(v) && v.length > 1 ? '+' : '');
+              const tooltip = this.evalTooltip(row, tooltipExpr);
+              return { text, tooltip };
+            };
+            out.push({ type: 'pill', render });
+          } else if (ruleType === 'compare') {
+            const compiled = this.compileCompareRules(rules);
+            const render = (row: AnyRow) => {
+              const raw = row?.[srcField];
+              const num = typeof raw === 'number' ? raw : parseFloat(String(raw));
+              if (!isFinite(num)) return null;
+              for (const r of compiled) {
+                if (this.compare(num, r.op, r.value)) {
+                  const text = r.label;
+                  const tooltip = this.evalTooltip(row, tooltipExpr);
+                  return { text, tooltip };
+                }
+              }
+              return null;
+            };
+            out.push({ type: 'pill', render });
+          }
+        }
+      }
+      return out;
+    } catch { return []; }
+  }
+
+  private compileRegexRules(rules: any[]): Array<{ re: RegExp; label: string }> {
+    const out: Array<{ re: RegExp; label: string }> = [];
+    for (const r of rules) {
+      const [pat, label] = Object.entries(r || {})[0] || [null, null];
+      if (!pat) continue;
+      try { out.push({ re: new RegExp(String(pat), 'i'), label: String(label ?? '') }); } catch {}
+    }
+    return out;
+  }
+
+  private compileCompareRules(rules: any[]): Array<{ op: string; value: number; label: string }> {
+    const out: Array<{ op: string; value: number; label: string }> = [];
+    for (const r of rules) {
+      const [k, label] = Object.entries(r || {})[0] || [null, null];
+      if (!k) continue;
+      const parts = String(k).split(',');
+      if (parts.length !== 2) continue;
+      const op = parts[0].trim();
+      const val = parseFloat(parts[1]);
+      if (!isFinite(val)) continue;
+      out.push({ op, value: val, label: String(label ?? '') });
+    }
+    return out;
+  }
+
+  private compare(num: number, op: string, val: number): boolean {
+    switch (op) {
+      case '>': return num > val;
+      case '>=': return num >= val;
+      case '<': return num < val;
+      case '<=': return num <= val;
+      case '=':
+      case '==': return num === val;
+      case '!=': return num !== val;
+      default: return false;
+    }
+  }
+
+  private evalTooltip(row: AnyRow, expr: string | null): string | null {
+    if (!expr) return null;
+    try {
+      const s = expr.trim();
+      // Support: fieldName
+      const simple = s.match(/^([a-zA-Z_][a-zA-Z0-9_]*)$/);
+      if (simple) {
+        const v = row?.[simple[1]];
+        if (Array.isArray(v)) return v.join(', ');
+        return v === undefined || v === null ? null : String(v);
+      }
+      // Support: fieldName.join(', ')
+      const join = s.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\.join\((.*)\)$/);
+      if (join) {
+        const v = row?.[join[1]];
+        if (!Array.isArray(v)) return null;
+        let sep = join[2].trim();
+        const m = sep.match(/^['\"](.*)['\"]$/);
+        sep = m ? m[1] : ', ';
+        return v.join(sep);
+      }
+      // Fallback: not supported expression
+      return null;
+    } catch { return null; }
   }
 
   onCheckboxChange(): void { this.checkboxSelectedRows = this.selection || []; this.chipSelectedRows = this.checkboxSelectedRows.slice(0, 2); }

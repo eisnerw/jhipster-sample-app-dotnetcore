@@ -141,65 +141,89 @@
                 <p-tableCheckbox [value]="rowData" dataKey="id"></p-tableCheckbox>
               }
               @case ('string') {
-                @if ((columns[i-1]?.type === 'checkbox') && (rowData.categories?.length || 0) > 0) {
-                  <span class="cat-pill"
-                        [pTooltip]="(rowData.categories || []).join(', ')"
-                        tooltipPosition="right"
-                        appendTo="body"
-                        [autoHide]="false"
-                        [showDelay]="120"
-                        [hideDelay]="350"
-                        [tooltipStyleClass]="'cat-tooltip'">
-                    {{ getPillText(rowData) }}
-                  </span>
-                }
+                <ng-container *ngIf="col.annotations?.length">
+                  <ng-container *ngFor="let a of col.annotations">
+                    <ng-container *ngIf="a.type === 'pill'">
+                      <ng-container *ngIf="a.render(rowData) as pill">
+                        <span class="cat-pill"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'">
+                          {{ pill.text }}
+                        </span>
+                      </ng-container>
+                    </ng-container>
+                  </ng-container>
+                </ng-container>
                 <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
               }
               @case ('date') {
-                @if ((columns[i-1]?.type === 'checkbox') && (rowData.categories?.length || 0) > 0) {
-                  <span class="cat-pill"
-                        [pTooltip]="(rowData.categories || []).join(', ')"
-                        tooltipPosition="right"
-                        appendTo="body"
-                        [autoHide]="false"
-                        [showDelay]="120"
-                        [hideDelay]="350"
-                        [tooltipStyleClass]="'cat-tooltip'">
-                    {{ getPillText(rowData) }}
-                  </span>
-                }
+                <ng-container *ngIf="col.annotations?.length">
+                  <ng-container *ngFor="let a of col.annotations">
+                    <ng-container *ngIf="a.type === 'pill'">
+                      <ng-container *ngIf="a.render(rowData) as pill">
+                        <span class="cat-pill"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'">
+                          {{ pill.text }}
+                        </span>
+                      </ng-container>
+                    </ng-container>
+                  </ng-container>
+                </ng-container>
                 <span class="cell-content">
                   {{ nonEmpty(rowData[col.field]) ? (rowData[col.field] | date: (col.dateFormat || 'MM/dd/yyyy')) : '' }}
                 </span>
               }
               @case ('boolean') {
-                @if ((columns[i-1]?.type === 'checkbox') && (rowData.categories?.length || 0) > 0) {
-                  <span class="cat-pill"
-                        [pTooltip]="(rowData.categories || []).join(', ')"
-                        tooltipPosition="right"
-                        appendTo="body"
-                        [autoHide]="false"
-                        [showDelay]="120"
-                        [hideDelay]="350"
-                        [tooltipStyleClass]="'cat-tooltip'">
-                    {{ getPillText(rowData) }}
-                  </span>
-                }
+                <ng-container *ngIf="col.annotations?.length">
+                  <ng-container *ngFor="let a of col.annotations">
+                    <ng-container *ngIf="a.type === 'pill'">
+                      <ng-container *ngIf="a.render(rowData) as pill">
+                        <span class="cat-pill"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'">
+                          {{ pill.text }}
+                        </span>
+                      </ng-container>
+                    </ng-container>
+                  </ng-container>
+                </ng-container>
                 <span class="cell-content" [pTooltip]="rowData[col.field] ? 'Yes' : 'No'" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350">{{ rowData[col.field] ? 'Yes' : 'No' }}</span>
               }
               @case ('list') {
-                @if ((columns[i-1]?.type === 'checkbox') && (rowData.categories?.length || 0) > 0) {
-                  <span class="cat-pill"
-                        [pTooltip]="(rowData.categories || []).join(', ')"
-                        tooltipPosition="right"
-                        appendTo="body"
-                        [autoHide]="false"
-                        [showDelay]="120"
-                        [hideDelay]="350"
-                        [tooltipStyleClass]="'cat-tooltip'">
-                    {{ getPillText(rowData) }}
-                  </span>
-                }
+                <ng-container *ngIf="col.annotations?.length">
+                  <ng-container *ngFor="let a of col.annotations">
+                    <ng-container *ngIf="a.type === 'pill'">
+                      <ng-container *ngIf="a.render(rowData) as pill">
+                        <span class="cat-pill"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'">
+                          {{ pill.text }}
+                        </span>
+                      </ng-container>
+                    </ng-container>
+                  </ng-container>
+                </ng-container>
                 <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
               }
               @case ('lineNumber') {

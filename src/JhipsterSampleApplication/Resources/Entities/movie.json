@@ -18,7 +18,21 @@
         "name": "Title",
         "type": "string",
         "width": "350px",
-        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"]
+        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"],
+        "annotations": [
+          {
+            "type": "pill",
+            "field": "categories",
+            "ruleType": "regex",
+            "rules": [
+              { "^important$": "I" },
+              { "\\bfive star\\b": "*" },
+              { "ignore": "-" },
+              { "\\*": "star"}
+            ],
+            "tooltip": "categories.join(', ')"
+          }
+        ]
       },
       "release_year": {
         "name": "Release Year",
@@ -76,15 +90,20 @@
         "name": "Rotten Tomatoes Score",
         "column": "Score",
         "type": "number",
-        "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"]
+        "operators": ["=", "!=", ">", ">=", "<", "<=", "in", "!in", "exists"],
+        "annotations": [
+          {
+            "type": "pill",
+            "field": "rotten_tomatoes_score",
+            "ruleType": "compare",
+            "rules": [
+              { ">=,85": "+" },
+              { "<=,30": "-" }
+            ]
+          }
+        ]
       }
     },
-    "categoryPill": [
-      { "^important$": "I" },
-      { "\\bfive star\\b": "*" },
-      { "ignore": "-" },
-      { "\\*": "star"}
-    ],
     "views": [
         {
           "id": "directors",

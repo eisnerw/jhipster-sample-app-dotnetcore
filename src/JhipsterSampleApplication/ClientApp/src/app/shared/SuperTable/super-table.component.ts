@@ -32,6 +32,9 @@ export interface ColumnConfig {
     | 'lineNumber';
   dateFormat?: string;
   listOptions?: { label: string; value: string }[];
+  // Optional per-column annotations (e.g., pills). Each item provides a render
+  // function that returns text/tooltip for the given row or null to skip.
+  annotations?: Array<{ type: 'pill'; render: (row: any) => { text: string; tooltip?: string | null } | null }>;
 }
 
 export interface GroupDescriptor {
@@ -97,7 +100,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Input() parentKey: string | undefined;
   @Input() expandedRowTemplate: TemplateRef<any> | undefined;
   @Input() highlightPattern: string | null | undefined;
-  // Optional: caller can customize pill text per row (e.g., entity-specific rules)
+  // Deprecated: legacy single pill content near checkbox (kept for bw-compat; unused now)
   @Input() pillContent: ((row: any) => string) | undefined;
 
   @ViewChild('pTable') pTable!: Table;
@@ -221,16 +224,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     return item?.id || index;
   }
 
-  getPillText(row: any): string {
-    try {
-      if (this.pillContent) {
-        const v = this.pillContent(row);
-        if (v !== undefined && v !== null) return String(v);
-      }
-    } catch {}
-    const n = (row?.categories?.length || 0);
-    return String(n);
-  }
+  // Deprecated helper for legacy single pill; no longer used
+  getPillText(row: any): string { const n = (row?.categories?.length || 0); return String(n); }
 
   ngOnInit(): void {
     // Dev helper: allow clean test runs by adding ?stReset=1 or ?cleanWidths=1
