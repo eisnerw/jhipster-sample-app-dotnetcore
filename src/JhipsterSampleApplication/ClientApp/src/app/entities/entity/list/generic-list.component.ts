@@ -523,6 +523,63 @@ export class GenericListComponent implements OnInit, AfterViewInit {
             };
             out.push({ type: 'pill', render });
           }
+        } else if (type === 'linkpill') {
+          if (ruleType === 'compare') {
+            const compiled = this.compileCompareRules(rules, true);
+            const linkTmpl = String((ann as any).link || '');
+            const render = (row: AnyRow) => {
+              const raw = row?.[srcField];
+              // Evaluate compare rules. Support 'exists' for linkPill.
+              const exists = !(raw === null || raw === undefined || String(raw).trim() === '');
+              for (const r of compiled) {
+                if (r.op === 'exists') {
+                  if (exists) {
+                    const text = r.label;
+                    const tooltip = this.resolveTooltip(row, tooltipSpec, r.label, text);
+                    const link = this.resolveTemplateString(linkTmpl, row) || String(raw || '');
+                    if (!link) return null;
+                    return { text, tooltip, link };
+                  }
+                } else {
+                  // Fallback numeric compare for linkPill if provided
+                  const num = typeof raw === 'number' ? raw : parseFloat(String(raw));
+                  if (!isFinite(num)) continue;
+                  if (this.compare(num, r.op, r.value as any)) {
+                    const text = r.label;
+                    const tooltip = this.resolveTooltip(row, tooltipSpec, r.label, text);
+                    const link = this.resolveTemplateString(linkTmpl, row) || String(raw || '');
+                    if (!link) return null;
+                    return { text, tooltip, link };
+                  }
+                }
+              }
+              return null;
+            };
+            out.push({ type: 'linkPill', render });
+          } else if (ruleType === 'regex') {
+            const compiled = this.compileRegexRules(rules);
+            const linkTmpl = String((ann as any).link || '');
+            const render = (row: AnyRow) => {
+              const v = row?.[srcField];
+              if (v === null || v === undefined) return null;
+              const arr = Array.isArray(v) ? v : [v];
+              let label: string | null = null;
+              for (const item of arr) {
+                const s = String(item);
+                for (const r of compiled) {
+                  if (r.re.test(s)) { label = r.label; break; }
+                }
+                if (label) break;
+              }
+              if (label === null) return null;
+              const text = label + (Array.isArray(v) && v.length > 1 ? '+' : '');
+              const tooltip = this.resolveTooltip(row, tooltipSpec, label, text);
+              const link = this.resolveTemplateString(linkTmpl, row) || '';
+              if (!link) return null;
+              return { text, tooltip, link };
+            };
+            out.push({ type: 'linkPill', render });
+          }
         }
       }
       return out;
@@ -539,12 +596,17 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     return out;
   }
 
-  private compileCompareRules(rules: any[]): Array<{ op: string; value: number; label: string }> {
-    const out: Array<{ op: string; value: number; label: string }> = [];
+  private compileCompareRules(rules: any[], allowExists: boolean = false): Array<{ op: string; value?: number | null; label: string }> {
+    const out: Array<{ op: string; value?: number | null; label: string }> = [];
     for (const r of rules) {
       const [k, label] = Object.entries(r || {})[0] || [null, null];
       if (!k) continue;
-      const parts = String(k).split(',');
+      const key = String(k).trim();
+      if (allowExists && key.toLowerCase() === 'exists') {
+        out.push({ op: 'exists', value: null, label: String(label ?? '') });
+        continue;
+      }
+      const parts = key.split(',');
       if (parts.length !== 2) continue;
       const op = parts[0].trim();
       const val = parseFloat(parts[1]);
@@ -554,17 +616,35 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     return out;
   }
 
-  private compare(num: number, op: string, val: number): boolean {
+  private compare(num: number, op: string, val: number | null | undefined): boolean {
+    if (op === 'exists') {
+      return !(num === null || num === undefined || !isFinite(num));
+    }
+    if (val === null || val === undefined || !isFinite(val as number)) {
+      return false;
+    }
+    const v = val as number;
     switch (op) {
-      case '>': return num > val;
-      case '>=': return num >= val;
-      case '<': return num < val;
-      case '<=': return num <= val;
+      case '>': return num > v;
+      case '>=': return num >= v;
+      case '<': return num < v;
+      case '<=': return num <= v;
       case '=':
-      case '==': return num === val;
-      case '!=': return num !== val;
+      case '==': return num === v;
+      case '!=': return num !== v;
       default: return false;
     }
+  }
+
+  // Replace {field} tokens in a template string with corresponding row values
+  private resolveTemplateString(tmpl: string, row: AnyRow): string {
+    try {
+      if (!tmpl) return '';
+      return String(tmpl).replace(/\{([^{}:\s]+)(?::[^{}]+)?\}/g, (_m: string, g1: string) => {
+        const v = row?.[g1];
+        return v === null || v === undefined ? '' : String(v);
+      });
+    } catch { return ''; }
   }
 
   private evalTooltip(row: AnyRow, expr: string | null): string | null {
@@ -600,13 +680,15 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     } catch { return null; }
   }
 
-  // Resolve tooltip from either a string expression or a mapping object keyed by label/text
+  // Resolve tooltip from either a string expression or a mapping object keyed by label/text.
+  // If a string expression fails to evaluate, fall back to treating it as a literal string.
   private resolveTooltip(row: AnyRow, spec: any, rawLabel: string, finalText: string): string | null {
     try {
       if (spec === null || spec === undefined) return null;
       // String expression path (backward compatible)
       if (typeof spec === 'string') {
-        return this.evalTooltip(row, spec);
+        const v = this.evalTooltip(row, spec);
+        return v === null ? String(spec) : v;
       }
       // Object map path: prefer raw rule label, then rendered text
       if (typeof spec === 'object' && !Array.isArray(spec)) {

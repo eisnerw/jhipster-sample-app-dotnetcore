@@ -34,7 +34,11 @@ export interface ColumnConfig {
   listOptions?: { label: string; value: string }[];
   // Optional per-column annotations (e.g., pills). Each item provides a render
   // function that returns text/tooltip for the given row or null to skip.
-  annotations?: Array<{ type: 'pill'; render: (row: any) => { text: string; tooltip?: string | null } | null }>;
+  // Supports both inline count/status pills and link-backed pills.
+  annotations?: Array<
+    | { type: 'pill'; render: (row: any) => { text: string; tooltip?: string | null } | null }
+    | { type: 'linkPill'; render: (row: any) => { text: string; link: string; tooltip?: string | null } | null }
+  >;
 }
 
 export interface GroupDescriptor {

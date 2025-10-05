@@ -37,6 +37,19 @@
     white-space: nowrap;
   }
 
+  /* Wrapper that keeps cell text and any trailing link pills on one line */
+  .cell-inline {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0; /* allow children to shrink for ellipsis */
+  }
+  .cell-inline .cell-content {
+    flex: 0 1 auto; /* do not force-fill; sit just before pills */
+    min-width: 0;
+    display: block; /* keep ellipsis behavior */
+  }
+
   .header-cell {
     position: relative;
     min-height: 32px;
@@ -191,6 +204,7 @@
   text-align: center;
   margin-right: 0.25rem;
   vertical-align: middle;
+  text-decoration: none; /* works for <a> pills too */
 }
 
 /* Category pill via absolute positioning in the first data column after checkbox */
@@ -225,6 +239,12 @@
 /* Ensure general non-legacy cells align middle even if pill is not adjacent in DOM */
 :host ::ng-deep td:not([data-catcount]) .cell-content {
   vertical-align: middle;
+}
+
+/* When pills are positioned AFTER the text (linkPill), add left spacing */
+:host ::ng-deep td .after-pill {
+  margin-left: 0.25rem;
+  margin-right: 0; /* avoid extra right gap after trailing pills */
 }
 
 /* PrimeNG tooltip styling for categories */

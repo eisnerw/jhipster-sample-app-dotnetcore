@@ -22,7 +22,29 @@
         "name": "Case Name",
         "column": "Case",
         "type": "string",
-        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"]
+        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"],
+        "annotations": [
+          {
+            "type": "linkPill",
+            "field": "justia_url",
+            "ruleType": "compare",
+            "rules": [
+              { "exists": "j" }
+            ],
+             "tooltip": "Justia",
+             "link": "{justia_url}"
+          },
+          {
+            "type": "linkPill",
+            "field": "argument2_url",
+            "ruleType": "compare",
+            "rules": [
+              { "exists": "o" }
+            ],
+             "tooltip": "Oyez",
+             "link": "{argument2_url}"
+          }
+        ]
       },
       "term": {
         "name": "Term",

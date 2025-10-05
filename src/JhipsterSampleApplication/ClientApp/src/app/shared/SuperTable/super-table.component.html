@@ -159,7 +159,30 @@
                     </ng-container>
                   </ng-container>
                 </ng-container>
-                <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
+                <span class="cell-inline">
+                  <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
+                  <ng-container *ngIf="col.annotations?.length">
+                    <ng-container *ngFor="let a of col.annotations">
+                      <ng-container *ngIf="a.type === 'linkPill'">
+                        <ng-container *ngIf="a.render(rowData) as pill">
+                          <a class="cat-pill after-pill"
+                             [href]="pill.link"
+                             target="_blank"
+                             rel="noopener"
+                             [pTooltip]="pill.tooltip || null"
+                             tooltipPosition="right"
+                             appendTo="body"
+                             [autoHide]="false"
+                             [showDelay]="120"
+                             [hideDelay]="350"
+                             [tooltipStyleClass]="'cat-tooltip'">
+                            {{ pill.text }}
+                          </a>
+                        </ng-container>
+                      </ng-container>
+                    </ng-container>
+                  </ng-container>
+                </span>
               }
               @case ('date') {
                 <ng-container *ngIf="col.annotations?.length">
@@ -180,8 +203,31 @@
                     </ng-container>
                   </ng-container>
                 </ng-container>
-                <span class="cell-content">
-                  {{ nonEmpty(rowData[col.field]) ? (rowData[col.field] | date: (col.dateFormat || 'MM/dd/yyyy')) : '' }}
+                <span class="cell-inline">
+                  <span class="cell-content">
+                    {{ nonEmpty(rowData[col.field]) ? (rowData[col.field] | date: (col.dateFormat || 'MM/dd/yyyy')) : '' }}
+                  </span>
+                  <ng-container *ngIf="col.annotations?.length">
+                    <ng-container *ngFor="let a of col.annotations">
+                      <ng-container *ngIf="a.type === 'linkPill'">
+                        <ng-container *ngIf="a.render(rowData) as pill">
+                          <a class="cat-pill after-pill"
+                             [href]="pill.link"
+                             target="_blank"
+                             rel="noopener"
+                             [pTooltip]="pill.tooltip || null"
+                             tooltipPosition="right"
+                             appendTo="body"
+                             [autoHide]="false"
+                             [showDelay]="120"
+                             [hideDelay]="350"
+                             [tooltipStyleClass]="'cat-tooltip'">
+                            {{ pill.text }}
+                          </a>
+                        </ng-container>
+                      </ng-container>
+                    </ng-container>
+                  </ng-container>
                 </span>
               }
               @case ('boolean') {
@@ -203,7 +249,30 @@
                     </ng-container>
                   </ng-container>
                 </ng-container>
-                <span class="cell-content" [pTooltip]="rowData[col.field] ? 'Yes' : 'No'" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350">{{ rowData[col.field] ? 'Yes' : 'No' }}</span>
+                <span class="cell-inline">
+                  <span class="cell-content" [pTooltip]="rowData[col.field] ? 'Yes' : 'No'" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350">{{ rowData[col.field] ? 'Yes' : 'No' }}</span>
+                  <ng-container *ngIf="col.annotations?.length">
+                    <ng-container *ngFor="let a of col.annotations">
+                      <ng-container *ngIf="a.type === 'linkPill'">
+                        <ng-container *ngIf="a.render(rowData) as pill">
+                          <a class="cat-pill after-pill"
+                             [href]="pill.link"
+                             target="_blank"
+                             rel="noopener"
+                             [pTooltip]="pill.tooltip || null"
+                             tooltipPosition="right"
+                             appendTo="body"
+                             [autoHide]="false"
+                             [showDelay]="120"
+                             [hideDelay]="350"
+                             [tooltipStyleClass]="'cat-tooltip'">
+                            {{ pill.text }}
+                          </a>
+                        </ng-container>
+                      </ng-container>
+                    </ng-container>
+                  </ng-container>
+                </span>
               }
               @case ('list') {
                 <ng-container *ngIf="col.annotations?.length">
@@ -224,7 +293,30 @@
                     </ng-container>
                   </ng-container>
                 </ng-container>
-                <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
+                <span class="cell-inline">
+                  <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
+                  <ng-container *ngIf="col.annotations?.length">
+                    <ng-container *ngFor="let a of col.annotations">
+                      <ng-container *ngIf="a.type === 'linkPill'">
+                        <ng-container *ngIf="a.render(rowData) as pill">
+                          <a class="cat-pill after-pill"
+                             [href]="pill.link"
+                             target="_blank"
+                             rel="noopener"
+                             [pTooltip]="pill.tooltip || null"
+                             tooltipPosition="right"
+                             appendTo="body"
+                             [autoHide]="false"
+                             [showDelay]="120"
+                             [hideDelay]="350"
+                             [tooltipStyleClass]="'cat-tooltip'">
+                            {{ pill.text }}
+                          </a>
+                        </ng-container>
+                      </ng-container>
+                    </ng-container>
+                  </ng-container>
+                </span>
               }
               @case ('lineNumber') {
                 <span class="cell-content" [pTooltip]="rowIndex + 1" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350">{{ rowIndex + 1 }}</span>
