@@ -482,6 +482,10 @@ export class QueryBuilderComponent
     }
 
     const type = this.config.fields[field].type;
+    // Unary operators (no value input)
+    if (operator === 'exists' || operator === '!exists') {
+      return undefined;
+    }
     switch (operator) {
       case 'is null':
       case 'is not null':
@@ -856,6 +860,10 @@ export class QueryBuilderComponent
       rule.field,
       operator,
     );
+    // Drop value for unary operators
+    if (operator === 'exists' || operator === '!exists' || operator === 'is null' || operator === 'is not null') {
+      return undefined;
+    }
     if (inputType === 'multiselect') {
       if (Array.isArray(value)) {
         return value;
@@ -1343,7 +1351,7 @@ export class QueryBuilderComponent
   }
 
   private isValueMissingForRule(rule: Rule, field: Field): boolean {
-    if (rule.operator === 'is null' || rule.operator === 'is not null') {
+    if (rule.operator === 'is null' || rule.operator === 'is not null' || rule.operator === 'exists' || rule.operator === '!exists') {
       return false;
     }
     const val = rule.value;

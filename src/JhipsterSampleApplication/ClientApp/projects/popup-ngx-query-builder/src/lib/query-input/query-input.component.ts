@@ -358,13 +358,12 @@ export class QueryInputComponent implements OnInit, OnChanges {
             return this.cleanQuery(item);
           }
           // This is a regular rule - validate it has required fields
-          else if (
-            item.field &&
-            item.operator &&
-            item.value !== undefined &&
-            item.value !== ''
-          ) {
-            return item;
+          else if (item.field && item.operator) {
+            const op = (item.operator || '').toLowerCase();
+            const isUnary = op === 'is null' || op === 'is not null' || op === 'exists' || op === '!exists';
+            if (isUnary || (item.value !== undefined && item.value !== '')) {
+              return item;
+            }
           }
           // Invalid rule, exclude it
           return null;

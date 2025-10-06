@@ -118,7 +118,7 @@ function tokenize(input: string): Token[] {
       const word = input.slice(i, j);
       const up = word.toUpperCase();
       if (
-        (up === '!CONTAINS' || up === '!LIKE' || up === '!IN') &&
+        (up === '!CONTAINS' || up === '!LIKE' || up === '!IN' || up === '!EXISTS') &&
         (j === input.length || /\s|\(|\)|!|&|\||=|<|>|"/.test(input[j]))
       ) {
         tokens.push({ type: 'operator', value: up });
@@ -346,6 +346,12 @@ export function bqlToRuleset(
         };
       }
 
+      // EXISTS / !EXISTS are unary postfix operators: no value follows
+      if (operator === 'exists' || operator === '!exists' || operator === 'not exists') {
+        const neg = operator.startsWith('!') || operator.startsWith('not ');
+        return { condition: 'and', rules: [{ field, operator: neg ? '!exists' : 'exists' }] };
+      }
+
       const valTok = consume();
       if (!valTok) {
         throw new Error('Unexpected end of input');
@@ -491,6 +497,12 @@ export function rulesetToBql(rs: RuleSet, config: QueryBuilderConfig): string {
         return valueToString(rule.value);
       }
     }
+    // EXISTS/!EXISTS postfix form
+    const opLower = (rule.operator || '').toLowerCase();
+    if (opLower === 'exists' || opLower === '!exists') {
+      const isNeg = opLower === '!exists' || rule.value === false;
+      return `${rule.field} ${isNeg ? '!EXISTS' : 'EXISTS'}`;
+    }
     const op = toOperatorToken(rule.operator);
     return `${rule.field}${isAlphaOperator(op) ? ' ' : ''}${op}${isAlphaOperator(op) ? ' ' : ''}${valueToString(rule.value)}`;
   }
@@ -576,6 +588,11 @@ function validateRule(
     if (!Array.isArray(rule.value) || rule.value.length === 0) {
       return false;
     }
+  }
+
+  // EXISTS/!EXISTS are unary; value optional (ignored)
+  if (rule.operator === 'exists' || rule.operator === '!exists') {
+    return true;
   }
 
   if (
