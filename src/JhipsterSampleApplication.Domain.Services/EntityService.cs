@@ -322,6 +322,14 @@ public class EntityService : IEntityService
                                 }
                             }
                         }
+
+                        // Include any fields that annotations depend on (annotation.fields, annotation.field, and tokens in annotation.link)
+                        try
+                        {
+                            var needed = CollectAnnotationFields(fieldsObj);
+                            foreach (var f in needed) selected.Add(f);
+                        }
+                        catch { /* best effort */ }
                     }
                 }
                 catch { /* ignore spec parse errors; best effort */ }
@@ -430,6 +438,51 @@ public class EntityService : IEntityService
             app.Hits.Add(new AppHit<JObject> { Id = id, Source = obj, Sorts = sortsList });
         }
         return app;
+    }
+
+    private static IEnumerable<string> CollectAnnotationFields(JObject fieldsObj)
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var prop in fieldsObj.Properties())
+        {
+            if (prop.Value is not JObject meta) continue;
+            var anns = meta["annotations"] as JArray;
+            if (anns == null) continue;
+            foreach (var a in anns.OfType<JObject>())
+            {
+                // 1) annotation.fields: string or array
+                var fieldsToken = a["fields"];
+                if (fieldsToken is JArray fa)
+                {
+                    foreach (var t in fa)
+                    {
+                        var s = t?.ToString();
+                        if (!string.IsNullOrWhiteSpace(s)) set.Add(s!);
+                    }
+                }
+                else if (fieldsToken is JValue fv)
+                {
+                    var s = fv?.ToString();
+                    if (!string.IsNullOrWhiteSpace(s)) set.Add(s!);
+                }
+
+                // 2) annotation.field: single source field used by the annotation
+                var singleField = a["field"]?.ToString();
+                if (!string.IsNullOrWhiteSpace(singleField)) set.Add(singleField!);
+
+                // 3) annotation.link: templated string; include tokens like {field} or {field:modifier}
+                var link = a["link"]?.ToString() ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(link))
+                {
+                    foreach (Match m in Regex.Matches(link, "\\{([^{}:\\s]+)(?::[^{}]+)?\\}"))
+                    {
+                        var token = m.Groups[1]?.Value;
+                        if (!string.IsNullOrWhiteSpace(token)) set.Add(token!);
+                    }
+                }
+            }
+        }
+        return set;
     }
 
     private async Task<JObject> PostRawAsync(string indexName, JObject body, string? pitId, bool useIndexPath)

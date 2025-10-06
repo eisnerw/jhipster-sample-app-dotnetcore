@@ -121,6 +121,16 @@
         "name": "Quesion/Description",
         "type": "computed",
         "computation": "question | description"
+      },
+      "justia_url": {
+        "name": "Justia URL",
+        "type": "string",
+        "operators":["exists", "!exists"]
+      },
+      "argument2_url": {
+        "name": "Oyez URL",
+        "type": "string",
+        "operators":["exists", "!exists"]
       }
     },
     "views": [
