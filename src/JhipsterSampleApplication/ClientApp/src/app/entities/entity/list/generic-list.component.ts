@@ -142,8 +142,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     this.dataLoader = new DataLoader<AnyRow>(fetch);
   }
 
-  // Deprecated legacy pillContent kept for bw-compat if referenced elsewhere
-  pillContent = (row: AnyRow): string => String((row?.categories?.length || 0));
+  // legacy category pill support removed; handled via column annotations now
 
   ngOnInit(): void {
     this.route.paramMap.subscribe(pm => {
@@ -486,6 +485,17 @@ export class GenericListComponent implements OnInit, AfterViewInit {
         // Keep reference without coercing to string so maps are preserved.
         const tooltipSpec: any = (ann && Object.prototype.hasOwnProperty.call(ann, 'tooltip')) ? (ann as any).tooltip : null;
         if (type === 'pill') {
+          // Custom count-of-array pill: show count when the source field is a non-empty array
+          if ((ann as any).countOf) {
+            const render = (row: AnyRow) => {
+              const v = row?.[srcField];
+              if (!Array.isArray(v) || v.length === 0) return null;
+              const text = String(v.length);
+              const tooltip = this.resolveTooltip(row, tooltipSpec, text, text, srcField);
+              return { text, tooltip };
+            };
+            out.push({ type: 'pill', render });
+          }
           if (ruleType === 'regex') {
             const compiled = this.compileRegexRules(rules);
             const render = (row: AnyRow) => {
@@ -500,10 +510,19 @@ export class GenericListComponent implements OnInit, AfterViewInit {
                 }
                 if (label) break;
               }
-              if (label === null) return null;
-              const text = label + (Array.isArray(v) && v.length > 1 ? '+' : '');
-              const tooltip = this.resolveTooltip(row, tooltipSpec, label, text);
-              return { text, tooltip };
+              if (label === null) {
+                const def = String((ann as any).default || '').toLowerCase();
+                if (def === 'countof' && Array.isArray(v) && v.length > 0) {
+                  const text = String(v.length);
+                  const tooltip = this.resolveTooltip(row, tooltipSpec, text, text, srcField);
+                  return { text, tooltip };
+                }
+                return null;
+              } else {
+                const text = label + (Array.isArray(v) && v.length > 1 ? '+' : '');
+                const tooltip = this.resolveTooltip(row, tooltipSpec, label, text, srcField);
+                return { text, tooltip };
+              }
             };
             out.push({ type: 'pill', render });
           } else if (ruleType === 'compare') {
@@ -515,7 +534,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
               for (const r of compiled) {
                 if (this.compare(num, r.op, r.value)) {
                   const text = r.label;
-                  const tooltip = this.resolveTooltip(row, tooltipSpec, r.label, text);
+                  const tooltip = this.resolveTooltip(row, tooltipSpec, r.label, text, srcField);
                   return { text, tooltip };
                 }
               }
@@ -535,7 +554,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
                 if (r.op === 'exists') {
                   if (exists) {
                     const text = r.label;
-                    const tooltip = this.resolveTooltip(row, tooltipSpec, r.label, text);
+                    const tooltip = this.resolveTooltip(row, tooltipSpec, r.label, text, srcField);
                     const link = this.resolveTemplateString(linkTmpl, row) || String(raw || '');
                     if (!link) return null;
                     return { text, tooltip, link };
@@ -573,7 +592,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
               }
               if (label === null) return null;
               const text = label + (Array.isArray(v) && v.length > 1 ? '+' : '');
-              const tooltip = this.resolveTooltip(row, tooltipSpec, label, text);
+              const tooltip = this.resolveTooltip(row, tooltipSpec, label, text, srcField);
               const link = this.resolveTemplateString(linkTmpl, row) || '';
               if (!link) return null;
               return { text, tooltip, link };
@@ -647,7 +666,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     } catch { return ''; }
   }
 
-  private evalTooltip(row: AnyRow, expr: string | null): string | null {
+  private evalTooltip(row: AnyRow, expr: string | null, contextField?: string, fallbackValue?: any): string | null {
     if (!expr) return null;
     try {
       const s = expr.trim();
@@ -672,8 +691,15 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       // Only exposes provided fields and Math. No window/document.
       const keys = Object.keys(row || {});
       const values = keys.map(k => (row as any)[k]);
-      const fn = new Function(...[...keys, 'Math'], 'return ( ' + s + ' );');
-      const val = fn(...values, Math);
+      // Provide a 'value' symbol mapped to the current field's value when available.
+      let valueSym: any = undefined;
+      if (contextField && Object.prototype.hasOwnProperty.call(row || {}, contextField)) {
+        valueSym = (row as any)[contextField];
+      } else if (fallbackValue !== undefined) {
+        valueSym = fallbackValue;
+      }
+      const fn = new Function(...[...keys, 'value', 'Math'], 'return ( ' + s + ' );');
+      const val = fn(...values, valueSym, Math);
       if (val === undefined || val === null) return null;
       if (Array.isArray(val)) return val.join(', ');
       return String(val);
@@ -682,12 +708,12 @@ export class GenericListComponent implements OnInit, AfterViewInit {
 
   // Resolve tooltip from either a string expression or a mapping object keyed by label/text.
   // If a string expression fails to evaluate, fall back to treating it as a literal string.
-  private resolveTooltip(row: AnyRow, spec: any, rawLabel: string, finalText: string): string | null {
+  private resolveTooltip(row: AnyRow, spec: any, rawLabel: string, finalText: string, contextField?: string): string | null {
     try {
       if (spec === null || spec === undefined) return null;
       // String expression path (backward compatible)
       if (typeof spec === 'string') {
-        const v = this.evalTooltip(row, spec);
+        const v = this.evalTooltip(row, spec, contextField, finalText);
         return v === null ? String(spec) : v;
       }
       // Object map path: prefer raw rule label, then rendered text

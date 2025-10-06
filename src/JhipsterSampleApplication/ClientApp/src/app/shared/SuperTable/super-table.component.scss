@@ -207,39 +207,9 @@
   text-decoration: none; /* works for <a> pills too */
 }
 
-/* Category pill via absolute positioning in the first data column after checkbox */
-:host ::ng-deep td[data-catcount] {
-  position: relative;
-}
-:host ::ng-deep td[data-catcount] .cat-pill {
-  position: absolute;
-  left: 2px;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 0.75rem; /* slightly tighter in the first column */
-  line-height: 0.75rem;
-  padding: 0 0.25rem;
-}
-
-/* Ensure text shifts right and stays single-line with ellipsis when pill is present */
-/* Keep identical flow/line-box as non-pill rows to avoid vertical jitter;
-   reserve pill space within the content flow using padding, not margins */
-:host ::ng-deep td[data-catcount] .cell-content {
-  display: block !important;
-  padding-left: 1.05rem !important; /* matches pill width + a few px */
-  margin-left: 0 !important;
-  min-width: 0;
-}
-
-/* Keep pill and value on the same line for non-absolute case */
-:host ::ng-deep td:not([data-catcount]) .cat-pill + .cell-content {
-  display: inline-block !important;
-  vertical-align: middle;
-}
-/* Ensure general non-legacy cells align middle even if pill is not adjacent in DOM */
-:host ::ng-deep td:not([data-catcount]) .cell-content {
-  vertical-align: middle;
-}
+/* Pills and text inline within cell-inline flex container */
+:host ::ng-deep td .cell-inline .cat-pill + .cell-content { display: inline-block; vertical-align: middle; }
+:host ::ng-deep td .cell-inline .cell-content { vertical-align: middle; }
 
 /* When pills are positioned AFTER the text (linkPill), add left spacing */
 :host ::ng-deep td .after-pill {

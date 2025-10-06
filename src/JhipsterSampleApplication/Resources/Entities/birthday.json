@@ -11,7 +11,17 @@
       "lname": {
         "name": "Last Name",
         "type": "string",
-        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in"]
+        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in"],
+        "annotations": [
+          {
+            "type": "pill",
+            "field": "categories",
+            "ruleType": "regex",
+            "rules": [ { "^hello$": "Hello there!" } ],
+            "default": "countOf",
+            "tooltip": "categories.join(', ')"
+          }
+        ]
       },
       "fname": {
         "name": "First Name",
