@@ -25,14 +25,9 @@
         "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"],
         "annotations": [
           {
-            "type": "linkPill",
+            "type": "link",
             "field": "justia_url",
-            "ruleType": "compare",
-            "rules": [
-              { "exists": "j" }
-            ],
-             "tooltip": "Justia",
-             "link": "{justia_url}"
+            "link": "{justia_url}"
           },
           {
             "type": "linkPill",

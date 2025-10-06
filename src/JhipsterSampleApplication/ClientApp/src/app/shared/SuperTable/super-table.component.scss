@@ -211,6 +211,12 @@
 :host ::ng-deep td .cell-inline .cat-pill + .cell-content { display: inline-block; vertical-align: middle; }
 :host ::ng-deep td .cell-inline .cell-content { vertical-align: middle; }
 
+/* Link annotation wrapper: underline, keep color consistent */
+:host ::ng-deep td .cell-inline .cell-link {
+  text-decoration: underline;
+  color: inherit;
+}
+
 /* When pills are positioned AFTER the text (linkPill), add left spacing */
 :host ::ng-deep td .after-pill {
   margin-left: 0.25rem;

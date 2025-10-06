@@ -599,6 +599,17 @@ export class GenericListComponent implements OnInit, AfterViewInit {
             };
             out.push({ type: 'linkPill', render });
           }
+        } else if (type === 'link') {
+          const linkTmpl = String((ann as any).link || '');
+          const render = (row: AnyRow) => {
+            const raw = row?.[srcField];
+            const has = !(raw === null || raw === undefined || String(raw).trim() === '');
+            if (!has) return null;
+            const link = this.resolveTemplateString(linkTmpl, row) || String(raw || '');
+            if (!link) return null;
+            return { link };
+          };
+          out.push({ type: 'link', render });
         }
       }
       return out;

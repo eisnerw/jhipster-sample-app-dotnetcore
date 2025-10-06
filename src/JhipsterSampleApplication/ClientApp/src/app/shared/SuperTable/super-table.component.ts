@@ -38,6 +38,7 @@ export interface ColumnConfig {
   annotations?: Array<
     | { type: 'pill'; render: (row: any) => { text: string; tooltip?: string | null } | null }
     | { type: 'linkPill'; render: (row: any) => { text: string; link: string; tooltip?: string | null } | null }
+    | { type: 'link'; render: (row: any) => { link: string } | null }
   >;
 }
 
@@ -143,6 +144,22 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       }
     }
   };
+
+  // Find first link annotation that yields a link
+  linkWrap(row: any, col: ColumnConfig): string | null {
+    try {
+      const anns: any[] = (col as any).annotations || [];
+      for (const a of anns) {
+        if (a && a.type === 'link' && typeof a.render === 'function') {
+          const r = a.render(row);
+          if (r && r.link) {
+            return String(r.link);
+          }
+        }
+      }
+    } catch {}
+    return null;
+  }
   private capturedWidths = false;
   private enforceHandle: any;
   private windowResizeHandler?: () => void;
