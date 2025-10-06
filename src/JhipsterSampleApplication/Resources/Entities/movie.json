@@ -32,6 +32,10 @@
             ],
             "tooltip": "categories.join(', ')"
           }
+        ],
+        "tooltip" : [
+          "“{title}”",
+          ", a {genres}"
         ]
       },
       "release_year": {

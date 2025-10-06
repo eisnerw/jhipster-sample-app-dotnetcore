@@ -367,6 +367,54 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     }
   }
 
+  // Compute tooltip text from optional field-level tooltipSpec (string or string[]).
+  // Each segment renders only if all tokens in that segment are present and non-empty.
+  // Arrays join with ", ". Falls back to provided default when nothing qualifies.
+  getCellTooltip(row: any, col: ColumnConfig, fallback: string): string {
+    try {
+      const spec: any = (col as any).tooltipSpec;
+      if (spec === undefined || spec === null) return fallback;
+      const parts: string[] = Array.isArray(spec) ? spec : [String(spec)];
+      const out: string[] = [];
+      for (const raw of parts) {
+        const s = String(raw);
+        const tokens = Array.from(s.matchAll(/\{([^{}:\s]+)\}/g)).map(m => m[1]);
+        if (tokens.length === 0) { out.push(s); continue; }
+        let ok = true; const values: Record<string,string> = {};
+        for (const t of tokens) {
+          const v = (row || {})[t];
+          const display = this.tooltipValueToString(v);
+          if (display === null) { ok = false; break; }
+          values[t] = display;
+        }
+        if (!ok) continue;
+        out.push(s.replace(/\{([^{}:\s]+)\}/g, (_m, name) => values[name] ?? ''));
+      }
+      const joined = out.join('');
+      const txt = String(joined).trim();
+      return txt.length > 0 ? txt : fallback;
+    } catch { return fallback; }
+  }
+
+  private tooltipValueToString(v: any): string | null {
+    try {
+      if (v === null || v === undefined) return null;
+      if (Array.isArray(v)) {
+        const parts = v.map((item) => {
+          if (item === null || item === undefined) return '';
+          if (typeof item === 'object') {
+            const cand = (item.name ?? item.value ?? '').toString();
+            return cand.trim();
+          }
+          return String(item).trim();
+        }).filter(s => s.length > 0);
+        return parts.length ? parts.join(', ') : null;
+      }
+      const s = String(v).trim();
+      return s.length > 0 ? s : null;
+    } catch { return null; }
+  }
+
   private escapeHtml(s: string): string {
     return s
       .replace(/&/g, '&amp;')

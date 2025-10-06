@@ -330,6 +330,14 @@ public class EntityService : IEntityService
                             foreach (var f in needed) selected.Add(f);
                         }
                         catch { /* best effort */ }
+
+                        // Include any fields that field-level tooltips depend on (tokens in tooltip strings)
+                        try
+                        {
+                            var tt = CollectTooltipFields(fieldsObj);
+                            foreach (var f in tt) selected.Add(f);
+                        }
+                        catch { /* best effort */ }
                     }
                 }
                 catch { /* ignore spec parse errors; best effort */ }
@@ -475,6 +483,39 @@ public class EntityService : IEntityService
                 if (!string.IsNullOrWhiteSpace(link))
                 {
                     foreach (Match m in Regex.Matches(link, "\\{([^{}:\\s]+)(?::[^{}]+)?\\}"))
+                    {
+                        var token = m.Groups[1]?.Value;
+                        if (!string.IsNullOrWhiteSpace(token)) set.Add(token!);
+                    }
+                }
+            }
+        }
+        return set;
+    }
+
+    private static IEnumerable<string> CollectTooltipFields(JObject fieldsObj)
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var prop in fieldsObj.Properties())
+        {
+            if (prop.Value is not JObject meta) continue;
+            var tool = meta["tooltip"];
+            if (tool == null) continue;
+            if (tool is JValue v)
+            {
+                var s = v.ToString() ?? string.Empty;
+                foreach (Match m in Regex.Matches(s, "\\{([^{}:\\s]+)(?::[^{}]+)?\\}"))
+                {
+                    var token = m.Groups[1]?.Value;
+                    if (!string.IsNullOrWhiteSpace(token)) set.Add(token!);
+                }
+            }
+            else if (tool is JArray arr)
+            {
+                foreach (var t in arr.OfType<JValue>())
+                {
+                    var s = t.ToString() ?? string.Empty;
+                    foreach (Match m in Regex.Matches(s, "\\{([^{}:\\s]+)(?::[^{}]+)?\\}"))
                     {
                         var token = m.Groups[1]?.Value;
                         if (!string.IsNullOrWhiteSpace(token)) set.Add(token!);

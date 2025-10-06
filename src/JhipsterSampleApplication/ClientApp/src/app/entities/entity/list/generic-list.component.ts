@@ -272,6 +272,9 @@ export class GenericListComponent implements OnInit, AfterViewInit {
           // Attach annotations, if any
           const anns = this.parseAnnotationsForField(spec, lf, meta);
           if (anns && anns.length) (col as any).annotations = anns;
+          if (meta && Object.prototype.hasOwnProperty.call(meta, 'tooltip')) {
+            (col as any).tooltipSpec = meta.tooltip;
+          }
           cols.push(col);
         } else if (lf && typeof lf === 'object') {
           if (EXCLUDE.has(String(lf.field || '').toLowerCase())) continue;
@@ -293,6 +296,8 @@ export class GenericListComponent implements OnInit, AfterViewInit {
           // Attach annotations, if any (prefer explicit lf.annotations over meta)
           const anns = this.parseAnnotationsForField(spec, lf.field, (lf as any).annotations ? { annotations: (lf as any).annotations } : meta);
           if (anns && anns.length) (col as any).annotations = anns;
+          const tt = (lf as any).tooltip ?? meta.tooltip;
+          if (tt !== undefined) (col as any).tooltipSpec = tt;
           cols.push(col);
         }
       }
@@ -332,6 +337,9 @@ export class GenericListComponent implements OnInit, AfterViewInit {
         if (f.width) col.width = this.normalizeWidth(f.width);
         const anns = this.parseAnnotationsForField(spec, k, f);
         if (anns && anns.length) (col as any).annotations = anns;
+        if (Object.prototype.hasOwnProperty.call(f || {}, 'tooltip')) {
+          (col as any).tooltipSpec = (f as any).tooltip;
+        }
         cols.push(col);
       }
     }
