@@ -37,7 +37,8 @@
               { "exists": "o" }
             ],
              "tooltip": "Oyez",
-             "link": "{argument2_url}"
+             "link": "{argument2_url}",
+             "position": "after"
           }
         ]
       },

@@ -36,8 +36,8 @@ export interface ColumnConfig {
   // function that returns text/tooltip for the given row or null to skip.
   // Supports both inline count/status pills and link-backed pills.
   annotations?: Array<
-    | { type: 'pill'; render: (row: any) => { text: string; tooltip?: string | null } | null }
-    | { type: 'linkPill'; render: (row: any) => { text: string; link: string; tooltip?: string | null } | null }
+    | { type: 'pill'; pos?: 'before' | 'after'; render: (row: any) => { text: string; tooltip?: string | null } | null }
+    | { type: 'linkPill'; pos?: 'before' | 'after'; render: (row: any) => { text: string; link: string; tooltip?: string | null } | null }
     | { type: 'link'; render: (row: any) => { link: string } | null }
   >;
 }

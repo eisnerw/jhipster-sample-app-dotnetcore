@@ -211,10 +211,21 @@
 :host ::ng-deep td .cell-inline .cat-pill + .cell-content { display: inline-block; vertical-align: middle; }
 :host ::ng-deep td .cell-inline .cell-content { vertical-align: middle; }
 
-/* Link annotation wrapper: underline, keep color consistent */
+/* Link annotation wrapper: make it a shrinkable flex item so inner text can ellipsize */
 :host ::ng-deep td .cell-inline .cell-link {
+  display: inline-flex;           /* behave well inside flex and keep inline baseline */
+  align-items: center;
+  flex: 0 1 auto;                 /* allow shrinking */
+  min-width: 0;                   /* REQUIRED for ellipsis within flex children */
   text-decoration: underline;
   color: inherit;
+}
+/* Ensure the inner content still has ellipsis rules even when wrapped by <a> */
+:host ::ng-deep td .cell-inline .cell-link .cell-content {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* When pills are positioned AFTER the text (linkPill), add left spacing */

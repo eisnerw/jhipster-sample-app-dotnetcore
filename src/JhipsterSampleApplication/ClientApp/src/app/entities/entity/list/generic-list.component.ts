@@ -487,6 +487,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
         if (type === 'pill') {
           // Custom count-of-array pill: show count when the source field is a non-empty array
           if ((ann as any).countOf) {
+            const pos = String((ann as any).position || 'before').toLowerCase() === 'after' ? 'after' : 'before';
             const render = (row: AnyRow) => {
               const v = row?.[srcField];
               if (!Array.isArray(v) || v.length === 0) return null;
@@ -494,10 +495,11 @@ export class GenericListComponent implements OnInit, AfterViewInit {
               const tooltip = this.resolveTooltip(row, tooltipSpec, text, text, srcField);
               return { text, tooltip };
             };
-            out.push({ type: 'pill', render });
+            out.push({ type: 'pill', render, pos });
           }
           if (ruleType === 'regex') {
             const compiled = this.compileRegexRules(rules);
+            const pos = String((ann as any).position || 'before').toLowerCase() === 'after' ? 'after' : 'before';
             const render = (row: AnyRow) => {
               const v = row?.[srcField];
               if (v === null || v === undefined) return null;
@@ -524,9 +526,10 @@ export class GenericListComponent implements OnInit, AfterViewInit {
                 return { text, tooltip };
               }
             };
-            out.push({ type: 'pill', render });
+            out.push({ type: 'pill', render, pos });
           } else if (ruleType === 'compare') {
             const compiled = this.compileCompareRules(rules);
+            const pos = String((ann as any).position || 'before').toLowerCase() === 'after' ? 'after' : 'before';
             const render = (row: AnyRow) => {
               const raw = row?.[srcField];
               const num = typeof raw === 'number' ? raw : parseFloat(String(raw));
@@ -540,12 +543,13 @@ export class GenericListComponent implements OnInit, AfterViewInit {
               }
               return null;
             };
-            out.push({ type: 'pill', render });
+            out.push({ type: 'pill', render, pos });
           }
         } else if (type === 'linkpill') {
           if (ruleType === 'compare') {
             const compiled = this.compileCompareRules(rules, true);
             const linkTmpl = String((ann as any).link || '');
+            const pos = String((ann as any).position || 'before').toLowerCase() === 'after' ? 'after' : 'before';
             const render = (row: AnyRow) => {
               const raw = row?.[srcField];
               // Evaluate compare rules. Support 'exists' for linkPill.
@@ -565,7 +569,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
                   if (!isFinite(num)) continue;
                   if (this.compare(num, r.op, r.value as any)) {
                     const text = r.label;
-                    const tooltip = this.resolveTooltip(row, tooltipSpec, r.label, text);
+                    const tooltip = this.resolveTooltip(row, tooltipSpec, r.label, text, srcField);
                     const link = this.resolveTemplateString(linkTmpl, row) || String(raw || '');
                     if (!link) return null;
                     return { text, tooltip, link };
@@ -574,10 +578,11 @@ export class GenericListComponent implements OnInit, AfterViewInit {
               }
               return null;
             };
-            out.push({ type: 'linkPill', render });
+            out.push({ type: 'linkPill', render, pos });
           } else if (ruleType === 'regex') {
             const compiled = this.compileRegexRules(rules);
             const linkTmpl = String((ann as any).link || '');
+            const pos = String((ann as any).position || 'before').toLowerCase() === 'after' ? 'after' : 'before';
             const render = (row: AnyRow) => {
               const v = row?.[srcField];
               if (v === null || v === undefined) return null;
@@ -597,7 +602,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
               if (!link) return null;
               return { text, tooltip, link };
             };
-            out.push({ type: 'linkPill', render });
+            out.push({ type: 'linkPill', render, pos });
           }
         } else if (type === 'link') {
           const linkTmpl = String((ann as any).link || '');
