@@ -260,6 +260,18 @@ namespace JhipsterSampleApplication.Domain.Services
                 {
                     var valueStr = ruleset.value?.ToString() ?? string.Empty;
 
+                    // Boolean fields: use exact term query with boolean value
+                    if (!string.IsNullOrWhiteSpace(ruleset.field) &&
+                        _fieldTypeByName.TryGetValue(ruleset.field!, out var ftype) &&
+                        string.Equals(ftype, "boolean", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var boolVal = string.Equals(valueStr, "true", StringComparison.OrdinalIgnoreCase);
+                        return new JObject
+                        {
+                            { "term", new JObject { { ruleset.field!, boolVal } } }
+                        };
+                    }
+
                     if (Regex.IsMatch(valueStr, @"^\d{4}(?:-\d{2}(?:-\d{2})?)?$") ||
                         DateTime.TryParse(valueStr, out _))
                     {
@@ -336,6 +348,18 @@ namespace JhipsterSampleApplication.Domain.Services
                     var values = valueArray?.Select(v => v?.ToString() ?? string.Empty)
                         .Where(s => !string.IsNullOrWhiteSpace(s))
                         .ToList() ?? new List<string>();
+
+                    // Boolean fields: terms with booleans
+                    if (!string.IsNullOrWhiteSpace(ruleset.field) &&
+                        _fieldTypeByName.TryGetValue(ruleset.field!, out var ftype2) &&
+                        string.Equals(ftype2, "boolean", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var bools = values.Select(s => string.Equals(s, "true", StringComparison.OrdinalIgnoreCase)).ToList();
+                        return new JObject
+                        {
+                            { "terms", new JObject { { ruleset.field!, JArray.FromObject(bools) } } }
+                        };
+                    }
 
                     // Prefer fast CI subfield if available; otherwise fallback to match+script
                     if (TryGetCiField(ruleset.field, out var ciField))
@@ -702,7 +726,15 @@ namespace JhipsterSampleApplication.Domain.Services
                     ? _fieldOperatorsLowerByName[field]
                     : (_operatorMapLowerByType.TryGetValue(_fieldTypeByName[field], out var mapOps) ? mapOps : new List<string>());
 
+                // Sensible defaults when spec omits operators
+                if ((opsLower == null || opsLower.Count == 0) &&
+                    string.Equals(_fieldTypeByName[field], "boolean", StringComparison.OrdinalIgnoreCase))
+                {
+                    opsLower = new List<string> { "=", "!=" };
+                }
+
                 var tokens = new HashSet<string>(StringComparer.Ordinal);
+                opsLower ??= new List<string>();
                 foreach (var op in opsLower)
                 {
                     foreach (var tok in LowerOperatorToBqlTokens(op))

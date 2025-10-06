@@ -442,6 +442,12 @@ export class QueryBuilderComponent
       operators =
         (this.operatorMap && this.operatorMap[type]) ||
         this.defaultEmptyList;
+      // Provide sensible defaults for common types when no operator list is supplied
+      if (operators.length === 0) {
+        if (type === 'boolean') {
+          operators = ['=', '!='];
+        }
+      }
       if (operators.length === 0) {
         console.warn(
           `No operators found for field '${field}' with type ${fieldObject.type}. ` +
@@ -863,6 +869,13 @@ export class QueryBuilderComponent
     // Drop value for unary operators
     if (operator === 'exists' || operator === '!exists' || operator === 'is null' || operator === 'is not null') {
       return undefined;
+    }
+    // For boolean fields, coerce undefined to false so the checkbox is meaningful
+    if (inputType === 'boolean') {
+      if (value !== true && value !== false) {
+        return false;
+      }
+      return !!value;
     }
     if (inputType === 'multiselect') {
       if (Array.isArray(value)) {
@@ -1374,7 +1387,8 @@ export class QueryBuilderComponent
         }
         return val === undefined || val === null;
       case 'boolean':
-        return val !== true && val !== false;
+        // Treat unchecked as false; allow boolean without forcing the user to toggle
+        return false;
       case 'multiselect':
         if (!Array.isArray(val)) return true;
         // For IN/NOT IN operators, require at least one selected value
