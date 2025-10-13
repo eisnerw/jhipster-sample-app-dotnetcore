@@ -23,7 +23,7 @@ export class GenericEditComponent implements OnInit {
   isSaving = false;
 
   form!: FormGroup;
-  fields: Array<{ key: string; type: string; label: string; options?: Array<{ label: string; value: string }> }> = [];
+  fields: { key: string; type: string; label: string; options?: { label: string; value: string }[] }[] = [];
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -48,7 +48,7 @@ export class GenericEditComponent implements OnInit {
             ? (f.options as any[]).map(o => ({ label: o.name || String(o.value), value: String(o.value) }))
             : undefined;
           return { key: k, type: t, label, options: opts };
-      });
+        });
       this.buildForm();
       if (this.id) {
         this.title = 'Edit';

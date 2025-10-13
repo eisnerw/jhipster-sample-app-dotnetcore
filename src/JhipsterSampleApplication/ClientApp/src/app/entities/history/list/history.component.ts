@@ -8,7 +8,7 @@ import { HttpResponse } from '@angular/common/http';
   selector: 'jhi-history',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './history.component.html'
+  templateUrl: './history.component.html',
 })
 export class HistoryComponent implements OnInit {
   histories: IHistory[] = [];

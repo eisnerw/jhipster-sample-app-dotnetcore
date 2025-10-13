@@ -512,3 +512,388 @@
     }
   }
 }
+
+/* Autocomplete Dropdown Styles */
+::ng-deep .p-autocomplete {
+  flex: 1;
+  display: flex;
+  position: relative;
+  
+  .p-autocomplete-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 4px;
+    font-size: 1rem;
+    
+    &:focus {
+      outline: none;
+    }
+    
+    /* Focus-visible for keyboard navigation */
+    &:focus-visible {
+      box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+      border-radius: 2px;
+    }
+  }
+  
+  /* Invalid state styling - target the input inside invalid autocomplete */
+  &.invalid .p-autocomplete-input {
+    background: #ffe5e5;
+  }
+  
+  /* Loading indicator */
+  .p-autocomplete-loader {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+}
+
+::ng-deep .p-autocomplete-panel {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  margin-top: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  min-width: 300px;
+  animation: fadeInDown 0.2s ease-out;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  
+  /* Custom scrollbar for autocomplete - Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #667eea #f1f1f1;
+  
+  /* Animation for dropdown appearance */
+  @keyframes fadeInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 4px;
+    
+    &:hover {
+      background: #5a67d8;
+    }
+  }
+  
+  .p-autocomplete-items {
+    padding: 4px 0;
+    
+    .p-autocomplete-item {
+      padding: 0;
+      margin: 0;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      
+      &:hover,
+      &.p-highlight {
+        background: #f0f4ff;
+      }
+      
+      &:focus {
+        outline: 2px solid #667eea;
+        outline-offset: -2px;
+      }
+      
+      /* Visual separator between items */
+      &:not(:last-child) {
+        border-bottom: 1px solid #f0f0f0;
+      }
+      
+      /* Autocomplete item content */
+      .autocomplete-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        
+        .suggestion-value {
+          flex: 1;
+          font-size: 0.95rem;
+          color: #333;
+          font-weight: 500;
+        }
+        
+        .suggestion-type {
+          display: inline-block;
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          background: #e3f2fd;
+          color: #1976d2;
+          white-space: nowrap;
+          
+          /* Different colors for different types using data attributes */
+          &[data-type="string"],
+          &[data-type="text"] {
+            background: #e8f5e9;
+            color: #2e7d32;
+          }
+          
+          &[data-type="number"],
+          &[data-type="integer"],
+          &[data-type="decimal"] {
+            background: #fff3e0;
+            color: #e65100;
+          }
+          
+          &[data-type="date"],
+          &[data-type="datetime"],
+          &[data-type="time"] {
+            background: #f3e5f5;
+            color: #7b1fa2;
+          }
+          
+          &[data-type="boolean"],
+          &[data-type="bool"] {
+            background: #fce4ec;
+            color: #c2185b;
+          }
+          
+          &[data-type="category"],
+          &[data-type="enum"] {
+            background: #fff9c4;
+            color: #f57f17;
+          }
+        }
+        
+        .suggestion-desc {
+          font-size: 0.8rem;
+          color: #666;
+          font-style: italic;
+          max-width: 200px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+      
+      /* Selected/highlighted state */
+      &.p-highlight .autocomplete-item {
+        .suggestion-value {
+          color: #667eea;
+          font-weight: 600;
+        }
+      }
+    }
+    
+    /* Empty message */
+    .p-autocomplete-empty-message {
+      padding: 20px 12px;
+      text-align: center;
+      color: #999;
+      font-style: italic;
+      font-size: 0.9rem;
+      
+      &::before {
+        content: "🔍";
+        display: block;
+        font-size: 2rem;
+        margin-bottom: 8px;
+        opacity: 0.5;
+      }
+    }
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  ::ng-deep .p-autocomplete-panel {
+    border: 2px solid #000;
+    
+    .p-autocomplete-items .p-autocomplete-item {
+      &:hover,
+      &.p-highlight {
+        background: #000;
+        color: #fff;
+        
+        .autocomplete-item {
+          .suggestion-value {
+            color: #fff;
+          }
+          
+          .suggestion-type {
+            background: #fff;
+            color: #000;
+            border: 1px solid #000;
+          }
+          
+          .suggestion-desc {
+            color: #ddd;
+          }
+        }
+      }
+      
+      &:focus {
+        outline: 3px solid #000;
+        outline-offset: -3px;
+      }
+    }
+  }
+}
+
+/* Responsive styles for mobile devices */
+@media (max-width: 768px) {
+  .query-input {
+    &.editing {
+      width: 100%;
+      max-width: 100%;
+    }
+  }
+  
+  ::ng-deep .p-autocomplete-panel {
+    min-width: 250px;
+    max-width: calc(100vw - 32px);
+    max-height: 200px;
+    
+    .p-autocomplete-items .p-autocomplete-item {
+      .autocomplete-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        padding: 12px;
+        
+        .suggestion-value {
+          font-size: 0.9rem;
+        }
+        
+        .suggestion-type {
+          font-size: 0.7rem;
+          padding: 2px 6px;
+        }
+        
+        .suggestion-desc {
+          max-width: 100%;
+          font-size: 0.75rem;
+        }
+      }
+    }
+  }
+}
+
+/* Touch-friendly styles for mobile */
+@media (hover: none) and (pointer: coarse) {
+  ::ng-deep .p-autocomplete-panel {
+    .p-autocomplete-items .p-autocomplete-item {
+      .autocomplete-item {
+        padding: 14px 12px;
+        min-height: 48px;
+      }
+    }
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  ::ng-deep .p-autocomplete-panel {
+    animation: none;
+    
+    .p-autocomplete-items .p-autocomplete-item {
+      transition: none;
+    }
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  ::ng-deep .p-autocomplete-panel {
+    background: #2d2d2d;
+    border-color: #444;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    
+    .p-autocomplete-items {
+      .p-autocomplete-item {
+        &:hover,
+        &.p-highlight {
+          background: #3a3a3a;
+        }
+        
+        &:not(:last-child) {
+          border-bottom-color: #444;
+        }
+        
+        .autocomplete-item {
+          .suggestion-value {
+            color: #e0e0e0;
+          }
+          
+          .suggestion-type {
+            &[data-type="string"],
+            &[data-type="text"] {
+              background: #1b5e20;
+              color: #a5d6a7;
+            }
+            
+            &[data-type="number"],
+            &[data-type="integer"],
+            &[data-type="decimal"] {
+              background: #e65100;
+              color: #ffcc80;
+            }
+            
+            &[data-type="date"],
+            &[data-type="datetime"],
+            &[data-type="time"] {
+              background: #4a148c;
+              color: #ce93d8;
+            }
+            
+            &[data-type="boolean"],
+            &[data-type="bool"] {
+              background: #880e4f;
+              color: #f48fb1;
+            }
+            
+            &[data-type="category"],
+            &[data-type="enum"] {
+              background: #f57f17;
+              color: #fff59d;
+            }
+          }
+          
+          .suggestion-desc {
+            color: #999;
+          }
+        }
+        
+        &.p-highlight .autocomplete-item {
+          .suggestion-value {
+            color: #8b9dff;
+          }
+        }
+      }
+      
+      .p-autocomplete-empty-message {
+        color: #999;
+      }
+    }
+  }
+}

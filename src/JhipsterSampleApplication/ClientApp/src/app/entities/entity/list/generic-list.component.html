@@ -12,26 +12,49 @@
     ></lib-query-input>
 
     <div class="d-flex ms-auto align-items-center">
-      <button class="btn btn-info me-2" (click)="refreshData()" [title]="(dataLoader.loading$ | async) ? 'Refresh (cancel current and restart)' : 'Refresh List'" [disabled]="queryInput.editing && !queryInput.validQuery">
+      <button
+        class="btn btn-info me-2"
+        (click)="refreshData()"
+        [title]="(dataLoader.loading$ | async) ? 'Refresh (cancel current and restart)' : 'Refresh List'"
+        [disabled]="queryInput.editing && !queryInput.validQuery"
+      >
         <fa-icon icon="sync" [spin]="dataLoader.loading$ | async"></fa-icon>
         <span>Refresh List</span>
       </button>
 
       <div class="d-flex align-items-center ms-2">
-        <select class="form-select w-auto" [(ngModel)]="viewName" (ngModelChange)="onViewChange($event)" [disabled]="queryInput.editing && !queryInput.validQuery">
+        <select
+          class="form-select w-auto"
+          [(ngModel)]="viewName"
+          (ngModelChange)="onViewChange($event)"
+          [disabled]="queryInput.editing && !queryInput.validQuery"
+        >
           <option [ngValue]="null">Select a view</option>
           @for (v of views; track v) {
             <option [ngValue]="v.value">{{ v.label }}</option>
           }
         </select>
         @if (viewName) {
-          <button type="button" class="btn btn-link p-0 ms-1" aria-label="Clear selected view" (click)="onViewChange(null)" [disabled]="queryInput.editing && !queryInput.validQuery">
+          <button
+            type="button"
+            class="btn btn-link p-0 ms-1"
+            aria-label="Clear selected view"
+            (click)="onViewChange(null)"
+            [disabled]="queryInput.editing && !queryInput.validQuery"
+          >
             <fa-icon icon="times"></fa-icon>
           </button>
         }
       </div>
 
-      <input #globalFilterInput pInputText type="text" class="p-inputtext-sm ms-2 global-filter-input" placeholder="filter" (input)="superTable.filterGlobal(globalFilterInput.value)" />
+      <input
+        #globalFilterInput
+        pInputText
+        type="text"
+        class="p-inputtext-sm ms-2 global-filter-input"
+        placeholder="filter"
+        (input)="superTable.filterGlobal(globalFilterInput.value)"
+      />
 
       <div class="form-check ms-2" style="font-size: 1rem; display: flex; align-items: center; font-weight: 400">
         <input id="showRowNumbers" type="checkbox" class="form-check-input" [(ngModel)]="showRowNumbers" />
@@ -42,7 +65,6 @@
         <fa-icon icon="plus"></fa-icon>
         <span>Create New</span>
       </button>
-
     </div>
   </h2>
 
@@ -53,11 +75,21 @@
     <div class="chip-bar d-flex align-items-center gap-2 mb-2">
       @if (checkboxSelectedRows.length <= 2) {
         <ng-container *ngFor="let row of chipSelectedRows; trackBy: trackById">
-          <p-chip [label]="getChipLabel(row)" [removable]="true" (onRemove)="onRemoveChip(row)" (mouseenter)="onChipMouseEnter($event, row)"></p-chip>
+          <p-chip
+            [label]="getChipLabel(row)"
+            [removable]="true"
+            (onRemove)="onRemoveChip(row)"
+            (mouseenter)="onChipMouseEnter($event, row)"
+          ></p-chip>
         </ng-container>
       }
       @if (checkboxSelectedRows.length >= 3) {
-        <p-chip [label]="checkboxSelectedRows.length + ' selected'" [removable]="true" (onRemove)="onRemoveCountChip()" (mouseenter)="onCountChipMouseEnter($event)"></p-chip>
+        <p-chip
+          [label]="checkboxSelectedRows.length + ' selected'"
+          [removable]="true"
+          (onRemove)="onRemoveCountChip()"
+          (mouseenter)="onCountChipMouseEnter($event)"
+        ></p-chip>
       }
     </div>
   }
@@ -94,13 +126,17 @@
       (rowExpand)="onRowExpand($event)"
       (rowCollapse)="onRowCollapse($event)"
       [expandedRowTemplate]="expandedRow"
-      
     ></super-table>
   </div>
 
   <ng-template #expandedRow let-rowData>
     <ng-container *ngIf="iframeSafeSrcById[rowData.id]; else waiting">
-      <iframe [src]="iframeSafeSrcById[rowData.id]" style="width: 100%; height: 288px; border: 0" (load)="onExpandedIframeLoad(rowData.id, $event)" loading="lazy"></iframe>
+      <iframe
+        [src]="iframeSafeSrcById[rowData.id]"
+        style="width: 100%; height: 288px; border: 0"
+        (load)="onExpandedIframeLoad(rowData.id, $event)"
+        loading="lazy"
+      ></iframe>
     </ng-container>
     <ng-template #waiting>
       <div class="text-muted" style="padding: 0.5rem 0">Loading…</div>
@@ -120,12 +156,27 @@
     header="Categorize ({{ rowsToCategorizeCount }} row{{ rowsToCategorizeCount === 1 ? '' : 's' }})"
     [style]="{ width: '520px' }"
   >
-    <div class="mb-2" style="display:flex; gap: .5rem; align-items: center;">
-      <input pInputText type="text" placeholder="Filter categories" (input)="filterCategoriesList()" [(ngModel)]="newCategoryText" style="flex:1" />
+    <div class="mb-2" style="display: flex; gap: 0.5rem; align-items: center">
+      <input
+        pInputText
+        type="text"
+        placeholder="Filter categories"
+        (input)="filterCategoriesList()"
+        [(ngModel)]="newCategoryText"
+        style="flex: 1"
+      />
     </div>
-    <div style="max-height: 40vh; overflow: auto; border: 1px solid var(--surface-border, #dee2e6); border-radius: 4px; padding: .25rem .5rem;">
-      <div *ngFor="let c of filteredCategories" style="display:flex; align-items:center; gap:.5rem; padding:.125rem 0;">
-        <p-checkbox [binary]="true" [(ngModel)]="categoryState[c]" [ngModelOptions]="{standalone:true}"></p-checkbox>
+    <div
+      style="
+        max-height: 40vh;
+        overflow: auto;
+        border: 1px solid var(--surface-border, #dee2e6);
+        border-radius: 4px;
+        padding: 0.25rem 0.5rem;
+      "
+    >
+      <div *ngFor="let c of filteredCategories" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.125rem 0">
+        <p-checkbox [binary]="true" [(ngModel)]="categoryState[c]" [ngModelOptions]="{ standalone: true }"></p-checkbox>
         <span>{{ c }}</span>
       </div>
     </div>
@@ -135,7 +186,17 @@
     </ng-template>
   </p-dialog>
 
-  <p-dialog [(visible)]="bDisplayDetail" [modal]="true" [resizable]="true" [draggable]="true" [style]="{ width: '60vw', height: '80vh' }" [contentStyle]="{ height: 'calc(100% - 3.5rem)', padding: '0', overflow: 'hidden' }" [header]="detailDialogTitle" (onShow)="onDetailDialogShow()" (onHide)="onDetailDialogHide()">
+  <p-dialog
+    [(visible)]="bDisplayDetail"
+    [modal]="true"
+    [resizable]="true"
+    [draggable]="true"
+    [style]="{ width: '60vw', height: '80vh' }"
+    [contentStyle]="{ height: 'calc(100% - 3.5rem)', padding: '0', overflow: 'hidden' }"
+    [header]="detailDialogTitle"
+    (onShow)="onDetailDialogShow()"
+    (onHide)="onDetailDialogHide()"
+  >
     <div style="height: 100%; width: 100%">
       <ng-container *ngIf="dialogSafeSrc; else dialogWaiting">
         <iframe [src]="dialogSafeSrc" style="width: 100%; height: 100%; border: 0" loading="lazy"></iframe>

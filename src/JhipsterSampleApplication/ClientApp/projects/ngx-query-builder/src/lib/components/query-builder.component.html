@@ -59,7 +59,11 @@
     <div [ngClass]="getClassNames('treeContainer', collapsed ? 'collapsed' : null)" (transitionend)="transitionEnd()" #treeContainer>
       @if (data && data.rules) {
         <ul [ngClass]="getClassNames('tree')">
-          @for (rule of data.rules; track (isRuleset(rule) ? (rule.name || rule) : (rule.field + '|' + rule.operator + '|' + (rule.entity || ''))); let i = $index) {
+          @for (
+            rule of data.rules;
+            track isRuleset(rule) ? rule.name || rule : rule.field + '|' + rule.operator + '|' + (rule.entity || '');
+            let i = $index
+          ) {
             @if (!config.rulesLimit || i < config.rulesLimit) {
               @if (isRule(rule) || !config.levelLimit || level + 1 < config.levelLimit) {
                 <li [ngClass]="getQueryItemClassName()">
@@ -476,7 +480,7 @@
         }
         @case ('category') {
           <select [ngClass]="getClassNames('inputControl')" [(ngModel)]="rule.value" (ngModelChange)="changeInput()" [disabled]="disabled">
-            @for (opt of getOptions(rule.field, rule, data); track (opt.value ?? opt.name)) {
+            @for (opt of getOptions(rule.field, rule, data); track opt.value ?? opt.name) {
               <option [ngValue]="opt.value">
                 {{ opt.name }}
               </option>
@@ -492,7 +496,7 @@
               [disabled]="disabled"
               multiple
             >
-              @for (opt of getOptions(rule.field, rule, data); track (opt.value ?? opt.name)) {
+              @for (opt of getOptions(rule.field, rule, data); track opt.value ?? opt.name) {
                 <option [ngValue]="opt.value">
                   {{ opt.name }}
                 </option>
@@ -500,7 +504,7 @@
             </select>
           } @else {
             <div [ngClass]="getClassNames('inputControl')" class="q-chip-input">
-              @for (tok of (rule.value || []); track tok; let i = $index) {
+              @for (tok of rule.value || []; track tok; let i = $index) {
                 <span class="q-chip">
                   {{ tok }}
                   <button type="button" class="q-chip-remove" (click)="removeToken(rule, i)" [disabled]="disabled">×</button>

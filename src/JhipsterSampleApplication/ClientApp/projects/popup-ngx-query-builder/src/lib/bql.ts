@@ -53,7 +53,7 @@ function simplify(rs: RuleSet, isRoot = false): RuleSet {
   return rs;
 }
 
-interface Token {
+export interface Token {
   type: 'symbol' | 'word' | 'string' | 'operator';
   value: string;
 }
@@ -62,7 +62,7 @@ function isRulesetName(name: string): boolean {
   return /^[A-Z0-9_]+$/.test(name) && /[A-Z]/.test(name);
 }
 
-function tokenize(input: string): Token[] {
+export function tokenize(input: string): Token[] {
   const tokens: Token[] = [];
   let i = 0;
   while (i < input.length) {

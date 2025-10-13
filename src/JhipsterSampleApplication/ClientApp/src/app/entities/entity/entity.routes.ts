@@ -27,7 +27,7 @@ const routes: Routes = [
         loadComponent: () => import('./list/generic-list.component').then(m => m.GenericListComponent),
         data: {
           defaultSort: `id,${ASC}`,
-          pageTitle: 'Entity (Generic)'
+          pageTitle: 'Entity (Generic)',
         },
         canActivate: [UserRouteAccessService],
       },

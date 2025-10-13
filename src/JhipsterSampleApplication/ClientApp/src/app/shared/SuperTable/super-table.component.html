@@ -132,9 +132,7 @@
     <ng-template pTemplate="body" let-rowData let-columns="columns" let-rowIndex="rowIndex">
       <tr [pContextMenuRow]="rowData">
         @for (col of columns; track col; let i = $index) {
-          <td
-            [ngClass]="{ 'numeric-cell': col.filterType === 'numeric' }"
-          >
+          <td [ngClass]="{ 'numeric-cell': col.filterType === 'numeric' }">
             @switch (col.type) {
               @case ('checkbox') {
                 <p-tableCheckbox [value]="rowData" dataKey="id"></p-tableCheckbox>
@@ -145,31 +143,35 @@
                     <ng-container *ngFor="let a of col.annotations">
                       <ng-container *ngIf="a.type === 'pill' && a.pos !== 'after'">
                         <ng-container *ngIf="a.render(rowData) as pill">
-                          <span class="cat-pill"
-                                [pTooltip]="pill.tooltip || null"
-                                tooltipPosition="right"
-                                appendTo="body"
-                                [autoHide]="false"
-                                [showDelay]="120"
-                                [hideDelay]="350"
-                                [tooltipStyleClass]="'cat-tooltip'">
+                          <span
+                            class="cat-pill"
+                            [pTooltip]="pill.tooltip || null"
+                            tooltipPosition="right"
+                            appendTo="body"
+                            [autoHide]="false"
+                            [showDelay]="120"
+                            [hideDelay]="350"
+                            [tooltipStyleClass]="'cat-tooltip'"
+                          >
                             {{ pill.text }}
                           </span>
                         </ng-container>
                       </ng-container>
                       <ng-container *ngIf="a.type === 'linkPill' && a.pos !== 'after'">
                         <ng-container *ngIf="a.render(rowData) as pill">
-                          <a class="cat-pill"
-                             [href]="pill.link"
-                             target="_blank"
-                             rel="noopener"
-                             [pTooltip]="pill.tooltip || null"
-                             tooltipPosition="right"
-                             appendTo="body"
-                             [autoHide]="false"
-                             [showDelay]="120"
-                             [hideDelay]="350"
-                             [tooltipStyleClass]="'cat-tooltip'">
+                          <a
+                            class="cat-pill"
+                            [href]="pill.link"
+                            target="_blank"
+                            rel="noopener"
+                            [pTooltip]="pill.tooltip || null"
+                            tooltipPosition="right"
+                            appendTo="body"
+                            [autoHide]="false"
+                            [showDelay]="120"
+                            [hideDelay]="350"
+                            [tooltipStyleClass]="'cat-tooltip'"
+                          >
                             {{ pill.text }}
                           </a>
                         </ng-container>
@@ -178,41 +180,61 @@
                   </ng-container>
                   <ng-container *ngIf="linkWrap(rowData, col) as href; else noLinkStr">
                     <a class="cell-link" [href]="href" target="_blank" rel="noopener">
-                      <span class="cell-content" [pTooltip]="getCellTooltip(rowData, col, getCellString(rowData, col))" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
+                      <span
+                        class="cell-content"
+                        [pTooltip]="getCellTooltip(rowData, col, getCellString(rowData, col))"
+                        [tooltipStyleClass]="'cell-tooltip'"
+                        [autoHide]="false"
+                        [showDelay]="120"
+                        [hideDelay]="350"
+                        [innerHTML]="formatCell(getCellString(rowData, col), col.field)"
+                      ></span>
                     </a>
                   </ng-container>
                   <ng-template #noLinkStr>
-                    <span class="cell-content" [pTooltip]="getCellTooltip(rowData, col, getCellString(rowData, col))" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
+                    <span
+                      class="cell-content"
+                      [pTooltip]="getCellTooltip(rowData, col, getCellString(rowData, col))"
+                      [tooltipStyleClass]="'cell-tooltip'"
+                      [autoHide]="false"
+                      [showDelay]="120"
+                      [hideDelay]="350"
+                      [innerHTML]="formatCell(getCellString(rowData, col), col.field)"
+                    ></span>
                   </ng-template>
                   <ng-container *ngIf="col.annotations?.length">
                     <ng-container *ngFor="let a of col.annotations">
                       <ng-container *ngIf="a.type === 'linkPill' && a.pos === 'after'">
                         <ng-container *ngIf="a.render(rowData) as pill">
-                          <a class="cat-pill after-pill"
-                             [href]="pill.link"
-                             target="_blank"
-                             rel="noopener"
-                             [pTooltip]="pill.tooltip || null"
-                             tooltipPosition="right"
-                             appendTo="body"
-                             [autoHide]="false"
-                             [showDelay]="120"
-                             [hideDelay]="350"
-                             [tooltipStyleClass]="'cat-tooltip'">
+                          <a
+                            class="cat-pill after-pill"
+                            [href]="pill.link"
+                            target="_blank"
+                            rel="noopener"
+                            [pTooltip]="pill.tooltip || null"
+                            tooltipPosition="right"
+                            appendTo="body"
+                            [autoHide]="false"
+                            [showDelay]="120"
+                            [hideDelay]="350"
+                            [tooltipStyleClass]="'cat-tooltip'"
+                          >
                             {{ pill.text }}
                           </a>
                         </ng-container>
                       </ng-container>
                       <ng-container *ngIf="a.type === 'pill' && a.pos === 'after'">
                         <ng-container *ngIf="a.render(rowData) as pill">
-                          <span class="cat-pill after-pill"
-                                [pTooltip]="pill.tooltip || null"
-                                tooltipPosition="right"
-                                appendTo="body"
-                                [autoHide]="false"
-                                [showDelay]="120"
-                                [hideDelay]="350"
-                                [tooltipStyleClass]="'cat-tooltip'">
+                          <span
+                            class="cat-pill after-pill"
+                            [pTooltip]="pill.tooltip || null"
+                            tooltipPosition="right"
+                            appendTo="body"
+                            [autoHide]="false"
+                            [showDelay]="120"
+                            [hideDelay]="350"
+                            [tooltipStyleClass]="'cat-tooltip'"
+                          >
                             {{ pill.text }}
                           </span>
                         </ng-container>
@@ -227,78 +249,86 @@
                     <ng-container *ngFor="let a of col.annotations">
                       <ng-container *ngIf="a.type === 'pill' && a.pos !== 'after'">
                         <ng-container *ngIf="a.render(rowData) as pill">
-                          <span class="cat-pill"
-                              [pTooltip]="pill.tooltip || null"
-                              tooltipPosition="right"
-                              appendTo="body"
-                              [autoHide]="false"
-                              [showDelay]="120"
-                              [hideDelay]="350"
-                              [tooltipStyleClass]="'cat-tooltip'">
-                          {{ pill.text }}
-                        </span>
+                          <span
+                            class="cat-pill"
+                            [pTooltip]="pill.tooltip || null"
+                            tooltipPosition="right"
+                            appendTo="body"
+                            [autoHide]="false"
+                            [showDelay]="120"
+                            [hideDelay]="350"
+                            [tooltipStyleClass]="'cat-tooltip'"
+                          >
+                            {{ pill.text }}
+                          </span>
+                        </ng-container>
                       </ng-container>
-                    </ng-container>
                       <ng-container *ngIf="a.type === 'linkPill' && a.pos !== 'after'">
                         <ng-container *ngIf="a.render(rowData) as pill">
-                          <a class="cat-pill"
-                             [href]="pill.link"
-                             target="_blank"
-                             rel="noopener"
-                             [pTooltip]="pill.tooltip || null"
-                             tooltipPosition="right"
-                             appendTo="body"
-                             [autoHide]="false"
-                             [showDelay]="120"
-                             [hideDelay]="350"
-                             [tooltipStyleClass]="'cat-tooltip'">
+                          <a
+                            class="cat-pill"
+                            [href]="pill.link"
+                            target="_blank"
+                            rel="noopener"
+                            [pTooltip]="pill.tooltip || null"
+                            tooltipPosition="right"
+                            appendTo="body"
+                            [autoHide]="false"
+                            [showDelay]="120"
+                            [hideDelay]="350"
+                            [tooltipStyleClass]="'cat-tooltip'"
+                          >
                             {{ pill.text }}
                           </a>
                         </ng-container>
                       </ng-container>
+                    </ng-container>
                   </ng-container>
-                </ng-container>
                   <ng-container *ngIf="linkWrap(rowData, col) as href; else noLinkDate">
                     <a class="cell-link" [href]="href" target="_blank" rel="noopener">
                       <span class="cell-content">
-                        {{ nonEmpty(rowData[col.field]) ? (rowData[col.field] | date: (col.dateFormat || 'MM/dd/yyyy')) : '' }}
+                        {{ nonEmpty(rowData[col.field]) ? (rowData[col.field] | date: col.dateFormat || 'MM/dd/yyyy') : '' }}
                       </span>
                     </a>
                   </ng-container>
                   <ng-template #noLinkDate>
                     <span class="cell-content">
-                      {{ nonEmpty(rowData[col.field]) ? (rowData[col.field] | date: (col.dateFormat || 'MM/dd/yyyy')) : '' }}
+                      {{ nonEmpty(rowData[col.field]) ? (rowData[col.field] | date: col.dateFormat || 'MM/dd/yyyy') : '' }}
                     </span>
                   </ng-template>
                   <ng-container *ngIf="col.annotations?.length">
                     <ng-container *ngFor="let a of col.annotations">
                       <ng-container *ngIf="a.type === 'linkPill' && a.pos === 'after'">
                         <ng-container *ngIf="a.render(rowData) as pill">
-                          <a class="cat-pill after-pill"
-                             [href]="pill.link"
-                             target="_blank"
-                             rel="noopener"
-                             [pTooltip]="pill.tooltip || null"
-                             tooltipPosition="right"
-                             appendTo="body"
-                             [autoHide]="false"
-                             [showDelay]="120"
-                             [hideDelay]="350"
-                             [tooltipStyleClass]="'cat-tooltip'">
+                          <a
+                            class="cat-pill after-pill"
+                            [href]="pill.link"
+                            target="_blank"
+                            rel="noopener"
+                            [pTooltip]="pill.tooltip || null"
+                            tooltipPosition="right"
+                            appendTo="body"
+                            [autoHide]="false"
+                            [showDelay]="120"
+                            [hideDelay]="350"
+                            [tooltipStyleClass]="'cat-tooltip'"
+                          >
                             {{ pill.text }}
                           </a>
                         </ng-container>
                       </ng-container>
                       <ng-container *ngIf="a.type === 'pill' && a.pos === 'after'">
                         <ng-container *ngIf="a.render(rowData) as pill">
-                          <span class="cat-pill after-pill"
-                                [pTooltip]="pill.tooltip || null"
-                                tooltipPosition="right"
-                                appendTo="body"
-                                [autoHide]="false"
-                                [showDelay]="120"
-                                [hideDelay]="350"
-                                [tooltipStyleClass]="'cat-tooltip'">
+                          <span
+                            class="cat-pill after-pill"
+                            [pTooltip]="pill.tooltip || null"
+                            tooltipPosition="right"
+                            appendTo="body"
+                            [autoHide]="false"
+                            [showDelay]="120"
+                            [hideDelay]="350"
+                            [tooltipStyleClass]="'cat-tooltip'"
+                          >
                             {{ pill.text }}
                           </span>
                         </ng-container>
@@ -313,74 +343,98 @@
                     <ng-container *ngFor="let a of col.annotations">
                       <ng-container *ngIf="a.type === 'pill' && a.pos !== 'after'">
                         <ng-container *ngIf="a.render(rowData) as pill">
-                          <span class="cat-pill"
-                              [pTooltip]="pill.tooltip || null"
-                              tooltipPosition="right"
-                              appendTo="body"
-                              [autoHide]="false"
-                              [showDelay]="120"
-                              [hideDelay]="350"
-                              [tooltipStyleClass]="'cat-tooltip'">
-                          {{ pill.text }}
-                        </span>
+                          <span
+                            class="cat-pill"
+                            [pTooltip]="pill.tooltip || null"
+                            tooltipPosition="right"
+                            appendTo="body"
+                            [autoHide]="false"
+                            [showDelay]="120"
+                            [hideDelay]="350"
+                            [tooltipStyleClass]="'cat-tooltip'"
+                          >
+                            {{ pill.text }}
+                          </span>
+                        </ng-container>
                       </ng-container>
-                    </ng-container>
                       <ng-container *ngIf="a.type === 'linkPill' && a.pos !== 'after'">
                         <ng-container *ngIf="a.render(rowData) as pill">
-                          <a class="cat-pill"
-                             [href]="pill.link"
-                             target="_blank"
-                             rel="noopener"
-                             [pTooltip]="pill.tooltip || null"
-                             tooltipPosition="right"
-                             appendTo="body"
-                             [autoHide]="false"
-                             [showDelay]="120"
-                             [hideDelay]="350"
-                             [tooltipStyleClass]="'cat-tooltip'">
+                          <a
+                            class="cat-pill"
+                            [href]="pill.link"
+                            target="_blank"
+                            rel="noopener"
+                            [pTooltip]="pill.tooltip || null"
+                            tooltipPosition="right"
+                            appendTo="body"
+                            [autoHide]="false"
+                            [showDelay]="120"
+                            [hideDelay]="350"
+                            [tooltipStyleClass]="'cat-tooltip'"
+                          >
                             {{ pill.text }}
                           </a>
                         </ng-container>
                       </ng-container>
+                    </ng-container>
                   </ng-container>
-                </ng-container>
                   <ng-container *ngIf="linkWrap(rowData, col) as href; else noLinkBool">
                     <a class="cell-link" [href]="href" target="_blank" rel="noopener">
-                      <span class="cell-content" [pTooltip]="rowData[col.field] ? 'Yes' : 'No'" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350">{{ rowData[col.field] ? 'Yes' : 'No' }}</span>
+                      <span
+                        class="cell-content"
+                        [pTooltip]="rowData[col.field] ? 'Yes' : 'No'"
+                        [tooltipStyleClass]="'cell-tooltip'"
+                        [autoHide]="false"
+                        [showDelay]="120"
+                        [hideDelay]="350"
+                        >{{ rowData[col.field] ? 'Yes' : 'No' }}</span
+                      >
                     </a>
                   </ng-container>
                   <ng-template #noLinkBool>
-                    <span class="cell-content" [pTooltip]="rowData[col.field] ? 'Yes' : 'No'" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350">{{ rowData[col.field] ? 'Yes' : 'No' }}</span>
+                    <span
+                      class="cell-content"
+                      [pTooltip]="rowData[col.field] ? 'Yes' : 'No'"
+                      [tooltipStyleClass]="'cell-tooltip'"
+                      [autoHide]="false"
+                      [showDelay]="120"
+                      [hideDelay]="350"
+                      >{{ rowData[col.field] ? 'Yes' : 'No' }}</span
+                    >
                   </ng-template>
                   <ng-container *ngIf="col.annotations?.length">
                     <ng-container *ngFor="let a of col.annotations">
                       <ng-container *ngIf="a.type === 'linkPill' && a.pos === 'after'">
                         <ng-container *ngIf="a.render(rowData) as pill">
-                          <a class="cat-pill after-pill"
-                             [href]="pill.link"
-                             target="_blank"
-                             rel="noopener"
-                             [pTooltip]="pill.tooltip || null"
-                             tooltipPosition="right"
-                             appendTo="body"
-                             [autoHide]="false"
-                             [showDelay]="120"
-                             [hideDelay]="350"
-                             [tooltipStyleClass]="'cat-tooltip'">
+                          <a
+                            class="cat-pill after-pill"
+                            [href]="pill.link"
+                            target="_blank"
+                            rel="noopener"
+                            [pTooltip]="pill.tooltip || null"
+                            tooltipPosition="right"
+                            appendTo="body"
+                            [autoHide]="false"
+                            [showDelay]="120"
+                            [hideDelay]="350"
+                            [tooltipStyleClass]="'cat-tooltip'"
+                          >
                             {{ pill.text }}
                           </a>
                         </ng-container>
                       </ng-container>
                       <ng-container *ngIf="a.type === 'pill' && a.pos === 'after'">
                         <ng-container *ngIf="a.render(rowData) as pill">
-                          <span class="cat-pill after-pill"
-                                [pTooltip]="pill.tooltip || null"
-                                tooltipPosition="right"
-                                appendTo="body"
-                                [autoHide]="false"
-                                [showDelay]="120"
-                                [hideDelay]="350"
-                                [tooltipStyleClass]="'cat-tooltip'">
+                          <span
+                            class="cat-pill after-pill"
+                            [pTooltip]="pill.tooltip || null"
+                            tooltipPosition="right"
+                            appendTo="body"
+                            [autoHide]="false"
+                            [showDelay]="120"
+                            [hideDelay]="350"
+                            [tooltipStyleClass]="'cat-tooltip'"
+                          >
                             {{ pill.text }}
                           </span>
                         </ng-container>
@@ -395,14 +449,16 @@
                     <ng-container *ngFor="let a of col.annotations">
                       <ng-container *ngIf="a.type === 'pill'">
                         <ng-container *ngIf="a.render(rowData) as pill">
-                          <span class="cat-pill"
-                                [pTooltip]="pill.tooltip || null"
-                                tooltipPosition="right"
-                                appendTo="body"
-                                [autoHide]="false"
-                                [showDelay]="120"
-                                [hideDelay]="350"
-                                [tooltipStyleClass]="'cat-tooltip'">
+                          <span
+                            class="cat-pill"
+                            [pTooltip]="pill.tooltip || null"
+                            tooltipPosition="right"
+                            appendTo="body"
+                            [autoHide]="false"
+                            [showDelay]="120"
+                            [hideDelay]="350"
+                            [tooltipStyleClass]="'cat-tooltip'"
+                          >
                             {{ pill.text }}
                           </span>
                         </ng-container>
@@ -411,27 +467,45 @@
                   </ng-container>
                   <ng-container *ngIf="linkWrap(rowData, col) as href; else noLinkList">
                     <a class="cell-link" [href]="href" target="_blank" rel="noopener">
-                      <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
+                      <span
+                        class="cell-content"
+                        [pTooltip]="getCellString(rowData, col)"
+                        [tooltipStyleClass]="'cell-tooltip'"
+                        [autoHide]="false"
+                        [showDelay]="120"
+                        [hideDelay]="350"
+                        [innerHTML]="formatCell(getCellString(rowData, col), col.field)"
+                      ></span>
                     </a>
                   </ng-container>
                   <ng-template #noLinkList>
-                    <span class="cell-content" [pTooltip]="getCellString(rowData, col)" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350" [innerHTML]="formatCell(getCellString(rowData, col), col.field)"></span>
+                    <span
+                      class="cell-content"
+                      [pTooltip]="getCellString(rowData, col)"
+                      [tooltipStyleClass]="'cell-tooltip'"
+                      [autoHide]="false"
+                      [showDelay]="120"
+                      [hideDelay]="350"
+                      [innerHTML]="formatCell(getCellString(rowData, col), col.field)"
+                    ></span>
                   </ng-template>
                   <ng-container *ngIf="col.annotations?.length">
                     <ng-container *ngFor="let a of col.annotations">
                       <ng-container *ngIf="a.type === 'linkPill'">
                         <ng-container *ngIf="a.render(rowData) as pill">
-                          <a class="cat-pill after-pill"
-                             [href]="pill.link"
-                             target="_blank"
-                             rel="noopener"
-                             [pTooltip]="pill.tooltip || null"
-                             tooltipPosition="right"
-                             appendTo="body"
-                             [autoHide]="false"
-                             [showDelay]="120"
-                             [hideDelay]="350"
-                             [tooltipStyleClass]="'cat-tooltip'">
+                          <a
+                            class="cat-pill after-pill"
+                            [href]="pill.link"
+                            target="_blank"
+                            rel="noopener"
+                            [pTooltip]="pill.tooltip || null"
+                            tooltipPosition="right"
+                            appendTo="body"
+                            [autoHide]="false"
+                            [showDelay]="120"
+                            [hideDelay]="350"
+                            [tooltipStyleClass]="'cat-tooltip'"
+                          >
                             {{ pill.text }}
                           </a>
                         </ng-container>
@@ -441,7 +515,15 @@
                 </span>
               }
               @case ('lineNumber') {
-                <span class="cell-content" [pTooltip]="rowIndex + 1" [tooltipStyleClass]="'cell-tooltip'" [autoHide]="false" [showDelay]="120" [hideDelay]="350">{{ rowIndex + 1 }}</span>
+                <span
+                  class="cell-content"
+                  [pTooltip]="rowIndex + 1"
+                  [tooltipStyleClass]="'cell-tooltip'"
+                  [autoHide]="false"
+                  [showDelay]="120"
+                  [hideDelay]="350"
+                  >{{ rowIndex + 1 }}</span
+                >
               }
               @case ('expander') {
                 <button
@@ -460,9 +542,11 @@
     <ng-template #expandedrow let-rowData>
       <tr>
         <td [attr.colspan]="visibleColumns.length">
-          <ng-container *ngIf="expandedRowTemplate; else defaultExpandedRow"
-                        [ngTemplateOutlet]="expandedRowTemplate"
-                        [ngTemplateOutletContext]="{ $implicit: rowData }">
+          <ng-container
+            *ngIf="expandedRowTemplate; else defaultExpandedRow"
+            [ngTemplateOutlet]="expandedRowTemplate"
+            [ngTemplateOutletContext]="{ $implicit: rowData }"
+          >
           </ng-container>
           <ng-template #defaultExpandedRow>
             <div class="p-p-3">

@@ -118,12 +118,14 @@ export class EntityGenericService {
     return this.http.get<any>(this.specUrl(entity));
   }
 
-  listEntities(): Observable<HttpResponse<Array<{ name: string; title?: string }>>> {
-    return this.http.get<Array<{ name: string; title?: string }>>(this.directoryUrl(), { observe: 'response' });
+  listEntities(): Observable<HttpResponse<{ name: string; title?: string }[]>> {
+    return this.http.get<{ name: string; title?: string }[]>(this.directoryUrl(), { observe: 'response' });
   }
 
   getUniqueFieldValues(entity: string, field: string): Observable<string[]> {
     // Server expects plain field; it appends .keyword internally in service
-    return this.http.get<string[]>(this.applicationConfigService.getEndpointFor(`api/entity/${encodeURIComponent(entity)}/unique-values/${encodeURIComponent(field)}`));
+    return this.http.get<string[]>(
+      this.applicationConfigService.getEndpointFor(`api/entity/${encodeURIComponent(entity)}/unique-values/${encodeURIComponent(field)}`),
+    );
   }
 }

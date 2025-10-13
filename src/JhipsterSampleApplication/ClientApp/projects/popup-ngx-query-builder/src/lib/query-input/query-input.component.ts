@@ -5,6 +5,7 @@ import {
   Output,
   OnInit,
   OnChanges,
+  OnDestroy,
   SimpleChanges,
   ViewChild,
   ElementRef,
@@ -18,6 +19,7 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TreeModule } from 'primeng/tree';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import {
   QueryBuilderModule,
   QueryBuilderConfig,
@@ -33,8 +35,10 @@ import {
   validateRuleset,
 } from '../bql';
 import { MatDialog } from '@angular/material/dialog';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subject } from 'rxjs';
+import { debounceTime, takeUntil } from 'rxjs/operators';
 import { EditRulesetDialogComponent } from './edit-ruleset-dialog.component';
+import { BqlAutocompleteService, AutocompleteSuggestion } from '../services/bql-autocomplete.service';
 
 interface NamedQuery {
   id?: number;
@@ -56,14 +60,17 @@ interface NamedQuery {
     InputTextModule,
     SelectModule,
     TreeModule,
+    AutoCompleteModule,
     QueryBuilderModule,
   ],
+  providers: [BqlAutocompleteService],
   styleUrls: ['./query-input.component.scss'],
   templateUrl: './query-input.component.html',
 })
-export class QueryInputComponent implements OnInit, OnChanges {
+export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
   private dialog = inject(MatDialog);
   private http = inject(HttpClient);
+  private autocompleteService = inject(BqlAutocompleteService);
 
   @ViewChild('builder') builder?: QueryBuilderComponent;
   @ViewChild('editBox') editBox?: ElementRef<HTMLInputElement>;
@@ -93,11 +100,28 @@ export class QueryInputComponent implements OnInit, OnChanges {
   private history: string[] = [];
   private historyIndex = -1;
 
+  // Autocomplete state
+  autocompleteSuggestions: AutocompleteSuggestion[] = [];
+  showAutocomplete = false;
+  selectedSuggestionIndex = -1;
+  private inputSubject = new Subject<string>();
+  private destroy$ = new Subject<void>();
+
   ngOnInit(): void {
     this.onQueryChange();
     this.loadNamedQueries();
     // Pre-load history so arrow navigation is responsive when editing starts
     this.loadHistory();
+    
+    // Set up autocomplete input debouncing
+    this.inputSubject
+      .pipe(
+        debounceTime(150),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => {
+        this.updateAutocompleteSuggestions();
+      });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -107,6 +131,17 @@ export class QueryInputComponent implements OnInit, OnChanges {
       this.historyIndex = -1;
       this.loadHistory();
     }
+    
+    // Clear autocomplete cache when config or spec changes
+    if ((changes['config'] && !changes['config'].firstChange) || 
+        (changes['spec'] && !changes['spec'].firstChange)) {
+      this.autocompleteService.clearCache();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private loadNamedQueries(): void {
@@ -238,6 +273,7 @@ export class QueryInputComponent implements OnInit, OnChanges {
     this.editing = false;
     this.query = this.previousQuery;
     this.onQueryChange();
+    this.closeAutocomplete();
   }
 
   acceptEdit() {
@@ -247,6 +283,7 @@ export class QueryInputComponent implements OnInit, OnChanges {
     this.editing = false;
     this.previousQuery = this.query;
     this.queryChange.emit(this.query);
+    this.closeAutocomplete();
     if (this.historyEntity && this.query) {
       if (this.history[0] !== this.query) {
         this.http.post('/api/Histories', { entity: this.historyEntity, text: this.query }).subscribe();
@@ -481,6 +518,232 @@ export class QueryInputComponent implements OnInit, OnChanges {
     };
     walk(ruleset);
     return Array.from(names).join(', ');
+  }
+
+  /**
+   * Called on input change to trigger autocomplete
+   */
+  private savedQueryForSelection = '';
+  private savedCursorForSelection = 0;
+
+  onInputChange(event: any): void {
+    // Save the current query and cursor position before any selection
+    // This is needed because PrimeNG will modify the query before onSuggestionSelect is called
+    this.savedQueryForSelection = this.query;
+    this.savedCursorForSelection = this.editBox?.nativeElement?.selectionStart ?? this.query.length;
+    
+    this.inputSubject.next(this.query);
+  }
+
+  /**
+   * Handles model changes from typing
+   */
+  onModelChange(value: string): void {
+    this.onQueryChange();
+    // Trigger autocomplete update without overwriting savedQueryForSelection
+    this.inputSubject.next(this.query);
+  }
+
+  /**
+   * Handles selection from autocomplete dropdown
+   * PrimeNG has already modified this.query by the time this is called,
+   * so we need to restore the saved state before calling selectSuggestion
+   */
+  onSuggestionSelect(event: any): void {
+    if (!event.value) {
+      return;
+    }
+    
+    // Restore the query and cursor position to before PrimeNG's modification
+    const originalQuery = this.savedQueryForSelection;
+    const originalCursor = this.savedCursorForSelection;
+    
+    // Restore query
+    this.query = originalQuery;
+    
+    // Set cursor position and call selectSuggestion
+    setTimeout(() => {
+      const el = this.editBox?.nativeElement;
+      if (el) {
+        el.setSelectionRange(originalCursor, originalCursor);
+      }
+      
+      // Now call selectSuggestion with the restored state
+      this.selectSuggestion(event.value);
+    }, 0);
+  }
+
+  /**
+   * Updates autocomplete suggestions based on current input
+   */
+  private updateAutocompleteSuggestions(): void {
+    if (!this.editing) {
+      this.showAutocomplete = false;
+      return;
+    }
+
+    const cursorPosition = this.editBox?.nativeElement?.selectionStart ?? this.query.length;
+    
+    this.autocompleteSuggestions = this.autocompleteService.getSuggestions(
+      this.query,
+      cursorPosition,
+      this.queryBuilderConfig
+    );
+
+    this.showAutocomplete = this.autocompleteSuggestions.length > 0;
+    this.selectedSuggestionIndex = -1;
+  }
+
+  /**
+   * Inserts selected suggestion into query
+   */
+  selectSuggestion(suggestion: AutocompleteSuggestion): void {
+    const cursorPosition = this.editBox?.nativeElement?.selectionStart ?? this.query.length;
+    
+    // Find the start of the current token to replace
+    let tokenStart = cursorPosition;
+    while (tokenStart > 0) {
+      const char = this.query[tokenStart - 1];
+      // Stop at whitespace or logical operators
+      if (char === ' ' || char === '&' || char === '|' || char === '(' || char === ')') {
+        break;
+      }
+      tokenStart--;
+    }
+
+    // Build the value to insert
+    let valueToInsert = suggestion.value;
+    
+    // Handle spacing for operators
+    if (suggestion.type === 'operator') {
+      // Add space before if not already present
+      if (tokenStart > 0 && this.query[tokenStart - 1] !== ' ') {
+        valueToInsert = ' ' + valueToInsert;
+      }
+      // Add space after
+      valueToInsert = valueToInsert + ' ';
+    }
+    
+    // Handle quoting for string values
+    if (suggestion.type === 'value') {
+      const needsQuotes = /\s/.test(valueToInsert) || valueToInsert.includes(',');
+      if (needsQuotes && !valueToInsert.startsWith('"')) {
+        valueToInsert = '"' + valueToInsert + '"';
+      }
+      // Add space after value for next condition
+      valueToInsert = valueToInsert + ' ';
+    }
+
+    // Handle field names - add space after
+    if (suggestion.type === 'field') {
+      valueToInsert = valueToInsert + ' ';
+    }
+
+    // Insert the value
+    const before = this.query.substring(0, tokenStart);
+    const after = this.query.substring(cursorPosition);
+    this.query = before + valueToInsert + after;
+
+    // Update cursor position
+    const newCursorPosition = tokenStart + valueToInsert.length;
+    
+    // Close autocomplete
+    this.closeAutocomplete();
+    
+    // Validate the query
+    this.onQueryChange();
+
+    // Set cursor position after Angular updates the view
+    setTimeout(() => {
+      const el = this.editBox?.nativeElement;
+      if (el) {
+        el.focus();
+        try {
+          el.setSelectionRange(newCursorPosition, newCursorPosition);
+        } catch {}
+      }
+    });
+  }
+
+  /**
+   * Closes autocomplete dropdown
+   */
+  closeAutocomplete(): void {
+    this.showAutocomplete = false;
+    this.autocompleteSuggestions = [];
+    this.selectedSuggestionIndex = -1;
+  }
+
+  /**
+   * Handles input blur to close autocomplete
+   */
+  onInputBlur(): void {
+    // Delay closing to allow click events on suggestions to fire
+    setTimeout(() => {
+      this.closeAutocomplete();
+    }, 200);
+  }
+
+  /**
+   * Handles keyboard navigation in autocomplete dropdown
+   */
+  onAutocompleteKeydown(event: KeyboardEvent): void {
+    // Only handle keyboard navigation when autocomplete is open
+    if (!this.showAutocomplete || this.autocompleteSuggestions.length === 0) {
+      // When autocomplete is closed, allow normal history navigation
+      if (event.key === 'ArrowUp') {
+        this.showPrevHistory(event);
+      } else if (event.key === 'ArrowDown') {
+        this.showNextHistory(event);
+      }
+      return;
+    }
+
+    // Handle keyboard navigation when autocomplete is open
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.selectedSuggestionIndex = Math.min(
+          this.selectedSuggestionIndex + 1,
+          this.autocompleteSuggestions.length - 1
+        );
+        break;
+
+      case 'ArrowUp':
+        event.preventDefault();
+        this.selectedSuggestionIndex = Math.max(
+          this.selectedSuggestionIndex - 1,
+          0
+        );
+        break;
+
+      case 'Enter':
+        event.preventDefault();
+        if (this.selectedSuggestionIndex >= 0 && 
+            this.selectedSuggestionIndex < this.autocompleteSuggestions.length) {
+          this.selectSuggestion(this.autocompleteSuggestions[this.selectedSuggestionIndex]);
+        } else if (this.autocompleteSuggestions.length > 0) {
+          // If no suggestion is selected, select the first one
+          this.selectSuggestion(this.autocompleteSuggestions[0]);
+        }
+        break;
+
+      case 'Escape':
+        event.preventDefault();
+        this.closeAutocomplete();
+        break;
+
+      case 'Tab':
+        if (this.selectedSuggestionIndex >= 0 && 
+            this.selectedSuggestionIndex < this.autocompleteSuggestions.length) {
+          event.preventDefault();
+          this.selectSuggestion(this.autocompleteSuggestions[this.selectedSuggestionIndex]);
+        } else if (this.autocompleteSuggestions.length > 0) {
+          event.preventDefault();
+          this.selectSuggestion(this.autocompleteSuggestions[0]);
+        }
+        break;
+    }
   }
 }
 

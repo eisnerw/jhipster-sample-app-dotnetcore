@@ -10,25 +10,41 @@
     </div>
   }
   @if (editing) {
-    <input #editBox
-      pInputText
+    <p-autoComplete
+      #editBox
       [(ngModel)]="query"
-      (ngModelChange)="onQueryChange()"
+      [suggestions]="autocompleteSuggestions"
+      (completeMethod)="onInputChange($event)"
+      (onSelect)="onSuggestionSelect($event)"
+      (ngModelChange)="onModelChange($event)"
       (keydown.enter)="onEnter($event)"
-      (keydown.arrowup)="showPrevHistory($event)"
-      (keydown.arrowdown)="showNextHistory($event)"
+      (keydown.arrowup)="onAutocompleteKeydown($any($event))"
+      (keydown.arrowdown)="onAutocompleteKeydown($any($event))"
+      (keydown.escape)="onAutocompleteKeydown($any($event))"
+      (keydown.tab)="onAutocompleteKeydown($any($event))"
+      (onBlur)="onInputBlur()"
+      [dropdown]="false"
+      [forceSelection]="false"
       [ngClass]="{ invalid: !validQuery }"
-    />
+      [inputStyle]="{ flex: '1', border: 'none', outline: 'none', padding: '4px' }"
+    >
+      <ng-template let-suggestion pTemplate="item">
+        <div class="autocomplete-item">
+          <span class="suggestion-value">
+            {{ suggestion.display }}
+            @if (suggestion.metadata?.description) {
+              <span class="suggestion-desc">({{ suggestion.metadata.description }})</span>
+            }
+          </span>
+        </div>
+      </ng-template>
+    </p-autoComplete>
   }
 
   @if (editing) {
     <div class="btn-group">
       <i class="pi pi-times action-icon" (click)="cancelEdit()"></i>
-      <i
-        class="pi pi-check action-icon"
-        (click)="acceptEdit()"
-        [ngClass]="{ disabled: !validQuery }"
-      ></i>
+      <i class="pi pi-check action-icon" (click)="acceptEdit()" [ngClass]="{ disabled: !validQuery }"></i>
     </div>
   }
 </div>
@@ -71,13 +87,7 @@
   <ng-template pTemplate="footer">
     <div class="dialog-footer">
       <button pButton label="Cancel" (click)="cancelQuery()" class="p-button-secondary"></button>
-      <button
-        pButton
-        label="Apply"
-        (click)="applyQuery()"
-        class="p-button-primary"
-        [disabled]="builder?.namingRuleset"
-      ></button>
+      <button pButton label="Apply" (click)="applyQuery()" class="p-button-primary" [disabled]="builder?.namingRuleset"></button>
     </div>
   </ng-template>
 </p-dialog>
