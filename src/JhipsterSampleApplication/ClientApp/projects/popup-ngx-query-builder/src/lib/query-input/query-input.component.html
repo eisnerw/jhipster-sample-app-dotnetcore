@@ -22,6 +22,7 @@
       (keydown.arrowdown)="onAutocompleteKeydown($any($event))"
       (keydown.escape)="onAutocompleteKeydown($any($event))"
       (keydown.tab)="onAutocompleteKeydown($any($event))"
+      (keydown))="onKeydown($any($event))"
       (onBlur)="onInputBlur()"
       [dropdown]="false"
       [forceSelection]="false"

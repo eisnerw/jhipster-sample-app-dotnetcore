@@ -604,8 +604,8 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
     let tokenStart = cursorPosition;
     while (tokenStart > 0) {
       const char = this.query[tokenStart - 1];
-      // Stop at whitespace or logical operators
-      if (char === ' ' || char === '&' || char === '|' || char === '(' || char === ')') {
+      // Stop at whitespace, logical operators, or comma
+      if (char === ' ' || char === '&' || char === '|' || char === '(' || char === ')' || char === ',') {
         break;
       }
       tokenStart--;
@@ -630,8 +630,18 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
       if (needsQuotes && !valueToInsert.startsWith('"')) {
         valueToInsert = '"' + valueToInsert + '"';
       }
-      // Add space after value for next condition
-      valueToInsert = valueToInsert + ' ';
+      
+      // Check if we're inside an IN or !IN operator (look for opening paren before cursor)
+      const beforeToken = this.query.substring(0, tokenStart);
+      const inMultiValue = /\b(!?IN)\s*\([^)]*$/.test(beforeToken.toUpperCase());
+      
+      if (inMultiValue) {
+        // Don't add anything after value - user will type comma or )
+        // valueToInsert stays as is
+      } else {
+        // Add space after value for next condition
+        valueToInsert = valueToInsert + ' ';
+      }
     }
 
     // Handle field names - add space after
@@ -682,6 +692,55 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
     setTimeout(() => {
       this.closeAutocomplete();
     }, 200);
+  }
+
+  /**
+   * Handles general keydown events
+   */
+  onKeydown(event: KeyboardEvent): void {
+    // Handle opening parenthesis after IN/!IN to trigger autocomplete
+    if (event.key === '(') {
+      // Let the ( be typed, then trigger autocomplete
+      setTimeout(() => {
+        this.updateAutocompleteSuggestions();
+      }, 10);
+    }
+    
+    // Handle comma inside IN/!IN to trigger autocomplete for next value
+    if (event.key === ',') {
+      const cursorPosition = this.editBox?.nativeElement?.selectionStart ?? this.query.length;
+      const beforeCursor = this.query.substring(0, cursorPosition);
+      
+      // Check if we're inside an IN or !IN operator
+      if (/\b(!?IN)\s*\([^)]*$/.test(beforeCursor.toUpperCase())) {
+        // Let the comma be typed, then trigger autocomplete
+        setTimeout(() => {
+          this.updateAutocompleteSuggestions();
+        }, 10);
+      }
+    }
+    
+    // Handle closing parenthesis for IN/!IN operators
+    if (event.key === ')') {
+      const cursorPosition = this.editBox?.nativeElement?.selectionStart ?? this.query.length;
+      const beforeCursor = this.query.substring(0, cursorPosition);
+      
+      // Check if we're inside an IN or !IN operator and there's a trailing comma
+      if (/\b(!?IN)\s*\([^)]*,\s*$/.test(beforeCursor.toUpperCase())) {
+        // Remove trailing comma and space before inserting )
+        const trimmed = beforeCursor.replace(/,\s*$/, '');
+        this.query = trimmed + this.query.substring(cursorPosition);
+        
+        // Update cursor position
+        setTimeout(() => {
+          const el = this.editBox?.nativeElement;
+          if (el) {
+            const newPos = trimmed.length;
+            el.setSelectionRange(newPos, newPos);
+          }
+        }, 0);
+      }
+    }
   }
 
   /**

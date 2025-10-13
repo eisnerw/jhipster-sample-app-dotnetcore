@@ -167,7 +167,53 @@ export class BqlAutocompleteService {
       const trimmedBefore = queryBeforeCursor.trimEnd();
       const lastChar = trimmedBefore[trimmedBefore.length - 1];
       
-      if (lastChar === '&' || lastChar === '|' || lastChar === '(') {
+      if (lastChar === '&' || lastChar === '|') {
+        return {
+          type: 'field',
+          prefix: '',
+          cursorPosition
+        };
+      }
+      
+      // Special handling for comma - check if it's inside IN/!IN
+      if (lastChar === ',') {
+        // Check if we're inside an IN or !IN operator
+        const inMatch = /\b(\w+)\s+(!?IN)\s*\([^)]*$/i.exec(trimmedBefore);
+        
+        if (inMatch) {
+          // We're inside IN(...) or !IN(...) after a comma - this is a value context
+          const fieldName = inMatch[1];
+          const operator = inMatch[2];
+          return {
+            type: 'value',
+            currentField: fieldName,
+            currentOperator: operator,
+            prefix: '',
+            cursorPosition
+          };
+        }
+      }
+      
+      // Special handling for opening parenthesis - check if it's part of IN/!IN
+      if (lastChar === '(') {
+        // Check if this is an IN or !IN operator
+        const beforeParen = trimmedBefore.substring(0, trimmedBefore.length - 1).trim();
+        const inMatch = /\b(\w+)\s+(!?IN)\s*$/i.exec(beforeParen);
+        
+        if (inMatch) {
+          // We're inside IN(...) or !IN(...) - this is a value context
+          const fieldName = inMatch[1];
+          const operator = inMatch[2];
+          return {
+            type: 'value',
+            currentField: fieldName,
+            currentOperator: operator,
+            prefix: '',
+            cursorPosition
+          };
+        }
+        
+        // Regular parenthesis for grouping - suggest fields
         return {
           type: 'field',
           prefix: '',
@@ -175,11 +221,69 @@ export class BqlAutocompleteService {
         };
       }
 
-      // Check if we're after a negation operator
+      // Check if we're after a standalone negation operator (for negating conditions)
+      // But NOT if it's after a field name (which would be the start of an operator like !IN)
       if (lastChar === '!' && tokens.length > 0 && tokens[tokens.length - 1].value === '!') {
+        // Check if there's a field name before the !
+        if (tokens.length >= 2) {
+          const tokenBeforeExclamation = tokens[tokens.length - 2];
+          if (tokenBeforeExclamation.type === 'word' && config.fields[tokenBeforeExclamation.value]) {
+            // This is "field !" - user is starting to type an operator like !IN
+            return {
+              type: 'operator',
+              currentField: tokenBeforeExclamation.value,
+              prefix: '!',
+              cursorPosition
+            };
+          }
+        }
+        
+        // Standalone ! for negation - suggest fields
         return {
           type: 'field',
           prefix: '',
+          cursorPosition
+        };
+      }
+
+      // Check if we're typing an operator after a field name
+      // Pattern: "fieldname partial_operator" where partial_operator could be "!", "!c", "con", etc.
+      const operatorMatch = /\b(\w+)\s+([!a-z]\w*)$/i.exec(queryBeforeCursor);
+      if (operatorMatch) {
+        const potentialField = operatorMatch[1];
+        const partialOperator = operatorMatch[2];
+        
+        // Check if it's a valid field name
+        if (config.fields[potentialField]) {
+          // This looks like "field partial_operator" - suggest operators
+          return {
+            type: 'operator',
+            currentField: potentialField,
+            prefix: partialOperator,
+            cursorPosition
+          };
+        }
+      }
+      
+      // Before analyzing parentheses, check if we're typing inside an IN/!IN context
+      // This catches cases like "sign IN (Gemini,a" where 'a' is being typed
+      const inContextMatch = /\b(\w+)\s+(!?IN)\s*\(([^)]*)$/i.exec(queryBeforeCursor);
+      if (inContextMatch) {
+        const fieldName = inContextMatch[1];
+        const operator = inContextMatch[2];
+        const contentInsideParens = inContextMatch[3];
+        
+        // Extract prefix after last comma (or all content if no comma)
+        const lastCommaPos = contentInsideParens.lastIndexOf(',');
+        const prefix = lastCommaPos >= 0 
+          ? contentInsideParens.substring(lastCommaPos + 1).trim()
+          : contentInsideParens.trim();
+        
+        return {
+          type: 'value',
+          currentField: fieldName,
+          currentOperator: operator,
+          prefix: prefix,
           cursorPosition
         };
       }
@@ -188,6 +292,52 @@ export class BqlAutocompleteService {
       // This helps maintain proper context through nested parentheses
       const parenContext = this.analyzeParenthesesContext(tokens);
       if (parenContext.insideParentheses) {
+        // Check if the opening paren is part of an IN or !IN operator
+        const parenIndex = parenContext.lastOpenParenIndex;
+        if (parenIndex > 0) {
+          const tokenBeforeParen = tokens[parenIndex - 1];
+          if (tokenBeforeParen && tokenBeforeParen.type === 'operator') {
+            const opLower = tokenBeforeParen.value.toLowerCase();
+            if (opLower === 'in' || opLower === '!in') {
+              // We're inside IN(...) or !IN(...) - find the field name
+              if (parenIndex > 1) {
+                const fieldToken = tokens[parenIndex - 2];
+                if (fieldToken && fieldToken.type === 'word') {
+                  // Get the current prefix (text after last comma or after opening paren)
+                  const tokensAfterParen = tokens.slice(parenIndex + 1);
+                  let prefix = '';
+                  
+                  // Find the last comma in the tokens after paren
+                  let lastCommaIndex = -1;
+                  for (let i = tokensAfterParen.length - 1; i >= 0; i--) {
+                    if (tokensAfterParen[i].type === 'symbol' && tokensAfterParen[i].value === ',') {
+                      lastCommaIndex = i;
+                      break;
+                    }
+                  }
+                  
+                  // If there's a comma, get text after it; otherwise get all text after paren
+                  if (lastCommaIndex >= 0 && lastCommaIndex < tokensAfterParen.length - 1) {
+                    const lastToken = tokensAfterParen[tokensAfterParen.length - 1];
+                    prefix = lastToken.value || '';
+                  } else if (tokensAfterParen.length > 0) {
+                    const lastToken = tokensAfterParen[tokensAfterParen.length - 1];
+                    prefix = lastToken.value || '';
+                  }
+                  
+                  return {
+                    type: 'value',
+                    currentField: fieldToken.value,
+                    currentOperator: tokenBeforeParen.value,
+                    prefix: prefix,
+                    cursorPosition
+                  };
+                }
+              }
+            }
+          }
+        }
+        
         // We're inside parentheses, analyze context from the last opening paren
         const tokensAfterParen = tokens.slice(parenContext.lastOpenParenIndex + 1);
         

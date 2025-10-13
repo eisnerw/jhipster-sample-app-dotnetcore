@@ -1,133 +1,213 @@
 {
-    "name": "birthday",
-    "title": "Birthday",
-    "elasticsearchIndex": "birthdays",
-    "columns":["lname",  "fname", "dob", "sign", "isAlive"],
-    "sort": "dob,desc",
-    "detailHtmlTemplate":[
-      "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><base target=\\\"_blank\\\"><title>{fname:unlabeled} {lname:unlabeled}</title><style>body{{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111}}.field-name{{font-weight:600}}.field{{margin-bottom:0.7em}}</style></head><body><h3>{fname:unlabeled} {lname:unlabeled} {dob:format-MM/dd/yyyy:label-Born}({sign:unlabeled}) {isAlive:yesno:label-Alive}</h3>{wikipedia:html:unlabeled}"
-    ],
-    "fields": {
-      "lname": {
-        "name": "Last Name",
-        "type": "string",
-        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in"],
-        "annotations": [
-          {
-            "type": "pill",
-            "field": "categories",
-            "ruleType": "regex",
-            "rules": [ { "^hello$": "Hello there!" } ],
-            "default": "countOf",
-            "tooltip": "categories.join(', ')"
-          }
-        ]
-      },
-      "fname": {
-        "name": "First Name",
-        "type": "string",
-        "operators": ["=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists"]
-      },
-      "isAlive": {
-        "name": "Alive?",
-        "type": "boolean"
-      },
-      "categories": {
-        "name": "Category",
-        "type": "string",
-        "operators": ["contains", "!contains", "like", "!like", "exists"]
-      },
-      "dob": {
-        "name": "Birthday",
-        "type": "date",
-        "operators": ["=", "<=", ">", "<", ">="]
-      },
-      "sign": {
-        "name": "Astrological Sign",
-        "column": "Sign",
-        "type": "category",
-        "options": [
-          { "name": "Aries", "value": "Aries" },
-          { "name": "Taurus", "value": "Taurus" },
-          { "name": "Gemini", "value": "Gemini" },
-          { "name": "Cancer", "value": "Cancer" },
-          { "name": "Leo", "value": "Leo" },
-          { "name": "Virgo", "value": "Virgo" },
-          { "name": "Libra", "value": "Libra" },
-          { "name": "Scorpio", "value": "Scorpio" },
-          { "name": "Sagittarius", "value": "Sagittarius" },
-          { "name": "Capricorn", "value": "Capricorn" },
-          { "name": "Aquarius", "value": "Aquarius" },
-          { "name": "Pisces", "value": "Pisces" }
-        ]
-      },
-      "wikipedia": {
-        "name": "Wikipedia",
-        "type": "string",
-        "operators": ["contains", "!contains"]
-      }
-    },
-    "views": [
+  "name": "birthday",
+  "title": "Birthday",
+  "elasticsearchIndex": "birthdays",
+  "columns": [
+    "lname",
+    "fname",
+    "dob",
+    "sign",
+    "isAlive"
+  ],
+  "sort": "dob,desc",
+  "detailHtmlTemplate": [
+    "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><base target=\\\"_blank\\\"><title>{fname:unlabeled} {lname:unlabeled}</title><style>body{{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111}}.field-name{{font-weight:600}}.field{{margin-bottom:0.7em}}</style></head><body><h3>{fname:unlabeled} {lname:unlabeled} {dob:format-MM/dd/yyyy:label-Born}({sign:unlabeled}) {isAlive:yesno:label-Alive}</h3>{wikipedia:html:unlabeled}"
+  ],
+  "fields": {
+    "lname": {
+      "name": "Last Name",
+      "type": "string",
+      "operators": [
+        "=",
+        "!=",
+        "contains",
+        "!contains",
+        "like",
+        "!like",
+        "in",
+        "!in"
+      ],
+      "annotations": [
         {
-          "id": "category",
-          "name": "Category",
+          "type": "pill",
           "field": "categories",
-          "aggregation": "categories.keyword",
-          "query": "categories:*",
-          "categoryQuery": "",
-          "script": "",
-          "entity": "birthdays"
-        },
-        {
-          "id": "birth year",
-          "name": "Birth Year",
-          "field": "dob",
-          "aggregation": "dob",
-          "query": "*",
-          "categoryQuery": "dob:[{}-01-01 TO {}-12-31]",
-          "script": "if (doc['dob'].size() == 0) {return '';}\nString st = doc['dob'].value.getYear().toString();\nreturn st.substring(0, 4);",
-          "entity": "birthdays"
-        },
-        {
-          "id": "sign",
-          "name": "Sign",
-          "field": "sign",
-          "aggregation": "sign.keyword",
-          "query": "sign:*",
-          "categoryQuery": "",
-          "script": "",
-          "entity": "birthdays"
-        },
-        {
-          "id": "first name",
-          "name": "First Name",
-          "field": "fname",
-          "aggregation": "fname.keyword",
-          "query": "fname:*",
-          "categoryQuery": "",
-          "script": "",
-          "entity": "birthdays"
-        },
-        {
-          "id": "sign/birth year",
-          "name": "Sign/Birth Year",
-          "field": "sign",
-          "aggregation": "sign.keyword",
-          "query": "sign:*",
-          "categoryQuery": "",
-          "script": "",
-          "entity": "birthdays"
-        },
-        {
-          "id": "sign/birth year.year of birth",
-          "name": "Year of Birth",
-          "field": "dob",
-          "aggregation": "dob",
-          "query": "*",
-          "categoryQuery": "dob:[{}-01-01 TO {}-12-31]",
-          "script": "if (doc['dob'].size() == 0) {return '';}\nString st = doc['dob'].value.getYear().toString();\nreturn st.substring(0, 4);",
-          "parentViewId": "sign/birth year",
-          "entity": "birthdays"
+          "ruleType": "regex",
+          "rules": [
+            {
+              "^hello$": "Hello there!"
+            }
+          ],
+          "default": "countOf",
+          "tooltip": "categories.join(', ')"
         }
       ]
+    },
+    "fname": {
+      "name": "First Name",
+      "type": "string",
+      "operators": [
+        "=",
+        "!=",
+        "contains",
+        "!contains",
+        "like",
+        "!like",
+        "in",
+        "!in",
+        "exists"
+      ]
+    },
+    "isAlive": {
+      "name": "Alive?",
+      "type": "boolean"
+    },
+    "categories": {
+      "name": "Category",
+      "type": "string",
+      "operators": [
+        "contains",
+        "!contains",
+        "like",
+        "!like",
+        "exists"
+      ]
+    },
+    "dob": {
+      "name": "Birthday",
+      "type": "date",
+      "operators": [
+        "=",
+        "<=",
+        ">",
+        "<",
+        ">="
+      ]
+    },
+    "sign": {
+      "name": "Astrological Sign",
+      "column": "Sign",
+      "type": "category",
+      "options": [
+        {
+          "name": "Aries",
+          "value": "Aries"
+        },
+        {
+          "name": "Taurus",
+          "value": "Taurus"
+        },
+        {
+          "name": "Gemini",
+          "value": "Gemini"
+        },
+        {
+          "name": "Cancer",
+          "value": "Cancer"
+        },
+        {
+          "name": "Leo",
+          "value": "Leo"
+        },
+        {
+          "name": "Virgo",
+          "value": "Virgo"
+        },
+        {
+          "name": "Libra",
+          "value": "Libra"
+        },
+        {
+          "name": "Scorpio",
+          "value": "Scorpio"
+        },
+        {
+          "name": "Sagittarius",
+          "value": "Sagittarius"
+        },
+        {
+          "name": "Capricorn",
+          "value": "Capricorn"
+        },
+        {
+          "name": "Aquarius",
+          "value": "Aquarius"
+        },
+        {
+          "name": "Pisces",
+          "value": "Pisces"
+        }
+      ]
+    },
+    "wikipedia": {
+      "name": "Wikipedia",
+      "type": "string",
+      "operators": [
+        "contains",
+        "!contains"
+      ]
+    }
+  },
+  "views": [
+    {
+      "id": "category",
+      "name": "Category",
+      "field": "categories",
+      "aggregation": "categories.keyword",
+      "query": "categories:*",
+      "categoryQuery": "",
+      "script": "",
+      "entity": "birthdays"
+    },
+    {
+      "id": "birth year",
+      "name": "Birth Year",
+      "field": "dob",
+      "aggregation": "dob",
+      "query": "*",
+      "categoryQuery": "dob:[{}-01-01 TO {}-12-31]",
+      "script": "if (doc['dob'].size() == 0) {return '';}\nString st = doc['dob'].value.getYear().toString();\nreturn st.substring(0, 4);",
+      "entity": "birthdays"
+    },
+    {
+      "id": "sign",
+      "name": "Sign",
+      "field": "sign",
+      "aggregation": "sign.keyword",
+      "query": "sign:*",
+      "categoryQuery": "",
+      "script": "",
+      "entity": "birthdays"
+    },
+    {
+      "id": "first name",
+      "name": "First Name",
+      "field": "fname",
+      "aggregation": "fname.keyword",
+      "query": "fname:*",
+      "categoryQuery": "",
+      "script": "",
+      "entity": "birthdays"
+    },
+    {
+      "id": "sign/birth year",
+      "name": "Sign/Birth Year",
+      "field": "sign",
+      "aggregation": "sign.keyword",
+      "query": "sign:*",
+      "categoryQuery": "",
+      "script": "",
+      "entity": "birthdays"
+    },
+    {
+      "id": "sign/birth year.year of birth",
+      "name": "Year of Birth",
+      "field": "dob",
+      "aggregation": "dob",
+      "query": "*",
+      "categoryQuery": "dob:[{}-01-01 TO {}-12-31]",
+      "script": "if (doc['dob'].size() == 0) {return '';}\nString st = doc['dob'].value.getYear().toString();\nreturn st.substring(0, 4);",
+      "parentViewId": "sign/birth year",
+      "entity": "birthdays"
+    }
+  ]
 }
