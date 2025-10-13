@@ -34,7 +34,7 @@ In ./src/JhipsterSampleApplication/ClientApp run
 
     npm install
 
-For angular 20, we currently need to run
+For angular 20, we needed to run the following for a while
 
     npm install --legacy-peer-deps
 
