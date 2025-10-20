@@ -221,6 +221,21 @@ export class BqlAutocompleteService {
         };
       }
 
+      // If there is trailing whitespace and the last non-space token is a valid field,
+      // suggest operators (e.g., "field ␣" should show operators immediately)
+      const hasTrailingSpace = queryBeforeCursor.length > trimmedBefore.length;
+      if (hasTrailingSpace && tokens.length > 0) {
+        const potentialFieldToken = tokens[tokens.length - 1];
+        if (potentialFieldToken.type === 'word' && config.fields[potentialFieldToken.value]) {
+          return {
+            type: 'operator',
+            currentField: potentialFieldToken.value,
+            prefix: '',
+            cursorPosition
+          };
+        }
+      }
+
       // Check if we're after a standalone negation operator (for negating conditions)
       // But NOT if it's after a field name (which would be the start of an operator like !IN)
       if (lastChar === '!' && tokens.length > 0 && tokens[tokens.length - 1].value === '!') {

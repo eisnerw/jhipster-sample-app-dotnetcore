@@ -19,7 +19,7 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TreeModule } from 'primeng/tree';
-import { AutoCompleteModule } from 'primeng/autocomplete';
+import { AutoCompleteModule, AutoComplete } from 'primeng/autocomplete';
 import {
   QueryBuilderModule,
   QueryBuilderConfig,
@@ -73,7 +73,7 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
   private autocompleteService = inject(BqlAutocompleteService);
 
   @ViewChild('builder') builder?: QueryBuilderComponent;
-  @ViewChild('editBox') editBox?: ElementRef<HTMLInputElement>;
+  @ViewChild('editBox') editBox?: AutoComplete;
 
   @Input() placeholder = 'BQL';
   @Input() query = '';
@@ -171,13 +171,17 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
     this.onQueryChange();
     // Focus the input immediately after switching to edit mode
     setTimeout(() => {
-      const el = this.editBox?.nativeElement;
+      const el = this.getInputEl();
       if (el) {
         el.focus();
         try {
           const len = el.value?.length ?? 0;
           el.setSelectionRange(len, len);
         } catch {}
+      }
+      // If starting with an empty query, surface field suggestions immediately
+      if (!this.query || this.query.trim() === '') {
+        this.updateAutocompleteSuggestions(true);
       }
     });
   }
@@ -525,12 +529,14 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
    */
   private savedQueryForSelection = '';
   private savedCursorForSelection = 0;
+  private savedReplaceFrom = 0;
+  private savedReplaceTo = 0;
 
   onInputChange(event: any): void {
     // Save the current query and cursor position before any selection
     // This is needed because PrimeNG will modify the query before onSuggestionSelect is called
     this.savedQueryForSelection = this.query;
-    this.savedCursorForSelection = this.editBox?.nativeElement?.selectionStart ?? this.query.length;
+    this.savedCursorForSelection = this.getInputEl()?.selectionStart ?? this.query.length;
     
     this.inputSubject.next(this.query);
   }
@@ -550,39 +556,70 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
    * so we need to restore the saved state before calling selectSuggestion
    */
   onSuggestionSelect(event: any): void {
-    if (!event.value) {
-      return;
-    }
-    
-    // Restore the query and cursor position to before PrimeNG's modification
-    const originalQuery = this.savedQueryForSelection;
-    const originalCursor = this.savedCursorForSelection;
-    
-    // Restore query
-    this.query = originalQuery;
-    
-    // Set cursor position and call selectSuggestion
-    setTimeout(() => {
-      const el = this.editBox?.nativeElement;
-      if (el) {
-        el.setSelectionRange(originalCursor, originalCursor);
+    const suggestion: AutocompleteSuggestion | null = event?.value ?? null;
+    if (!suggestion) return;
+
+    // Build new text from the last stable snapshot and replace range
+    const base = this.savedQueryForSelection ?? this.query;
+    const from = this.savedReplaceFrom ?? 0;
+    const to = this.savedReplaceTo ?? (this.savedCursorForSelection ?? base.length);
+
+    let valueToInsert = suggestion.value;
+
+    // Spacing and quoting rules mirror selectSuggestion()
+    if (suggestion.type === 'operator') {
+      if (from > 0 && base[from - 1] !== ' ') {
+        valueToInsert = ' ' + valueToInsert;
       }
-      
-      // Now call selectSuggestion with the restored state
-      this.selectSuggestion(event.value);
+      valueToInsert = valueToInsert + ' ';
+    }
+
+    if (suggestion.type === 'value') {
+      const needsQuotes = /\s/.test(valueToInsert) || valueToInsert.includes(',');
+      if (needsQuotes && !valueToInsert.startsWith('"')) {
+        valueToInsert = '"' + valueToInsert + '"';
+      }
+      const beforeToken = base.substring(0, from);
+      const inMultiValue = /\b(!?IN)\s*\([^)]*$/.test(beforeToken.toUpperCase());
+      if (!inMultiValue) {
+        valueToInsert = valueToInsert + ' ';
+      }
+    }
+
+    if (suggestion.type === 'field') {
+      valueToInsert = valueToInsert + ' ';
+    }
+
+    const newText = base.substring(0, from) + valueToInsert + base.substring(to);
+    const newCursorPos = from + valueToInsert.length;
+
+    this.query = newText;
+    this.closeAutocomplete();
+    this.onQueryChange();
+
+    setTimeout(() => {
+      const el = this.getInputEl();
+      if (el) {
+        el.focus();
+        try { el.setSelectionRange(newCursorPos, newCursorPos); } catch {}
+      }
+      if (suggestion.type === 'field') {
+        this.updateAutocompleteSuggestions(true);
+        this.editBox?.show();
+      }
     }, 0);
   }
 
   /**
    * Updates autocomplete suggestions based on current input
    */
-  private updateAutocompleteSuggestions(): void {
+  private updateAutocompleteSuggestions(forceShow = false): void {
     if (!this.editing) {
       this.showAutocomplete = false;
       return;
     }
 
-    const cursorPosition = this.editBox?.nativeElement?.selectionStart ?? this.query.length;
+    const cursorPosition = this.getInputEl()?.selectionStart ?? this.query.length;
     
     this.autocompleteSuggestions = this.autocompleteService.getSuggestions(
       this.query,
@@ -591,14 +628,49 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
     );
 
     this.showAutocomplete = this.autocompleteSuggestions.length > 0;
+
+    // Always capture a fresh snapshot whenever suggestions are visible so that
+    // onSuggestionSelect restores the latest text/caret reliably.
+    if (this.showAutocomplete) {
+      this.savedQueryForSelection = this.query;
+      this.savedCursorForSelection = cursorPosition;
+      // Determine token replace range [from,to) for current caret
+      let from = cursorPosition;
+      while (from > 0) {
+        const ch = this.query[from - 1];
+        if (ch === ' ' || ch === '&' || ch === '|' || ch === '(' || ch === ')' || ch === ',') {
+          break;
+        }
+        from--;
+      }
+      this.savedReplaceFrom = from;
+      this.savedReplaceTo = cursorPosition;
+    }
+
+    // If we have suggestions and either caller requested to force show or
+    // we're at the start/after a group open, ensure the panel is visible
+    if (this.showAutocomplete && (forceShow || cursorPosition === 0 || /\(\s*$/.test(this.query.substring(0, cursorPosition)))) {
+      // Defer to let suggestions bind before showing panel
+      setTimeout(() => this.editBox?.show(), 0);
+    }
     this.selectedSuggestionIndex = -1;
+  }
+
+  /** Returns the native input element inside AutoComplete */
+  private getInputEl(): HTMLInputElement | null {
+    return (this.editBox?.inputEL?.nativeElement as HTMLInputElement) || null;
+  }
+
+  /** Show suggestions when input gains focus (esp. for empty query) */
+  onInputFocus(): void {
+    this.updateAutocompleteSuggestions(true);
   }
 
   /**
    * Inserts selected suggestion into query
    */
   selectSuggestion(suggestion: AutocompleteSuggestion): void {
-    const cursorPosition = this.editBox?.nativeElement?.selectionStart ?? this.query.length;
+    const cursorPosition = this.getInputEl()?.selectionStart ?? this.query.length;
     
     // Find the start of the current token to replace
     let tokenStart = cursorPosition;
@@ -665,12 +737,17 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
 
     // Set cursor position after Angular updates the view
     setTimeout(() => {
-      const el = this.editBox?.nativeElement;
+      const el = this.getInputEl();
       if (el) {
         el.focus();
         try {
           el.setSelectionRange(newCursorPosition, newCursorPosition);
         } catch {}
+      }
+      // If a field was just inserted, immediately surface operator suggestions
+      if (suggestion.type === 'field') {
+        this.updateAutocompleteSuggestions(true);
+        this.editBox?.show();
       }
     });
   }
@@ -698,17 +775,44 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
    * Handles general keydown events
    */
   onKeydown(event: KeyboardEvent): void {
+    // Gesture: Ctrl+Space forces suggestions (useful at start of query)
+    if ((event.key === ' ' || event.code === 'Space') && event.ctrlKey) {
+      event.preventDefault();
+      this.updateAutocompleteSuggestions(true);
+      return;
+    }
+    // After logical operators &, | we want fields and a fresh snapshot
+    if (event.key === '&' || event.key === '|') {
+      setTimeout(() => this.updateAutocompleteSuggestions(true), 0);
+    }
+    // If user types a space after a valid field name, open operator suggestions
+    if (event.key === ' ' && !event.ctrlKey) {
+      const cursorPosition = this.getInputEl()?.selectionStart ?? this.query.length;
+      const beforeCursor = this.query.substring(0, cursorPosition);
+      const trimmed = beforeCursor.trimEnd();
+      const m = /(\w+)$/.exec(trimmed);
+      if (m) {
+        const field = m[1];
+        if (this.queryBuilderConfig.fields && this.queryBuilderConfig.fields[field]) {
+          setTimeout(() => {
+            this.updateAutocompleteSuggestions(true);
+            this.editBox?.show();
+          }, 0);
+        }
+      }
+    }
     // Handle opening parenthesis after IN/!IN to trigger autocomplete
     if (event.key === '(') {
       // Let the ( be typed, then trigger autocomplete
       setTimeout(() => {
-        this.updateAutocompleteSuggestions();
+        this.updateAutocompleteSuggestions(true);
+        this.editBox?.show();
       }, 10);
     }
     
     // Handle comma inside IN/!IN to trigger autocomplete for next value
     if (event.key === ',') {
-      const cursorPosition = this.editBox?.nativeElement?.selectionStart ?? this.query.length;
+      const cursorPosition = this.getInputEl()?.selectionStart ?? this.query.length;
       const beforeCursor = this.query.substring(0, cursorPosition);
       
       // Check if we're inside an IN or !IN operator
@@ -722,7 +826,7 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
     
     // Handle closing parenthesis for IN/!IN operators
     if (event.key === ')') {
-      const cursorPosition = this.editBox?.nativeElement?.selectionStart ?? this.query.length;
+      const cursorPosition = this.getInputEl()?.selectionStart ?? this.query.length;
       const beforeCursor = this.query.substring(0, cursorPosition);
       
       // Check if we're inside an IN or !IN operator and there's a trailing comma
@@ -733,7 +837,7 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
         
         // Update cursor position
         setTimeout(() => {
-          const el = this.editBox?.nativeElement;
+          const el = this.getInputEl();
           if (el) {
             const newPos = trimmed.length;
             el.setSelectionRange(newPos, newPos);

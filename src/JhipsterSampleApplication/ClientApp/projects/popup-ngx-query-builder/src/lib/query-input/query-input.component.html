@@ -14,9 +14,11 @@
       #editBox
       [(ngModel)]="query"
       [suggestions]="autocompleteSuggestions"
+      [minLength]="0"
       (completeMethod)="onInputChange($event)"
       (onSelect)="onSuggestionSelect($event)"
       (ngModelChange)="onModelChange($event)"
+      (onFocus)="onInputFocus()"
       (keydown.enter)="onEnter($event)"
       (keydown.arrowup)="onAutocompleteKeydown($any($event))"
       (keydown.arrowdown)="onAutocompleteKeydown($any($event))"
