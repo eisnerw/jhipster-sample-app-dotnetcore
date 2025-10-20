@@ -531,6 +531,39 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
   private savedCursorForSelection = 0;
   private savedReplaceFrom = 0;
   private savedReplaceTo = 0;
+  private logicalSuggestionsActive = false;
+
+  /** Compute token replace range [from,to) at given caret */
+  private computeReplaceRangeAt(cursorPosition: number): { from: number; to: number } {
+    let from = cursorPosition;
+    while (from > 0) {
+      const ch = this.query[from - 1];
+      if (ch === ' ' || ch === '&' || ch === '|' || ch === '(' || ch === ')' || ch === ',') {
+        break;
+      }
+      from--;
+    }
+    return { from, to: cursorPosition };
+  }
+
+  /** Show just the logical operator suggestions (& and |) at the caret */
+  private showLogicalOperatorSuggestions(): void {
+    const cursorPosition = this.getInputEl()?.selectionStart ?? this.query.length;
+    // Build suggestions for AND/OR using symbol operators so spacing rules apply
+    this.autocompleteSuggestions = [
+      { value: '&', display: 'AND (&)', type: 'operator' },
+      { value: '|', display: 'OR (|)', type: 'operator' },
+    ];
+    this.showAutocomplete = true;
+    // Snapshot base state and set a zero-length replace at caret (insert, not replace)
+    this.savedQueryForSelection = this.query;
+    this.savedCursorForSelection = cursorPosition;
+    this.savedReplaceFrom = cursorPosition;
+    this.savedReplaceTo = cursorPosition;
+    this.logicalSuggestionsActive = true;
+    // Open panel
+    setTimeout(() => this.editBox?.show(), 0);
+  }
 
   onInputChange(event: any): void {
     // Save the current query and cursor position before any selection
@@ -595,6 +628,7 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
 
     this.query = newText;
     this.closeAutocomplete();
+    this.logicalSuggestionsActive = false;
     this.onQueryChange();
 
     setTimeout(() => {
@@ -619,6 +653,12 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
 
+    // Keep logical operator choices until user selects or cancels
+    if (this.logicalSuggestionsActive) {
+      this.showAutocomplete = this.autocompleteSuggestions.length > 0;
+      return;
+    }
+
     const cursorPosition = this.getInputEl()?.selectionStart ?? this.query.length;
     
     this.autocompleteSuggestions = this.autocompleteService.getSuggestions(
@@ -634,17 +674,9 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
     if (this.showAutocomplete) {
       this.savedQueryForSelection = this.query;
       this.savedCursorForSelection = cursorPosition;
-      // Determine token replace range [from,to) for current caret
-      let from = cursorPosition;
-      while (from > 0) {
-        const ch = this.query[from - 1];
-        if (ch === ' ' || ch === '&' || ch === '|' || ch === '(' || ch === ')' || ch === ',') {
-          break;
-        }
-        from--;
-      }
-      this.savedReplaceFrom = from;
-      this.savedReplaceTo = cursorPosition;
+      const r = this.computeReplaceRangeAt(cursorPosition);
+      this.savedReplaceFrom = r.from;
+      this.savedReplaceTo = r.to;
     }
 
     // If we have suggestions and either caller requested to force show or
@@ -749,6 +781,11 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
         this.updateAutocompleteSuggestions(true);
         this.editBox?.show();
       }
+      // If a logical operator was inserted, surface field suggestions
+      if (suggestion.type === 'operator' && (suggestion.value === '&' || suggestion.value === '|')) {
+        this.updateAutocompleteSuggestions(true);
+        this.editBox?.show();
+      }
     });
   }
 
@@ -759,6 +796,7 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
     this.showAutocomplete = false;
     this.autocompleteSuggestions = [];
     this.selectedSuggestionIndex = -1;
+    this.logicalSuggestionsActive = false;
   }
 
   /**
@@ -783,7 +821,19 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
     }
     // After logical operators &, | we want fields and a fresh snapshot
     if (event.key === '&' || event.key === '|') {
+      this.logicalSuggestionsActive = false;
       setTimeout(() => this.updateAutocompleteSuggestions(true), 0);
+    }
+    // If user types a space after a complete condition, suggest logical operators
+    if (event.key === ' ' && !event.ctrlKey) {
+      const cursorPosition = this.getInputEl()?.selectionStart ?? this.query.length;
+      const beforeCursor = this.query.substring(0, cursorPosition);
+      const trimmedBefore = beforeCursor.trim();
+      if (trimmedBefore && validateBql(trimmedBefore, this.queryBuilderConfig)) {
+        // Let the space be inserted, then show logical operator suggestions at the new caret
+        setTimeout(() => this.showLogicalOperatorSuggestions(), 0);
+        return;
+      }
     }
     // If user types a space after a valid field name, open operator suggestions
     if (event.key === ' ' && !event.ctrlKey) {
@@ -843,6 +893,17 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
             el.setSelectionRange(newPos, newPos);
           }
         }, 0);
+      }
+    }
+
+    // If logical operator popup is active and user types a starting character of another token, cancel it
+    if (this.logicalSuggestionsActive) {
+      const cancelKeys = ['Enter', 'Escape', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+      const isAlphaNum = /^[A-Za-z0-9]$/.test(event.key);
+      const isOtherStart = ['"', '(', ')', ','].includes(event.key);
+      if (isAlphaNum || isOtherStart) {
+        this.closeAutocomplete();
+        setTimeout(() => this.updateAutocompleteSuggestions(), 0);
       }
     }
   }
