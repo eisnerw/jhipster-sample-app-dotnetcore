@@ -495,6 +495,14 @@ export class BqlAutocompleteService {
       // Sort alphabetically by display name
       suggestions.sort((a, b) => a.display.localeCompare(b.display));
       
+      // Prepend a NOT option to start a negated clause
+      suggestions.unshift({
+        value: '!',
+        display: 'NOT (!)',
+        type: 'operator',
+        metadata: { description: 'Negate next clause' }
+      });
+      
       // Cache the results
       this.fieldSuggestionsCache.set(cacheKey, suggestions);
     } catch (error) {
