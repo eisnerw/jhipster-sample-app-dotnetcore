@@ -495,7 +495,14 @@ export class BqlAutocompleteService {
       // Sort alphabetically by display name
       suggestions.sort((a, b) => a.display.localeCompare(b.display));
       
-      // Prepend a NOT option to start a negated clause
+      // Prepend grouping option and NOT to start a clause/negated clause
+      // Order: NOT, then GROUP
+      suggestions.unshift({
+        value: '(',
+        display: 'GROUP ( )',
+        type: 'operator',
+        metadata: { description: 'Start grouped clause' }
+      });
       suggestions.unshift({
         value: '!',
         display: 'NOT (!)',

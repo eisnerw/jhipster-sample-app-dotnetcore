@@ -33,6 +33,7 @@ import {
   rulesetToBql,
   validateBql,
   validateRuleset,
+  tokenize,
 } from '../bql';
 import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom, Subject } from 'rxjs';
@@ -565,6 +566,57 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
     setTimeout(() => this.editBox?.show(), 0);
   }
 
+  // Heuristic: determine if the token sequence immediately before the caret
+  // looks like a complete [field operator value] condition, even if the
+  // overall query prefix is not fully valid (e.g., missing a closing paren to the right).
+  private isCompleteConditionBeforeCursor(cursorPosition: number): boolean {
+    try {
+      const before = this.query.substring(0, cursorPosition);
+      const tokens = tokenize(before);
+      if (tokens.length < 3) return false;
+
+      // Find start of the current clause segment: after last '&' or '|' or '('
+      let start = 0;
+      for (let i = tokens.length - 1; i >= 0; i--) {
+        const t = tokens[i];
+        if (t.type === 'symbol' && (t.value === '&' || t.value === '|' || t.value === '(')) {
+          start = i + 1;
+          break;
+        }
+      }
+      const seg = tokens.slice(start);
+      if (seg.length < 3) return false;
+
+      const v = seg[seg.length - 1];
+      const op = seg[seg.length - 2];
+      const f = seg[seg.length - 3];
+
+      // value must be word or string
+      const isValue = v && (v.type === 'word' || v.type === 'string');
+      if (!isValue) return false;
+
+      // field must be a known field
+      const isField = f && f.type === 'word' && !!this.queryBuilderConfig.fields?.[f.value];
+      if (!isField) return false;
+
+      // operator may be symbol operator token or alpha operator as word
+      const alphaOps = new Set(['contains','like','in','exists','is','is null','is not null']);
+      const isOperator = op && (
+        op.type === 'operator' ||
+        (op.type === 'word' && alphaOps.has(op.value.toLowerCase()))
+      );
+      if (!isOperator) return false;
+
+      // Additional guard: avoid suggesting inside IN( ... , ) right after a comma
+      const segStr = seg.map(t => t.value).join(' ');
+      if (/\b(!?IN)\s*\([^)]*,\s*$/i.test(segStr)) return false;
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   onInputChange(event: any): void {
     // Save the current query and cursor position before any selection
     // This is needed because PrimeNG will modify the query before onSuggestionSelect is called
@@ -650,8 +702,8 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
         this.updateAutocompleteSuggestions(true);
         this.editBox?.show();
       }
-      if (suggestion.type === 'operator' && suggestion.value === '!') {
-        // After NOT, prompt for a clause inside parens
+      if (suggestion.type === 'operator' && (suggestion.value === '!' || suggestion.value === '(')) {
+        // After NOT or GROUP, prompt for a clause inside parens
         this.updateAutocompleteSuggestions(true);
         this.editBox?.show();
       }
@@ -847,6 +899,23 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
       this.updateAutocompleteSuggestions(true);
       return;
     }
+    // Typing '!' at the start of a clause should behave like selecting NOT (!)
+    if (event.key === '!') {
+      const cursorPosition = this.getInputEl()?.selectionStart ?? this.query.length;
+      const beforeCursor = this.query.substring(0, cursorPosition);
+      const trimmedEnd = beforeCursor.trimEnd();
+      const prevChar = trimmedEnd.length > 0 ? trimmedEnd[trimmedEnd.length - 1] : '';
+      const atClauseStart = prevChar === '' || prevChar === '(' || prevChar === '&' || prevChar === '|';
+      const inInParens = /\b(!?IN)\s*\([^)]*$/i.test(trimmedEnd);
+      // If we just showed AND/OR popup, allow '!' to start NOT as well
+      if (atClauseStart && !inInParens || this.logicalSuggestionsActive) {
+        event.preventDefault();
+        // Close any logical popup and insert NOT !()
+        this.closeAutocomplete();
+        this.selectSuggestion({ value: '!', display: 'NOT (!)', type: 'operator' });
+        return;
+      }
+    }
     // After logical operators &, | we want fields and a fresh snapshot
     if (event.key === '&' || event.key === '|') {
       this.logicalSuggestionsActive = false;
@@ -859,6 +928,11 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
       const trimmedBefore = beforeCursor.trim();
       if (trimmedBefore && validateBql(trimmedBefore, this.queryBuilderConfig)) {
         // Let the space be inserted, then show logical operator suggestions at the new caret
+        setTimeout(() => this.showLogicalOperatorSuggestions(), 0);
+        return;
+      }
+      // Fallback: if the local segment looks like field operator value, offer AND/OR even if the full prefix isn't a valid BQL yet
+      if (this.isCompleteConditionBeforeCursor(cursorPosition)) {
         setTimeout(() => this.showLogicalOperatorSuggestions(), 0);
         return;
       }
