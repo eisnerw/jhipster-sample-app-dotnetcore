@@ -303,8 +303,9 @@ describe('QueryInputComponent - Autocomplete Integration Tests', () => {
         type: 'operator' as const
       };
 
-      if (component.editBox?.nativeElement) {
-        Object.defineProperty(component.editBox.nativeElement, 'selectionStart', {
+      const inputEl = (component as any).editBox?.inputEL?.nativeElement;
+      if (inputEl) {
+        Object.defineProperty(inputEl, 'selectionStart', {
           get: () => 4,
           configurable: true
         });
