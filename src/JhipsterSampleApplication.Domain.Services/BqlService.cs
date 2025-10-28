@@ -727,10 +727,26 @@ namespace JhipsterSampleApplication.Domain.Services
                     : (_operatorMapLowerByType.TryGetValue(_fieldTypeByName[field], out var mapOps) ? mapOps : new List<string>());
 
                 // Sensible defaults when spec omits operators
-                if ((opsLower == null || opsLower.Count == 0) &&
-                    string.Equals(_fieldTypeByName[field], "boolean", StringComparison.OrdinalIgnoreCase))
+                if (opsLower == null || opsLower.Count == 0)
                 {
-                    opsLower = new List<string> { "=", "!=" };
+                    var typeLower = _fieldTypeByName[field].ToLowerInvariant();
+                    switch (typeLower)
+                    {
+                        case "boolean":
+                            opsLower = new List<string> { "=", "!=", "exists" };
+                            break;
+                        case "number":
+                        case "date":
+                        case "time":
+                            opsLower = new List<string> { "=", "!=", ">", ">=", "<", "<=" };
+                            break;
+                        case "category":
+                            opsLower = new List<string> { "=", "!=", "in", "!in", "exists" };
+                            break;
+                        default:
+                            opsLower = new List<string> { "=", "!=", "contains", "!contains", "like", "!like", "in", "!in", "exists" };
+                            break;
+                    }
                 }
 
                 var tokens = new HashSet<string>(StringComparer.Ordinal);
@@ -1074,37 +1090,17 @@ namespace JhipsterSampleApplication.Domain.Services
             // IN / !IN list
             if (opToken == "IN" || opToken == "!IN")
             {
-                if (tokens[index].StartsWith("(") && tokens[index].EndsWith(")"))
+                if (!TryParseInValues(field, tokens, ref index, out var parsedValues) || parsedValues.Count == 0)
                 {
-                    var raw = tokens[index].Substring(1, tokens[index].Length - 2);
-                    var values = raw
-                        .Split(',')
-                        .Select(v => v.Trim())
-                        .Select(v =>
-                        {
-                            var t = v;
-                            if (t.Length >= 2 && t.StartsWith('"') && t.EndsWith('"'))
-                            {
-                                t = t.Substring(1, t.Length - 2);
-                            }
-                            return t.ToLowerInvariant();
-                        })
-                        .Where(v => IsValidValue(field, v))
-                        .ToList();
-
-                    if (values.Count == 0)
-                    {
-                        return (false, index, new RulesetDto());
-                    }
-
-                    return (true, index + 1, new RulesetDto
-                    {
-                        field = field,
-                        @operator = opToken == "IN" ? "in" : "!in",
-                        value = values ?? new List<string>()
-                    });
+                    return (false, index, new RulesetDto());
                 }
-                return (false, index, new RulesetDto());
+
+                return (true, index, new RulesetDto
+                {
+                    field = field,
+                    @operator = opToken == "IN" ? "in" : "!in",
+                    value = parsedValues
+                });
             }
 
             // Single value
@@ -1128,6 +1124,145 @@ namespace JhipsterSampleApplication.Domain.Services
                 @operator = rulesetOperator,
                 value = value ?? string.Empty
             });
+        }
+
+        private bool TryParseInValues(string field, string[] tokens, ref int index, out List<string> normalizedValues)
+        {
+            normalizedValues = new List<string>();
+            if (index >= tokens.Length)
+            {
+                return false;
+            }
+
+            string combinedValuesToken;
+            int nextIndex;
+
+            if (tokens[index].StartsWith("(") && tokens[index].EndsWith(")"))
+            {
+                combinedValuesToken = tokens[index];
+                nextIndex = index + 1;
+            }
+            else if (TryCollectParenthesizedTokens(tokens, index, out combinedValuesToken, out nextIndex))
+            {
+                // combinedValuesToken populated by helper
+            }
+            else
+            {
+                return false;
+            }
+
+            var extracted = ExtractInValues(field, combinedValuesToken);
+            if (extracted.Count == 0)
+            {
+                return false;
+            }
+
+            normalizedValues = extracted;
+            index = nextIndex;
+            return true;
+        }
+
+        private bool TryCollectParenthesizedTokens(string[] tokens, int startIndex, out string combined, out int nextIndex)
+        {
+            combined = string.Empty;
+            nextIndex = startIndex;
+
+            if (startIndex >= tokens.Length)
+            {
+                return false;
+            }
+
+            var sb = new StringBuilder();
+            int depth = 0;
+            bool started = false;
+
+            for (int i = startIndex; i < tokens.Length; i++)
+            {
+                var token = tokens[i];
+                if (!started)
+                {
+                    if (token == "(" || token.StartsWith("(", StringComparison.Ordinal))
+                    {
+                        started = true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                sb.Append(token);
+
+                depth += CountParenthesis(token, '(');
+                depth -= CountParenthesis(token, ')');
+
+                if (started && depth <= 0)
+                {
+                    var candidate = sb.ToString();
+                    if (candidate.StartsWith("(", StringComparison.Ordinal) && candidate.EndsWith(")", StringComparison.Ordinal))
+                    {
+                        combined = candidate;
+                        nextIndex = i + 1;
+                        return true;
+                    }
+                    return false;
+                }
+            }
+
+            return false;
+        }
+
+        private List<string> ExtractInValues(string field, string combinedValuesToken)
+        {
+            var values = new List<string>();
+            if (string.IsNullOrWhiteSpace(combinedValuesToken) ||
+                !combinedValuesToken.StartsWith("(", StringComparison.Ordinal) ||
+                !combinedValuesToken.EndsWith(")", StringComparison.Ordinal))
+            {
+                return values;
+            }
+
+            var inner = combinedValuesToken.Substring(1, combinedValuesToken.Length - 2);
+            var parts = inner.Split(',');
+            foreach (var part in parts)
+            {
+                var trimmed = part?.Trim() ?? string.Empty;
+                if (trimmed.Length == 0)
+                {
+                    continue;
+                }
+
+                if (trimmed.Length >= 2 && trimmed.StartsWith("\"", StringComparison.Ordinal) && trimmed.EndsWith("\"", StringComparison.Ordinal))
+                {
+                    trimmed = trimmed.Substring(1, trimmed.Length - 2);
+                }
+
+                var normalized = trimmed.ToLowerInvariant();
+                if (IsValidValue(field, normalized))
+                {
+                    values.Add(normalized);
+                }
+            }
+
+            return values;
+        }
+
+        private static int CountParenthesis(string token, char paren)
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                return 0;
+            }
+
+            int count = 0;
+            foreach (var ch in token)
+            {
+                if (ch == paren)
+                {
+                    count++;
+                }
+            }
+            return count;
         }
 
         private static string OpTokenToRulesetOperator(string opToken)

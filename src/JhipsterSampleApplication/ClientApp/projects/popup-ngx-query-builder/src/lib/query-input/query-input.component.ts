@@ -534,6 +534,53 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
   private savedReplaceTo = 0;
   private logicalSuggestionsActive = false;
 
+  /** Find the field token immediately before the insertion point (within the current clause) */
+  private resolveFieldForOperator(base: string, insertPos: number): string | null {
+    try {
+      const before = base.substring(0, insertPos);
+      const tokens = tokenize(before);
+      const config = this.queryBuilderConfig;
+      if (!config.fields) {
+        return null;
+      }
+      for (let i = tokens.length - 1; i >= 0; i--) {
+        const token = tokens[i];
+        if (token.type === 'word' && config.fields[token.value]) {
+          return token.value;
+        }
+        if (token.type === 'symbol' && (token.value === '&' || token.value === '|' || token.value === '(' || token.value === ')')) {
+          break;
+        }
+      }
+    } catch {
+      // Ignore tokenization errors while typing incomplete queries
+    }
+    return null;
+  }
+
+  /** Determine if a field exposes discrete option values for use with IN/!IN */
+  private fieldSupportsOptionDropdown(fieldName: string): boolean {
+    const config = this.queryBuilderConfig;
+    const fieldConf: any = config.fields?.[fieldName];
+    if (!fieldConf) {
+      return false;
+    }
+    if (Array.isArray(fieldConf.options) && fieldConf.options.length > 0) {
+      return true;
+    }
+    if (typeof config.getOptions === 'function') {
+      try {
+        const dynamicOptions = config.getOptions(fieldName);
+        if (Array.isArray(dynamicOptions) && dynamicOptions.length > 0) {
+          return true;
+        }
+      } catch {
+        // Swallow errors from custom option providers
+      }
+    }
+    return false;
+  }
+
   /** Compute token replace range [from,to) at given caret */
   private computeReplaceRangeAt(cursorPosition: number): { from: number; to: number } {
     let from = cursorPosition;
@@ -650,12 +697,21 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
     const to = this.savedReplaceTo ?? (this.savedCursorForSelection ?? base.length);
 
     let valueToInsert = suggestion.value;
+    const isInOperator = suggestion.type === 'operator' && (suggestion.value === 'IN' || suggestion.value === '!IN');
+    const fieldForOperator = isInOperator ? this.resolveFieldForOperator(base, from) : null;
+    const shouldAutoParen = !!fieldForOperator && this.fieldSupportsOptionDropdown(fieldForOperator);
+    let placeCursorInsideParens = false;
 
     // Spacing and quoting rules mirror selectSuggestion(), with NOT special-case
     if (suggestion.type === 'operator') {
       if (suggestion.value === '!') {
         const needsSpace = from > 0 && base[from - 1] !== ' ';
         valueToInsert = (needsSpace ? ' ' : '') + '!()';
+        placeCursorInsideParens = true;
+      } else if (isInOperator && shouldAutoParen) {
+        const needsSpace = from > 0 && base[from - 1] !== ' ';
+        valueToInsert = (needsSpace ? ' ' : '') + suggestion.value + ' ()';
+        placeCursorInsideParens = true;
       } else {
         if (from > 0 && base[from - 1] !== ' ') {
           valueToInsert = ' ' + valueToInsert;
@@ -685,6 +741,9 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
     if (suggestion.type === 'operator' && suggestion.value === '!') {
       const idx = valueToInsert.indexOf('!(');
       if (idx >= 0) newCursorPos = from + idx + 2; // after '!('
+    } else if (placeCursorInsideParens) {
+      const idx = valueToInsert.lastIndexOf('(');
+      if (idx >= 0) newCursorPos = from + idx + 1;
     }
 
     this.query = newText;
@@ -698,11 +757,14 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
         el.focus();
         try { el.setSelectionRange(newCursorPos, newCursorPos); } catch {}
       }
-      if (suggestion.type === 'field') {
+      if (placeCursorInsideParens) {
+        this.updateAutocompleteSuggestions(true);
+        this.editBox?.show();
+      } else if (suggestion.type === 'field') {
         this.updateAutocompleteSuggestions(true);
         this.editBox?.show();
       }
-      if (suggestion.type === 'operator' && (suggestion.value === '!' || suggestion.value === '(')) {
+      if (!placeCursorInsideParens && suggestion.type === 'operator' && (suggestion.value === '&' || suggestion.value === '|' || suggestion.value === '!' || suggestion.value === '(')) {
         // After NOT or GROUP, prompt for a clause inside parens
         this.updateAutocompleteSuggestions(true);
         this.editBox?.show();
@@ -783,6 +845,10 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
 
     // Build the value to insert
     let valueToInsert = suggestion.value;
+    const isInOperator = suggestion.type === 'operator' && (suggestion.value === 'IN' || suggestion.value === '!IN');
+    const fieldForOperator = isInOperator ? this.resolveFieldForOperator(this.query, tokenStart) : null;
+    const shouldAutoParen = !!fieldForOperator && this.fieldSupportsOptionDropdown(fieldForOperator);
+    let placeCursorInsideParens = false;
     
     // Handle spacing for operators
     if (suggestion.type === 'operator') {
@@ -790,6 +856,11 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
       if (suggestion.value === '!') {
         const needsBeforeSpace = tokenStart > 0 && this.query[tokenStart - 1] !== ' ';
         valueToInsert = (needsBeforeSpace ? ' ' : '') + '!()';
+        placeCursorInsideParens = true;
+      } else if (isInOperator && shouldAutoParen) {
+        const needsBeforeSpace = tokenStart > 0 && this.query[tokenStart - 1] !== ' ';
+        valueToInsert = (needsBeforeSpace ? ' ' : '') + suggestion.value + ' ()';
+        placeCursorInsideParens = true;
       } else {
       // Add space before if not already present
       if (tokenStart > 0 && this.query[tokenStart - 1] !== ' ') {
@@ -839,6 +910,12 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
       if (idx >= 0) {
         newCursorPosition = tokenStart + idx + 2;
       }
+    } else if (placeCursorInsideParens) {
+      const inserted = valueToInsert;
+      const idx = inserted.lastIndexOf('(');
+      if (idx >= 0) {
+        newCursorPosition = tokenStart + idx + 1;
+      }
     }
     
     // Close autocomplete
@@ -857,12 +934,15 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
         } catch {}
       }
       // If a field was just inserted, immediately surface operator suggestions
-      if (suggestion.type === 'field') {
+      if (placeCursorInsideParens) {
+        this.updateAutocompleteSuggestions(true);
+        this.editBox?.show();
+      } else if (suggestion.type === 'field') {
         this.updateAutocompleteSuggestions(true);
         this.editBox?.show();
       }
       // If a logical operator or NOT was inserted, surface field suggestions
-      if (suggestion.type === 'operator' && (suggestion.value === '&' || suggestion.value === '|' || suggestion.value === '!')) {
+      if (!placeCursorInsideParens && suggestion.type === 'operator' && (suggestion.value === '&' || suggestion.value === '|' || suggestion.value === '!' || suggestion.value === '(')) {
         this.updateAutocompleteSuggestions(true);
         this.editBox?.show();
       }
