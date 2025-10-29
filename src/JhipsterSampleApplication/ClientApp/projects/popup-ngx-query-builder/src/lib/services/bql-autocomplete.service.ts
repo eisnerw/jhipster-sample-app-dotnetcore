@@ -175,15 +175,14 @@ export class BqlAutocompleteService {
         };
       }
       
-      // Special handling for comma - check if it's inside IN/!IN
+      // Special handling for comma - check if it's inside IN/!IN/CONTAINS/!CONTAINS
       if (lastChar === ',') {
-        // Check if we're inside an IN or !IN operator
-        const inMatch = /\b(\w+)\s+(!?IN)\s*\([^)]*$/i.exec(trimmedBefore);
+        const listMatch = /\b(\w+)\s+(!?(?:IN|CONTAINS))\s*\([^)]*$/i.exec(trimmedBefore);
         
-        if (inMatch) {
-          // We're inside IN(...) or !IN(...) after a comma - this is a value context
-          const fieldName = inMatch[1];
-          const operator = inMatch[2];
+        if (listMatch) {
+          // We're inside a list operator (IN/CONTAINS) after a comma - this is a value context
+          const fieldName = listMatch[1];
+          const operator = listMatch[2];
           return {
             type: 'value',
             currentField: fieldName,
@@ -194,16 +193,14 @@ export class BqlAutocompleteService {
         }
       }
       
-      // Special handling for opening parenthesis - check if it's part of IN/!IN
+      // Special handling for opening parenthesis - check if it's part of IN/!IN/CONTAINS/!CONTAINS
       if (lastChar === '(') {
-        // Check if this is an IN or !IN operator
         const beforeParen = trimmedBefore.substring(0, trimmedBefore.length - 1).trim();
-        const inMatch = /\b(\w+)\s+(!?IN)\s*$/i.exec(beforeParen);
+        const listMatch = /\b(\w+)\s+(!?(?:IN|CONTAINS))\s*$/i.exec(beforeParen);
         
-        if (inMatch) {
-          // We're inside IN(...) or !IN(...) - this is a value context
-          const fieldName = inMatch[1];
-          const operator = inMatch[2];
+        if (listMatch) {
+          const fieldName = listMatch[1];
+          const operator = listMatch[2];
           return {
             type: 'value',
             currentField: fieldName,
@@ -280,13 +277,12 @@ export class BqlAutocompleteService {
         }
       }
       
-      // Before analyzing parentheses, check if we're typing inside an IN/!IN context
-      // This catches cases like "sign IN (Gemini,a" where 'a' is being typed
-      const inContextMatch = /\b(\w+)\s+(!?IN)\s*\(([^)]*)$/i.exec(queryBeforeCursor);
-      if (inContextMatch) {
-        const fieldName = inContextMatch[1];
-        const operator = inContextMatch[2];
-        const contentInsideParens = inContextMatch[3];
+      // Before analyzing parentheses, check if we're typing inside a list operator context
+      const listContextMatch = /\b(\w+)\s+(!?(?:IN|CONTAINS))\s*\(([^)]*)$/i.exec(queryBeforeCursor);
+      if (listContextMatch) {
+        const fieldName = listContextMatch[1];
+        const operator = listContextMatch[2];
+        const contentInsideParens = listContextMatch[3];
         
         // Extract prefix after last comma (or all content if no comma)
         const lastCommaPos = contentInsideParens.lastIndexOf(',');
@@ -307,13 +303,13 @@ export class BqlAutocompleteService {
       // This helps maintain proper context through nested parentheses
       const parenContext = this.analyzeParenthesesContext(tokens);
       if (parenContext.insideParentheses) {
-        // Check if the opening paren is part of an IN or !IN operator
+        // Check if the opening paren is part of an IN/!IN/CONTAINS/!CONTAINS operator
         const parenIndex = parenContext.lastOpenParenIndex;
         if (parenIndex > 0) {
           const tokenBeforeParen = tokens[parenIndex - 1];
-          if (tokenBeforeParen && tokenBeforeParen.type === 'operator') {
+          if (tokenBeforeParen) {
             const opLower = tokenBeforeParen.value.toLowerCase();
-            if (opLower === 'in' || opLower === '!in') {
+            if (opLower === 'in' || opLower === '!in' || opLower === 'contains' || opLower === '!contains') {
               // We're inside IN(...) or !IN(...) - find the field name
               if (parenIndex > 1) {
                 const fieldToken = tokens[parenIndex - 2];
@@ -656,7 +652,11 @@ export class BqlAutocompleteService {
       // Extract the current prefix after the last comma for multi-value operators
       let actualPrefix = prefix;
       const opLower = operator.toLowerCase();
-      const isMultiValueOperator = opLower === 'in' || opLower === '!in';
+      const isMultiValueOperator =
+        opLower === 'in' ||
+        opLower === '!in' ||
+        opLower === 'contains' ||
+        opLower === '!contains';
       
       if (isMultiValueOperator && prefix.includes(',')) {
         // Get the text after the last comma

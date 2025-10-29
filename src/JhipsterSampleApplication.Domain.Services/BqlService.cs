@@ -158,9 +158,54 @@ namespace JhipsterSampleApplication.Domain.Services
                     { "term", new JObject{ { "BOGUSFIELD", "CANTMATCH" } } }
                 };
 
-                if (ruleset.@operator?.Contains("contains") == true ||
-                    ruleset.@operator?.Contains("like") == true)
+                if ((ruleset.@operator?.Contains("contains", StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (ruleset.@operator?.Contains("like", StringComparison.OrdinalIgnoreCase) ?? false))
                 {
+                    if (ruleset.value is IEnumerable<object> list && ruleset.value is not string)
+                    {
+                        var shouldClauses = new JArray();
+                        foreach (var item in list)
+                        {
+                            string itemValue = item switch
+                            {
+                                JValue jv => jv.Value?.ToString() ?? string.Empty,
+                                _ => item?.ToString() ?? string.Empty
+                            };
+
+                            if (string.IsNullOrWhiteSpace(itemValue))
+                            {
+                                continue;
+                            }
+
+                            var childRule = new RulesetDto
+                            {
+                                field = ruleset.field,
+                                @operator = (ruleset.@operator?.Contains("like", StringComparison.OrdinalIgnoreCase) ?? false) ? "like" : "contains",
+                                value = itemValue
+                            };
+
+                            var childQuery = await Ruleset2ElasticSearch(childRule);
+                            shouldClauses.Add(JToken.FromObject(childQuery));
+                        }
+
+                        if (shouldClauses.Count == 0)
+                        {
+                            return ret;
+                        }
+
+                        return new JObject
+                        {
+                            {
+                                "bool",
+                                new JObject
+                                {
+                                    { "should", shouldClauses },
+                                    { "minimum_should_match", 1 }
+                                }
+                            }
+                        };
+                    }
+
                     string stringValue = ruleset.value?.ToString() ?? string.Empty;
 
                     // Support regex literals: /exp/ or /exp/i
@@ -774,7 +819,7 @@ namespace JhipsterSampleApplication.Domain.Services
             string fieldsAlt = _validFields.Count > 0 ? string.Join("|", _validFields.Select(Regex.Escape)) : string.Empty;
 
             var regexString = @"\s*(" +
-                @"(?<=IN\s)(\(""(\\""|[^""])+""|\/(\\\/|[^/]+\/)|[^""\s]+\s*)(,\s*(""(\\""|[^""])+""|[^""\s]+\s*))*\s*\)" +
+                @"(?:(?<=IN\s)|(?<=CONTAINS\s)|(?<=!CONTAINS\s))(\(""(\\""|[^""])+""|\/(\\\/|[^/]+\/)|[^""\s]+\s*)(,\s*(""(\\""|[^""])+""|[^""\s]+\s*))*\s*\)" +
                 @"|[()]" +
                 @"|(""(\\""|\\\\|[^""])+\""|\/(\\\/|[^\/])+\/i?" +
                 (string.IsNullOrEmpty(fieldsAlt) ? string.Empty : @"|" + fieldsAlt) +
@@ -1103,6 +1148,23 @@ namespace JhipsterSampleApplication.Domain.Services
                 });
             }
 
+            if ((opToken == "CONTAINS" || opToken == "!CONTAINS") &&
+                index < tokens.Length &&
+                (tokens[index].StartsWith("(", StringComparison.Ordinal) || tokens[index] == "("))
+            {
+                if (!TryParseInValues(field, tokens, ref index, out var containsValues) || containsValues.Count == 0)
+                {
+                    return (false, index, new RulesetDto());
+                }
+
+                return (true, index, new RulesetDto
+                {
+                    field = field,
+                    @operator = opToken == "CONTAINS" ? "contains" : "!contains",
+                    value = containsValues
+                });
+            }
+
             // Single value
             string value = tokens[index];
             if (value.StartsWith('"') && value.EndsWith('"'))
@@ -1367,6 +1429,12 @@ namespace JhipsterSampleApplication.Domain.Services
                         result.Append(" " + (r.value is bool b && !b ? "!" : string.Empty) + "EXISTS");
                     }
                     else if (op == "IN" || op == "!IN")
+                    {
+                        var values = (r.value as IEnumerable<object>)?.Select(v => v?.ToString() ?? string.Empty) ?? Enumerable.Empty<string>();
+                        var quoted = values.Select(v => Regex.IsMatch(v, "^[a-zA-Z\\d]+$") ? v : "\"" + Regex.Replace(v, "([\\\"])", "\\$1") + "\"");
+                        result.Append(" " + op + " (" + string.Join(", ", quoted) + ")");
+                    }
+                    else if (op == "CONTAINS" || op == "!CONTAINS")
                     {
                         var values = (r.value as IEnumerable<object>)?.Select(v => v?.ToString() ?? string.Empty) ?? Enumerable.Empty<string>();
                         var quoted = values.Select(v => Regex.IsMatch(v, "^[a-zA-Z\\d]+$") ? v : "\"" + Regex.Replace(v, "([\\\"])", "\\$1") + "\"");

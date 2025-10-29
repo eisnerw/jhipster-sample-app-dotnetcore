@@ -297,10 +297,11 @@ export function bqlToRuleset(
         operator = '!in';
       }
 
+      const nextToken = peek();
       if (
         (operator === 'in' || operator === '!in') &&
-        peek() &&
-        peek().value === '('
+        nextToken &&
+        nextToken.value === '('
       ) {
         consume(); // (
         const values: any[] = [];
@@ -339,6 +340,50 @@ export function bqlToRuleset(
         } else {
           // Trailing comma like (a,)
           throw new Error('Trailing comma in IN list');
+        }
+        return {
+          condition: 'and',
+          rules: [{ field, operator, value: values }],
+        };
+      }
+      if (
+        (operator === 'contains' || operator === '!contains') &&
+        nextToken &&
+        nextToken.value === '('
+      ) {
+        consume(); // (
+        const values: any[] = [];
+        let expectValue = true;
+        while (peek() && peek().value !== ')') {
+          const tok = peek();
+          if (expectValue) {
+            if (tok.type !== 'word' && tok.type !== 'string') {
+              throw new Error('Unexpected token');
+            }
+            consume();
+            const parsed =
+              tok.type === 'string' ? tok.value : parseValue(tok, field, config);
+            values.push(parsed);
+            expectValue = false;
+            if (peek() && peek().value === ',') {
+              consume();
+              expectValue = true;
+            }
+          } else {
+            if (tok.value !== ')') {
+              throw new Error('Unexpected token');
+            }
+          }
+        }
+        if (!peek() || peek().value !== ')') {
+          throw new Error('Missing closing parenthesis');
+        }
+        consume();
+        if (values.length === 0) {
+          throw new Error('CONTAINS requires at least one value');
+        }
+        if (expectValue) {
+          throw new Error('Trailing comma in CONTAINS list');
         }
         return {
           condition: 'and',
@@ -587,6 +632,23 @@ function validateRule(
   if (rule.operator === 'in' || rule.operator === '!in') {
     if (!Array.isArray(rule.value) || rule.value.length === 0) {
       return false;
+    }
+  }
+  if (rule.operator === 'contains' || rule.operator === '!contains') {
+    if (Array.isArray(rule.value)) {
+      if (rule.value.length === 0) {
+        return false;
+      }
+      if (
+        rule.value.some(
+          (v) =>
+            v === undefined ||
+            v === null ||
+            (typeof v === 'string' && v.trim() === ''),
+        )
+      ) {
+        return false;
+      }
     }
   }
 

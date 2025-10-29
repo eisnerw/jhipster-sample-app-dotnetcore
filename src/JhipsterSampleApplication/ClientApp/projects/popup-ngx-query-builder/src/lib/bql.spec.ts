@@ -142,6 +142,18 @@ describe('BQL named ruleset support', () => {
     expect(rulesetToBql(rs, cfg)).toBe('sign IN (aries,taurus)');
   });
 
+  it('should parse and stringify CONTAINS list operator', () => {
+    const cfg: QueryBuilderConfig = {
+      fields: { lname: { type: 'string', operators: ['contains'] } },
+    } as any;
+    const rs = bqlToRuleset('lname CONTAINS (smith,jones)', cfg);
+    const rule = rs.rules[0] as Rule;
+    expect(rule.operator).toBe('contains');
+    expect(Array.isArray(rule.value)).toBeTrue();
+    expect(rule.value).toEqual(['smith', 'jones']);
+    expect(rulesetToBql(rs, cfg)).toBe('lname CONTAINS (smith,jones)');
+  });
+
   it('should parse and stringify !IN operator', () => {
     const cfg: QueryBuilderConfig = {
       fields: { sign: { type: 'string', operators: ['!in'] } },
@@ -151,6 +163,17 @@ describe('BQL named ruleset support', () => {
     expect(r.operator).toBe('!in');
     expect(r.value).toEqual(['aries', 'taurus']);
     expect(rulesetToBql(rs, cfg)).toBe('sign !IN (aries,taurus)');
+  });
+
+  it('should parse !CONTAINS list operator', () => {
+    const cfg: QueryBuilderConfig = {
+      fields: { lname: { type: 'string', operators: ['!contains'] } },
+    } as any;
+    const rs = bqlToRuleset('lname !CONTAINS (smith,jones)', cfg);
+    const rule = rs.rules[0] as Rule;
+    expect(rule.operator).toBe('!contains');
+    expect(rule.value).toEqual(['smith', 'jones']);
+    expect(rulesetToBql(rs, cfg)).toBe('lname !CONTAINS (smith,jones)');
   });
 
   it('should parse IN operator with quoted value', () => {
