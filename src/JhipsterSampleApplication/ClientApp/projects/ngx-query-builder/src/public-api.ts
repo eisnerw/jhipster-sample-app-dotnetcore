@@ -20,3 +20,4 @@ export * from './lib/directives/query-empty-warning.directive';
 export * from './lib/directives/query-arrow-icon.directive';
 
 export * from './lib/query-builder.module';
+export * from './lib/utils/default-operators';

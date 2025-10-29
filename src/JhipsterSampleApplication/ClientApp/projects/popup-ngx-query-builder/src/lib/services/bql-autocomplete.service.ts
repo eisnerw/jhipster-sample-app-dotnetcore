@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { QueryBuilderConfig } from 'ngx-query-builder';
+import { QueryBuilderConfig, getDefaultOperatorsForFieldType } from 'ngx-query-builder';
 import { tokenize, Token } from '../bql';
 
 /**
@@ -559,7 +559,7 @@ export class BqlAutocompleteService {
       } else {
         // Fall back to default operators based on field type if not specified
         const fieldType = fieldConf.type || 'string';
-        operators = this.getDefaultOperatorsForFieldType(fieldType);
+        operators = getDefaultOperatorsForFieldType(fieldType);
       }
       
       // Use config.getOperators if available (allows dynamic operator determination)
@@ -631,27 +631,6 @@ export class BqlAutocompleteService {
     } catch (error) {
       console.error(`BqlAutocompleteService: Error generating operator suggestions for field ${fieldName}:`, error);
       return [];
-    }
-  }
-
-  /**
-   * Returns default operators for a given field type
-   */
-  private getDefaultOperatorsForFieldType(fieldType: string): string[] {
-    switch (fieldType) {
-      case 'string':
-        return ['=', '!=', 'contains', '!contains', 'like', '!like', 'in', '!in', 'exists'];
-      case 'number':
-        return ['=', '!=', '>', '>=', '<', '<=', 'in', '!in', 'exists'];
-      case 'date':
-        return ['=', '!=', '>', '>=', '<', '<=', 'exists'];
-      case 'boolean':
-        return ['=', '!=', 'exists'];
-      case 'category':
-        return ['=', '!=', 'in', '!in', 'exists'];
-      default:
-        // Generic fallback
-        return ['=', '!=', 'exists'];
     }
   }
 

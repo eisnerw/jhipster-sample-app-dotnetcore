@@ -48,6 +48,7 @@ import {
   NamedRulesetDialogResult,
 } from './named-ruleset-dialog.component';
 import { MessageDialogComponent } from './message-dialog.component';
+import { createDefaultOperatorMap } from '../utils/default-operators';
 
 export const CONTROL_VALUE_ACCESSOR: any = {
   provide: NG_VALUE_ACCESSOR,
@@ -204,14 +205,7 @@ export class QueryBuilderComponent
     'date',
     'boolean',
   ];
-  public defaultOperatorMap: Record<string, string[]> = {
-    string: ['=', '!=', 'contains', '!contains', 'like', '!like', 'in', '!in', 'exists'],
-    number: ['=', '!=', '>', '>=', '<', '<=', 'in', '!in', 'exists'],
-    time: ['=', '!=', '>', '>=', '<', '<=', 'in', '!in', 'exists'],
-    date: ['=', '!=', '>', '>=', '<', '<=', 'in', '!in', 'exists'],
-    category: ['=', '!=', 'in', '!in', 'exists'],
-    boolean: ['=', '!=', 'exists'],
-  };
+  public defaultOperatorMap = createDefaultOperatorMap();
   private defaultEmptyList: any[] = [];
   private operatorsCache!: Record<string, string[]>;
   private inputContextCache = new Map<Rule, InputContext>();
