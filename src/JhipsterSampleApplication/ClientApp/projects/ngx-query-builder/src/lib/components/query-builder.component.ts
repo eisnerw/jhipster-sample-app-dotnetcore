@@ -204,6 +204,14 @@ export class QueryBuilderComponent
     'date',
     'boolean',
   ];
+  public defaultOperatorMap: Record<string, string[]> = {
+    string: ['=', '!=', 'contains', '!contains', 'like', '!like', 'in', '!in', 'exists'],
+    number: ['=', '!=', '>', '>=', '<', '<=', 'in', '!in', 'exists'],
+    time: ['=', '!=', '>', '>=', '<', '<=', 'in', '!in', 'exists'],
+    date: ['=', '!=', '>', '>=', '<', '<=', 'in', '!in', 'exists'],
+    category: ['=', '!=', 'in', '!in', 'exists'],
+    boolean: ['=', '!=', 'exists'],
+  };
   private defaultEmptyList: any[] = [];
   private operatorsCache!: Record<string, string[]>;
   private inputContextCache = new Map<Rule, InputContext>();
@@ -441,13 +449,9 @@ export class QueryBuilderComponent
     } else if (type) {
       operators =
         (this.operatorMap && this.operatorMap[type]) ||
-        this.defaultEmptyList;
-      // Provide sensible defaults for common types when no operator list is supplied
-      if (operators.length === 0) {
-        if (type === 'boolean') {
-          operators = ['=', '!='];
-        }
-      }
+        (this.defaultOperatorMap[type]
+          ? [...this.defaultOperatorMap[type]]
+          : this.defaultEmptyList);
       if (operators.length === 0) {
         console.warn(
           `No operators found for field '${field}' with type ${fieldObject.type}. ` +
