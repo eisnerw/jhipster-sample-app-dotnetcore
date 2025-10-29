@@ -80,6 +80,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   @ViewChild(QueryInputComponent) queryInput!: QueryInputComponent;
 
   currentQuery = '';
+  gridHighlightPattern = '';
   spec: QueryLanguageSpec | undefined;
   dataLoader!: DataLoader<AnyRow>;
   columns: ColumnConfig[] = [];
@@ -205,7 +206,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       spec: this.entityService.getQueryBuilderSpec(this.entity),
       entitySpec: this.entityService.getEntitySpec(this.entity)
     }).subscribe({
-      next: ({ spec, entitySpec}) => {
+      next: ({ spec, entitySpec }) => {
         this.spec = spec;
 
         // Ensure sort is initialized using entitySpec
@@ -218,6 +219,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
         this.loadViews();
         this.viewName = null;
         this.currentQuery = '';
+        this.gridHighlightPattern = '';
         this.loadPage();
       },
       error: () => {
@@ -228,6 +230,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
         this.loadViews();
         this.viewName = null;
         this.currentQuery = '';
+        this.gridHighlightPattern = '';
         this.loadPage();
       }
     });
@@ -368,6 +371,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
 
   onQueryChange(query: string, restoreState = false): void {
     this.currentQuery = query || '';
+    this.gridHighlightPattern = this.buildHighlightPattern(this.currentQuery);
     if (this.viewName) {
       this.loadRootGroups(restoreState);
     } else {
@@ -441,6 +445,14 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   }
 
   refreshData(): void { try { this.superTable.captureHeaderState(); this.onQueryChange(this.currentQuery, true); } catch {} }
+
+  private buildHighlightPattern(bql: string): string {
+    const terms = this.getHighlightTermsFromBql(bql);
+    if (!terms.length) {
+      return '';
+    }
+    return terms.join(' ');
+  }
 
   // Nudge SuperTable to recompute on resize and scope persistence to viewport width
   private resizeDebounce: any;
@@ -942,7 +954,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   trackById(index: number, row: AnyRow): any { return row?.id ?? index; }
   onSort(event: any): void { /* capture if needed */ }
 
-  // Highlighting support for expanded Wikipedia iframe only
+  // Collect highlight terms for list grid and detail view
   private getHighlightTermsFromBql(bql: string): string[] {
     const terms: string[] = [];
     if (!bql || !bql.trim()) return terms;
@@ -959,13 +971,80 @@ export class GenericListComponent implements OnInit, AfterViewInit {
             const s = String(v).trim();
             if (s) terms.push(s);
           };
+          const pushList = (val: any) => {
+            if (Array.isArray(val)) {
+              val.forEach(pushVal);
+              return;
+            }
+            if (typeof val === 'string') {
+              const trimmed = val.trim();
+              if (!trimmed) return;
+              const stripWrapper = (s: string): string => {
+                if (
+                  (s.startsWith('(') && s.endsWith(')')) ||
+                  (s.startsWith('[') && s.endsWith(']'))
+                ) {
+                  return s.substring(1, s.length - 1);
+                }
+                return s;
+              };
+              const splitRespectingQuotes = (s: string): string[] => {
+                const result: string[] = [];
+                let current = '';
+                let quoteChar: '"' | "'" | null = null;
+                for (let i = 0; i < s.length; i++) {
+                  const ch = s[i];
+                  if ((ch === '"' || ch === "'") && s[i - 1] !== '\\') {
+                    if (quoteChar === ch) {
+                      quoteChar = null;
+                    } else if (quoteChar === null) {
+                      quoteChar = ch as '"' | "'";
+                    }
+                    current += ch;
+                    continue;
+                  }
+                  if (ch === ',' && quoteChar === null) {
+                    const piece = current.trim();
+                    if (piece) result.push(piece);
+                    current = '';
+                    continue;
+                  }
+                  current += ch;
+                }
+                const finalPiece = current.trim();
+                if (finalPiece) result.push(finalPiece);
+                return result;
+              };
+              const tryJson = (s: string): string[] | null => {
+                try {
+                  const parsed = JSON.parse(s);
+                  return Array.isArray(parsed) ? parsed.map((item) => String(item)) : null;
+                } catch {
+                  return null;
+                }
+              };
+              const normalized = stripWrapper(trimmed);
+              const jsonValues = tryJson(trimmed);
+              if (jsonValues) {
+                jsonValues.forEach(pushVal);
+                return;
+              }
+              if (normalized.includes(',')) {
+                splitRespectingQuotes(normalized)
+                  .map((part) => part.replace(/^["'](.*)["']$/, '$1'))
+                  .forEach(pushVal);
+                return;
+              }
+              pushVal(trimmed);
+              return;
+            }
+            pushVal(val);
+          };
           // document contains "x" or generic value searches should highlight value
           if (operator && (operator.includes('contains') || operator.includes('like') || operator === '=' || operator === '==' || operator === 'in' || operator === '!in')) {
-            if (Array.isArray(value)) value.forEach(pushVal);
-            else pushVal(value);
+            pushList(value);
           } else if (field === 'document') {
-            if (Array.isArray(value)) value.forEach(pushVal);
-            else pushVal(value);
+            pushList(value);
           }
         } else {
           const asSet = node as LocalRuleSet;
