@@ -6,6 +6,10 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FormsModule } from '@angular/forms';
 import { BqlAutocompleteService } from '../services/bql-autocomplete.service';
+import { NamedQueryService } from 'app/entities/named-query/service/named-query.service';
+import { AccountService } from 'app/core/auth/account.service';
+import { of } from 'rxjs';
+import { HttpResponse } from '@angular/common/http';
 
 describe('QueryInputComponent', () => {
   it('should set default operator when parsing empty query', () => {
@@ -40,6 +44,8 @@ describe('QueryInputComponent - Autocomplete Integration Tests', () => {
   let fixture: ComponentFixture<QueryInputComponent>;
   let httpMock: HttpTestingController;
   let autocompleteService: BqlAutocompleteService;
+  let namedQueryService: jasmine.SpyObj<NamedQueryService>;
+  let accountService: jasmine.SpyObj<AccountService>;
 
   const mockConfig: QueryBuilderConfig = {
     fields: {
@@ -76,6 +82,11 @@ describe('QueryInputComponent - Autocomplete Integration Tests', () => {
   };
 
   beforeEach(async () => {
+    namedQueryService = jasmine.createSpyObj('NamedQueryService', ['query']);
+    accountService = jasmine.createSpyObj('AccountService', ['identity']);
+    namedQueryService.query.and.returnValue(of(new HttpResponse({ body: [] })));
+    accountService.identity.and.returnValue(of(null));
+
     await TestBed.configureTestingModule({
       imports: [
         QueryInputComponent,
@@ -84,7 +95,11 @@ describe('QueryInputComponent - Autocomplete Integration Tests', () => {
         BrowserAnimationsModule,
         FormsModule
       ],
-      providers: [BqlAutocompleteService]
+      providers: [
+        BqlAutocompleteService,
+        { provide: NamedQueryService, useValue: namedQueryService },
+        { provide: AccountService, useValue: accountService }
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(QueryInputComponent);

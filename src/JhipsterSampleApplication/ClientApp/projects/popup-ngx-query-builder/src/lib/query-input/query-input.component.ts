@@ -109,6 +109,11 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
   private destroy$ = new Subject<void>();
 
   ngOnInit(): void {
+    this.autocompleteService.namedQueriesReady$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.updateAutocompleteSuggestions(true));
+    this.autocompleteService.setNamedQueryContext(this.namedQueryEntity ?? null);
+
     this.onQueryChange();
     this.loadNamedQueries();
     // Pre-load history so arrow navigation is responsive when editing starts
@@ -137,6 +142,10 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
     if ((changes['config'] && !changes['config'].firstChange) || 
         (changes['spec'] && !changes['spec'].firstChange)) {
       this.autocompleteService.clearCache();
+    }
+
+    if (changes['namedQueryEntity'] && !changes['namedQueryEntity'].firstChange) {
+      this.autocompleteService.setNamedQueryContext(this.namedQueryEntity ?? null);
     }
   }
 

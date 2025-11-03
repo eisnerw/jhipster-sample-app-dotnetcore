@@ -1,12 +1,33 @@
-import { BqlAutocompleteService } from './bql-autocomplete.service';
 import { QueryBuilderConfig } from 'ngx-query-builder';
+import { AccountService } from 'app/core/auth/account.service';
+import { NamedQueryService } from 'app/entities/named-query/service/named-query.service';
+import { INamedQuery } from 'app/entities/named-query/named-query.model';
+import { HttpResponse } from '@angular/common/http';
+import { TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
+import { BqlAutocompleteService } from './bql-autocomplete.service';
 
 describe('BqlAutocompleteService', () => {
   let service: BqlAutocompleteService;
   let config: QueryBuilderConfig;
+  let namedQueryService: jasmine.SpyObj<NamedQueryService>;
+  let accountService: jasmine.SpyObj<AccountService>;
 
   beforeEach(() => {
-    service = new BqlAutocompleteService();
+    namedQueryService = jasmine.createSpyObj('NamedQueryService', ['query']);
+    accountService = jasmine.createSpyObj('AccountService', ['identity']);
+
+    namedQueryService.query.and.returnValue(of(new HttpResponse({ body: [] })));
+    accountService.identity.and.returnValue(of(null));
+
+    TestBed.configureTestingModule({
+      providers: [
+        BqlAutocompleteService,
+        { provide: NamedQueryService, useValue: namedQueryService },
+        { provide: AccountService, useValue: accountService }
+      ]
+    });
+    service = TestBed.inject(BqlAutocompleteService);
     
     // Setup a basic config for testing
     config = {
@@ -70,6 +91,72 @@ describe('BqlAutocompleteService', () => {
       const suggestions = service.getSuggestions('name = "test" & ', 16, config);
       expect(suggestions.length).toBeGreaterThan(0);
       expect(suggestions.every(s => s.type === 'field')).toBe(true);
+    });
+
+    it('should include named queries in field suggestions when available', () => {
+      const namedQuery: INamedQuery = {
+        id: 1,
+        name: 'SharedClause',
+        text: 'name = "abc"',
+        owner: 'SYSTEM',
+        entity: 'Test'
+      };
+      namedQueryService.query.and.returnValue(of(new HttpResponse({ body: [namedQuery] })));
+
+      const suggestions = service.getSuggestions('', 0, config);
+      expect(suggestions.some(s => s.value === 'SharedClause')).toBeTrue();
+    });
+
+    it('should filter named queries by entity and owner priority', () => {
+      const matchesDomain: INamedQuery = {
+        id: 1,
+        name: 'MyClause',
+        text: 'age > 18',
+        owner: 'SYSTEM',
+        entity: 'Birthday'
+      };
+      const wrongDomain: INamedQuery = {
+        id: 2,
+        name: 'OtherDomainClause',
+        text: 'age > 30',
+        owner: 'SYSTEM',
+        entity: 'Supreme'
+      };
+      const userOwned: INamedQuery = {
+        id: 3,
+        name: 'UserClause',
+        text: 'active = true',
+        owner: 'user1',
+        entity: 'Birthday'
+      };
+
+      accountService.identity.and.returnValue(of({ login: 'user1' } as any));
+      namedQueryService.query.and.returnValue(of(new HttpResponse({ body: [matchesDomain, wrongDomain, userOwned] })));
+
+      service.setNamedQueryContext('Birthday');
+      const suggestions = service.getSuggestions('', 0, config);
+
+      expect(suggestions.some(s => s.value === 'UserClause')).toBeTrue();
+      expect(suggestions.some(s => s.value === 'MyClause')).toBeTrue();
+      expect(suggestions.some(s => s.value === 'OtherDomainClause')).toBeFalse();
+    });
+
+    it('should suggest logical connectors after a named query', () => {
+      const namedQuery: INamedQuery = {
+        id: 1,
+        name: 'Segment1',
+        text: 'age > 30',
+        owner: 'SYSTEM',
+        entity: 'Birthday'
+      };
+
+      namedQueryService.query.and.returnValue(of(new HttpResponse({ body: [namedQuery] })));
+      service.setNamedQueryContext('Birthday');
+      service.getSuggestions('', 0, config);
+
+      const suggestions = service.getSuggestions('Segment1 ', 'Segment1 '.length, config);
+      expect(suggestions.some(s => s.value === '&')).toBeTrue();
+      expect(suggestions.some(s => s.value === '|')).toBeTrue();
     });
 
     it('should suggest fields after opening parenthesis', () => {

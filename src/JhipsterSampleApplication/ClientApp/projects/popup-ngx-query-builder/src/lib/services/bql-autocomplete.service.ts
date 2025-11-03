@@ -1,6 +1,11 @@
 import { Injectable } from '@angular/core';
 import { QueryBuilderConfig, getDefaultOperatorsForFieldType } from 'ngx-query-builder';
 import { tokenize, Token } from '../bql';
+import { NamedQueryService } from 'app/entities/named-query/service/named-query.service';
+import { AccountService } from 'app/core/auth/account.service';
+import { INamedQuery } from 'app/entities/named-query/named-query.model';
+import { of, ReplaySubject, Subscription } from 'rxjs';
+import { catchError, finalize, map, switchMap, take } from 'rxjs/operators';
 
 /**
  * BQL Autocomplete Service
@@ -31,7 +36,7 @@ export interface AutocompleteSuggestion {
 }
 
 export interface AutocompleteContext {
-  type: 'field' | 'operator' | 'value' | 'unknown';
+  type: 'field' | 'operator' | 'value' | 'logical' | 'unknown';
   currentField?: string;   // If in operator/value context
   currentOperator?: string; // If in value context
   prefix: string;          // Text typed so far in current token
@@ -43,11 +48,46 @@ export class BqlAutocompleteService {
   // Cache for field and operator suggestions per QueryBuilderConfig
   private fieldSuggestionsCache = new Map<string, AutocompleteSuggestion[]>();
   private operatorSuggestionsCache = new Map<string, Map<string, AutocompleteSuggestion[]>>();
+  private namedQuerySuggestions: AutocompleteSuggestion[] = [];
+  private namedQueriesLoaded = false;
+  private namedQueriesLoading = false;
+  private namedQueryEntity: string | null = null;
+  private namedQueryLoadSub?: Subscription;
+  private namedQueriesSubject = new ReplaySubject<void>(1);
+  private namedQueryNames = new Set<string>();
+  readonly namedQueriesReady$ = this.namedQueriesSubject.asObservable();
   
   // Maximum number of suggestions to display
   private readonly MAX_SUGGESTIONS = 15;
   
-  constructor() {}
+  constructor(
+    private namedQueryService: NamedQueryService,
+    private accountService: AccountService
+  ) {}
+
+  /**
+   * Updates the entity/domain used when fetching named queries for suggestions.
+   * Changing the entity clears cached suggestions and triggers a reload.
+   */
+  setNamedQueryContext(entity: string | null): void {
+    const normalized = entity ? entity.trim() : null;
+    if (this.namedQueryEntity === normalized) {
+      return;
+    }
+
+    this.namedQueryEntity = normalized;
+    this.namedQuerySuggestions = [];
+    this.namedQueryNames.clear();
+    this.namedQueriesLoaded = false;
+
+    if (this.namedQueryLoadSub) {
+      this.namedQueryLoadSub.unsubscribe();
+      this.namedQueryLoadSub = undefined;
+    }
+
+    this.fieldSuggestionsCache.clear();
+    this.ensureNamedQueriesLoaded();
+  }
 
   /**
    * Analyzes the query and cursor position to determine what suggestions to show
@@ -87,6 +127,9 @@ export class BqlAutocompleteService {
           if (context.currentField) {
             suggestions = this.getOperatorSuggestions(context.currentField, context.prefix, config);
           }
+          break;
+        case 'logical':
+          suggestions = this.getLogicalOperatorSuggestions(context.prefix);
           break;
         case 'value':
           if (context.currentField && context.currentOperator) {
@@ -223,13 +266,23 @@ export class BqlAutocompleteService {
       const hasTrailingSpace = queryBeforeCursor.length > trimmedBefore.length;
       if (hasTrailingSpace && tokens.length > 0) {
         const potentialFieldToken = tokens[tokens.length - 1];
-        if (potentialFieldToken.type === 'word' && config.fields[potentialFieldToken.value]) {
-          return {
-            type: 'operator',
-            currentField: potentialFieldToken.value,
-            prefix: '',
-            cursorPosition
-          };
+        if (potentialFieldToken.type === 'word') {
+          if (this.isConfigField(potentialFieldToken.value, config)) {
+            return {
+              type: 'operator',
+              currentField: potentialFieldToken.value,
+              prefix: '',
+              cursorPosition
+            };
+          }
+
+          if (this.isNamedQuery(potentialFieldToken.value)) {
+            return {
+              type: 'logical',
+              prefix: '',
+              cursorPosition
+            };
+          }
         }
       }
 
@@ -239,7 +292,7 @@ export class BqlAutocompleteService {
         // Check if there's a field name before the !
         if (tokens.length >= 2) {
           const tokenBeforeExclamation = tokens[tokens.length - 2];
-          if (tokenBeforeExclamation.type === 'word' && config.fields[tokenBeforeExclamation.value]) {
+          if (tokenBeforeExclamation.type === 'word' && this.isConfigField(tokenBeforeExclamation.value, config)) {
             // This is "field !" - user is starting to type an operator like !IN
             return {
               type: 'operator',
@@ -266,12 +319,18 @@ export class BqlAutocompleteService {
         const partialOperator = operatorMatch[2];
         
         // Check if it's a valid field name
-        if (config.fields[potentialField]) {
+        if (this.isConfigField(potentialField, config)) {
           // This looks like "field partial_operator" - suggest operators
           return {
             type: 'operator',
             currentField: potentialField,
             prefix: partialOperator,
+            cursorPosition
+          };
+        } else if (this.isNamedQuery(potentialField)) {
+          return {
+            type: 'logical',
+            prefix: '',
             cursorPosition
           };
         }
@@ -446,6 +505,8 @@ export class BqlAutocompleteService {
     prefix: string,
     config: QueryBuilderConfig
   ): AutocompleteSuggestion[] {
+    this.ensureNamedQueriesLoaded();
+
     if (!config.fields) {
       return [];
     }
@@ -455,7 +516,7 @@ export class BqlAutocompleteService {
     
     // Check cache first
     if (this.fieldSuggestionsCache.has(cacheKey)) {
-      return this.fieldSuggestionsCache.get(cacheKey)!;
+      return this.mergeFieldAndNamedQuerySuggestions(this.fieldSuggestionsCache.get(cacheKey)!);
     }
 
     const suggestions: AutocompleteSuggestion[] = [];
@@ -512,7 +573,7 @@ export class BqlAutocompleteService {
       console.error('BqlAutocompleteService: Error generating field suggestions', error);
     }
 
-    return suggestions;
+    return this.mergeFieldAndNamedQuerySuggestions(suggestions);
   }
 
   /**
@@ -763,6 +824,177 @@ export class BqlAutocompleteService {
     }
 
     return suggestions;
+  }
+
+  /**
+   * Ensures named queries are loaded and ready for autocomplete suggestions.
+   * Fetches once per service instance and filters by owner.
+   */
+  private ensureNamedQueriesLoaded(): void {
+    if (this.namedQueriesLoaded || this.namedQueriesLoading) {
+      return;
+    }
+
+    this.namedQueriesLoading = true;
+
+    const request = this.namedQueryEntity ? { entity: this.namedQueryEntity } : undefined;
+
+    this.namedQueryLoadSub = this.accountService
+      .identity()
+      .pipe(
+        take(1),
+        switchMap(account =>
+          this.namedQueryService.query(request).pipe(
+            map(response => response.body ?? []),
+            map(queries => this.filterNamedQueries(queries, this.namedQueryEntity, account?.login ?? null))
+          )
+        ),
+        catchError(error => {
+          console.warn('BqlAutocompleteService: Failed to load named queries', error);
+          return of<AutocompleteSuggestion[]>([]);
+        }),
+        finalize(() => {
+          this.namedQueriesLoading = false;
+          this.namedQueryLoadSub = undefined;
+        })
+      )
+      .subscribe(suggestions => {
+        this.namedQuerySuggestions = suggestions;
+        this.namedQueryNames = new Set(
+          suggestions.map(s => s.value.toLowerCase())
+        );
+        this.namedQueriesLoaded = true;
+        this.fieldSuggestionsCache.clear();
+        this.namedQueriesSubject.next();
+      });
+  }
+
+  /**
+   * Filters named queries by allowed owners and maps them to autocomplete suggestions.
+   */
+  private filterNamedQueries(
+    queries: INamedQuery[],
+    domain: string | null,
+    currentLogin: string | null
+  ): AutocompleteSuggestion[] {
+    if (!queries || queries.length === 0) {
+      return [];
+    }
+
+    const normalizedLogin = currentLogin ? currentLogin.toLowerCase() : null;
+    const normalizedDomain = domain ? domain.toLowerCase() : null;
+    const suggestionsByName = new Map<string, { owner?: string; priority: number }>();
+
+    queries.forEach(query => {
+      if (!query || !query.name) {
+        return;
+      }
+
+      if (normalizedDomain) {
+        const entity = (query.entity || '').toLowerCase();
+        if (entity !== normalizedDomain) {
+          return;
+        }
+      }
+
+      const owner = query.owner?.trim() ?? '';
+      const ownerLower = owner.toLowerCase();
+
+      let priority: number | null = null;
+      if (normalizedLogin && ownerLower === normalizedLogin) {
+        priority = 0;
+      } else if (ownerLower === 'system') {
+        priority = 1;
+      } else if (ownerLower === 'global') {
+        priority = 2;
+      }
+
+      if (priority === null) {
+        return;
+      }
+
+      const existing = suggestionsByName.get(query.name);
+      if (!existing || priority < existing.priority) {
+        suggestionsByName.set(query.name, { owner, priority });
+      }
+    });
+
+    return Array.from(suggestionsByName.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([name, info]) => ({
+        value: name,
+        display: name,
+        type: 'field' as const,
+        metadata: {
+          description: info.owner ? `Named query (${info.owner})` : 'Named query'
+        }
+      }));
+  }
+
+  /**
+   * Combines cached field suggestions with named query suggestions without mutating cache.
+   */
+  private mergeFieldAndNamedQuerySuggestions(baseSuggestions: AutocompleteSuggestion[]): AutocompleteSuggestion[] {
+    if (!this.namedQuerySuggestions.length) {
+      return baseSuggestions;
+    }
+
+    const existingValues = new Set(baseSuggestions.map(s => s.value.toLowerCase()));
+    const namedSuggestions = this.namedQuerySuggestions.filter(
+      suggestion => !existingValues.has(suggestion.value.toLowerCase())
+    );
+
+    if (!namedSuggestions.length) {
+      return baseSuggestions;
+    }
+
+    const insertionIndex = baseSuggestions.findIndex(s => s.type === 'field');
+    if (insertionIndex === -1) {
+      return [...baseSuggestions, ...namedSuggestions];
+    }
+
+    return [
+      ...baseSuggestions.slice(0, insertionIndex),
+      ...namedSuggestions,
+      ...baseSuggestions.slice(insertionIndex)
+    ];
+  }
+
+  /**
+   * Returns logical operator suggestions for connecting clauses.
+   */
+  private getLogicalOperatorSuggestions(prefix: string): AutocompleteSuggestion[] {
+    const logicalOperators: AutocompleteSuggestion[] = [
+      {
+        value: '&',
+        display: 'AND (&)',
+        type: 'operator'
+      },
+      {
+        value: '|',
+        display: 'OR (|)',
+        type: 'operator'
+      }
+    ];
+
+    if (!prefix) {
+      return logicalOperators;
+    }
+
+    const lower = prefix.toLowerCase();
+    return logicalOperators.filter(
+      suggestion =>
+        suggestion.value.toLowerCase().startsWith(lower) ||
+        suggestion.display.toLowerCase().includes(lower)
+    );
+  }
+
+  private isConfigField(name: string, config: QueryBuilderConfig): boolean {
+    return !!(config.fields && config.fields[name]);
+  }
+
+  private isNamedQuery(name: string): boolean {
+    return this.namedQueryNames.has(name.toLowerCase());
   }
 
   /**
@@ -1096,7 +1328,7 @@ export class BqlAutocompleteService {
       // If second last is a word (potential field) and last is a word, could be operator
       if (secondLast.type === 'word' && lastToken.type === 'word') {
         // Check if the field exists in config
-        if (config.fields[secondLast.value]) {
+        if (this.isConfigField(secondLast.value, config)) {
           // Last token might be a partial operator
           return {
             type: 'operator',
@@ -1115,7 +1347,7 @@ export class BqlAutocompleteService {
       
       // Pattern: field operator value
       if (thirdLast.type === 'word' && secondLast.type === 'operator') {
-        if (config.fields[thirdLast.value]) {
+        if (this.isConfigField(thirdLast.value, config)) {
           return {
             type: 'value',
             currentField: thirdLast.value,
