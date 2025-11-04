@@ -16,8 +16,15 @@
   {
     "id": 3,
     "name": "MRF",
-    "text": "advocates CONTAINS mark & advocates CONTAINS freeman & ",
+    "text": "advocates CONTAINS mark & advocates CONTAINS freeman",
     "owner": "GLOBAL",
     "entity": "SUPREME"
-  }
+  },
+  {
+    "id": 4,
+    "name": "JOHNS",
+    "text": "fname = john",
+    "owner": "admin",
+    "entity": "BIRTHDAY"
+  }  
 ]

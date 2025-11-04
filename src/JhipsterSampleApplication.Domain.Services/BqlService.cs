@@ -91,6 +91,44 @@ namespace JhipsterSampleApplication.Domain.Services
                 throw new ArgumentException("Invalid BQL query format", nameof(bqlQuery));
             }
 
+            var normalizedTokens = new List<string>(tokens.Length);
+            foreach (var token in tokens)
+            {
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    continue;
+                }
+
+                // Preserve quoted strings and regex patterns verbatim
+                if (token.StartsWith("\"", StringComparison.Ordinal) || token.StartsWith("/", StringComparison.Ordinal))
+                {
+                    normalizedTokens.Add(token);
+                    continue;
+                }
+
+                var core = token;
+                int closingCount = 0;
+                while (core.Length > 0 &&
+                       core.EndsWith(")", StringComparison.Ordinal) &&
+                       core != ")" &&
+                       !core.StartsWith("(", StringComparison.Ordinal))
+                {
+                    closingCount++;
+                    core = core.Substring(0, core.Length - 1);
+                }
+
+                if (!string.IsNullOrWhiteSpace(core))
+                {
+                    normalizedTokens.Add(core);
+                }
+
+                for (int i = 0; i < closingCount; i++)
+                {
+                    normalizedTokens.Add(")");
+                }
+            }
+
+            tokens = normalizedTokens.ToArray();
             var result = await ParseRuleset(tokens, 0, false);
             if (!result.matches || result.index < tokens.Length)
             {
@@ -902,15 +940,6 @@ namespace JhipsterSampleApplication.Domain.Services
 
             if (result.index >= tokens.Length || (tokens[result.index] != "&" && tokens[result.index] != "|"))
             {
-                if (not && result.index < tokens.Length && tokens[result.index] == ")")
-                {
-                    return (true, result.index, new RulesetDto
-                    {
-                        condition = "or",
-                        rules = new List<RulesetDto> { result.ruleset },
-                        not = true
-                    });
-                }
                 return result;
             }
 
@@ -973,7 +1002,6 @@ namespace JhipsterSampleApplication.Domain.Services
                 return (false, index, new RulesetDto());
             }
 
-            result.ruleset.not = true;
             return result;
         }
 
@@ -984,11 +1012,16 @@ namespace JhipsterSampleApplication.Domain.Services
                 return (false, index, new RulesetDto());
             }
 
-            // NOT at the start handled here as well
-            if (tokens[index] == "!")
+            bool negate = not;
+            while (index < tokens.Length && tokens[index] == "!")
             {
+                negate = !negate;
                 index++;
-                not = true;
+            }
+
+            if (index >= tokens.Length)
+            {
+                return (false, index, new RulesetDto());
             }
 
             // Named ruleset reference (UPPER_SNAKE_CASE)
@@ -998,17 +1031,9 @@ namespace JhipsterSampleApplication.Domain.Services
                 var namedQuery = await _namedQueryService.FindByNameAndOwner(rulesetName, null, _domain);
                 if (namedQuery != null)
                 {
-                    var ruleset = await Bql2Ruleset(namedQuery.Text);
-                    if (not)
-                    {
-                        return (true, index + 1, new RulesetDto
-                        {
-                            condition = "or",
-                            rules = new List<RulesetDto> { ruleset },
-                            not = true
-                        });
-                    }
-                    return (true, index + 1, ruleset);
+                    var namedRuleset = await Bql2Ruleset(namedQuery.Text);
+                    var adjusted = negate ? ApplyNegation(namedRuleset) : namedRuleset;
+                    return (true, index + 1, adjusted);
                 }
                 return (false, index, new RulesetDto());
             }
@@ -1020,20 +1045,11 @@ namespace JhipsterSampleApplication.Domain.Services
             }
 
             index++;
-            var result = await ParseRuleset(tokens, index, not);
+            var result = await ParseRuleset(tokens, index, false);
             if (!result.matches)
             {
                 result = ParseRule(tokens, index);
-                if (result.matches)
-                {
-                    result.ruleset = new RulesetDto
-                    {
-                        condition = "or",
-                        rules = new List<RulesetDto> { result.ruleset },
-                        not = not
-                    };
-                }
-                else
+                if (!result.matches)
                 {
                     return result;
                 }
@@ -1044,8 +1060,8 @@ namespace JhipsterSampleApplication.Domain.Services
                 return (false, result.index, new RulesetDto());
             }
 
-            result.index++;
-            return result;
+            var adjustedRuleset = negate ? ApplyNegation(result.ruleset) : result.ruleset;
+            return (true, result.index + 1, adjustedRuleset);
         }
 
         private (bool matches, int index, RulesetDto ruleset) ParseRule(string[] tokens, int index)
@@ -1186,6 +1202,90 @@ namespace JhipsterSampleApplication.Domain.Services
                 @operator = rulesetOperator,
                 value = value ?? string.Empty
             });
+        }
+
+        private RulesetDto ApplyNegation(RulesetDto ruleset)
+        {
+            ArgumentNullException.ThrowIfNull(ruleset);
+
+            if (!string.IsNullOrWhiteSpace(ruleset.condition) && ruleset.rules != null && ruleset.rules.Count > 0)
+            {
+                ruleset.not = !ruleset.not;
+                return ruleset;
+            }
+
+            if (TryNegateLeafRule(ruleset))
+            {
+                return ruleset;
+            }
+
+            ruleset.not = false;
+            return new RulesetDto
+            {
+                condition = "or",
+                not = true,
+                rules = new List<RulesetDto> { ruleset }
+            };
+        }
+
+        private bool TryNegateLeafRule(RulesetDto rule)
+        {
+            if (rule == null)
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(rule.condition) && rule.rules != null && rule.rules.Count > 0)
+            {
+                return false;
+            }
+
+            var op = rule.@operator?.ToLowerInvariant();
+            switch (op)
+            {
+                case "=":
+                    rule.@operator = "!=";
+                    rule.not = false;
+                    return true;
+                case "!=":
+                    rule.@operator = "=";
+                    rule.not = false;
+                    return true;
+                case "contains":
+                    rule.@operator = "!contains";
+                    rule.not = false;
+                    return true;
+                case "!contains":
+                    rule.@operator = "contains";
+                    rule.not = false;
+                    return true;
+                case "like":
+                    rule.@operator = "!like";
+                    rule.not = false;
+                    return true;
+                case "!like":
+                    rule.@operator = "like";
+                    rule.not = false;
+                    return true;
+                case "in":
+                    rule.@operator = "!in";
+                    rule.not = false;
+                    return true;
+                case "!in":
+                    rule.@operator = "in";
+                    rule.not = false;
+                    return true;
+                case "exists":
+                    if (rule.value is bool boolVal)
+                    {
+                        rule.value = !boolVal;
+                        rule.not = false;
+                        return true;
+                    }
+                    return false;
+                default:
+                    return false;
+            }
         }
 
         private bool TryParseInValues(string field, string[] tokens, ref int index, out List<string> normalizedValues)
