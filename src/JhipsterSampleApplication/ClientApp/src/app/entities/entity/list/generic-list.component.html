@@ -13,13 +13,16 @@
 
     <div class="d-flex ms-auto align-items-center">
       <button
-        class="btn btn-info me-2"
+        class="btn btn-info btn-sm d-flex align-items-center justify-content-center me-2"
         (click)="refreshData()"
         [title]="(dataLoader.loading$ | async) ? 'Refresh (cancel current and restart)' : 'Refresh List'"
         [disabled]="queryInput.editing && !queryInput.validQuery"
+        [attr.aria-label]="(dataLoader.loading$ | async) ? 'Refresh (cancel current and restart)' : 'Refresh List'"
       >
-        <fa-icon icon="sync" [spin]="dataLoader.loading$ | async"></fa-icon>
-        <span>Refresh List</span>
+        <fa-icon
+          [icon]="(dataLoader.loading$ | async) ? 'sync' : 'search'"
+          [spin]="dataLoader.loading$ | async"
+        ></fa-icon>
       </button>
 
       <div class="d-flex align-items-center ms-2">
