@@ -430,6 +430,14 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['columns']) {
+      if (!this.applyingWidths) {
+        const nextCount = (changes['columns'].currentValue || []).length;
+        if (nextCount > 0) {
+          setTimeout(() => this.enforceWidthsAfterLayout());
+        }
+      }
+    }
     if (changes['mode'] && !changes['mode'].firstChange) {
       if (changes['mode'].currentValue === 'group') {
         setTimeout(() => {
@@ -505,7 +513,6 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   onRowExpand(event: { originalEvent: Event; data: any }) {
-    console.log('Expanded:', event.data);
     this.expandedRowKeys[event.data.id] = true;
     this.rowExpand.emit(event);
     setTimeout(() => this.applyStoredStateToDetails(), 500);
@@ -569,7 +576,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
    * user's column settings remain intact.
    */
   applyCapturedHeaderState(): void {
-    if (this.lastColumnWidths) {
+    if (!this.lastColumnWidths || this.lastColumnWidths.length !== this.visibleColumns.length) {
+      this.enforceWidthsAfterLayout();
+    } else {
       this.visibleColumns.forEach((c, i) => {
         c.width = this.lastColumnWidths![i];
       });
@@ -581,6 +590,29 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     if (this.lastFilterEvent) {
       this.applyFilter(this.lastFilterEvent);
     }
+  }
+
+  forceWidthRecompute(): void {
+    this.lastColumnWidths = undefined;
+    this.minWidthsCache = null;
+    this.justResized = true;
+    setTimeout(() => {
+      this.justResized = false;
+      this.enforceWidthsAfterLayout();
+    }, 0);
+  }
+
+  resetLayoutState(): void {
+    this.lastColumnWidths = undefined;
+    this.lastSortEvent = undefined;
+    this.lastFilterEvent = undefined;
+    this.capturedWidths = false;
+    this.groupLoaders = {};
+    this.expandedRowKeys = {};
+    this.minWidthsCache = null;
+    this.startWidthsPx = null;
+    this.resizingIndex = null;
+    this.detailTables?.forEach(table => table.resetLayoutState());
   }
 
   private applyStoredStateToDetails(): void {
@@ -1068,6 +1100,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   private enforceWidthsAfterLayout(): void {
+    if (!this.visibleColumns || this.visibleColumns.length === 0) {
+      return;
+    }
     const persisted = this.readPersistedWidths();
     // Prefer persisted widths only if they fit the available container width and minima.
     let desired: (string | undefined)[] | undefined = undefined;

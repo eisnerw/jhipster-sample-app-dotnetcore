@@ -130,6 +130,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
 
   itemsPerPage = 50;
   sort = '';
+  private entitySession = 0;
 
   constructor() {
     const fetch: FetchFunction<AnyRow> = (queryParams: any) => {
@@ -161,10 +162,59 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     //this.onQueryChange(this.currentQuery);
   }
 
+  private resetEntityScopedState(): void {
+    this.superTable?.resetLayoutState();
+    this.spec = undefined;
+    this.columns = [];
+    this.initialWidths = [];
+    this.baseSpecSignature = undefined;
+    this.specSignature = undefined;
+    this.globalFilterFields = [];
+    this.views = [];
+    this.viewName = null;
+    this.groups = [];
+    this.viewMode = 'grid';
+    this.groupLoading = false;
+    this.groupLoadingMessage = 'Loading…';
+    this.currentQuery = '';
+    this.gridHighlightPattern = '';
+    this.selection = [];
+    this.checkboxSelectedRows = [];
+    this.chipSelectedRows = [];
+    this.chipMenuRow = null;
+    this.chipMenuIsCount = false;
+    this.chipMenuModel = [];
+    this.contextSelectedRow = null;
+    this.menuItems = [];
+    this.expandedRowKeys = {};
+    this.iframeSafeSrcById = {};
+    this.annotationCache = {};
+    this.bDisplayDetail = false;
+    this.detailDialogTitle = '';
+    this.dialogSafeSrc = null;
+    this.detailDialogId = null;
+    this.showCategorizeDialog = false;
+    this.allCategories = [];
+    this.filteredCategories = [];
+    this.categoryState = {};
+    this.newCategoryText = '';
+    this.newCategoryChecked = false;
+    this.tempNewCategory = null;
+    this.rowsToCategorizeCount = 0;
+    this.sort = '';
+  }
+
+  private isActiveSession(sessionId: number): boolean {
+    return sessionId === this.entitySession;
+  }
+
   private capitalize(s: string): string { return !s ? s : s.charAt(0).toUpperCase() + s.slice(1); }
 
-  private loadViews(): void {
-    this.viewService.queryByEntity(this.entity).subscribe(res => {
+  private loadViews(sessionId: number, entityName: string): void {
+    this.viewService.queryByEntity(entityName).subscribe(res => {
+      if (!this.isActiveSession(sessionId) || entityName !== this.entity) {
+        return;
+      }
       const body = res.body ?? [];
       this.views = body.map(v => ({ label: v.name!, value: v.id! }));
     });
@@ -173,23 +223,34 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   private loadColumnsFromSpec(spec: any): void {
     if (!this.pageTitle && spec?.title) this.pageTitle = String(spec.title);
     const columns = this.buildColumnsFromSpec(spec);
+    if (typeof console !== 'undefined') {
+      try {
+        console.info('[GenericList] loadColumnsFromSpec', {
+          entity: this.entity,
+          columnCount: columns.length,
+          fields: columns.map(c => c.field),
+        });
+      } catch {}
+    }
     this.columns = columns;
     this.initialWidths = this.columns.map(c => c.width || undefined);
     // Base signature tied to column spec
     this.baseSpecSignature = this.columns.map(c => `${c.field}:${c.width || ''}`).join('|');
-    // Include a stable viewport width (clientWidth excludes scrollbar)
     const vw = this.getStableViewportWidth();
     this.specSignature = `${this.baseSpecSignature}|vw:${vw}`;
     this.globalFilterFields = columns
       .filter(c => (c.type === 'string' || !c.type) && !!c.field && c.field !== 'lineNumber' && c.field !== 'checkbox')
       .map(c => c.field);
+    setTimeout(() => this.superTable?.forceWidthRecompute(), 0);
   }
 
   // (annotations now parsed per column; legacy category pill loader removed)
 
   private initForEntity(e: string | null): void {
     if (!e) return;
+    const sessionId = ++this.entitySession;
     this.entity = e;
+    this.resetEntityScopedState();
     this.pageTitle = `${this.capitalize(this.entity)}s...`;
 
     const fetch: FetchFunction<AnyRow> = (queryParams: any) => {
@@ -207,6 +268,9 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       entitySpec: this.entityService.getEntitySpec(this.entity)
     }).subscribe({
       next: ({ spec, entitySpec }) => {
+        if (!this.isActiveSession(sessionId)) {
+          return;
+        }
         this.spec = spec;
 
         // Ensure sort is initialized using entitySpec
@@ -216,21 +280,18 @@ export class GenericListComponent implements OnInit, AfterViewInit {
 
         // Proceed to load columns and views after both specs are available
         this.loadColumnsFromSpec(entitySpec);
-        this.loadViews();
-        this.viewName = null;
-        this.currentQuery = '';
-        this.gridHighlightPattern = '';
+        this.loadViews(sessionId, this.entity);
         this.loadPage();
       },
       error: () => {
+        if (!this.isActiveSession(sessionId)) {
+          return;
+        }
         this.spec = undefined;
 
         // As a fallback, load columns and views even if spec fetch fails
         this.loadColumnsFromSpec(undefined);
-        this.loadViews();
-        this.viewName = null;
-        this.currentQuery = '';
-        this.gridHighlightPattern = '';
+        this.loadViews(sessionId, this.entity);
         this.loadPage();
       }
     });
@@ -379,9 +440,10 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     }
   }
 
-  loadRootGroups(restoreState: boolean = false): void {
-    if (!this.viewName) { this.groups = []; this.groupLoading = false; this.loadPage(); this.viewMode = 'grid'; setTimeout(() => this.superTable.applyCapturedHeaderState(), 300); return; }
-    const viewParams: any = { from: 0, pageSize: 1000, view: this.viewName! };
+  loadRootGroups(restoreState: boolean = false, sessionId: number = this.entitySession): void {
+    const activeView = this.viewName;
+    if (!activeView) { this.groups = []; this.groupLoading = false; this.viewMode = 'grid'; this.loadPage(sessionId); setTimeout(() => this.superTable?.applyCapturedHeaderState(), 300); return; }
+    const viewParams: any = { from: 0, pageSize: 1000, view: activeView };
     const hasQuery = this.currentQuery.trim().length > 0;
     // Signal that the category list is loading in group mode
     this.groupLoading = true;
@@ -389,43 +451,81 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     if (hasQuery) {
       this.entityService.searchWithBql<any>(this.entity, this.currentQuery.trim(), viewParams).subscribe({
         next: (res: any) => {
+          if (!this.isActiveSession(sessionId) || activeView !== this.viewName) {
+            return;
+          }
           const hits = res.body?.hits ?? [];
           if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
             this.groups = hits.map((h: any) => ({ name: h.categoryName, count: h.count, categories: null }));
             this.viewMode = 'group';
             this.groupLoading = false;
-            setTimeout(() => (restoreState ? this.superTable.restoreState((this.superTable as any).captureState()) : this.superTable.applyCapturedHeaderState()), 300);
+            setTimeout(() => {
+              if (!this.superTable) return;
+              if (restoreState) {
+                this.superTable.restoreState((this.superTable as any).captureState());
+              } else {
+                this.superTable.applyCapturedHeaderState();
+              }
+            }, 300);
           } else {
             this.groups = [];
             this.groupLoading = false; // switching to grid mode; detail loader will indicate
-            const filter: any = { view: this.viewName! };
+            const filter: any = { view: activeView };
             filter.bqlQuery = this.currentQuery.trim();
             this.dataLoader.load(this.itemsPerPage, this.sort, filter);
             this.viewMode = 'grid';
-            setTimeout(() => this.superTable.applyCapturedHeaderState(), 300);
+            setTimeout(() => this.superTable?.applyCapturedHeaderState(), 300);
           }
         },
-        error: () => { this.groupLoading = false; this.groups = []; this.viewMode = 'grid'; this.loadPage(); setTimeout(() => this.superTable.applyCapturedHeaderState(), 300); }
+        error: () => {
+          if (!this.isActiveSession(sessionId) || activeView !== this.viewName) {
+            return;
+          }
+          this.groupLoading = false;
+          this.groups = [];
+          this.viewMode = 'grid';
+          this.loadPage(sessionId);
+          setTimeout(() => this.superTable?.applyCapturedHeaderState(), 300);
+        }
       });
     } else {
       this.entityService.searchView(this.entity, { ...viewParams, query: '*' }).subscribe({
         next: (res: any) => {
+          if (!this.isActiveSession(sessionId) || activeView !== this.viewName) {
+            return;
+          }
           const hits = res.body?.hits ?? [];
           if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
             this.groups = hits.map((h: any) => ({ name: h.categoryName, count: h.count, categories: null }));
             this.viewMode = 'group';
             this.groupLoading = false;
-            setTimeout(() => (restoreState ? this.superTable.restoreState((this.superTable as any).captureState()) : this.superTable.applyCapturedHeaderState()), 300);
+            setTimeout(() => {
+              if (!this.superTable) return;
+              if (restoreState) {
+                this.superTable.restoreState((this.superTable as any).captureState());
+              } else {
+                this.superTable.applyCapturedHeaderState();
+              }
+            }, 300);
           } else {
             this.groups = [];
             this.groupLoading = false; // switching to grid mode; top-level loader takes over
-            const filter: any = { view: this.viewName!, query: '*' };
+            const filter: any = { view: activeView, query: '*' };
             this.dataLoader.load(this.itemsPerPage, this.sort, filter);
             this.viewMode = 'grid';
-            setTimeout(() => this.superTable.applyCapturedHeaderState(), 300);
+            setTimeout(() => this.superTable?.applyCapturedHeaderState(), 300);
           }
         },
-        error: () => { this.groupLoading = false; this.groups = []; this.viewMode = 'grid'; this.loadPage(); setTimeout(() => this.superTable.applyCapturedHeaderState(), 300); }
+        error: () => {
+          if (!this.isActiveSession(sessionId) || activeView !== this.viewName) {
+            return;
+          }
+          this.groupLoading = false;
+          this.groups = [];
+          this.viewMode = 'grid';
+          this.loadPage(sessionId);
+          setTimeout(() => this.superTable?.applyCapturedHeaderState(), 300);
+        }
       });
     }
   }
@@ -433,15 +533,18 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   onViewChange(view: string | null): void {
     this.viewName = view;
     if (this.viewName) { try { this.superTable?.filterGlobal(''); } catch {} this.loadRootGroups(); }
-    else { this.groups = []; this.viewMode = 'grid'; this.loadPage(); setTimeout(() => this.superTable.applyCapturedHeaderState(), 500); }
+    else { this.groups = []; this.viewMode = 'grid'; this.loadPage(); setTimeout(() => this.superTable?.applyCapturedHeaderState(), 500); }
   }
 
-  loadPage(): void {
+  loadPage(sessionId: number = this.entitySession): void {
+    if (!this.isActiveSession(sessionId)) {
+      return;
+    }
     const filter: any = {};
     if (this.currentQuery && this.currentQuery.trim().length > 0) filter.bqlQuery = this.currentQuery.trim(); else filter.luceneQuery = '*';
     if (this.viewName) filter.view = this.viewName;
     this.dataLoader.load(this.itemsPerPage, this.sort, filter);
-    setTimeout(() => this.superTable.applyCapturedHeaderState(), 300);
+    setTimeout(() => this.superTable?.applyCapturedHeaderState(), 300);
   }
 
   refreshData(): void { try { this.superTable.captureHeaderState(); this.onQueryChange(this.currentQuery, true); } catch {} }
@@ -462,7 +565,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     this.resizeDebounce = setTimeout(() => {
       const vw = this.getStableViewportWidth();
       const base = this.baseSpecSignature || this.specSignature || '';
-      this.specSignature = `${base}|vw:${vw}`;
+      this.specSignature = base ? `${base}|vw:${vw}` : `vw:${vw}`;
       try { (this.superTable as any)['lastColumnWidths'] = undefined; } catch {}
     }, 150);
   }
@@ -1139,4 +1242,5 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       });
     } catch {}
   }
+
 }
