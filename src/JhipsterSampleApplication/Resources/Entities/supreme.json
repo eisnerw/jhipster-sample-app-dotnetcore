@@ -3,6 +3,12 @@
     "title": "Supreme",
     "elasticsearchIndex": "supreme",
     "columns":["name", "term", "docket_number", "question_description"],
+    "menu": [
+      { "action": "Categorize", "icon": "pi pi-tags", "label": "Categorize" },
+      { "action": "View", "icon": "pi pi-search", "label": "View Case" },
+      { "action": "Edit", "icon": "pi pi-pencil", "label": "Edit" },
+      { "action": "Delete", "icon": "pi pi-trash", "label": "Delete" }
+    ],
     "sort": "term;docket_number",
     "detailHtmlTemplate":[
       "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><base target=\\\"_blank\\\"><title>{name:unlabeled}</title><style>body{{margin:0;padding:8px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:14px;line-height:1.4;color:#111}}.field-name{{font-weight:600}}.field{{margin-bottom:0.7em}}</style></head><body><b>{name:unlabeled} ({docket_number:unlabeled})</b>&nbsp;&nbsp;&nbsp;{term}{lower_court}{manner_of_jurisdiction:label-Jurisdiction}{decision}{advocates}",

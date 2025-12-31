@@ -74,6 +74,7 @@
             ],
             "serviceWorker": "ngsw-config.json",
             "styles": [
+              "src/content/css/loading.css",
               "src/content/scss/vendor.scss",
               "src/content/scss/global.scss"
             ],

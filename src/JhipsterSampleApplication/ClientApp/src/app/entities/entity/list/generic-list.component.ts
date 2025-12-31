@@ -33,6 +33,7 @@ type LocalRuleSet = { condition: string; rules: Array<LocalRuleSet | LocalRule>;
 type LocalRule = { field: string; operator: string; value?: any };
 
 type AnyRow = { id?: string; [k: string]: any };
+type MenuSpecItem = { action: string; icon?: string; label?: string };
 
 @Component({
   selector: 'jhi-generic-list',
@@ -88,6 +89,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   specSignature: string | undefined;
   private baseSpecSignature: string | undefined;
   globalFilterFields: string[] = [];
+  entitySpec: any = null;
 
   viewName: string | null = null;
   views: { label: string; value: string }[] = [];
@@ -119,6 +121,22 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   rowsToCategorizeCount = 0;
   // Annotation helpers
   private annotationCache: Record<string, any[]> = {};
+  private menuSpec: MenuSpecItem[] = [];
+  private hasCustomMenuSpec = false;
+  private readonly menuActionMap: Record<string, (row: AnyRow | null, isChipMenu: boolean) => void> = {
+    delete: () => this.deleteFromContext(),
+    categorize: () => this.openCategorizeDialog(),
+    view: () => this.viewIframeFromContext(),
+    viewbirthday: () => this.viewIframeFromContext(),
+    edit: () => this.editFromContext(),
+  };
+  private readonly menuActionEnabledMap: Record<string, (row: AnyRow | null, isChipMenu: boolean) => boolean> = {
+    delete: row => !!this.resolveMenuRow(row),
+    view: row => !!this.resolveMenuRow(row),
+    edit: row => !!this.resolveMenuRow(row),
+    viewbirthday: row => !!this.canViewBirthdayRow(row),
+    categorize: (row, _isChipMenu) => this.hasAnyMenuSelection(row),
+  };
 
   expandedRowKeys: { [key: string]: boolean } = {};
   iframeSafeSrcById: Record<string, any> = {};
@@ -170,6 +188,8 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     this.baseSpecSignature = undefined;
     this.specSignature = undefined;
     this.globalFilterFields = [];
+    this.entitySpec = null;
+    this.menuSpec = [];
     this.views = [];
     this.viewName = null;
     this.groups = [];
@@ -201,6 +221,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     this.newCategoryChecked = false;
     this.tempNewCategory = null;
     this.rowsToCategorizeCount = 0;
+    this.hasCustomMenuSpec = false;
     this.sort = '';
   }
 
@@ -272,6 +293,10 @@ export class GenericListComponent implements OnInit, AfterViewInit {
           return;
         }
         this.spec = spec;
+        this.entitySpec = entitySpec;
+        const normalizedMenu = this.normalizeMenuSpec(entitySpec?.menu);
+        this.hasCustomMenuSpec = normalizedMenu.length > 0;
+        this.menuSpec = normalizedMenu;
 
         // Ensure sort is initialized using entitySpec
         if (entitySpec?.sort) {
@@ -288,6 +313,10 @@ export class GenericListComponent implements OnInit, AfterViewInit {
           return;
         }
         this.spec = undefined;
+        this.entitySpec = null;
+        const normalizedMenu = this.normalizeMenuSpec(undefined);
+        this.hasCustomMenuSpec = normalizedMenu.length > 0;
+        this.menuSpec = normalizedMenu;
 
         // As a fallback, load columns and views even if spec fetch fails
         this.loadColumnsFromSpec(undefined);
@@ -877,21 +906,86 @@ export class GenericListComponent implements OnInit, AfterViewInit {
 
   onCheckboxChange(): void { this.checkboxSelectedRows = this.selection || []; this.chipSelectedRows = this.checkboxSelectedRows.slice(0, 2); }
   getChipLabel(row: AnyRow): string { const titleFields = ['title','name','lname','fname']; let text = ''; for (const f of titleFields) { if (row[f]) { text = text ? `${text} ${row[f]}` : `${row[f]}`; } } return text || (row.id || ''); }
-  onChipMouseEnter(event: MouseEvent, row: AnyRow): void { this.chipMenuIsCount = false; this.chipMenuRow = row; this.setMenu(row); this.chipMenu?.show(event); }
-  onCountChipMouseEnter(event: MouseEvent): void { this.chipMenuIsCount = true; this.chipMenuRow = null; this.setMenu(null); this.chipMenu?.show(event); }
+  onChipMouseEnter(event: MouseEvent, row: AnyRow): void { this.chipMenuIsCount = false; this.chipMenuRow = row; this.setMenu(row, true); this.chipMenu?.show(event); }
+  onCountChipMouseEnter(event: MouseEvent): void { this.chipMenuIsCount = true; this.chipMenuRow = null; this.setMenu(null, true); this.chipMenu?.show(event); }
   onChipMouseLeave(): void { this.chipMenu?.hide(); }
   onRemoveChip(row: AnyRow): void { const id = row?.id; if (!id) return; this.selection = (this.selection || []).filter(r => (r?.id ?? r) !== id); this.onCheckboxChange(); }
   onRemoveCountChip(): void { this.selection = []; this.onCheckboxChange(); }
-  onContextMenuSelect(dataOrEvent: any): void { const row: AnyRow | undefined = dataOrEvent && dataOrEvent.data ? dataOrEvent.data : dataOrEvent; if (!row) return; this.contextSelectedRow = row; this.setMenu(row); }
-  onMenuShow(): void { this.setMenu(this.contextSelectedRow); }
+  onContextMenuSelect(dataOrEvent: any): void { const row: AnyRow | undefined = dataOrEvent && dataOrEvent.data ? dataOrEvent.data : dataOrEvent; if (!row) return; this.contextSelectedRow = row; this.setMenu(row, false); }
+  onMenuShow(): void { this.setMenu(this.contextSelectedRow, false); }
 
-  private setMenu(row: AnyRow | null): void {
-    const items: MenuItem[] = [ { label: 'Categorize', icon: 'pi pi-tags', command: () => this.openCategorizeDialog() } ];
-    if (row) { items.push({ label: 'View', icon: 'pi pi-search', command: () => this.viewIframeFromContext() }); items.push({ label: 'Edit', icon: 'pi pi-pencil', command: () => this.editFromContext() }); items.push({ label: 'Delete', icon: 'pi pi-trash', command: () => this.deleteFromContext() }); }
-    this.menuItems = items;
-    const chipModel: MenuItem[] = [{ label: 'Categorize', icon: 'pi pi-tags', command: () => this.openCategorizeDialog() }];
-    if (row) { chipModel.push({ label: 'View', icon: 'pi pi-search', command: () => this.viewIframeFromContext() }); chipModel.push({ label: 'Edit', icon: 'pi pi-pencil', command: () => this.editFromContext() }); chipModel.push({ label: 'Delete', icon: 'pi pi-trash', command: () => this.deleteFromChipMenu() }); }
-    this.chipMenuModel = chipModel;
+  private setMenu(row: AnyRow | null, isChipMenu: boolean = false): void {
+    const items = this.buildMenuItems(row, isChipMenu);
+    if (isChipMenu) {
+      this.chipMenuModel = items;
+    } else {
+      this.menuItems = items;
+    }
+  }
+
+  private buildMenuItems(row: AnyRow | null, isChipMenu: boolean): MenuItem[] {
+    const items: MenuItem[] = [];
+    const spec = this.hasCustomMenuSpec ? this.menuSpec : this.defaultMenuSpec();
+    for (const entry of spec) {
+      if (!entry || !entry.action) continue;
+      const actionKey = String(entry.action).toLowerCase();
+      const enabledFn = this.menuActionEnabledMap[actionKey];
+      if (enabledFn && !enabledFn(row, isChipMenu)) continue;
+      const handler = this.menuActionMap[actionKey];
+      const item: MenuItem = {
+        label: entry.label || this.prettyHeader(entry.action),
+        icon: entry.icon,
+        command: handler ? () => handler(row, isChipMenu) : undefined,
+      };
+      items.push(item);
+    }
+    return items;
+  }
+
+  private defaultMenuSpec(): MenuSpecItem[] {
+    return [
+      { action: 'Categorize', icon: 'pi pi-tags', label: 'Categorize' },
+      { action: 'View', icon: 'pi pi-search', label: 'View' },
+      { action: 'Edit', icon: 'pi pi-pencil', label: 'Edit' },
+      { action: 'Delete', icon: 'pi pi-trash', label: 'Delete' },
+    ];
+  }
+
+  private normalizeMenuSpec(raw: any): MenuSpecItem[] {
+    if (!Array.isArray(raw)) return [];
+    const normalized = raw
+      .map(item => {
+        if (!item || typeof item !== 'object') return null;
+        const action = (item as any).action ?? (item as any).Action;
+        if (!action) return null;
+        const icon = (item as any).icon ?? (item as any).Icon;
+        const label = (item as any).label ?? (item as any).Label;
+        const entry: MenuSpecItem = { action: String(action) };
+        if (icon !== undefined) entry.icon = String(icon);
+        if (label !== undefined) entry.label = String(label);
+        return entry;
+      })
+      .filter((i): i is MenuSpecItem => !!i);
+    return normalized;
+  }
+
+  private resolveMenuRow(row: AnyRow | null): AnyRow | null {
+    return row || this.contextSelectedRow || this.chipMenuRow || (this.selection?.[0] ?? null);
+  }
+
+  private canViewBirthdayRow(row: AnyRow | null): boolean {
+    const resolved = this.resolveMenuRow(row);
+    if (!resolved) return false;
+    if (typeof resolved.lname === 'string' && resolved.lname.toLowerCase() === 'johnson') return false;
+    return true;
+  }
+
+
+  private hasAnyMenuSelection(row: AnyRow | null): boolean {
+    if (row) return true;
+    if (this.contextSelectedRow) return true;
+    if (this.chipMenuRow) return true;
+    return (this.selection?.length ?? 0) > 0;
   }
 
   openCategorizeDialog(): void {
@@ -1001,7 +1095,16 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   onDetailDialogHide(): void { this.dialogSafeSrc = null; }
   editFromContext(): void { const row = this.contextSelectedRow || (this.selection && this.selection[0]); const id = row?.id; if (!id) return; this.router.navigate(['/entity', this.entity, id, 'edit']); }
 
-  deleteFromContext(): void { const row = this.contextSelectedRow || (this.selection && this.selection[0]); const id = row?.id; if (!id) return; this.entityService.delete(this.entity, id).subscribe({ next: () => this.refreshData(), error: () => this.refreshData() }); }
+  deleteFromContext(): void {
+    if (this.chipMenuRow || this.chipMenuIsCount) {
+      this.deleteFromChipMenu();
+      return;
+    }
+    const row = this.contextSelectedRow || (this.selection && this.selection[0]);
+    const id = row?.id;
+    if (!id) return;
+    this.entityService.delete(this.entity, id).subscribe({ next: () => this.refreshData(), error: () => this.refreshData() });
+  }
   deleteFromChipMenu(): void { const rows: AnyRow[] = this.chipMenuIsCount ? (this.selection || []) : (this.chipMenuRow ? [this.chipMenuRow] : []); this.chipMenuRow = null; this.chipMenuIsCount = false; const ids = rows.map(r => r.id).filter(Boolean) as string[]; if (!ids.length) return; const confirmAndRun = () => { const next = (remaining: string[]) => { if (!remaining.length) { this.refreshData(); return; } const id = remaining.shift()!; this.entityService.delete(this.entity, id).subscribe({ next: () => next(remaining), error: () => next(remaining) }); }; next([...ids]); }; if (ids.length > 1) { this.confirmationService.confirm({ header: 'Confirm Delete', icon: 'pi pi-exclamation-triangle', message: `Delete ${ids.length} item(s)?`, acceptLabel: 'Yes', rejectLabel: 'No', accept: () => confirmAndRun() }); } else { confirmAndRun(); } }
 
   onRowExpand(event: { originalEvent: Event; data: AnyRow }): void { const row = event.data as AnyRow; const key = row?.id || JSON.stringify(row); this.expandedRowKeys[key] = true; setTimeout(() => { const url = `/api/entity/${encodeURIComponent(this.entity)}/html/${encodeURIComponent(String(row.id))}`; this.iframeSafeSrcById[row.id!] = this.sanitizer.bypassSecurityTrustResourceUrl(url); }, 50); }

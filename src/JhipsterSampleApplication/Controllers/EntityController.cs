@@ -16,6 +16,7 @@ using System.Text.Json.Nodes;
 using System.Text;
 using System.Net;
 using Microsoft.AspNetCore.Authorization;
+using System.IO;
 
 namespace JhipsterSampleApplication.Controllers
 {
@@ -501,14 +502,43 @@ namespace JhipsterSampleApplication.Controllers
         [Produces("application/json")]
         public IActionResult GetEntitySpec([FromRoute] string entity)
         {
-            var fileName = ($"{entity}" ?? string.Empty).ToLowerInvariant() + ".json";
-            var path = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "Entities", fileName);
-            if (!System.IO.File.Exists(path))
+            if (_specRegistry.TryGetSpec(entity, out var specObj))
+            {
+                return Content(specObj.ToJsonString(), "application/json");
+            }
+
+            var path = ResolveEntitySpecPath(entity);
+            if (path == null)
             {
                 return NotFound("Entity spec file not found");
             }
             var json = System.IO.File.ReadAllText(path);
             return Content(json, "application/json");
+        }
+
+        private string? ResolveEntitySpecPath(string entity)
+        {
+            var fileName = ($"{entity}" ?? string.Empty).ToLowerInvariant() + ".json";
+            string? best = null;
+            DateTime bestTime = DateTime.MinValue;
+
+            foreach (var folder in new[]
+            {
+                Path.Combine(Directory.GetCurrentDirectory(), "Resources", "Entities"),
+                Path.Combine(AppContext.BaseDirectory, "Resources", "Entities")
+            })
+            {
+                var candidate = Path.Combine(folder, fileName);
+                if (!System.IO.File.Exists(candidate)) continue;
+                var ts = System.IO.File.GetLastWriteTimeUtc(candidate);
+                if (ts > bestTime)
+                {
+                    bestTime = ts;
+                    best = candidate;
+                }
+            }
+
+            return best;
         }
 
         [Authorize]
