@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, OnInit, ViewChild, TemplateRef, AfterViewInit, inject, Input, HostListener } from '@angular/core';
+import { Component, OnInit, ViewChild, TemplateRef, AfterViewInit, inject, Input, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
@@ -73,6 +73,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   private entityService = inject(EntityGenericService);
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
+  private cdr = inject(ChangeDetectorRef);
 
   @ViewChild('superTable') superTable!: SuperTable;
   @ViewChild('contextMenu') contextMenu: any;
@@ -988,6 +989,23 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     return (this.selection?.length ?? 0) > 0;
   }
 
+  private setDetailDialogSrc(id: string | null): void {
+    if (!id) {
+      this.dialogSafeSrc = null;
+      return;
+    }
+    const url = `/api/entity/${encodeURIComponent(this.entity)}/html/${encodeURIComponent(String(id))}`;
+    this.dialogSafeSrc = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+    try { this.cdr.detectChanges(); } catch {}
+  }
+
+  private setExpandedIframeSrc(id: string | undefined | null): void {
+    if (!id) return;
+    const url = `/api/entity/${encodeURIComponent(this.entity)}/html/${encodeURIComponent(String(id))}`;
+    this.iframeSafeSrcById[id] = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+    try { this.cdr.detectChanges(); } catch {}
+  }
+
   openCategorizeDialog(): void {
     const rows = this.chipMenuIsCount ? (this.selection || []) : (this.chipMenuRow ? [this.chipMenuRow] : (this.selection?.length ? this.selection : (this.contextSelectedRow ? [this.contextSelectedRow] : [])));
     this.chipMenuRow = null; this.chipMenuIsCount = false;
@@ -1090,8 +1108,18 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     this.entityService.categorize(this.entity, payload).subscribe({ next: () => { this.showCategorizeDialog = false; this.refreshData(); }, error: () => { this.showCategorizeDialog = false; this.refreshData(); } });
   }
 
-  viewIframeFromContext(): void { const row = (this.contextSelectedRow || (this.selection && this.selection[0])) as AnyRow | undefined; const id = row?.id; if (!id) return; this.detailDialogId = id; this.detailDialogTitle = this.buildTitle(row); this.bDisplayDetail = true; }
-  onDetailDialogShow(): void { const id = this.detailDialogId; this.dialogSafeSrc = null; setTimeout(() => { const url = `/api/entity/${encodeURIComponent(this.entity)}/html/${encodeURIComponent(String(id))}`; this.dialogSafeSrc = this.sanitizer.bypassSecurityTrustResourceUrl(url); }, 50); }
+  viewIframeFromContext(): void {
+    const row = (this.contextSelectedRow || (this.selection && this.selection[0])) as AnyRow | undefined;
+    const id = row?.id;
+    if (!id) return;
+    this.detailDialogId = id;
+    this.detailDialogTitle = this.buildTitle(row);
+    this.setDetailDialogSrc(id);
+    this.bDisplayDetail = true;
+  }
+  onDetailDialogShow(): void {
+    this.setDetailDialogSrc(this.detailDialogId);
+  }
   onDetailDialogHide(): void { this.dialogSafeSrc = null; }
   editFromContext(): void { const row = this.contextSelectedRow || (this.selection && this.selection[0]); const id = row?.id; if (!id) return; this.router.navigate(['/entity', this.entity, id, 'edit']); }
 
@@ -1107,8 +1135,18 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   }
   deleteFromChipMenu(): void { const rows: AnyRow[] = this.chipMenuIsCount ? (this.selection || []) : (this.chipMenuRow ? [this.chipMenuRow] : []); this.chipMenuRow = null; this.chipMenuIsCount = false; const ids = rows.map(r => r.id).filter(Boolean) as string[]; if (!ids.length) return; const confirmAndRun = () => { const next = (remaining: string[]) => { if (!remaining.length) { this.refreshData(); return; } const id = remaining.shift()!; this.entityService.delete(this.entity, id).subscribe({ next: () => next(remaining), error: () => next(remaining) }); }; next([...ids]); }; if (ids.length > 1) { this.confirmationService.confirm({ header: 'Confirm Delete', icon: 'pi pi-exclamation-triangle', message: `Delete ${ids.length} item(s)?`, acceptLabel: 'Yes', rejectLabel: 'No', accept: () => confirmAndRun() }); } else { confirmAndRun(); } }
 
-  onRowExpand(event: { originalEvent: Event; data: AnyRow }): void { const row = event.data as AnyRow; const key = row?.id || JSON.stringify(row); this.expandedRowKeys[key] = true; setTimeout(() => { const url = `/api/entity/${encodeURIComponent(this.entity)}/html/${encodeURIComponent(String(row.id))}`; this.iframeSafeSrcById[row.id!] = this.sanitizer.bypassSecurityTrustResourceUrl(url); }, 50); }
-  onRowCollapse(event: any): void { const row = event.data as AnyRow; const key = row?.id || JSON.stringify(row); delete this.expandedRowKeys[key]; if (row?.id) delete this.iframeSafeSrcById[row.id]; }
+  onRowExpand(event: { originalEvent: Event; data: AnyRow }): void {
+    const row = event.data as AnyRow;
+    const key = row?.id || JSON.stringify(row);
+    this.expandedRowKeys[key] = true;
+    this.setExpandedIframeSrc(row?.id);
+  }
+  onRowCollapse(event: any): void {
+    const row = event.data as AnyRow;
+    const key = row?.id || JSON.stringify(row);
+    delete this.expandedRowKeys[key];
+    if (row?.id) delete this.iframeSafeSrcById[row.id];
+  }
 
   groupQuery(group: GroupDescriptor): GroupData {
     const path = group.categories ? [...group.categories, group.name] : [group.name];

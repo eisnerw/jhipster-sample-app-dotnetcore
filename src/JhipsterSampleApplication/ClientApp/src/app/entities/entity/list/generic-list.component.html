@@ -133,17 +133,16 @@
   </div>
 
   <ng-template #expandedRow let-rowData>
-    <ng-container *ngIf="iframeSafeSrcById[rowData.id]; else waiting">
+    @if (iframeSafeSrcById[rowData.id]) {
       <iframe
         [src]="iframeSafeSrcById[rowData.id]"
         style="width: 100%; height: 288px; border: 0"
         (load)="onExpandedIframeLoad(rowData.id, $event)"
         loading="lazy"
       ></iframe>
-    </ng-container>
-    <ng-template #waiting>
+    } @else {
       <div class="text-muted" style="padding: 0.5rem 0">Loading…</div>
-    </ng-template>
+    }
   </ng-template>
 
   <p-contextMenu #contextMenu [model]="menuItems" (onShow)="onMenuShow()"></p-contextMenu>
