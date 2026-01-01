@@ -13,7 +13,15 @@
     { "action": "Categorize", "icon": "pi pi-tags", "label": "Categorize" },
     { "action": "ViewBirthday", "icon": "pi pi-search", "label": "View Birthday" },
     { "action": "Edit", "icon": "pi pi-pencil", "label": "Edit" },
-    { "action": "Delete", "icon": "pi pi-trash", "label": "Delete" }
+    { "action": "Delete", "icon": "pi pi-trash", "label": "Delete" },
+    { "action": "Mark", "icon": "pi pi-pencil", "label": "MarkBirthday", "items": [
+      { "icon": "pi pi-pencil", "label": "ABC" },
+      { "icon": "pi pi-tags", "label": "DEF" }
+    ]},
+    { "action": "doit", "icon": "pi pi-pencil", "label": "Do it", "items": [
+      { "action": "Categorize", "icon": "pi pi-tags", "label": "Categorize" },
+      { "action": "ViewBirthday", "icon": "pi pi-search", "label": "View Birthday" }
+    ]}
   ],
   "sort": "dob,desc",
   "detailHtmlTemplate": [

@@ -33,7 +33,7 @@ type LocalRuleSet = { condition: string; rules: Array<LocalRuleSet | LocalRule>;
 type LocalRule = { field: string; operator: string; value?: any };
 
 type AnyRow = { id?: string; [k: string]: any };
-type MenuSpecItem = { action: string; icon?: string; label?: string };
+type MenuSpecItem = { action?: string; icon?: string; label?: string; items?: MenuSpecItem[] };
 
 @Component({
   selector: 'jhi-generic-list',
@@ -103,6 +103,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
 
   menuItems: MenuItem[] = [];
   contextSelectedRow: AnyRow | null = null;
+  contextSelectedLabel: string | undefined;
   selectionMode: 'single' | 'multiple' | null | undefined = 'multiple';
   selection: AnyRow[] = [];
   checkboxSelectedRows: AnyRow[] = [];
@@ -130,12 +131,15 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     view: () => this.viewIframeFromContext(),
     viewbirthday: () => this.viewIframeFromContext(),
     edit: () => this.editFromContext(),
+    mark: () => this.markBirthday(),
+    markbirthday: () => this.markBirthday()
   };
   private readonly menuActionEnabledMap: Record<string, (row: AnyRow | null, isChipMenu: boolean) => boolean> = {
     delete: row => !!this.resolveMenuRow(row),
     view: row => !!this.resolveMenuRow(row),
     edit: row => !!this.resolveMenuRow(row),
     viewbirthday: row => !!this.canViewBirthdayRow(row),
+    doit: row => !!this.showDoit(row),
     categorize: (row, _isChipMenu) => this.hasAnyMenuSelection(row),
   };
 
@@ -916,6 +920,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   onMenuShow(): void { this.setMenu(this.contextSelectedRow, false); }
 
   private setMenu(row: AnyRow | null, isChipMenu: boolean = false): void {
+    this.contextSelectedLabel = undefined;
     const items = this.buildMenuItems(row, isChipMenu);
     if (isChipMenu) {
       this.chipMenuModel = items;
@@ -925,22 +930,47 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   }
 
   private buildMenuItems(row: AnyRow | null, isChipMenu: boolean): MenuItem[] {
-    const items: MenuItem[] = [];
     const spec = this.hasCustomMenuSpec ? this.menuSpec : this.defaultMenuSpec();
-    for (const entry of spec) {
-      if (!entry || !entry.action) continue;
-      const actionKey = String(entry.action).toLowerCase();
+    return spec
+      .map(entry => this.createMenuItem(entry, row, isChipMenu))
+      .filter((i): i is MenuItem => !!i);
+  }
+
+  private createMenuItem(entry: MenuSpecItem | null | undefined, row: AnyRow | null, isChipMenu: boolean, parentActionKey?: string): MenuItem | null {
+    if (!entry) return null;
+    const actionKey = entry.action ? String(entry.action).toLowerCase() : undefined;
+    const effectiveActionKey = actionKey || parentActionKey;
+    if (!effectiveActionKey && (!entry.items || entry.items.length === 0)) return null;
+
+    if (actionKey) {
       const enabledFn = this.menuActionEnabledMap[actionKey];
-      if (enabledFn && !enabledFn(row, isChipMenu)) continue;
-      const handler = this.menuActionMap[actionKey];
-      const item: MenuItem = {
-        label: entry.label || this.prettyHeader(entry.action),
-        icon: entry.icon,
-        command: handler ? () => handler(row, isChipMenu) : undefined,
-      };
-      items.push(item);
+      if (enabledFn && !enabledFn(row, isChipMenu)) return null;
     }
-    return items;
+
+    const label = entry.label || (entry.action ? this.prettyHeader(entry.action) : (parentActionKey ? this.prettyHeader(parentActionKey) : ''));
+    const childItems = (entry.items || [])
+      .map(child => this.createMenuItem(child, row, isChipMenu, effectiveActionKey))
+      .filter((c): c is MenuItem => !!c);
+
+    const handler = effectiveActionKey ? this.menuActionMap[effectiveActionKey] : undefined;
+    const command = (!childItems.length && handler)
+      ? () => {
+          if (parentActionKey) {
+            this.contextSelectedLabel = label;
+          } else {
+            this.contextSelectedLabel = undefined;
+          }
+          handler(row, isChipMenu);
+        }
+      : undefined;
+
+    const item: MenuItem = {
+      label,
+      icon: entry.icon,
+      items: childItems.length ? childItems : undefined,
+      command,
+    };
+    return item;
   }
 
   private defaultMenuSpec(): MenuSpecItem[] {
@@ -954,18 +984,31 @@ export class GenericListComponent implements OnInit, AfterViewInit {
 
   private normalizeMenuSpec(raw: any): MenuSpecItem[] {
     if (!Array.isArray(raw)) return [];
+    const normalizeEntry = (item: any): MenuSpecItem | null => {
+      if (!item || typeof item !== 'object') return null;
+      const action = (item as any).action ?? (item as any).Action;
+      const icon = (item as any).icon ?? (item as any).Icon;
+      const label = (item as any).label ?? (item as any).Label;
+      const childrenRaw = (item as any).items ?? (item as any).Items;
+
+      const children = Array.isArray(childrenRaw)
+        ? childrenRaw
+            .map(child => normalizeEntry(child))
+            .filter((c): c is MenuSpecItem => !!c)
+        : [];
+
+      const hasAction = !(action === null || action === undefined || action === '');
+      if (!hasAction && children.length === 0 && label === undefined && icon === undefined) return null;
+
+      const entry: MenuSpecItem = {};
+      if (hasAction) entry.action = String(action);
+      if (icon !== undefined) entry.icon = String(icon);
+      if (label !== undefined) entry.label = String(label);
+      if (children.length) entry.items = children;
+      return entry;
+    };
     const normalized = raw
-      .map(item => {
-        if (!item || typeof item !== 'object') return null;
-        const action = (item as any).action ?? (item as any).Action;
-        if (!action) return null;
-        const icon = (item as any).icon ?? (item as any).Icon;
-        const label = (item as any).label ?? (item as any).Label;
-        const entry: MenuSpecItem = { action: String(action) };
-        if (icon !== undefined) entry.icon = String(icon);
-        if (label !== undefined) entry.label = String(label);
-        return entry;
-      })
+      .map(item => normalizeEntry(item))
       .filter((i): i is MenuSpecItem => !!i);
     return normalized;
   }
@@ -978,6 +1021,13 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     const resolved = this.resolveMenuRow(row);
     if (!resolved) return false;
     if (typeof resolved.lname === 'string' && resolved.lname.toLowerCase() === 'johnson') return false;
+    return true;
+  }
+
+  private showDoit(row: AnyRow | null): boolean {
+    const resolved = this.resolveMenuRow(row);
+    if (!resolved) return false;
+    if (typeof resolved.lname === 'string' && resolved.lname.toLowerCase() === 'smith') return false;
     return true;
   }
 
@@ -1122,6 +1172,12 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   }
   onDetailDialogHide(): void { this.dialogSafeSrc = null; }
   editFromContext(): void { const row = this.contextSelectedRow || (this.selection && this.selection[0]); const id = row?.id; if (!id) return; this.router.navigate(['/entity', this.entity, id, 'edit']); }
+  markBirthday(): void {
+    const row = this.contextSelectedRow || (this.selection && this.selection[0]); 
+    const id = row?.id; 
+    if (!id) return; 
+    alert(`label=${this.contextSelectedLabel} id=${id}`);
+   }
 
   deleteFromContext(): void {
     if (this.chipMenuRow || this.chipMenuIsCount) {
