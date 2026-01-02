@@ -26,6 +26,9 @@ import { AppPageTitleStrategy } from './app-page-title-strategy';
 // PrimeNG theming setup
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeng/themes/aura';
+import { DEFAULT_GENERIC_LIST_ACTION_PROVIDERS } from './entities/entity/list/generic-list-default-actions';
+import { BIRTHDAY_GENERIC_LIST_ACTION_PROVIDERS } from './entities/birthday/birthday-actions';
+import { MOVIE_GENERIC_LIST_ACTION_PROVIDERS } from './entities/movie/movie-actions';
 
 const routerFeatures: RouterFeatures[] = [
   withComponentInputBinding(),
@@ -66,6 +69,9 @@ export const appConfig: ApplicationConfig = {
       },
       ripple: true,
     }),
+    ...DEFAULT_GENERIC_LIST_ACTION_PROVIDERS,
+    ...BIRTHDAY_GENERIC_LIST_ACTION_PROVIDERS,
+    ...MOVIE_GENERIC_LIST_ACTION_PROVIDERS,
     // jhipster-needle-angular-add-module JHipster will add new module here
   ],
 };

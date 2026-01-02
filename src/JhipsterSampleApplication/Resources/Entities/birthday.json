@@ -11,7 +11,7 @@
   ],
   "menu": [
     { "action": "Categorize", "icon": "pi pi-tags", "label": "Categorize" },
-    { "action": "ViewBirthday", "icon": "pi pi-search", "label": "View Birthday" },
+    { "action": "View", "icon": "pi pi-search", "label": "View" },
     { "action": "Edit", "icon": "pi pi-pencil", "label": "Edit" },
     { "action": "Delete", "icon": "pi pi-trash", "label": "Delete" },
     { "action": "Mark", "icon": "pi pi-pencil", "label": "MarkBirthday", "items": [
@@ -20,7 +20,7 @@
     ]},
     { "action": "doit", "icon": "pi pi-pencil", "label": "Do it", "items": [
       { "action": "Categorize", "icon": "pi pi-tags", "label": "Categorize" },
-      { "action": "ViewBirthday", "icon": "pi pi-search", "label": "View Birthday" }
+      { "action": "View", "icon": "pi pi-search", "label": "View Birthday" }
     ]}
   ],
   "sort": "dob,desc",

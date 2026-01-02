@@ -28,11 +28,12 @@ import { DataLoader, FetchFunction } from 'app/shared/data-loader';
 import { QueryInputComponent,  bqlToRuleset} from 'popup-ngx-query-builder';
 import { QueryLanguageSpec } from 'ngx-query-builder';
 import { SuperTable, ColumnConfig, GroupData, GroupDescriptor } from 'app/shared/SuperTable/super-table.component';
+import { GenericListActionResolver, GenericListActionContext, GenericListRow } from './generic-list-actions';
 
 type LocalRuleSet = { condition: string; rules: Array<LocalRuleSet | LocalRule>; name?: string; not?: boolean; isChild?: boolean };
 type LocalRule = { field: string; operator: string; value?: any };
 
-type AnyRow = { id?: string; [k: string]: any };
+type AnyRow = GenericListRow;
 type MenuSpecItem = { action?: string; icon?: string; label?: string; items?: MenuSpecItem[] };
 
 @Component({
@@ -74,6 +75,7 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
   private cdr = inject(ChangeDetectorRef);
+  private actionResolver = inject(GenericListActionResolver);
 
   @ViewChild('superTable') superTable!: SuperTable;
   @ViewChild('contextMenu') contextMenu: any;
@@ -125,23 +127,6 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   private annotationCache: Record<string, any[]> = {};
   private menuSpec: MenuSpecItem[] = [];
   private hasCustomMenuSpec = false;
-  private readonly menuActionMap: Record<string, (row: AnyRow | null, isChipMenu: boolean) => void> = {
-    delete: () => this.deleteFromContext(),
-    categorize: () => this.openCategorizeDialog(),
-    view: () => this.viewIframeFromContext(),
-    viewbirthday: () => this.viewIframeFromContext(),
-    edit: () => this.editFromContext(),
-    mark: () => this.markBirthday(),
-    markbirthday: () => this.markBirthday()
-  };
-  private readonly menuActionEnabledMap: Record<string, (row: AnyRow | null, isChipMenu: boolean) => boolean> = {
-    delete: row => !!this.resolveMenuRow(row),
-    view: row => !!this.resolveMenuRow(row),
-    edit: row => !!this.resolveMenuRow(row),
-    viewbirthday: row => !!this.canViewBirthdayRow(row),
-    doit: row => !!this.showDoit(row),
-    categorize: (row, _isChipMenu) => this.hasAnyMenuSelection(row),
-  };
 
   expandedRowKeys: { [key: string]: boolean } = {};
   iframeSafeSrcById: Record<string, any> = {};
@@ -942,9 +927,12 @@ export class GenericListComponent implements OnInit, AfterViewInit {
     const effectiveActionKey = actionKey || parentActionKey;
     if (!effectiveActionKey && (!entry.items || entry.items.length === 0)) return null;
 
+    const resolvedAction = effectiveActionKey ? this.actionResolver.resolve(this.entity, effectiveActionKey) : null;
+    if (actionKey && !resolvedAction) return null;
+
     if (actionKey) {
-      const enabledFn = this.menuActionEnabledMap[actionKey];
-      if (enabledFn && !enabledFn(row, isChipMenu)) return null;
+      const ctx: GenericListActionContext = this.buildActionContext(row, isChipMenu, effectiveActionKey!);
+      if (resolvedAction?.isEnabled && !resolvedAction.isEnabled(ctx)) return null;
     }
 
     const label = entry.label || (entry.action ? this.prettyHeader(entry.action) : (parentActionKey ? this.prettyHeader(parentActionKey) : ''));
@@ -952,15 +940,15 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       .map(child => this.createMenuItem(child, row, isChipMenu, effectiveActionKey))
       .filter((c): c is MenuItem => !!c);
 
-    const handler = effectiveActionKey ? this.menuActionMap[effectiveActionKey] : undefined;
-    const command = (!childItems.length && handler)
+    const command = (!childItems.length && resolvedAction?.run)
       ? () => {
           if (parentActionKey) {
             this.contextSelectedLabel = label;
           } else {
             this.contextSelectedLabel = undefined;
           }
-          handler(row, isChipMenu);
+          const ctx: GenericListActionContext = this.buildActionContext(row, isChipMenu, effectiveActionKey!);
+          resolvedAction.run(ctx);
         }
       : undefined;
 
@@ -971,6 +959,34 @@ export class GenericListComponent implements OnInit, AfterViewInit {
       command,
     };
     return item;
+  }
+
+  private buildActionContext(row: AnyRow | null, isChipMenu: boolean, actionKey: string): GenericListActionContext {
+    const resolvedRow = this.resolveMenuRow(row);
+    const ctx: GenericListActionContext = {
+      entity: this.entity,
+      actionKey,
+      rawRow: row,
+      resolvedRow,
+      isChipMenu,
+      selection: this.selection || [],
+      chipMenuRow: this.chipMenuRow,
+      contextSelectedRow: this.contextSelectedRow,
+      contextSelectedLabel: this.contextSelectedLabel,
+      getContextLabel: () => this.contextSelectedLabel,
+      setContextLabel: label => {
+        this.contextSelectedLabel = label;
+        ctx.contextSelectedLabel = label;
+      },
+      helpers: {
+        deleteFromContext: () => this.deleteFromContext(),
+        openCategorizeDialog: () => this.openCategorizeDialog(),
+        viewIframeFromContext: () => this.viewIframeFromContext(),
+        editFromContext: () => this.editFromContext(),
+        hasAnyMenuSelection: r => this.hasAnyMenuSelection(r),
+      },
+    };
+    return ctx;
   }
 
   private defaultMenuSpec(): MenuSpecItem[] {
@@ -1016,21 +1032,6 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   private resolveMenuRow(row: AnyRow | null): AnyRow | null {
     return row || this.contextSelectedRow || this.chipMenuRow || (this.selection?.[0] ?? null);
   }
-
-  private canViewBirthdayRow(row: AnyRow | null): boolean {
-    const resolved = this.resolveMenuRow(row);
-    if (!resolved) return false;
-    if (typeof resolved.lname === 'string' && resolved.lname.toLowerCase() === 'johnson') return false;
-    return true;
-  }
-
-  private showDoit(row: AnyRow | null): boolean {
-    const resolved = this.resolveMenuRow(row);
-    if (!resolved) return false;
-    if (typeof resolved.lname === 'string' && resolved.lname.toLowerCase() === 'smith') return false;
-    return true;
-  }
-
 
   private hasAnyMenuSelection(row: AnyRow | null): boolean {
     if (row) return true;
@@ -1172,12 +1173,6 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   }
   onDetailDialogHide(): void { this.dialogSafeSrc = null; }
   editFromContext(): void { const row = this.contextSelectedRow || (this.selection && this.selection[0]); const id = row?.id; if (!id) return; this.router.navigate(['/entity', this.entity, id, 'edit']); }
-  markBirthday(): void {
-    const row = this.contextSelectedRow || (this.selection && this.selection[0]); 
-    const id = row?.id; 
-    if (!id) return; 
-    alert(`label=${this.contextSelectedLabel} id=${id}`);
-   }
 
   deleteFromContext(): void {
     if (this.chipMenuRow || this.chipMenuIsCount) {
