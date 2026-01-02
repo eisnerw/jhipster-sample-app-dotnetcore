@@ -79,4 +79,21 @@
       width: 1.5rem;
     }
   }
+
+  /* Cap context/menu height and allow scrolling when menus are long */
+  ::ng-deep .p-menu .p-menu-list,
+  ::ng-deep .p-contextmenu .p-menu-list {
+    max-height: 16rem !important; /* roughly 8 items */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+  ::ng-deep .p-menu .p-submenu-list,
+  ::ng-deep .p-contextmenu .p-submenu-list,
+  ::ng-deep .p-contextmenu-submenu,
+  ::ng-deep .p-contextmenu .p-contextmenu-submenu,
+  ::ng-deep .p-submenu-list .p-submenu-list {
+    max-height: 16rem !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
 }
