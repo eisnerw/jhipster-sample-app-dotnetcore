@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, OnInit, ViewChild, TemplateRef, AfterViewInit, inject, Input, HostListener, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ViewChild, TemplateRef, AfterViewInit, inject, Input, HostListener, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
@@ -63,7 +63,7 @@ type MenuSpecItem = { action?: string; icon?: string; label?: string; items?: Me
   ],
   standalone: true,
 })
-export class GenericListComponent implements OnInit, AfterViewInit {
+export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() entity!: string;
   @Input() pageTitle: string | null = null;
 
@@ -168,6 +168,71 @@ export class GenericListComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     //this.onQueryChange(this.currentQuery);
+    try {
+      document.addEventListener('mouseover', this.menuHoverListener, true);
+    } catch {}
+  }
+
+  ngOnDestroy(): void {
+    try {
+      document.removeEventListener('mouseover', this.menuHoverListener, true);
+    } catch {}
+  }
+
+  private menuLimitHandle: any = null;
+
+  private menuHoverListener = (ev: Event) => {
+    const target = ev.target as HTMLElement | null;
+    if (!target) return;
+    const menu = target.closest('.p-contextmenu-submenu, .p-menu-list, .p-submenu-list') as HTMLElement | null;
+    if (menu) {
+      this.scheduleMenuLimit(menu);
+    }
+  };
+
+  private applyMenuHeightLimit(menuEl: HTMLElement): void {
+    try {
+      const rect = menuEl.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const availableBelow = Math.max(0, viewportHeight - rect.top - 8);
+      const maxHeight = Math.max(0, Math.min(menuEl.scrollHeight, availableBelow));
+      menuEl.style.maxHeight = `${maxHeight}px`;
+      if (availableBelow < menuEl.scrollHeight) {
+        menuEl.style.height = `${maxHeight}px`;
+      } else {
+        menuEl.style.height = '';
+      }
+      menuEl.style.overflowY = 'auto';
+      menuEl.style.overflowX = 'hidden';
+    } catch {}
+  }
+
+  private scheduleMenuLimit(targetMenu?: HTMLElement): void {
+    if (this.menuLimitHandle) {
+      cancelAnimationFrame(this.menuLimitHandle);
+    }
+    const applyAll = () => {
+      try {
+        if (targetMenu) {
+          this.applyMenuHeightLimit(targetMenu);
+        }
+        document.querySelectorAll('.p-contextmenu-submenu, .p-menu-list, .p-submenu-list').forEach(el => {
+          this.applyMenuHeightLimit(el as HTMLElement);
+        });
+      } catch {}
+    };
+    const run = () => {
+      requestAnimationFrame(() => {
+        applyAll();
+        setTimeout(applyAll, 25);
+        setTimeout(applyAll, 75);
+      });
+    };
+    this.menuLimitHandle = requestAnimationFrame(run);
+  }
+
+  private constrainAllMenusSoon(): void {
+    this.scheduleMenuLimit();
   }
 
   private resetEntityScopedState(): void {
@@ -901,8 +966,8 @@ export class GenericListComponent implements OnInit, AfterViewInit {
   onChipMouseLeave(): void { this.chipMenu?.hide(); }
   onRemoveChip(row: AnyRow): void { const id = row?.id; if (!id) return; this.selection = (this.selection || []).filter(r => (r?.id ?? r) !== id); this.onCheckboxChange(); }
   onRemoveCountChip(): void { this.selection = []; this.onCheckboxChange(); }
-  onContextMenuSelect(dataOrEvent: any): void { const row: AnyRow | undefined = dataOrEvent && dataOrEvent.data ? dataOrEvent.data : dataOrEvent; if (!row) return; this.contextSelectedRow = row; this.setMenu(row, false); }
-  onMenuShow(): void { this.setMenu(this.contextSelectedRow, false); }
+  onContextMenuSelect(dataOrEvent: any): void { const row: AnyRow | undefined = dataOrEvent && dataOrEvent.data ? dataOrEvent.data : dataOrEvent; if (!row) return; this.contextSelectedRow = row; this.setMenu(row, false); this.constrainAllMenusSoon(); }
+  onMenuShow(): void { this.setMenu(this.contextSelectedRow, false); this.constrainAllMenusSoon(); }
 
   private setMenu(row: AnyRow | null, isChipMenu: boolean = false): void {
     this.contextSelectedLabel = undefined;
