@@ -19,9 +19,11 @@ describe('Component Tests', () => {
     let mockActiveModal: NgbActiveModal;
 
     beforeEach(async () => {
+      const activeModalMock = { close: jest.fn(), dismiss: jest.fn() } as unknown as NgbActiveModal;
+
       await TestBed.configureTestingModule({
-        declarations: [SelectorDeleteDialogComponent],
-        providers: [provideHttpClient(), provideHttpClientTesting()],
+        imports: [SelectorDeleteDialogComponent],
+        providers: [provideHttpClient(), provideHttpClientTesting(), { provide: NgbActiveModal, useValue: activeModalMock }],
       })
         .overrideTemplate(SelectorDeleteDialogComponent, '')
         .compileComponents();
@@ -40,7 +42,7 @@ describe('Component Tests', () => {
         [],
         fakeAsync(() => {
           // GIVEN
-          jest.spyOn(service, 'delete').mockReturnValue(of(new HttpResponse({})));
+          jest.spyOn(service, 'delete').mockReturnValue(of(new HttpResponse<{}>({ body: {} })));
 
           // WHEN
           comp.confirmDelete(123);

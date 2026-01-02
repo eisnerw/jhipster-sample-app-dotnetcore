@@ -16,7 +16,7 @@ describe('Component Tests', () => {
 
     beforeEach(async () => {
       await TestBed.configureTestingModule({
-        declarations: [SelectorComponent],
+        imports: [SelectorComponent],
         providers: [provideHttpClient(), provideHttpClientTesting()],
       })
         .overrideTemplate(SelectorComponent, '')

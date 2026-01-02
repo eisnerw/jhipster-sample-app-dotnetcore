@@ -47,7 +47,10 @@ const BIRTHDAY_GENERIC_LIST_ACTIONS: GenericListAction[] = [
     key: 'doit',
     entities: ['birthday'],
     // Parent menu group; child actions perform the real work.
-    run: () => {},
+    run: () => {
+      // no-op; acts as a grouping action
+      return;
+    },
     isEnabled: ctx => canDoIt(resolveRow(ctx)),
     priority: 1,
   },

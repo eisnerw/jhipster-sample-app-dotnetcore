@@ -11,7 +11,7 @@ describe('Component Tests', () => {
 
     beforeEach(() => {
       TestBed.configureTestingModule({
-        declarations: [SelectorDetailComponent],
+        imports: [SelectorDetailComponent],
         providers: [
           {
             provide: ActivatedRoute,

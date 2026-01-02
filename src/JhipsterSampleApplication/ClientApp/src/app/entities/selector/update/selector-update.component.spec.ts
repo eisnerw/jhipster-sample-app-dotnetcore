@@ -21,9 +21,11 @@ describe('Component Tests', () => {
     let selectorService: SelectorService;
 
     beforeEach(async () => {
+      const route = { data: of({}) };
+
       await TestBed.configureTestingModule({
-        declarations: [SelectorUpdateComponent],
-        providers: [provideHttpClient(), provideHttpClientTesting(), FormBuilder, ActivatedRoute],
+        imports: [SelectorUpdateComponent],
+        providers: [provideHttpClient(), provideHttpClientTesting(), FormBuilder, { provide: ActivatedRoute, useValue: route }],
       })
         .overrideTemplate(SelectorUpdateComponent, '')
         .compileComponents();
