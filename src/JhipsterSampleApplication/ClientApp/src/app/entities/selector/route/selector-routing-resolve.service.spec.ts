@@ -59,9 +59,7 @@ describe('Selector routing resolve service', () => {
 
     it('should navigate to 404 page if data not found on server', done => {
       const route = { params: { id: 123 } } as any;
-      jest
-        .spyOn(service, 'find')
-        .mockReturnValue(of(new HttpResponse<ISelector>({ body: null as unknown as ISelector })));
+      jest.spyOn(service, 'find').mockReturnValue(of(new HttpResponse<ISelector>({ body: null as unknown as ISelector })));
 
       TestBed.runInInjectionContext(() => {
         selectorResolve(route).subscribe({

@@ -183,7 +183,7 @@ The results will be available in raw.log
 Unit tests are run by [Jest][]. They're located in [src/JhipsterSampleApplication/ClientApp/test/](src/JhipsterSampleApplication/ClientApp/test/) and can be run with:
 
 ```
-npm test
+npm --prefix src/JhipsterSampleApplication/ClientApp run test -- --project jhipster-sample-application --watch=false
 ```
 
 UI end-to-end tests are powered by [Cypress][]. They're located in [src/JhipsterSampleApplication/ClientApp/test/cypress](src/JhipsterSampleApplication/ClientApp/test/cypress)
