@@ -2,10 +2,10 @@
   "name": "popup-ngx-query-builder",
   "version": "0.0.1",
   "peerDependencies": {
-    "@angular/common": "^19.2.0",
-    "@angular/core": "^19.2.0",
-    "@angular/forms": "^19.2.0",
-    "primeng": "^19.0.0",
+    "@angular/common": "^21.0.0",
+    "@angular/core": "^21.0.0",
+    "@angular/forms": "^21.0.0",
+    "primeng": "^21.0.0",
     "primeicons": "^7.0.0"
   },
   "dependencies": {
