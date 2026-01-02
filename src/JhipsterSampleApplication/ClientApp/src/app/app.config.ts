@@ -56,6 +56,9 @@ export const appConfig: ApplicationConfig = {
     // Set this to true to enable service worker (PWA)
     importProvidersFrom(ServiceWorkerModule.register('ngsw-worker.js', { enabled: false })),
     provideHttpClient(withInterceptorsFromDi()),
+    // Angular animations provider is deprecated but still required for Material/PrimeNG animations.
+    // By the time provideAnimations is removed (v23), the packages that need it will presumably have adapted
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     provideAnimations(),
     Title,
     { provide: LOCALE_ID, useValue: 'en' },
