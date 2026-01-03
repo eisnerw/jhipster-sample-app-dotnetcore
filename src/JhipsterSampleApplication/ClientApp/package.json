@@ -85,7 +85,7 @@
     "@angular/service-worker": "~21.0.6",
     "@eslint/js": "9.39.2",
     "@types/jest": "30.0.0",
-    "@types/node": "24.2.0",
+    "@types/node": "^25.0.3",
     "angular-eslint": "^21.1.0",
     "buffer": "6.0.3",
     "concurrently": "9.2.1",
@@ -95,14 +95,14 @@
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-cypress": "5.2.0",
     "eslint-plugin-prettier": "5.5.4",
-    "globals": "16.3.0",
+    "globals": "^17.0.0",
     "jest": "^30.2.0",
     "jest-date-mock": "1.0.10",
     "jest-environment-jsdom": "^30.2.0",
     "jest-junit": "16.0.0",
     "jest-preset-angular": "^16.0.0",
     "jest-sonar": "0.2.16",
-    "lighthouse": "12.8.1",
+    "lighthouse": "^13.0.1",
     "ng-packagr": "21.0.1",
     "prettier-plugin-packagejson": "^2.5.20",
     "rimraf": "6.1.2",
@@ -110,7 +110,7 @@
     "ts-jest": "^29.4.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "8.51.0",
-    "wait-on": "8.0.4"
+    "wait-on": "^9.0.3"
   },
   "engines": {
     "node": ">=22.12.0"
