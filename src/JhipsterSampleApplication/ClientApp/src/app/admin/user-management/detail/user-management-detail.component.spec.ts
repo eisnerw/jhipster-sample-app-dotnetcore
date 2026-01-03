@@ -1,7 +1,4 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter, withComponentInputBinding } from '@angular/router';
-import { RouterTestingHarness } from '@angular/router/testing';
-import { of } from 'rxjs';
 
 import { Authority } from 'app/config/authority.constants';
 
@@ -11,56 +8,33 @@ describe('User Management Detail Component', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [UserManagementDetailComponent],
-      providers: [
-        provideRouter(
-          [
-            {
-              path: '**',
-              loadComponent: () => import('./user-management-detail.component'),
-              resolve: {
-                user: () =>
-                  of({
-                    id: 123,
-                    login: 'user',
-                    firstName: 'first',
-                    lastName: 'last',
-                    email: 'first@last.com',
-                    activated: true,
-                    langKey: 'en',
-                    authorities: [Authority.USER],
-                    createdBy: 'admin',
-                  }),
-              },
-            },
-          ],
-          withComponentInputBinding(),
-        ),
-      ],
     })
       .overrideTemplate(UserManagementDetailComponent, '')
       .compileComponents();
   });
 
   describe('Construct', () => {
-    it('Should call load all on construct', async () => {
+    it('Should accept provided user input', () => {
+      // GIVEN
+      const fixture = TestBed.createComponent(UserManagementDetailComponent);
+      const expectedUser = {
+        id: 123,
+        login: 'user',
+        firstName: 'first',
+        lastName: 'last',
+        email: 'first@last.com',
+        activated: true,
+        langKey: 'en',
+        authorities: [Authority.USER],
+        createdBy: 'admin',
+      };
+
       // WHEN
-      const harness = await RouterTestingHarness.create();
-      const instance = await harness.navigateByUrl('/', UserManagementDetailComponent);
+      fixture.componentRef.setInput('user', expectedUser);
+      fixture.detectChanges();
 
       // THEN
-      expect(instance.user()).toEqual(
-        expect.objectContaining({
-          id: 123,
-          login: 'user',
-          firstName: 'first',
-          lastName: 'last',
-          email: 'first@last.com',
-          activated: true,
-          langKey: 'en',
-          authorities: [Authority.USER],
-          createdBy: 'admin',
-        }),
-      );
+      expect(fixture.componentInstance.user()).toEqual(expect.objectContaining(expectedUser));
     });
   });
 });

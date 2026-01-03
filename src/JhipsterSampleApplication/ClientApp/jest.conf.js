@@ -6,7 +6,6 @@ const {
 
 module.exports = {
   transformIgnorePatterns: ['node_modules/(?!.*\\.mjs$|dayjs/esm)'],
-  resolver: 'jest-preset-angular/build/resolvers/ng-jest-resolver.js',
   globals: {
     __VERSION__: 'test',
   },
@@ -15,9 +14,11 @@ module.exports = {
   setupFiles: ['jest-date-mock'],
   cacheDirectory: '<rootDir>/../../../tmp/jest-cache',
   coverageDirectory: '<rootDir>/../../../tmp/test-results/',
-  moduleNameMapper: pathsToModuleNameMapper(paths, {
-    prefix: `<rootDir>/${baseUrl}/`,
-  }),
+  moduleNameMapper: {
+    ...pathsToModuleNameMapper(paths, {
+      prefix: `<rootDir>/${baseUrl}/`,
+    }),
+  },
   reporters: [
     'default',
     [
@@ -36,6 +37,7 @@ module.exports = {
     ],
   ],
   testMatch: ['<rootDir>/src/app/**/@(*.)@(spec.ts)'],
+  testEnvironment: 'jest-environment-jsdom',
   testEnvironmentOptions: {
     url: 'https://jhipster.tech',
   },
