@@ -17,24 +17,16 @@
     { "action": "Mark", "icon": "pi pi-pencil", "label": "MarkBirthday", "items": [
       { "icon": "pi pi-pencil", "label": "ABC" },
       { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
       { "icon": "pi pi-tags", "label": "DEF" }
     ]},
     { "action": "doit", "icon": "pi pi-pencil", "label": "Do it", "items": [
       { "action": "Categorize", "icon": "pi pi-tags", "label": "Categorize" },
       { "action": "View", "icon": "pi pi-search", "label": "View Birthday" }
+    ]},
+    { "action": "Relate", "icon": "pi pi-search", "label": "RELATE", "type": "twoSelected", "items": [
+      { "icon": "pi pi-pencil", "label": "Parent-Child" },
+      { "icon": "pi pi-pencil", "label": "Married" },
+      { "icon": "pi pi-tags", "label": "Colleagues" }
     ]}
   ],
   "sort": "dob,desc",

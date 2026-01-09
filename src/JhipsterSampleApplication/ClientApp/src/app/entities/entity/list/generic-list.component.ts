@@ -8,14 +8,12 @@ import { HttpClientModule } from '@angular/common/http';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
-import { ContextMenuModule } from 'primeng/contextmenu';
-import { Menu } from 'primeng/menu';
+import { ContextMenu, ContextMenuModule } from 'primeng/contextmenu';
 import { TableModule } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
 import { DialogModule } from 'primeng/dialog';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ButtonModule } from 'primeng/button';
-import { MenuModule } from 'primeng/menu';
 import { ChipModule } from 'primeng/chip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
@@ -34,7 +32,7 @@ type LocalRuleSet = { condition: string; rules: Array<LocalRuleSet | LocalRule>;
 type LocalRule = { field: string; operator: string; value?: any };
 
 type AnyRow = GenericListRow;
-type MenuSpecItem = { action?: string; icon?: string; label?: string; items?: MenuSpecItem[] };
+type MenuSpecItem = { action?: string; icon?: string; label?: string; type?: string; items?: MenuSpecItem[] };
 
 @Component({
   selector: 'jhi-generic-list',
@@ -56,7 +54,6 @@ type MenuSpecItem = { action?: string; icon?: string; label?: string; items?: Me
     CheckboxModule,
     ContextMenuModule,
     ButtonModule,
-    MenuModule,
     ChipModule,
     ConfirmDialogModule,
     FontAwesomeModule,
@@ -79,7 +76,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChild('superTable') superTable!: SuperTable;
   @ViewChild('contextMenu') contextMenu: any;
-  @ViewChild('chipMenu') chipMenu!: Menu;
+  @ViewChild('chipMenu') chipMenu!: ContextMenu;
   @ViewChild('expandedRow', { static: true }) expandedRowTemplate: TemplateRef<any> | undefined;
   @ViewChild(QueryInputComponent) queryInput!: QueryInputComponent;
 
@@ -105,6 +102,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   menuItems: MenuItem[] = [];
   contextSelectedRow: AnyRow | null = null;
+  contextAlternateRow: AnyRow | null = null;
   contextSelectedLabel: string | undefined;
   selectionMode: 'single' | 'multiple' | null | undefined = 'multiple';
   selection: AnyRow[] = [];
@@ -184,7 +182,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
   private menuHoverListener = (ev: Event) => {
     const target = ev.target as HTMLElement | null;
     if (!target) return;
-    const menu = target.closest('.p-contextmenu-submenu, .p-menu-list, .p-submenu-list') as HTMLElement | null;
+    const menu = target.closest('.p-contextmenu-submenu, .p-menu-list, .p-submenu-list, .p-tieredmenu-root-list, .p-tieredmenu-submenu') as HTMLElement | null;
     if (menu) {
       this.scheduleMenuLimit(menu);
     }
@@ -216,7 +214,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
         if (targetMenu) {
           this.applyMenuHeightLimit(targetMenu);
         }
-        document.querySelectorAll('.p-contextmenu-submenu, .p-menu-list, .p-submenu-list').forEach(el => {
+        document.querySelectorAll('.p-contextmenu-submenu, .p-menu-list, .p-submenu-list, .p-tieredmenu-root-list, .p-tieredmenu-submenu').forEach(el => {
           this.applyMenuHeightLimit(el as HTMLElement);
         });
       } catch {}
@@ -988,6 +986,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private createMenuItem(entry: MenuSpecItem | null | undefined, row: AnyRow | null, isChipMenu: boolean, parentActionKey?: string): MenuItem | null {
     if (!entry) return null;
+    if (!this.isMenuEntryAllowed(entry, isChipMenu, row)) return null;
     const actionKey = entry.action ? String(entry.action).toLowerCase() : undefined;
     const effectiveActionKey = actionKey || parentActionKey;
     if (!effectiveActionKey && (!entry.items || entry.items.length === 0)) return null;
@@ -1028,11 +1027,13 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private buildActionContext(row: AnyRow | null, isChipMenu: boolean, actionKey: string): GenericListActionContext {
     const resolvedRow = this.resolveMenuRow(row);
+    const resolveAlternateChipRow = this.resolveAlternateChipMenuRow(row, isChipMenu);
     const ctx: GenericListActionContext = {
       entity: this.entity,
       actionKey,
       rawRow: row,
       resolvedRow,
+      resolveAlternateChipRow,
       isChipMenu,
       selection: this.selection || [],
       chipMenuRow: this.chipMenuRow,
@@ -1070,6 +1071,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
       const action = (item as any).action ?? (item as any).Action;
       const icon = (item as any).icon ?? (item as any).Icon;
       const label = (item as any).label ?? (item as any).Label;
+      const type = (item as any).type ?? (item as any).Type;
       const childrenRaw = (item as any).items ?? (item as any).Items;
 
       const children = Array.isArray(childrenRaw)
@@ -1085,6 +1087,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
       if (hasAction) entry.action = String(action);
       if (icon !== undefined) entry.icon = String(icon);
       if (label !== undefined) entry.label = String(label);
+      if (type !== undefined) entry.type = String(type);
       if (children.length) entry.items = children;
       return entry;
     };
@@ -1098,11 +1101,31 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     return row || this.contextSelectedRow || this.chipMenuRow || (this.selection?.[0] ?? null);
   }
 
+  private resolveAlternateChipMenuRow(row: AnyRow | null, isChipMenu: boolean): AnyRow | null {
+    if (!isChipMenu) return null;
+    const base = row || this.chipMenuRow;
+    if (!base) return null;
+    const selection = this.selection || [];
+    if (selection.length !== 2) return null;
+    const baseId = base?.id ?? base;
+    return selection.find(r => (r?.id ?? r) !== baseId) ?? null;
+  }
+
   private hasAnyMenuSelection(row: AnyRow | null): boolean {
     if (row) return true;
     if (this.contextSelectedRow) return true;
     if (this.chipMenuRow) return true;
     return (this.selection?.length ?? 0) > 0;
+  }
+
+  private isMenuEntryAllowed(entry: MenuSpecItem, isChipMenu: boolean, row: AnyRow | null): boolean {
+    const type = entry.type ? String(entry.type).toLowerCase() : '';
+    if (type === 'twoselected') {
+      if (!isChipMenu) return false;
+      if (!row && !this.chipMenuRow) return false;
+      return (this.selection?.length ?? 0) === 2;
+    }
+    return true;
   }
 
   private setDetailDialogSrc(id: string | null): void {
@@ -1268,7 +1291,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     const path = group.categories ? [...group.categories, group.name] : [group.name];
     const params: any = { from: 0, pageSize: 1000, view: this.viewName! };
     if (path.length >= 1) params.category = path[0];
-    if (path.length >= 2) params.secondaryCategory = path[1];
+    if (path.length >= 2) params.alternateCategory = path[1];
     const groupData: GroupData = { mode: 'group', groups: [] };
     const hasQuery = this.currentQuery && this.currentQuery.trim().length > 0;
     if (hasQuery) {
@@ -1283,7 +1306,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
           const filter: any = { view: this.viewName! };
           filter.bqlQuery = this.currentQuery.trim();
           if (path.length >= 1) filter.category = path[0];
-          if (path.length >= 2) filter.secondaryCategory = path[1];
+          if (path.length >= 2) filter.alternateCategory = path[1];
           loader.load(this.itemsPerPage, this.sort, filter);
           groupData.mode = 'grid';
           groupData.loader = loader;
@@ -1300,7 +1323,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
           const loader = new DataLoader<AnyRow>(fetch);
           const filter: any = { view: this.viewName!, query: '*' };
           if (path.length >= 1) filter.category = path[0];
-          if (path.length >= 2) filter.secondaryCategory = path[1];
+          if (path.length >= 2) filter.alternateCategory = path[1];
           loader.load(this.itemsPerPage, this.sort, filter);
           groupData.mode = 'grid';
           groupData.loader = loader;

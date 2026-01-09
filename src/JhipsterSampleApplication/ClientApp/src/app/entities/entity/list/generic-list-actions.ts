@@ -8,6 +8,7 @@ export interface GenericListActionContext {
   actionKey: string;
   rawRow: GenericListRow | null;
   resolvedRow: GenericListRow | null;
+  resolveAlternateChipRow: GenericListRow | null;
   isChipMenu: boolean;
   selection: GenericListRow[];
   chipMenuRow: GenericListRow | null;
