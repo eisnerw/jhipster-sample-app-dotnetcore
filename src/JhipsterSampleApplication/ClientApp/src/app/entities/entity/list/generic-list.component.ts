@@ -192,14 +192,19 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     try {
       const rect = menuEl.getBoundingClientRect();
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-      const availableBelow = Math.max(0, viewportHeight - rect.top - 8);
+      const margin = 8;
+      const availableBelow = Math.max(0, viewportHeight - rect.top - margin);
+      const needsLimit = menuEl.scrollHeight > availableBelow + 1;
+      if (!needsLimit) {
+        menuEl.style.maxHeight = '';
+        menuEl.style.height = '';
+        menuEl.style.overflowY = '';
+        menuEl.style.overflowX = '';
+        return;
+      }
       const maxHeight = Math.max(0, Math.min(menuEl.scrollHeight, availableBelow));
       menuEl.style.maxHeight = `${maxHeight}px`;
-      if (availableBelow < menuEl.scrollHeight) {
-        menuEl.style.height = `${maxHeight}px`;
-      } else {
-        menuEl.style.height = '';
-      }
+      menuEl.style.height = `${maxHeight}px`;
       menuEl.style.overflowY = 'auto';
       menuEl.style.overflowX = 'hidden';
     } catch {}
