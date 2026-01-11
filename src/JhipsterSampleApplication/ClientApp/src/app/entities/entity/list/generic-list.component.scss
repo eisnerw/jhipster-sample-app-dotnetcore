@@ -6,6 +6,17 @@
   filter: invert(1) hue-rotate(180deg);
 }
 
+/* Force true white text in dark mode for better contrast */
+:host-context(.prime-theme-dark) .generic-list-root {
+  color: #ffffff;
+}
+
+:host-context(.prime-theme-dark) .generic-list-root ::ng-deep .p-datatable,
+:host-context(.prime-theme-dark) .generic-list-root ::ng-deep .p-datatable thead th,
+:host-context(.prime-theme-dark) .generic-list-root ::ng-deep .p-datatable-tbody > tr > td {
+  color: #ffffff;
+}
+
 /* Match 22px row height used by other entity lists */
 :host {
   /* Body rows */
