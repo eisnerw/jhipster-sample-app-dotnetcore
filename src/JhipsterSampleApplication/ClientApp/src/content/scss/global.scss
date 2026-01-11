@@ -255,6 +255,15 @@ a:hover {
 
 /* Normalize PrimeNG checkbox highlight styling app-wide */
 :root {
+  /* Map legacy PrimeNG variable names to v21 token variables */
+  --surface-card: var(--p-content-background);
+  --surface-border: var(--p-content-border-color);
+  --surface-hover: var(--p-content-hover-background);
+  --text-color: var(--p-content-color);
+  --text-color-secondary: var(--p-text-muted-color);
+  --primary-color: var(--p-primary-color);
+  --primary-200: var(--p-highlight-background);
+  --primary-800: var(--p-highlight-color);
 }
 
 /* Force white background for checked state in all contexts */

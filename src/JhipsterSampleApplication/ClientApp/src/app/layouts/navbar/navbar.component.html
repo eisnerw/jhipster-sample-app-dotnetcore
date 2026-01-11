@@ -157,6 +157,12 @@
                 </a>
               </li>
               <li>
+                <a class="dropdown-item" (click)="openThemeDialog()">
+                  <fa-icon icon="palette" [fixedWidth]="true"></fa-icon>
+                  <span>Themes</span>
+                </a>
+              </li>
+              <li>
                 <a class="dropdown-item" (click)="logout()" id="logout" data-cy="logout">
                   <fa-icon icon="sign-out-alt" [fixedWidth]="true"></fa-icon>
                   <span>Sign out</span>
@@ -188,3 +194,51 @@
     </div>
   </div>
 </nav>
+
+<p-dialog
+  [(visible)]="showThemeDialog"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  header="Themes"
+  [style]="{ width: '420px' }"
+  (onHide)="onThemeDialogHide()"
+>
+  <div class="mb-3">
+    <label for="themeSelect" class="form-label">PrimeNG theme</label>
+    <select
+      id="themeSelect"
+      class="form-select"
+      [(ngModel)]="selectedThemeKey"
+      (ngModelChange)="applyThemeSelection(false)"
+    >
+      @for (option of themeOptions; track option.key) {
+        <option [value]="option.key">{{ option.label }}</option>
+      }
+    </select>
+  </div>
+  <div class="form-check">
+    <input
+      id="themeDarkMode"
+      class="form-check-input"
+      type="checkbox"
+      [(ngModel)]="selectedDarkMode"
+      (ngModelChange)="applyThemeSelection(false)"
+    />
+    <label for="themeDarkMode" class="form-check-label">Dark mode</label>
+  </div>
+  <div class="form-check mt-2">
+    <input
+      id="themeInvertGrid"
+      class="form-check-input"
+      type="checkbox"
+      [(ngModel)]="selectedInvertGrid"
+      (ngModelChange)="applyThemeSelection(false)"
+    />
+    <label for="themeInvertGrid" class="form-check-label">Invert grid (black/white)</label>
+  </div>
+  <ng-template pTemplate="footer">
+    <button type="button" class="btn btn-outline-secondary me-2" (click)="cancelThemeSelection()">Cancel</button>
+    <button type="button" class="btn btn-primary" (click)="applyThemeSelection()">Apply</button>
+  </ng-template>
+</p-dialog>

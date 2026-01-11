@@ -1,5 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { DialogModule } from 'primeng/dialog';
 
 import SharedModule from 'app/shared/shared.module';
 import HasAnyAuthorityDirective from 'app/shared/auth/has-any-authority.directive';
@@ -9,12 +11,13 @@ import { ProfileService } from 'app/layouts/profiles/profile.service';
 import { EntityGenericService } from 'app/entities/entity/service/entity-generic.service';
 import { environment } from 'environments/environment';
 import NavbarItem from './navbar-item.model';
+import { PrimeThemeKey, PrimeThemeService } from 'app/shared/theme/prime-theme.service';
 
 @Component({
   selector: 'jhi-navbar',
   templateUrl: './navbar.component.html',
   styleUrl: './navbar.component.scss',
-  imports: [RouterModule, SharedModule, HasAnyAuthorityDirective],
+  imports: [RouterModule, FormsModule, SharedModule, HasAnyAuthorityDirective, DialogModule],
 })
 export default class NavbarComponent implements OnInit {
   inProduction?: boolean;
@@ -28,6 +31,16 @@ export default class NavbarComponent implements OnInit {
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
   private readonly entityService = inject(EntityGenericService);
+  private readonly themeService = inject(PrimeThemeService);
+  showThemeDialog = false;
+  themeOptions = this.themeService.themeOptions;
+  selectedThemeKey: PrimeThemeKey = this.themeService.getThemeKey();
+  selectedDarkMode = this.themeService.isDarkMode();
+  selectedInvertGrid = this.themeService.isInvertGrid();
+  private originalThemeKey: PrimeThemeKey = this.selectedThemeKey;
+  private originalDarkMode = this.selectedDarkMode;
+  private originalInvertGrid = this.selectedInvertGrid;
+  private themeDialogCommitted = false;
 
   constructor() {
     const { VERSION } = environment;
@@ -67,5 +80,35 @@ export default class NavbarComponent implements OnInit {
 
   toggleNavbar(): void {
     this.isNavbarCollapsed.update(isNavbarCollapsed => !isNavbarCollapsed);
+  }
+
+  openThemeDialog(): void {
+    this.selectedThemeKey = this.themeService.getThemeKey();
+    this.selectedDarkMode = this.themeService.isDarkMode();
+    this.selectedInvertGrid = this.themeService.isInvertGrid();
+    this.originalThemeKey = this.selectedThemeKey;
+    this.originalDarkMode = this.selectedDarkMode;
+    this.originalInvertGrid = this.selectedInvertGrid;
+    this.themeDialogCommitted = false;
+    this.showThemeDialog = true;
+  }
+
+  applyThemeSelection(closeDialog = true): void {
+    this.themeService.setThemeSelection(this.selectedThemeKey, this.selectedDarkMode, this.selectedInvertGrid);
+    if (closeDialog) {
+      this.themeDialogCommitted = true;
+      this.showThemeDialog = false;
+    }
+  }
+
+  cancelThemeSelection(): void {
+    this.themeService.setThemeSelection(this.originalThemeKey, this.originalDarkMode, this.originalInvertGrid);
+    this.showThemeDialog = false;
+  }
+
+  onThemeDialogHide(): void {
+    if (!this.themeDialogCommitted) {
+      this.themeService.setThemeSelection(this.originalThemeKey, this.originalDarkMode, this.originalInvertGrid);
+    }
   }
 }

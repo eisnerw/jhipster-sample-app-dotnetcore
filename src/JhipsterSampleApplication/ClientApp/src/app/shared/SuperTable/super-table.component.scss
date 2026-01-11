@@ -172,6 +172,8 @@
 
 :host ::ng-deep .p-datatable thead th {
   position: relative;
+  background: var(--p-content-background);
+  color: var(--p-content-color);
 }
 
 /* Numeric columns: right-align body, keep header left-aligned */
@@ -185,7 +187,7 @@
 
 /* Category row highlight */
 :host ::ng-deep .row-has-category {
-  box-shadow: inset 3px 0 0 0 var(--primary-color, #0d6efd);
+  box-shadow: inset 3px 0 0 0 var(--p-primary-color, #0d6efd);
 }
 
 /* Generic inline pill styling (used for annotations in any column) */
@@ -198,8 +200,8 @@
   line-height: 0.9rem;
   padding: 0 0.3rem;
   border-radius: 0.5rem;
-  background: var(--primary-200, #cfe2ff);
-  color: var(--primary-800, #052c65);
+  background: var(--p-highlight-background, #cfe2ff);
+  color: var(--p-highlight-color, #052c65);
   font-size: 0.6rem;
   text-align: center;
   margin-right: 0.25rem;

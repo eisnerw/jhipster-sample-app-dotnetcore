@@ -1,6 +1,11 @@
 .global-filter-input { width: 12rem; }
 .chip-bar { padding: 0.25rem 0; }
 
+/* Optional invert mode for quick black/white preview */
+:host-context(.prime-theme-invert-grid) .generic-list-root {
+  filter: invert(1) hue-rotate(180deg);
+}
+
 /* Match 22px row height used by other entity lists */
 :host {
   /* Body rows */

@@ -10,6 +10,7 @@ import { ApplicationConfigService } from 'app/core/config/application-config.ser
 import { fontAwesomeIcons } from './config/font-awesome-icons';
 import MainComponent from './layouts/main/main.component';
 import { environment } from 'environments/environment';
+import { PrimeThemeService } from 'app/shared/theme/prime-theme.service';
 
 @Component({
   selector: 'jhi-app',
@@ -23,6 +24,7 @@ export default class AppComponent {
   private readonly applicationConfigService = inject(ApplicationConfigService);
   private readonly iconLibrary = inject(FaIconLibrary);
   private readonly dpConfig = inject(NgbDatepickerConfig);
+  private readonly primeThemeService = inject(PrimeThemeService);
 
   constructor() {
     this.applicationConfigService.setEndpointPrefix(environment.SERVER_API_URL);
@@ -33,5 +35,6 @@ export default class AppComponent {
       month: 1,
       day: 1,
     };
+    this.primeThemeService.initialize();
   }
 }
