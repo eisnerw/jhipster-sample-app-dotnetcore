@@ -658,6 +658,53 @@ public class EntityService : IEntityService
         return new WriteResult { Success = resp.IsValidResponse, Message = resp.Result.ToString() };
     }
 
+    public async Task<WriteResult> DeleteManyAsync(string entity, IEnumerable<string> ids)
+    {
+        var (indexName, _) = GetEntitySpec(entity);
+        var idList = (ids ?? Enumerable.Empty<string>())
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct()
+            .ToList();
+        if (!idList.Any()) return new WriteResult { Success = false, Message = "No ids provided" };
+
+        var body = new JObject
+        {
+            ["query"] = new JObject
+            {
+                ["ids"] = new JObject
+                {
+                    ["values"] = new JArray(idList)
+                }
+            }
+        };
+        var endpoint = new EndpointPath(HttpMethod.POST, $"/{indexName}/_delete_by_query");
+        var esResp = await _elasticClient.Transport.RequestAsync<StringResponse>(
+            in endpoint,
+            PostData.String(body.ToString()),
+            null,
+            null,
+            CancellationToken.None
+        );
+        if (!(esResp.ApiCallDetails?.HasSuccessfulStatusCode ?? false))
+        {
+            var status = esResp.ApiCallDetails?.HttpStatusCode ?? 0;
+            var respBody = esResp.ApiCallDetails?.ResponseBodyInBytes != null
+                ? Encoding.UTF8.GetString(esResp.ApiCallDetails.ResponseBodyInBytes)
+                : esResp.Body;
+            return new WriteResult { Success = false, Message = $"ES delete-by-query failed: {status} {respBody}" };
+        }
+
+        string message = "deleted";
+        try
+        {
+            var parsed = JObject.Parse(esResp.Body ?? "{}");
+            var deleted = parsed["deleted"]?.Value<long?>();
+            if (deleted.HasValue) message = $"deleted {deleted.Value}";
+        }
+        catch { }
+        return new WriteResult { Success = true, Message = message };
+    }
+
     /// <summary>
     /// Gets unique values for a field in the entity index
     /// </summary>

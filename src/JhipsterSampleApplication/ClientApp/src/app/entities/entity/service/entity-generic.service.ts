@@ -30,6 +30,10 @@ export interface CategorizeRequest {
   remove: string[];
 }
 
+export interface DeleteRequest {
+  rows: string[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class EntityGenericService {
   private http = inject(HttpClient);
@@ -104,6 +108,11 @@ export class EntityGenericService {
 
   delete(entity: string, id: string): Observable<HttpResponse<{}>> {
     return this.http.delete(`${this.url(entity)}/${encodeURIComponent(id)}`, { observe: 'response' });
+  }
+
+  deleteMultiple(entity: string, ids: string[]): Observable<HttpResponse<SimpleApiResponse>> {
+    const payload: DeleteRequest = { rows: ids };
+    return this.http.post<SimpleApiResponse>(`${this.url(entity)}/delete-multiple`, payload, { observe: 'response' });
   }
 
   categorize(entity: string, payload: CategorizeRequest): Observable<HttpResponse<SimpleApiResponse>> {

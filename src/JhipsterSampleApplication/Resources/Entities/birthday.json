@@ -39,7 +39,8 @@
       { "icon": "pi pi-pencil", "label": "Parent-Child" },
       { "icon": "pi pi-pencil", "label": "Married" },
       { "icon": "pi pi-tags", "label": "Colleagues" }
-    ]}
+    ]},
+    { "action": "DeleteMultiple", "icon": "pi pi-search", "label": "Delete multiple", "type": "Multiple"}
   ],
   "sort": "dob,desc",
   "detailHtmlTemplate": [

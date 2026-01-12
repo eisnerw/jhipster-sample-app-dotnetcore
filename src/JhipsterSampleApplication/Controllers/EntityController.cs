@@ -323,6 +323,16 @@ namespace JhipsterSampleApplication.Controllers
             return Ok(result);
         }
 
+        [HttpPost("{entity}/delete-multiple")]
+        [ProducesResponseType(typeof(SimpleApiResponse), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> DeleteMultiple([FromRoute] string entity, [FromBody] DeleteRequestDto request)
+        {
+            if (request.Rows == null || !request.Rows.Any()) return BadRequest("At least one row ID must be provided");
+            var wr = await _entityService.DeleteManyAsync(entity, request.Rows);
+            return Ok(new SimpleApiResponse { Success = wr.Success, Message = wr.Message });
+        }
+
         [HttpPost("{entity}/bql-to-ruleset")]
         [Consumes("text/plain")]
         [ProducesResponseType(typeof(RulesetDto), 200)]

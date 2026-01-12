@@ -7,6 +7,14 @@ const DEFAULT_GENERIC_LIST_ACTIONS: GenericListAction[] = [
     isEnabled: ctx => !!ctx.resolvedRow,
   },
   {
+    key: 'deletemultiple',
+    run: ctx => ctx.helpers.deleteMultipleFromContext(),
+    isEnabled: ctx => {
+      const count = ctx.selection?.length ?? 0;
+      return count >= 2 && count <= 100;
+    },
+  },
+  {
     key: 'categorize',
     run: ctx => ctx.helpers.openCategorizeDialog(),
     isEnabled: ctx => ctx.helpers.hasAnyMenuSelection(ctx.rawRow),

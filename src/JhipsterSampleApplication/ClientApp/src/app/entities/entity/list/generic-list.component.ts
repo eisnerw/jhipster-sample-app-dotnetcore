@@ -1051,6 +1051,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       helpers: {
         deleteFromContext: () => this.deleteFromContext(),
+        deleteMultipleFromContext: () => this.deleteMultipleFromContext(),
         openCategorizeDialog: () => this.openCategorizeDialog(),
         viewIframeFromContext: () => this.viewIframeFromContext(),
         editFromContext: () => this.editFromContext(),
@@ -1125,10 +1126,18 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private isMenuEntryAllowed(entry: MenuSpecItem, isChipMenu: boolean, row: AnyRow | null): boolean {
     const type = entry.type ? String(entry.type).toLowerCase() : '';
+    const selectionCount = this.selection?.length ?? 0;
+    if (isChipMenu && selectionCount >= 3) {
+      return type === 'multiple';
+    }
     if (type === 'twoselected') {
       if (!isChipMenu) return false;
       if (!row && !this.chipMenuRow) return false;
-      return (this.selection?.length ?? 0) === 2;
+      return selectionCount === 2;
+    }
+    if (type === 'multiple') {
+      if (!isChipMenu) return false;
+      return selectionCount >= 2 && selectionCount <= 100;
     }
     return true;
   }
@@ -1276,6 +1285,25 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     const id = row?.id;
     if (!id) return;
     this.entityService.delete(this.entity, id).subscribe({ next: () => this.refreshData(), error: () => this.refreshData() });
+  }
+  deleteMultipleFromContext(): void {
+    const ids = (this.selection || []).map(r => r.id).filter(Boolean) as string[];
+    if (ids.length < 2 || ids.length > 100) return;
+    this.chipMenuRow = null;
+    this.chipMenuIsCount = false;
+    this.confirmationService.confirm({
+      header: 'Confirm Delete',
+      icon: 'pi pi-exclamation-triangle',
+      message: `Do you want to delete ${ids.length} items?`,
+      acceptLabel: 'Yes',
+      rejectLabel: 'No',
+      accept: () => {
+        this.entityService.deleteMultiple(this.entity, ids).subscribe({
+          next: () => this.refreshData(),
+          error: () => this.refreshData(),
+        });
+      },
+    });
   }
   deleteFromChipMenu(): void { const rows: AnyRow[] = this.chipMenuIsCount ? (this.selection || []) : (this.chipMenuRow ? [this.chipMenuRow] : []); this.chipMenuRow = null; this.chipMenuIsCount = false; const ids = rows.map(r => r.id).filter(Boolean) as string[]; if (!ids.length) return; const confirmAndRun = () => { const next = (remaining: string[]) => { if (!remaining.length) { this.refreshData(); return; } const id = remaining.shift()!; this.entityService.delete(this.entity, id).subscribe({ next: () => next(remaining), error: () => next(remaining) }); }; next([...ids]); }; if (ids.length > 1) { this.confirmationService.confirm({ header: 'Confirm Delete', icon: 'pi pi-exclamation-triangle', message: `Delete ${ids.length} item(s)?`, acceptLabel: 'Yes', rejectLabel: 'No', accept: () => confirmAndRun() }); } else { confirmAndRun(); } }
 

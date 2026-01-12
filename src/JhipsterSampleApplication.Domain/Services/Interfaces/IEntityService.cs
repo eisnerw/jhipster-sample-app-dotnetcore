@@ -13,6 +13,7 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
         Task<WriteResult> IndexAsync(string entity, JObject document);
         Task<WriteResult> UpdateAsync(string entity, string id, JObject document);
         Task<WriteResult> DeleteAsync(string entity, string id);
+        Task<WriteResult> DeleteManyAsync(string entity, IEnumerable<string> ids);
         Task<List<string>> GetUniqueFieldValuesAsync(string entity, string field);
         Task<JObject> ConvertRulesetToElasticSearch(string entity, Ruleset rr);
         Task<List<ViewResultDto>> SearchWithElasticQueryAndViewAsync(string entity, JObject queryObject, ViewDto view, int size = 20, int from = 0, string? sort = null);

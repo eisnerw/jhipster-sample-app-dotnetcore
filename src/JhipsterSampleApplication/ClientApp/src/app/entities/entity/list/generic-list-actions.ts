@@ -18,6 +18,7 @@ export interface GenericListActionContext {
   setContextLabel: (label: string | undefined) => void;
   helpers: {
     deleteFromContext: () => void;
+    deleteMultipleFromContext: () => void;
     openCategorizeDialog: () => void;
     viewIframeFromContext: () => void;
     editFromContext: () => void;
