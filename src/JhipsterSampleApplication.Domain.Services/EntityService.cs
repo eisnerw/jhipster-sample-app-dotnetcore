@@ -667,20 +667,23 @@ public class EntityService : IEntityService
             .ToList();
         if (!idList.Any()) return new WriteResult { Success = false, Message = "No ids provided" };
 
-        var body = new JObject
+        var sb = new StringBuilder();
+        foreach (var id in idList)
         {
-            ["query"] = new JObject
+            var deleteLine = new JObject
             {
-                ["ids"] = new JObject
+                ["delete"] = new JObject
                 {
-                    ["values"] = new JArray(idList)
+                    ["_id"] = id
                 }
-            }
-        };
-        var endpoint = new EndpointPath(HttpMethod.POST, $"/{indexName}/_delete_by_query");
+            };
+            sb.Append(deleteLine.ToString(Newtonsoft.Json.Formatting.None));
+            sb.Append('\n');
+        }
+        var endpoint = new EndpointPath(HttpMethod.POST, $"/{indexName}/_bulk?refresh=wait_for");
         var esResp = await _elasticClient.Transport.RequestAsync<StringResponse>(
             in endpoint,
-            PostData.String(body.ToString()),
+            PostData.String(sb.ToString()),
             null,
             null,
             CancellationToken.None
@@ -691,15 +694,23 @@ public class EntityService : IEntityService
             var respBody = esResp.ApiCallDetails?.ResponseBodyInBytes != null
                 ? Encoding.UTF8.GetString(esResp.ApiCallDetails.ResponseBodyInBytes)
                 : esResp.Body;
-            return new WriteResult { Success = false, Message = $"ES delete-by-query failed: {status} {respBody}" };
+            return new WriteResult { Success = false, Message = $"ES bulk delete failed: {status} {respBody}" };
         }
 
         string message = "deleted";
         try
         {
             var parsed = JObject.Parse(esResp.Body ?? "{}");
-            var deleted = parsed["deleted"]?.Value<long?>();
-            if (deleted.HasValue) message = $"deleted {deleted.Value}";
+            var errors = parsed["errors"]?.Value<bool?>() ?? false;
+            if (errors)
+            {
+                return new WriteResult { Success = false, Message = "Bulk delete reported errors" };
+            }
+            var items = parsed["items"] as JArray;
+            if (items != null)
+            {
+                message = $"deleted {items.Count}";
+            }
         }
         catch { }
         return new WriteResult { Success = true, Message = message };
