@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -22,20 +22,31 @@ export class GenericEditComponent implements OnInit {
   title = 'Edit';
   isSaving = false;
 
-  form!: FormGroup;
+  form = new FormGroup({});
   fields: { key: string; type: string; label: string; options?: { label: string; value: string }[] }[] = [];
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
   private service = inject(EntityGenericService);
+  private cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
     this.entity = this.route.snapshot.paramMap.get('entity')!;
     this.id = this.route.snapshot.paramMap.get('id');
 
     this.service.getEntitySpec(this.entity).subscribe(spec => {
-      const fieldsObj = (spec?.fields as Record<string, any>) || {};
+      const specObj = this.normalizeSpec(spec);
+      const fieldsObj = (specObj?.fields as Record<string, any>) || {};
+      if (typeof console !== 'undefined') {
+        try {
+          console.info('[GenericEdit] spec loaded', {
+            entity: this.entity,
+            fieldsCount: Object.keys(fieldsObj).length,
+            fieldKeys: Object.keys(fieldsObj),
+          });
+        } catch {}
+      }
       const EXCLUDE = new Set(['document', 'categories', 'category']);
       this.fields = Object.keys(fieldsObj)
         .filter(k => !EXCLUDE.has(k.toLowerCase()))
@@ -50,6 +61,7 @@ export class GenericEditComponent implements OnInit {
           return { key: k, type: t, label, options: opts };
         });
       this.buildForm();
+      try { this.cdr.detectChanges(); } catch {}
       if (this.id) {
         this.title = 'Edit';
         this.loadRow(this.id);
@@ -57,6 +69,18 @@ export class GenericEditComponent implements OnInit {
         this.title = 'Create';
       }
     });
+  }
+
+  private normalizeSpec(raw: any): any {
+    if (!raw) return {};
+    if (typeof raw === 'string') {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return {};
+      }
+    }
+    return raw;
   }
 
   private buildForm(): void {
@@ -78,6 +102,16 @@ export class GenericEditComponent implements OnInit {
       }
     }
     this.form = this.fb.group(controls);
+    if (typeof console !== 'undefined') {
+      try {
+        console.info('[GenericEdit] form built', {
+          entity: this.entity,
+          fieldsCount: this.fields.length,
+          controlKeys: Object.keys(controls),
+        });
+      } catch {}
+    }
+    try { this.cdr.detectChanges(); } catch {}
   }
 
   private loadRow(id: string): void {
