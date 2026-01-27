@@ -3,8 +3,7 @@ import { GenericListAction, GENERIC_LIST_ACTIONS, GenericListActionContext, Gene
 const resolveRow = (ctx: GenericListActionContext): GenericListRow | null =>
   ctx.resolvedRow || ctx.contextSelectedRow || ctx.selection?.[0] || ctx.rawRow || ctx.chipMenuRow || null;
 
-const resolveAlternateRow = (ctx: GenericListActionContext): GenericListRow | null =>
-  ctx.resolveAlternateChipRow || null;
+const resolveAlternateRow = (ctx: GenericListActionContext): GenericListRow | null => ctx.resolveAlternateChipRow || null;
 
 const canViewBirthdayRow = (row: GenericListRow | null): boolean => {
   if (!row) return false;

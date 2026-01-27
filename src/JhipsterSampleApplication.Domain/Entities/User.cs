@@ -18,11 +18,11 @@ public class User : IdentityUser, IAuditedEntityBase
 
     [StringLength(50)]
     [Column("first_name")]
-    public string FirstName { get; set; } = string.Empty;
+    public string? FirstName { get; set; }
 
     [StringLength(50)]
     [Column("last_name")]
-    public string LastName { get; set; } = string.Empty;
+    public string? LastName { get; set; }
 
     [Required] public bool Activated { get; set; }
 

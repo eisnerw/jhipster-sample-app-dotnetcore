@@ -22,7 +22,7 @@ public interface IUserService
     Task ChangePassword(string currentClearTextPassword, string newPassword);
     Task<User?> ActivateRegistration(string key);
     Task<User> RegisterUser(User userToRegister, string password);
-    Task UpdateUser(string firstName, string lastName, string email, string langKey, string imageUrl);
+    Task UpdateUser(string? firstName, string? lastName, string email, string langKey, string imageUrl);
     Task<User?> GetUserWithUserRoles();
     Task<IPage<User?>> GetAllPublicUsers(IPageable pageable);
 }

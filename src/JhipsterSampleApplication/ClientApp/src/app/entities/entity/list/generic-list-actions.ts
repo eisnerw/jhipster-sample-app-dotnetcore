@@ -19,7 +19,7 @@ export interface GenericListActionContext {
   helpers: {
     deleteFromContext: () => void;
     deleteMultipleFromContext: () => void;
-    openCategorizeDialog: () => void;
+    openCategorizeDialog: (options?: { preferSelection?: boolean }) => void;
     viewIframeFromContext: () => void;
     editFromContext: () => void;
     hasAnyMenuSelection: (row: GenericListRow | null) => boolean;

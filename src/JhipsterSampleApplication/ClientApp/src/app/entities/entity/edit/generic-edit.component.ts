@@ -40,12 +40,14 @@ export class GenericEditComponent implements OnInit {
       const fieldsObj = (specObj?.fields as Record<string, any>) || {};
       if (typeof console !== 'undefined') {
         try {
-          console.info('[GenericEdit] spec loaded', {
+          console.warn('[GenericEdit] spec loaded', {
             entity: this.entity,
             fieldsCount: Object.keys(fieldsObj).length,
             fieldKeys: Object.keys(fieldsObj),
           });
-        } catch {}
+        } catch {
+          /* ignore */
+        }
       }
       const EXCLUDE = new Set(['document', 'categories', 'category']);
       this.fields = Object.keys(fieldsObj)
@@ -61,7 +63,11 @@ export class GenericEditComponent implements OnInit {
           return { key: k, type: t, label, options: opts };
         });
       this.buildForm();
-      try { this.cdr.detectChanges(); } catch {}
+      try {
+        this.cdr.detectChanges();
+      } catch {
+        /* ignore */
+      }
       if (this.id) {
         this.title = 'Edit';
         this.loadRow(this.id);
@@ -104,14 +110,20 @@ export class GenericEditComponent implements OnInit {
     this.form = this.fb.group(controls);
     if (typeof console !== 'undefined') {
       try {
-        console.info('[GenericEdit] form built', {
+        console.warn('[GenericEdit] form built', {
           entity: this.entity,
           fieldsCount: this.fields.length,
           controlKeys: Object.keys(controls),
         });
-      } catch {}
+      } catch {
+        /* ignore */
+      }
     }
-    try { this.cdr.detectChanges(); } catch {}
+    try {
+      this.cdr.detectChanges();
+    } catch {
+      /* ignore */
+    }
   }
 
   private loadRow(id: string): void {

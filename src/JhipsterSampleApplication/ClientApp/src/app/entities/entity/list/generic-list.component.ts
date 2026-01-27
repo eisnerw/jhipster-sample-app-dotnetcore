@@ -121,6 +121,8 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
   newCategoryChecked = false;
   private tempNewCategory: string | null = null;
   rowsToCategorizeCount = 0;
+  private categorizeRows: AnyRow[] = [];
+  private categorizeCommon: Set<string> = new Set();
   // Annotation helpers
   private annotationCache: Record<string, any[]> = {};
   private menuSpec: MenuSpecItem[] = [];
@@ -279,6 +281,8 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.newCategoryChecked = false;
     this.tempNewCategory = null;
     this.rowsToCategorizeCount = 0;
+    this.categorizeRows = [];
+    this.categorizeCommon = new Set();
     this.hasCustomMenuSpec = false;
     this.sort = '';
   }
@@ -983,7 +987,11 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private buildMenuItems(row: AnyRow | null, isChipMenu: boolean): MenuItem[] {
-    const spec = this.hasCustomMenuSpec ? this.menuSpec : this.defaultMenuSpec();
+    const spec = this.filterMenuSpecForMultipleSelection(
+      this.hasCustomMenuSpec ? this.menuSpec : this.defaultMenuSpec(),
+      isChipMenu,
+      this.selection?.length ?? 0,
+    );
     return spec
       .map(entry => this.createMenuItem(entry, row, isChipMenu))
       .filter((i): i is MenuItem => !!i);
@@ -1052,7 +1060,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
       helpers: {
         deleteFromContext: () => this.deleteFromContext(),
         deleteMultipleFromContext: () => this.deleteMultipleFromContext(),
-        openCategorizeDialog: () => this.openCategorizeDialog(),
+        openCategorizeDialog: options => this.openCategorizeDialog(options),
         viewIframeFromContext: () => this.viewIframeFromContext(),
         editFromContext: () => this.editFromContext(),
         hasAnyMenuSelection: r => this.hasAnyMenuSelection(r),
@@ -1101,6 +1109,47 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
       .map(item => normalizeEntry(item))
       .filter((i): i is MenuSpecItem => !!i);
     return normalized;
+  }
+
+  private filterMenuSpecForMultipleSelection(spec: MenuSpecItem[], isChipMenu: boolean, selectionCount: number): MenuSpecItem[] {
+    if (!isChipMenu || selectionCount < 2) return spec;
+    const normalizeKey = (action: string) => action.trim().toLowerCase();
+    const baseKeyForMultiple = (action: string) => {
+      const lower = normalizeKey(action);
+      return lower.endsWith('multiple') ? lower.slice(0, -'multiple'.length) : lower;
+    };
+    const hasMultipleAtLevel = (items: MenuSpecItem[]) => {
+      const bases = new Set<string>();
+      for (const item of items) {
+        if (!item?.action) continue;
+        const type = item.type ? String(item.type).toLowerCase() : '';
+        const isMultiple = type === 'multiple' || normalizeKey(item.action).endsWith('multiple');
+        if (isMultiple) bases.add(baseKeyForMultiple(item.action));
+      }
+      return bases;
+    };
+    const filterLevel = (items: MenuSpecItem[]): MenuSpecItem[] => {
+      const multipleBases = hasMultipleAtLevel(items);
+      return items
+        .map(item => {
+          if (!item) return null;
+          const next: MenuSpecItem = { ...item };
+          if (next.items && next.items.length) {
+            next.items = filterLevel(next.items);
+          }
+          return next;
+        })
+        .filter((item): item is MenuSpecItem => {
+          if (!item) return false;
+          if (!item.action) return true;
+          const actionKey = normalizeKey(item.action);
+          const type = item.type ? String(item.type).toLowerCase() : '';
+          const isMultiple = type === 'multiple' || actionKey.endsWith('multiple');
+          if (isMultiple) return true;
+          return !multipleBases.has(actionKey);
+        });
+    };
+    return filterLevel(spec);
   }
 
   private resolveMenuRow(row: AnyRow | null): AnyRow | null {
@@ -1159,10 +1208,24 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     try { this.cdr.detectChanges(); } catch {}
   }
 
-  openCategorizeDialog(): void {
-    const rows = this.chipMenuIsCount ? (this.selection || []) : (this.chipMenuRow ? [this.chipMenuRow] : (this.selection?.length ? this.selection : (this.contextSelectedRow ? [this.contextSelectedRow] : [])));
+  openCategorizeDialog(options?: { preferSelection?: boolean }): void {
+    const preferSelection = !!options?.preferSelection;
+    const selectionRows = this.selection || [];
+    let rows: AnyRow[] = [];
+    if (preferSelection && selectionRows.length) {
+      rows = selectionRows;
+    } else if (this.chipMenuIsCount) {
+      rows = selectionRows;
+    } else if (this.chipMenuRow) {
+      rows = [this.chipMenuRow];
+    } else if (selectionRows.length) {
+      rows = selectionRows;
+    } else if (this.contextSelectedRow) {
+      rows = [this.contextSelectedRow];
+    }
     this.chipMenuRow = null; this.chipMenuIsCount = false;
     if (!rows.length) { this.messageService.add({ severity: 'warn', summary: 'No rows selected' }); return; }
+    this.categorizeRows = [...rows];
     this.rowsToCategorizeCount = rows.length;
     // Fetch all categories for this entity (union across index)
     this.entityService.getUniqueFieldValues(this.entity, 'categories').subscribe({
@@ -1174,12 +1237,13 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
         const allCombined = Array.from(new Set([...all, ...Array.from(unionSel)])).sort((a,b)=>a.localeCompare(b));
         // Determine which categories are common across all selected rows
         const isCommon = (cat: string) => rows.every(r => Array.isArray(r.categories) && r.categories.includes(cat));
+        this.categorizeCommon = new Set(allCombined.filter(isCommon));
         // Build state: checked if common, otherwise unchecked. Checked ones first in ordering
         const checkedCats: string[] = [];
         const uncheckedCats: string[] = [];
         this.categoryState = {};
         for (const c of allCombined) {
-          if (isCommon(c)) { this.categoryState[c] = true; checkedCats.push(c); } else { this.categoryState[c] = false; uncheckedCats.push(c); }
+          if (this.categorizeCommon.has(c)) { this.categoryState[c] = true; checkedCats.push(c); } else { this.categoryState[c] = false; uncheckedCats.push(c); }
         }
         this.allCategories = [...checkedCats.sort((a,b)=>a.localeCompare(b)), ...uncheckedCats.sort((a,b)=>a.localeCompare(b))];
         this.filteredCategories = [...this.allCategories];
@@ -1190,9 +1254,10 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
         const union = new Set<string>(); rows.forEach(r => (r.categories || []).forEach((c: string) => union.add(c)));
         const allCombined = Array.from(union.values()).sort((a,b)=>a.localeCompare(b));
         const isCommon = (cat: string) => rows.every(r => Array.isArray(r.categories) && r.categories.includes(cat));
+        this.categorizeCommon = new Set(allCombined.filter(isCommon));
         this.categoryState = {};
         const checked: string[] = []; const unchecked: string[] = [];
-        for (const c of allCombined) { if (isCommon(c)) { this.categoryState[c] = true; checked.push(c); } else { this.categoryState[c] = false; unchecked.push(c);} }
+        for (const c of allCombined) { if (this.categorizeCommon.has(c)) { this.categoryState[c] = true; checked.push(c); } else { this.categoryState[c] = false; unchecked.push(c);} }
         this.allCategories = [...checked, ...unchecked];
         this.filteredCategories = [...this.allCategories];
         this.newCategoryText = ''; this.newCategoryChecked = false; this.showCategorizeDialog = true;
@@ -1200,7 +1265,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
   hasCategorizeChanges(): boolean { return true; }
-  cancelCategorize(): void { this.showCategorizeDialog = false; }
+  cancelCategorize(): void { this.showCategorizeDialog = false; this.categorizeRows = []; this.categorizeCommon = new Set(); }
   filterCategoriesList(): void {
     const raw = (this.newCategoryText || '').trim();
     const q = raw.toLowerCase();
@@ -1248,17 +1313,26 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
   toggleCategory(cat: string): void { this.categoryState[cat] = !this.categoryState[cat]; this.filterCategoriesList(); }
   applyCategorize(): void {
-    const rows = this.selection && this.selection.length > 0 ? this.selection : (this.contextSelectedRow ? [this.contextSelectedRow] : []);
+    const rows = this.categorizeRows.length
+      ? this.categorizeRows
+      : (this.selection && this.selection.length > 0 ? this.selection : (this.contextSelectedRow ? [this.contextSelectedRow] : []));
     if (!rows.length) { this.showCategorizeDialog = false; return; }
-    const add: string[] = []; const remove: string[] = [];
+    const add: string[] = [];
+    const remove: string[] = [];
     for (const c of Object.keys(this.categoryState)) {
-      if (this.categoryState[c]) add.push(c); else remove.push(c);
+      const checked = !!this.categoryState[c];
+      const wasCommon = this.categorizeCommon.has(c);
+      if (checked && !wasCommon) add.push(c);
+      if (!checked && wasCommon) remove.push(c);
     }
     let newCat = (this.newCategoryText || '').trim();
     if (newCat && this.newCategoryChecked && !add.some(a => a.toLowerCase() === newCat.toLowerCase())) add.push(newCat);
     const rowIds = rows.map(r => r.id).filter(Boolean) as string[];
     const payload = { rows: rowIds, add, remove };
-    this.entityService.categorize(this.entity, payload).subscribe({ next: () => { this.showCategorizeDialog = false; this.refreshData(); }, error: () => { this.showCategorizeDialog = false; this.refreshData(); } });
+    this.entityService.categorize(this.entity, payload).subscribe({
+      next: () => { this.showCategorizeDialog = false; this.categorizeRows = []; this.categorizeCommon = new Set(); this.refreshData(); },
+      error: () => { this.showCategorizeDialog = false; this.categorizeRows = []; this.categorizeCommon = new Set(); this.refreshData(); },
+    });
   }
 
   viewIframeFromContext(): void {

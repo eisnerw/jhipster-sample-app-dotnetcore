@@ -20,6 +20,14 @@ const DEFAULT_GENERIC_LIST_ACTIONS: GenericListAction[] = [
     isEnabled: ctx => ctx.helpers.hasAnyMenuSelection(ctx.rawRow),
   },
   {
+    key: 'categorizemultiple',
+    run: ctx => ctx.helpers.openCategorizeDialog({ preferSelection: true }),
+    isEnabled: ctx => {
+      const count = ctx.selection?.length ?? 0;
+      return count >= 2 && count <= 100;
+    },
+  },
+  {
     key: 'view',
     run: ctx => ctx.helpers.viewIframeFromContext(),
     isEnabled: ctx => !!ctx.resolvedRow,

@@ -181,8 +181,8 @@ public class UserService : IUserService
             Login = userToRegister.Login,
             // new user gets initially a generated password
             PasswordHash = _passwordHasher.HashPassword(null!, password),
-            FirstName = userToRegister.FirstName!,
-            LastName = userToRegister.LastName!,
+            FirstName = userToRegister.FirstName,
+            LastName = userToRegister.LastName,
             Email = userToRegister.Email!.ToLowerInvariant(),
             ImageUrl = userToRegister.ImageUrl!,
             LangKey = userToRegister.LangKey!,
@@ -197,7 +197,7 @@ public class UserService : IUserService
         return newUser;
     }
 
-    public virtual async Task UpdateUser(string firstName, string lastName, string email, string langKey, string imageUrl)
+    public virtual async Task UpdateUser(string? firstName, string? lastName, string email, string langKey, string imageUrl)
     {
         var userName = _userManager.GetUserName(_httpContextAccessor.HttpContext.User)!;
         var user = await _userManager.FindByNameAsync(userName);
