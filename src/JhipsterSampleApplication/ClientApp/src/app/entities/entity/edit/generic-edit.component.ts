@@ -8,7 +8,7 @@ import { Observable } from 'rxjs';
 import SharedModule from 'app/shared/shared.module';
 import { EntityGenericService } from '../service/entity-generic.service';
 
-type AnyRow = { id?: string; [k: string]: any };
+type AnyRow = { id?: string;[k: string]: any };
 
 @Component({
   selector: 'jhi-generic-edit',
@@ -101,6 +101,7 @@ export class GenericEditComponent implements OnInit {
           controls[f.key] = [false];
           break;
         case 'date':
+        case 'datetime':
           controls[f.key] = [null];
           break;
         default:

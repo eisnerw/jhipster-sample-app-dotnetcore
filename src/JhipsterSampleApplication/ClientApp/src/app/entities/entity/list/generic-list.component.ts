@@ -23,7 +23,7 @@ import SharedModule from 'app/shared/shared.module';
 import { ViewService } from '../../view/service/view.service';
 import { EntityGenericService } from '../service/entity-generic.service';
 import { DataLoader, FetchFunction } from 'app/shared/data-loader';
-import { QueryInputComponent,  bqlToRuleset} from 'popup-ngx-query-builder';
+import { QueryInputComponent, bqlToRuleset } from 'popup-ngx-query-builder';
 import { QueryLanguageSpec } from 'ngx-query-builder';
 import { SuperTable, ColumnConfig, GroupData, GroupDescriptor } from 'app/shared/SuperTable/super-table.component';
 import { GenericListActionResolver, GenericListActionContext, GenericListRow } from './generic-list-actions';
@@ -170,13 +170,13 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     //this.onQueryChange(this.currentQuery);
     try {
       document.addEventListener('mouseover', this.menuHoverListener, true);
-    } catch {}
+    } catch { }
   }
 
   ngOnDestroy(): void {
     try {
       document.removeEventListener('mouseover', this.menuHoverListener, true);
-    } catch {}
+    } catch { }
   }
 
   private menuLimitHandle: any = null;
@@ -209,7 +209,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
       menuEl.style.height = `${maxHeight}px`;
       menuEl.style.overflowY = 'auto';
       menuEl.style.overflowX = 'hidden';
-    } catch {}
+    } catch { }
   }
 
   private scheduleMenuLimit(targetMenu?: HTMLElement): void {
@@ -224,7 +224,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
         document.querySelectorAll('.p-contextmenu-submenu, .p-menu-list, .p-submenu-list, .p-tieredmenu-root-list, .p-tieredmenu-submenu').forEach(el => {
           this.applyMenuHeightLimit(el as HTMLElement);
         });
-      } catch {}
+      } catch { }
     };
     const run = () => {
       requestAnimationFrame(() => {
@@ -313,7 +313,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
           columnCount: columns.length,
           fields: columns.map(c => c.field),
         });
-      } catch {}
+      } catch { }
     }
     this.columns = columns;
     this.initialWidths = this.columns.map(c => c.width || undefined);
@@ -414,7 +414,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
           const width = this.normalizeWidth(meta.width);
           const t = String(meta.type || 'string').toLowerCase();
           const col: ColumnConfig = { field: lf, header, width } as any;
-          if (t === 'date' || t === 'datetime') { col.type = 'date'; col.filterType = 'date'; col.dateFormat = meta.dateFormat || 'MM/dd/yyyy'; }
+          if (t === 'date' || t === 'datetime') { col.type = 'date'; col.filterType = 'date'; col.dateFormat = meta.dateFormat || (t === 'datetime' ? 'MM/dd/yyyy HH:mm' : 'MM/dd/yyyy'); }
           else if (t === 'number' || t === 'numeric') { col.type = 'string'; col.filterType = 'numeric'; }
           else if (t === 'computed') {
             col.type = 'string'; col.filterType = 'text';
@@ -623,7 +623,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onViewChange(view: string | null): void {
     this.viewName = view;
-    if (this.viewName) { try { this.superTable?.filterGlobal(''); } catch {} this.loadRootGroups(); }
+    if (this.viewName) { try { this.superTable?.filterGlobal(''); } catch { } this.loadRootGroups(); }
     else { this.groups = []; this.viewMode = 'grid'; this.loadPage(); setTimeout(() => this.superTable?.applyCapturedHeaderState(), 500); }
   }
 
@@ -638,7 +638,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     setTimeout(() => this.superTable?.applyCapturedHeaderState(), 300);
   }
 
-  refreshData(): void { try { this.superTable.captureHeaderState(); this.onQueryChange(this.currentQuery, true); } catch {} }
+  refreshData(): void { try { this.superTable.captureHeaderState(); this.onQueryChange(this.currentQuery, true); } catch { } }
 
   private buildHighlightPattern(bql: string): string {
     const terms = this.getHighlightTermsFromBql(bql);
@@ -657,7 +657,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
       const vw = this.getStableViewportWidth();
       const base = this.baseSpecSignature || this.specSignature || '';
       this.specSignature = base ? `${base}|vw:${vw}` : `vw:${vw}`;
-      try { (this.superTable as any)['lastColumnWidths'] = undefined; } catch {}
+      try { (this.superTable as any)['lastColumnWidths'] = undefined; } catch { }
     }, 150);
   }
 
@@ -840,7 +840,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     for (const r of rules) {
       const [pat, label] = Object.entries(r || {})[0] || [null, null];
       if (!pat) continue;
-      try { out.push({ re: new RegExp(String(pat), 'i'), label: String(label ?? '') }); } catch {}
+      try { out.push({ re: new RegExp(String(pat), 'i'), label: String(label ?? '') }); } catch { }
     }
     return out;
   }
@@ -967,7 +967,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onCheckboxChange(): void { this.checkboxSelectedRows = this.selection || []; this.chipSelectedRows = this.checkboxSelectedRows.slice(0, 2); }
-  getChipLabel(row: AnyRow): string { const titleFields = ['title','name','lname','fname']; let text = ''; for (const f of titleFields) { if (row[f]) { text = text ? `${text} ${row[f]}` : `${row[f]}`; } } return text || (row.id || ''); }
+  getChipLabel(row: AnyRow): string { const titleFields = ['title', 'name', 'lname', 'fname']; let text = ''; for (const f of titleFields) { if (row[f]) { text = text ? `${text} ${row[f]}` : `${row[f]}`; } } return text || (row.id || ''); }
   onChipMouseEnter(event: MouseEvent, row: AnyRow): void { this.chipMenuIsCount = false; this.chipMenuRow = row; this.setMenu(row, true); this.chipMenu?.show(event); }
   onCountChipMouseEnter(event: MouseEvent): void { this.chipMenuIsCount = true; this.chipMenuRow = null; this.setMenu(null, true); this.chipMenu?.show(event); }
   onChipMouseLeave(): void { this.chipMenu?.hide(); }
@@ -1019,14 +1019,14 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const command = (!childItems.length && resolvedAction?.run)
       ? () => {
-          if (parentActionKey) {
-            this.contextSelectedLabel = label;
-          } else {
-            this.contextSelectedLabel = undefined;
-          }
-          const ctx: GenericListActionContext = this.buildActionContext(row, isChipMenu, effectiveActionKey!);
-          resolvedAction.run(ctx);
+        if (parentActionKey) {
+          this.contextSelectedLabel = label;
+        } else {
+          this.contextSelectedLabel = undefined;
         }
+        const ctx: GenericListActionContext = this.buildActionContext(row, isChipMenu, effectiveActionKey!);
+        resolvedAction.run(ctx);
+      }
       : undefined;
 
     const item: MenuItem = {
@@ -1090,8 +1090,8 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
 
       const children = Array.isArray(childrenRaw)
         ? childrenRaw
-            .map(child => normalizeEntry(child))
-            .filter((c): c is MenuSpecItem => !!c)
+          .map(child => normalizeEntry(child))
+          .filter((c): c is MenuSpecItem => !!c)
         : [];
 
       const hasAction = !(action === null || action === undefined || action === '');
@@ -1198,14 +1198,14 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     const url = `/api/entity/${encodeURIComponent(this.entity)}/html/${encodeURIComponent(String(id))}`;
     this.dialogSafeSrc = this.sanitizer.bypassSecurityTrustResourceUrl(url);
-    try { this.cdr.detectChanges(); } catch {}
+    try { this.cdr.detectChanges(); } catch { }
   }
 
   private setExpandedIframeSrc(id: string | undefined | null): void {
     if (!id) return;
     const url = `/api/entity/${encodeURIComponent(this.entity)}/html/${encodeURIComponent(String(id))}`;
     this.iframeSafeSrcById[id] = this.sanitizer.bypassSecurityTrustResourceUrl(url);
-    try { this.cdr.detectChanges(); } catch {}
+    try { this.cdr.detectChanges(); } catch { }
   }
 
   openCategorizeDialog(options?: { preferSelection?: boolean }): void {
@@ -1234,7 +1234,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
         // Also include any categories present on selected rows even if not in the index-wide list
         const unionSel = new Set<string>();
         rows.forEach(r => (r.categories || []).forEach((c: string) => unionSel.add(c)));
-        const allCombined = Array.from(new Set([...all, ...Array.from(unionSel)])).sort((a,b)=>a.localeCompare(b));
+        const allCombined = Array.from(new Set([...all, ...Array.from(unionSel)])).sort((a, b) => a.localeCompare(b));
         // Determine which categories are common across all selected rows
         const isCommon = (cat: string) => rows.every(r => Array.isArray(r.categories) && r.categories.includes(cat));
         this.categorizeCommon = new Set(allCombined.filter(isCommon));
@@ -1245,19 +1245,19 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
         for (const c of allCombined) {
           if (this.categorizeCommon.has(c)) { this.categoryState[c] = true; checkedCats.push(c); } else { this.categoryState[c] = false; uncheckedCats.push(c); }
         }
-        this.allCategories = [...checkedCats.sort((a,b)=>a.localeCompare(b)), ...uncheckedCats.sort((a,b)=>a.localeCompare(b))];
+        this.allCategories = [...checkedCats.sort((a, b) => a.localeCompare(b)), ...uncheckedCats.sort((a, b) => a.localeCompare(b))];
         this.filteredCategories = [...this.allCategories];
         this.newCategoryText = ''; this.newCategoryChecked = false; this.showCategorizeDialog = true;
       },
       error: () => {
         // Fallback: derive from selected rows only
         const union = new Set<string>(); rows.forEach(r => (r.categories || []).forEach((c: string) => union.add(c)));
-        const allCombined = Array.from(union.values()).sort((a,b)=>a.localeCompare(b));
+        const allCombined = Array.from(union.values()).sort((a, b) => a.localeCompare(b));
         const isCommon = (cat: string) => rows.every(r => Array.isArray(r.categories) && r.categories.includes(cat));
         this.categorizeCommon = new Set(allCombined.filter(isCommon));
         this.categoryState = {};
         const checked: string[] = []; const unchecked: string[] = [];
-        for (const c of allCombined) { if (this.categorizeCommon.has(c)) { this.categoryState[c] = true; checked.push(c); } else { this.categoryState[c] = false; unchecked.push(c);} }
+        for (const c of allCombined) { if (this.categorizeCommon.has(c)) { this.categoryState[c] = true; checked.push(c); } else { this.categoryState[c] = false; unchecked.push(c); } }
         this.allCategories = [...checked, ...unchecked];
         this.filteredCategories = [...this.allCategories];
         this.newCategoryText = ''; this.newCategoryChecked = false; this.showCategorizeDialog = true;
@@ -1303,7 +1303,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     // Sort with checked first, then alphabetical
-    arr.sort((a,b) => {
+    arr.sort((a, b) => {
       const sa = this.categoryState[a] ? 0 : 1;
       const sb = this.categoryState[b] ? 0 : 1;
       if (sa !== sb) return sa - sb;
@@ -1542,7 +1542,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       };
       visit(rs);
-    } catch {}
+    } catch { }
     // Deduplicate and limit to reasonable length
     const dedup = Array.from(new Set(terms.map(t => t))).filter(t => t.length <= 256).slice(0, 50);
     return dedup;
@@ -1568,13 +1568,13 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
         if (m) {
           const body = m[1];
           const flags = (m[2] || '').includes('i') ? 'gi' : 'g';
-          try { regexes.push({ re: new RegExp(body, flags) }); } catch {}
+          try { regexes.push({ re: new RegExp(body, flags) }); } catch { }
         } else {
           words.push(esc(t));
         }
       }
       if (words.length) {
-        try { regexes.push({ re: new RegExp('(' + words.join('|') + ')', 'gi') }); } catch {}
+        try { regexes.push({ re: new RegExp('(' + words.join('|') + ')', 'gi') }); } catch { }
       }
       if (regexes.length === 0) return;
       // Tree-walk and collect text nodes to process
@@ -1627,7 +1627,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
         if (last < text.length) frag.appendChild(doc.createTextNode(text.slice(last)));
         parent.replaceChild(frag, tn);
       });
-    } catch {}
+    } catch { }
   }
 
 }

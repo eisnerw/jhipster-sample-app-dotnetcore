@@ -10,38 +10,142 @@
     "isAlive"
   ],
   "menu": [
-    { "action": "Categorize", "icon": "pi pi-tags", "label": "Categorize" },
-    { "action": "View", "icon": "pi pi-search", "label": "View" },
-    { "action": "Edit", "icon": "pi pi-pencil", "label": "Edit" },
-    { "action": "Delete", "icon": "pi pi-trash", "label": "Delete" },
-    { "action": "Mark", "icon": "pi pi-pencil", "label": "MarkBirthday", "items": [
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-pencil", "label": "ABC" },
-      { "icon": "pi pi-tags", "label": "DEF" }
-    ]},
-    { "action": "doit", "icon": "pi pi-pencil", "label": "Do it", "items": [
-      { "action": "Categorize", "icon": "pi pi-tags", "label": "Categorize" },
-      { "action": "View", "icon": "pi pi-search", "label": "View Birthday" }
-    ]},
-    { "action": "Relate", "icon": "pi pi-search", "label": "RELATE", "type": "twoSelected", "items": [
-      { "icon": "pi pi-pencil", "label": "Parent-Child" },
-      { "icon": "pi pi-pencil", "label": "Married" },
-      { "icon": "pi pi-tags", "label": "Colleagues" }
-    ]},
-    { "action": "DeleteMultiple", "icon": "pi pi-search", "label": "Delete multiple", "type": "Multiple"},
-    { "action": "CategorizeMultiple", "icon": "pi pi-search", "label": "Categorize", "type": "Multiple"}
+    {
+      "action": "Categorize",
+      "icon": "pi pi-tags",
+      "label": "Categorize"
+    },
+    {
+      "action": "View",
+      "icon": "pi pi-search",
+      "label": "View"
+    },
+    {
+      "action": "Edit",
+      "icon": "pi pi-pencil",
+      "label": "Edit"
+    },
+    {
+      "action": "Delete",
+      "icon": "pi pi-trash",
+      "label": "Delete"
+    },
+    {
+      "action": "Mark",
+      "icon": "pi pi-pencil",
+      "label": "MarkBirthday",
+      "items": [
+        {
+          "icon": "pi pi-pencil",
+          "label": "ABC"
+        },
+        {
+          "icon": "pi pi-pencil",
+          "label": "ABC"
+        },
+        {
+          "icon": "pi pi-pencil",
+          "label": "ABC"
+        },
+        {
+          "icon": "pi pi-pencil",
+          "label": "ABC"
+        },
+        {
+          "icon": "pi pi-pencil",
+          "label": "ABC"
+        },
+        {
+          "icon": "pi pi-pencil",
+          "label": "ABC"
+        },
+        {
+          "icon": "pi pi-pencil",
+          "label": "ABC"
+        },
+        {
+          "icon": "pi pi-pencil",
+          "label": "ABC"
+        },
+        {
+          "icon": "pi pi-pencil",
+          "label": "ABC"
+        },
+        {
+          "icon": "pi pi-pencil",
+          "label": "ABC"
+        },
+        {
+          "icon": "pi pi-pencil",
+          "label": "ABC"
+        },
+        {
+          "icon": "pi pi-pencil",
+          "label": "ABC"
+        },
+        {
+          "icon": "pi pi-pencil",
+          "label": "ABC"
+        },
+        {
+          "icon": "pi pi-pencil",
+          "label": "ABC"
+        },
+        {
+          "icon": "pi pi-tags",
+          "label": "DEF"
+        }
+      ]
+    },
+    {
+      "action": "doit",
+      "icon": "pi pi-pencil",
+      "label": "Do it",
+      "items": [
+        {
+          "action": "Categorize",
+          "icon": "pi pi-tags",
+          "label": "Categorize"
+        },
+        {
+          "action": "View",
+          "icon": "pi pi-search",
+          "label": "View Birthday"
+        }
+      ]
+    },
+    {
+      "action": "Relate",
+      "icon": "pi pi-search",
+      "label": "RELATE",
+      "type": "twoSelected",
+      "items": [
+        {
+          "icon": "pi pi-pencil",
+          "label": "Parent-Child"
+        },
+        {
+          "icon": "pi pi-pencil",
+          "label": "Married"
+        },
+        {
+          "icon": "pi pi-tags",
+          "label": "Colleagues"
+        }
+      ]
+    },
+    {
+      "action": "DeleteMultiple",
+      "icon": "pi pi-search",
+      "label": "Delete multiple",
+      "type": "Multiple"
+    },
+    {
+      "action": "CategorizeMultiple",
+      "icon": "pi pi-search",
+      "label": "Categorize",
+      "type": "Multiple"
+    }
   ],
   "sort": "dob,desc",
   "detailHtmlTemplate": [
@@ -108,7 +212,7 @@
     },
     "dob": {
       "name": "Birthday",
-      "type": "date",
+      "type": "datetime",
       "operators": [
         "=",
         "<=",
