@@ -1621,6 +1621,27 @@ export class QueryBuilderComponent
     return JSON.parse(JSON.stringify(ruleset));
   }
 
+  /**
+   * Return a deep-cloned ruleset where any `not` properties that are not
+   * strictly `true` have been removed.
+   */
+  private normalizeRuleset(ruleset: RuleSet): RuleSet {
+    const copy: RuleSet = JSON.parse(JSON.stringify(ruleset));
+    const walk = (rs: RuleSet) => {
+      if (rs && Object.prototype.hasOwnProperty.call(rs, 'not') && rs.not !== true) {
+        delete (rs as any).not;
+      }
+      if (rs.rules && Array.isArray(rs.rules)){
+        rs.rules.forEach((child) => {
+          if ((child as RuleSet).rules) {
+            walk(child as RuleSet);
+          }
+        });
+      }
+    };
+    walk(copy);
+    return copy;
+  }
   private storeUnstoredNamedRulesets(root: RuleSet): void {
     if (!this.config.saveNamedRuleset || !this.config.listNamedRulesets) {
       return;
@@ -1856,8 +1877,8 @@ export class QueryBuilderComponent
     if (!saved) {
       return false;
     }
-    const a = JSON.stringify({ ...ruleset, name: undefined });
-    const b = JSON.stringify({ ...saved, name: undefined });
+    const a = JSON.stringify({ ...this.normalizeRuleset(ruleset), name: undefined });
+    const b = JSON.stringify({ ...this.normalizeRuleset(saved), name: undefined });
     return a !== b;
   }
 
