@@ -189,6 +189,16 @@ npm --prefix src/JhipsterSampleApplication/ClientApp run test -- --project jhips
 UI end-to-end tests are powered by [Cypress][]. They're located in [src/JhipsterSampleApplication/ClientApp/test/cypress](src/JhipsterSampleApplication/ClientApp/test/cypress)
 and can be run by starting Spring Boot in one terminal (`./mvnw spring-boot:run`) and running the tests (`npm run e2e`) in a second one.
 
+In codeserver with firefox installed, you can run headless in the ./src/JhipsterSampleApplication/ClientApp folder
+```
+env -u ELECTRON_RUN_AS_NODE npx cypress run --e2e --browser /opt/firefox/firefox --config 'baseUrl=http://localhost:5000'
+```
+
+Running a single test:
+```
+env -u ELECTRON_RUN_AS_NODE npx cypress run --e2e --browser /opt/firefox/firefox --spec test/cypress/e2e/entity/birthday.cy.ts
+```
+
 #### Lighthouse audits
 
 You can execute automated [Lighthouse audits](https://developers.google.com/web/tools/lighthouse/) with [cypress-audit](https://github.com/mfrachet/cypress-audit) by running `npm run e2e:cypress:audits`.
