@@ -405,6 +405,15 @@ export function bqlToRuleset(
         valTok.type === 'string'
           ? valTok.value
           : parseValue(valTok, field, config);
+      /* TODO: Support like /regex/
+      if (
+        (operator === 'contains' || operator === '!contains') &&
+        typeof value === 'string' &&
+        /^\/.*\/i?$/.test(value)
+      ) {
+        operator = operator === 'contains' ? 'like' : '!like';
+      }
+      */
       if (
         (operator === 'contains' || operator === '!contains') &&
         typeof value === 'string' &&
@@ -657,6 +666,7 @@ function validateRule(
     return true;
   }
 
+  /* TODO: Why does this test exist
   if (
     (rule.operator === 'contains' || rule.operator === '!contains') &&
     typeof rule.value === 'string' &&
@@ -664,7 +674,8 @@ function validateRule(
   ) {
     return false;
   }
-
+  */
+ 
   // Incomplete regex literals (start with '/' but missing closing '/') are invalid
   if (typeof rule.value === 'string') {
     if (rule.value.startsWith('/') && !/^\/(?:\\\/|\\.|[^\/])+\/[a-z]*$/.test(rule.value)) {
