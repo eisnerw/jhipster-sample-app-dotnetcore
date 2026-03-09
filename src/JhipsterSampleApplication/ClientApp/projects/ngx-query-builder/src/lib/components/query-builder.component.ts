@@ -70,8 +70,7 @@ export const VALIDATOR: any = {
   standalone: false,
 })
 export class QueryBuilderComponent
-  implements OnChanges, ControlValueAccessor, Validator
-{
+  implements OnChanges, ControlValueAccessor, Validator {
   private changeDetectorRef = inject(ChangeDetectorRef);
   private dialog = inject(MatDialog);
 
@@ -194,6 +193,7 @@ export class QueryBuilderComponent
     'number',
     'time',
     'date',
+    'datetime',
     'category',
     'boolean',
     'multiselect',
@@ -203,6 +203,7 @@ export class QueryBuilderComponent
     'number',
     'time',
     'date',
+    'datetime',
     'boolean',
   ];
   public defaultOperatorMap = createDefaultOperatorMap();
@@ -449,7 +450,7 @@ export class QueryBuilderComponent
       if (operators.length === 0) {
         console.warn(
           `No operators found for field '${field}' with type ${fieldObject.type}. ` +
-            `Please define an 'operators' property on the field or use the 'operatorMap' binding to fix this.`,
+          `Please define an 'operators' property on the field or use the 'operatorMap' binding to fix this.`,
         );
       }
       if (fieldObject.nullable) {
@@ -558,7 +559,7 @@ export class QueryBuilderComponent
       } else {
         console.warn(
           `No fields found for entity '${entity.name}'. ` +
-            `A 'defaultOperator' is also not specified on the field config. Operator value will default to null.`,
+          `A 'defaultOperator' is also not specified on the field config. Operator value will default to null.`,
         );
         return undefined;
       }
@@ -576,7 +577,7 @@ export class QueryBuilderComponent
       } else {
         console.warn(
           `No operators found for field '${field?.value}'. ` +
-            `A 'defaultOperator' is also not specified on the field config. Operator value will default to null.`,
+          `A 'defaultOperator' is also not specified on the field config. Operator value will default to null.`,
         );
         return undefined;
       }

@@ -469,6 +469,15 @@
             type="date"
           />
         }
+        @case ('datetime') {
+          <input
+            [ngClass]="getClassNames('inputControl')"
+            [(ngModel)]="rule.value"
+            (ngModelChange)="changeInput()"
+            [disabled]="disabled"
+            type="datetime-local"
+          />
+        }
         @case ('time') {
           <input
             [ngClass]="getClassNames('inputControl')"

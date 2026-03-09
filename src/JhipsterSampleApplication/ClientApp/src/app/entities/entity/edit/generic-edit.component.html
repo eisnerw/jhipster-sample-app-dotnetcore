@@ -16,6 +16,8 @@
         <input *ngIf="f.type === 'number'" type="number" class="form-control" [id]="f.key" [formControlName]="f.key" />
 
         <input *ngIf="f.type === 'date'" type="date" class="form-control" [id]="f.key" [formControlName]="f.key" />
+        <input *ngIf="f.type === 'datetime'" type="datetime-local" class="form-control" [id]="f.key"
+          [formControlName]="f.key" />
 
         <div *ngIf="f.type === 'boolean'" class="form-check">
           <input type="checkbox" class="form-check-input" [id]="f.key" [formControlName]="f.key" />

@@ -5,6 +5,7 @@ const BASE_DEFAULT_OPERATOR_MAP: DefaultOperatorMap = {
   number: ['=', '!=', '>', '>=', '<', '<=', 'in', '!in', 'exists'],
   time: ['=', '!=', '>', '>=', '<', '<=', 'in', '!in', 'exists'],
   date: ['=', '!=', '>', '>=', '<', '<=', 'in', '!in', 'exists'],
+  datetime: ['=', '!=', '>', '>=', '<', '<=', 'in', '!in', 'exists'],
   category: ['=', '!=', 'in', '!in', 'exists'],
   boolean: ['=', '!=', 'exists'],
 };

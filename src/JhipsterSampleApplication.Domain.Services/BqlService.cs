@@ -580,6 +580,17 @@ namespace JhipsterSampleApplication.Domain.Services
                 var start = new DateTime(year, month, day, 0, 0, 0);
                 return (start, start.AddDays(1));
             }
+            // yyyy-MM-ddTHH:mm
+            if (Regex.IsMatch(value, @"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$"))
+            {
+                var year = int.Parse(value.Substring(0, 4));
+                var month = int.Parse(value.Substring(5, 2));
+                var day = int.Parse(value.Substring(8, 2));
+                var hour = int.Parse(value.Substring(11, 2));
+                var minute = int.Parse(value.Substring(14, 2));
+                var start = new DateTime(year, month, day, hour, minute, 0);
+                return (start, null);
+            }
             if (DateTime.TryParse(value, out var dt))
             {
                 return (dt, null);
@@ -821,6 +832,7 @@ namespace JhipsterSampleApplication.Domain.Services
                         case "number":
                         case "date":
                         case "time":
+                        case "datetime":
                             opsLower = new List<string> { "=", "!=", ">", ">=", "<", "<=" };
                             break;
                         case "category":
@@ -1461,7 +1473,8 @@ namespace JhipsterSampleApplication.Domain.Services
                     return !string.IsNullOrWhiteSpace(value);
                 case "date":
                 case "time":
-                    return Regex.IsMatch(value, @"^\d{4}(-\d{2}(-\d{2}(T\d{2}:\d{2}:\d{2})?)?)?$");
+                case "datetime":
+                    return Regex.IsMatch(value, @"^\d{4}(-\d{2}(-\d{2}(T\d{2}:\d{2}(:\d{2})?)?)?)?$");
                 case "number":
                     return double.TryParse(value, out _);
                 default:
