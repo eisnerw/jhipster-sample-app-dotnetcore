@@ -45,7 +45,7 @@
           @for (col of columns; track col; let i = $index) {
             <th
               [pSortableColumn]="
-                col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list' ? col.field : null
+                col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list' ? getSortField(col) : undefined
               "
               [style.width]="col.width"
               [style]="col.style"
@@ -55,25 +55,25 @@
                 <span class="header-text">{{ col.header }}</span>
                 @switch (col.type) {
                   @case ('string') {
-                    <p-sortIcon class="sort-icon" [field]="col.field"></p-sortIcon>
+                    <p-sortIcon class="sort-icon" [field]="getSortField(col) || ''"></p-sortIcon>
                     @if (col.filterType) {
                       <p-columnFilter class="filter-button" [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
                     }
                   }
                   @case ('date') {
-                    <p-sortIcon class="sort-icon" [field]="col.field"></p-sortIcon>
+                    <p-sortIcon class="sort-icon" [field]="getSortField(col) || ''"></p-sortIcon>
                     @if (col.filterType) {
                       <p-columnFilter class="filter-button" [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
                     }
                   }
                   @case ('boolean') {
-                    <p-sortIcon class="sort-icon" [field]="col.field"></p-sortIcon>
+                    <p-sortIcon class="sort-icon" [field]="getSortField(col) || ''"></p-sortIcon>
                     @if (col.filterType) {
                       <p-columnFilter class="filter-button" [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
                     }
                   }
                   @case ('list') {
-                    <p-sortIcon class="sort-icon" [field]="col.field"></p-sortIcon>
+                    <p-sortIcon class="sort-icon" [field]="getSortField(col) || ''"></p-sortIcon>
                     <p-columnFilter
                       class="filter-button"
                       [field]="col.field"
@@ -580,7 +580,7 @@
           @for (col of columns; track col; let i = $index) {
             <th
               [pSortableColumn]="
-                col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list' ? col.field : undefined
+                col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list' ? getSortField(col) : undefined
               "
               [style.width]="col.width"
               [style]="col.style"
@@ -590,25 +590,25 @@
                 {{ col.header }}
                 @switch (col.type) {
                   @case ('string') {
-                    <p-sortIcon [field]="col.field"></p-sortIcon>
+                    <p-sortIcon [field]="getSortField(col) || ''"></p-sortIcon>
                     @if (col.filterType) {
                       <p-columnFilter [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
                     }
                   }
                   @case ('date') {
-                    <p-sortIcon [field]="col.field"></p-sortIcon>
+                    <p-sortIcon [field]="getSortField(col) || ''"></p-sortIcon>
                     @if (col.filterType) {
                       <p-columnFilter [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
                     }
                   }
                   @case ('boolean') {
-                    <p-sortIcon [field]="col.field"></p-sortIcon>
+                    <p-sortIcon [field]="getSortField(col) || ''"></p-sortIcon>
                     @if (col.filterType) {
                       <p-columnFilter [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
                     }
                   }
                   @case ('list') {
-                    <p-sortIcon [field]="col.field"></p-sortIcon>
+                    <p-sortIcon [field]="getSortField(col) || ''"></p-sortIcon>
                     <p-columnFilter
                       [field]="col.field"
                       matchMode="in"

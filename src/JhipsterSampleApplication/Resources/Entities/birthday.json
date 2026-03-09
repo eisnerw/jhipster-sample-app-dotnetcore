@@ -3,8 +3,31 @@
   "title": "Birthday",
   "elasticsearchIndex": "birthdays",
   "columns": [
-    "lname",
-    "fname",
+    {
+      "name": "Name",
+      "template": [
+        "{lname}",
+        ", {fname}"
+      ],
+      "sort": [
+        "lname",
+        "fname"
+      ],
+      "annotations": [
+        {
+          "type": "pill",
+          "field": "categories",
+          "ruleType": "regex",
+          "rules": [
+            {
+              "^hello$": "Hello there!"
+            }
+          ],
+          "default": "countOf",
+          "tooltip": "categories.join(', ')"
+        }
+      ]      
+    },
     "dob",
     "sign",
     "isAlive"

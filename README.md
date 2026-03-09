@@ -56,7 +56,7 @@ To run dotnet in the background.
 
     dotnet run --environment Development --no-build --project ./src/JhipsterSampleApplication/JhipsterSampleApplication.csproj > server.log 2>&1 &
 
-    Kill it with: sudo kill -9 $(sudo lsof -t -i :5000)
+    Kill it with: kill -9  $(lsof -t -i :5000)
 
 
 npm is also used to manage CSS and JavaScript dependencies used in this application. You can upgrade dependencies by

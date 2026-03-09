@@ -68,25 +68,39 @@ public class EntityService : IEntityService
     }
     private string NormalizeSortField(string entity, string field)
     {
+        var raw = (field ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(raw)) return raw;
+
+        var baseField = raw.EndsWith(".keyword", StringComparison.OrdinalIgnoreCase)
+            ? raw.Substring(0, raw.Length - ".keyword".Length)
+            : raw;
+
+        string? type = null;
         if (_specRegistry.TryGetObject(entity, "fields", out var fieldsNode))
         {
             var flds = JObject.Parse(fieldsNode.ToJsonString());
-            var arType = flds.Properties()
-                .Where(p => p.Name == field)
-                .SelectMany(f => ((JObject)f.Value)
-                .Properties()
-                .Where(vp => vp.Name == "type")
-                .Select(vp => vp.Value.ToString()))
-                .ToArray();
-            if (arType != null && arType.Length == 1 && (arType[0] == "date" || arType[0] == "number"))
-            {
-                return field;
-            }
+            type = flds.Properties()
+                .Where(p => string.Equals(p.Name, baseField, StringComparison.OrdinalIgnoreCase))
+                .Select(p => (p.Value as JObject)?["type"]?.ToString())
+                .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t))
+                ?.Trim()
+                .ToLowerInvariant();
         }
-        if (!field.Contains(".keyword")){
-            field = $"{field}.keyword";
+
+        // Never use .keyword for non-string sortable types.
+        if (type == "date" || type == "datetime" || type == "number" || type == "numeric" || type == "boolean")
+        {
+            return baseField;
         }
-        return field;
+
+        // Use .keyword for string-like fields when the caller did not specify it.
+        if (type == "string" || type == "category")
+        {
+            return raw.EndsWith(".keyword", StringComparison.OrdinalIgnoreCase) ? raw : $"{baseField}.keyword";
+        }
+
+        // Unknown/custom type: preserve caller-provided field as-is.
+        return raw;
     }
 
     private static string ToCamel(string name)
@@ -274,27 +288,11 @@ public class EntityService : IEntityService
                 foreach (var p in qb.Properties()) allDefinedFields.Add(p.Name);
             }
 
-            var selected = new HashSet<string>();
+            var selected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             System.Text.Json.Nodes.JsonArray colsArr;
             if (_specRegistry.TryGetArray(entity, "columns", out colsArr) || _specRegistry.TryGetArray(entity, "listFields", out colsArr))
             {
-                foreach (var node in colsArr)
-                {
-                    try
-                    {
-                        if (node is System.Text.Json.Nodes.JsonValue jv)
-                        {
-                            var s = jv.GetValue<string?>();
-                            if (!string.IsNullOrWhiteSpace(s)) selected.Add(s!);
-                        }
-                        else if (node is System.Text.Json.Nodes.JsonObject jo)
-                        {
-                            var s = jo["field"]?.GetValue<string?>();
-                            if (!string.IsNullOrWhiteSpace(s)) selected.Add(s!);
-                        }
-                    }
-                    catch { /* ignore malformed */ }
-                }
+                foreach (var s in CollectListColumnFields(colsArr)) selected.Add(s);
             }
 
             if (allDefinedFields.Count > 0 && selected.Count > 0)
@@ -491,6 +489,72 @@ public class EntityService : IEntityService
             }
         }
         return set;
+    }
+
+    private static IEnumerable<string> CollectListColumnFields(System.Text.Json.Nodes.JsonArray colsArr)
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var node in colsArr)
+        {
+            try
+            {
+                if (node is System.Text.Json.Nodes.JsonValue jv)
+                {
+                    var s = jv.GetValue<string?>();
+                    if (!string.IsNullOrWhiteSpace(s)) set.Add(s!);
+                    continue;
+                }
+                if (node is not System.Text.Json.Nodes.JsonObject jo) continue;
+
+                var field = jo["field"]?.GetValue<string?>();
+                if (!string.IsNullOrWhiteSpace(field)) set.Add(field!);
+
+                // "sort" may be a string or array of field names.
+                var sortNode = jo["sort"];
+                if (sortNode is System.Text.Json.Nodes.JsonValue sv)
+                {
+                    var s = sv.GetValue<string?>();
+                    if (!string.IsNullOrWhiteSpace(s)) set.Add(s!);
+                }
+                else if (sortNode is System.Text.Json.Nodes.JsonArray sa)
+                {
+                    foreach (var n in sa.OfType<System.Text.Json.Nodes.JsonValue>())
+                    {
+                        var s = n.GetValue<string?>();
+                        if (!string.IsNullOrWhiteSpace(s)) set.Add(s!);
+                    }
+                }
+
+                // "template" may be a string or array; add token fields used by template placeholders.
+                var templateNode = jo["template"];
+                if (templateNode is System.Text.Json.Nodes.JsonValue tv)
+                {
+                    foreach (var t in ExtractTemplateFields(tv.GetValue<string?>() ?? string.Empty)) set.Add(t);
+                }
+                else if (templateNode is System.Text.Json.Nodes.JsonArray ta)
+                {
+                    foreach (var n in ta.OfType<System.Text.Json.Nodes.JsonValue>())
+                    {
+                        foreach (var t in ExtractTemplateFields(n.GetValue<string?>() ?? string.Empty)) set.Add(t);
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore malformed list column entries and continue.
+            }
+        }
+        return set;
+    }
+
+    private static IEnumerable<string> ExtractTemplateFields(string template)
+    {
+        if (string.IsNullOrWhiteSpace(template)) yield break;
+        foreach (Match m in Regex.Matches(template, "\\{([^{}:\\s]+)(?::[^{}]+)?\\}"))
+        {
+            var token = m.Groups[1]?.Value;
+            if (!string.IsNullOrWhiteSpace(token)) yield return token!;
+        }
     }
 
     private static IEnumerable<string> CollectTooltipFields(JObject fieldsObj)

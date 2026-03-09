@@ -22,6 +22,10 @@ export interface ColumnConfig {
   style?: string;
   // Optional: for computed display columns, provide fallback fields in priority order
   computeFields?: string[];
+  // Optional: list cell template string or segments (segment is omitted when a token is missing)
+  templateSpec?: string | string[];
+  // Optional explicit sort source(s). First non-empty field is used by UI sort controls.
+  sortFields?: string[];
   type?:
     | 'checkbox'
     | 'expander'
@@ -353,6 +357,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   // Get display string for a column, supporting computed fields (first non-empty among computeFields)
   getCellString(row: any, col: ColumnConfig): string {
     try {
+      const template = (col as any).templateSpec;
+      if (template !== undefined && template !== null) {
+        return this.renderTemplateString(row, template);
+      }
       if (col && Array.isArray((col as any).computeFields)) {
         for (const f of (col as any).computeFields as string[]) {
           const v = row?.[f];
@@ -362,6 +370,42 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       }
       const v = row?.[(col as any).field];
       return v === undefined || v === null ? '' : String(v);
+    } catch {
+      return '';
+    }
+  }
+
+  getSortField(col: ColumnConfig): string | undefined {
+    try {
+      const fields = Array.isArray((col as any).sortFields) ? (col as any).sortFields as string[] : [];
+      for (const f of fields) {
+        const s = String(f || '').trim();
+        if (s.length > 0) return s;
+      }
+      const own = String((col as any).field || '').trim();
+      return own.length > 0 ? own : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private renderTemplateString(row: any, spec: string | string[]): string {
+    try {
+      const segments = Array.isArray(spec) ? spec.map(s => String(s ?? '')) : [String(spec ?? '')];
+      const out: string[] = [];
+      for (const segment of segments) {
+        const tokens = Array.from(segment.matchAll(/\{([^{}:\s]+)\}/g)).map(m => m[1]);
+        const values: Record<string, string> = {};
+        let ok = true;
+        for (const t of tokens) {
+          const display = this.tooltipValueToString((row || {})[t]);
+          if (display === null) { ok = false; break; }
+          values[t] = display;
+        }
+        if (!ok) continue;
+        out.push(segment.replace(/\{([^{}:\s]+)\}/g, (_m, name) => values[name] ?? ''));
+      }
+      return out.join('');
     } catch {
       return '';
     }

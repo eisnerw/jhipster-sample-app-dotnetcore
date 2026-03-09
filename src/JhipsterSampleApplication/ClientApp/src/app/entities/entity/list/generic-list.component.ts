@@ -403,8 +403,20 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }
 
-    const columnsPref: Array<string | { field: string; header?: string; type?: string; dateFormat?: string }> = Array.isArray(spec?.columns) ? spec.columns : [];
-    const listFields: Array<string | { field: string; header?: string; type?: string; dateFormat?: string }> = (columnsPref.length > 0 ? columnsPref : (spec?.listFields || []));
+    type ListColumnSpec = {
+      field?: string;
+      name?: string;
+      header?: string;
+      type?: string;
+      dateFormat?: string;
+      width?: string | number;
+      computation?: string;
+      template?: string | string[];
+      sort?: string | string[];
+      annotations?: any[];
+    };
+    const columnsPref: Array<string | ListColumnSpec> = Array.isArray(spec?.columns) ? spec.columns : [];
+    const listFields: Array<string | ListColumnSpec> = (columnsPref.length > 0 ? columnsPref : (spec?.listFields || []));
     if (Array.isArray(listFields) && listFields.length > 0) {
       for (const lf of listFields) {
         if (typeof lf === 'string') {
@@ -432,12 +444,16 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
           }
           cols.push(col);
         } else if (lf && typeof lf === 'object') {
-          if (EXCLUDE.has(String(lf.field || '').toLowerCase())) continue;
-          const meta = qbFieldsAll[lf.field] || {};
-          const header = lf.header || meta.column || meta.name || this.prettyHeader(lf.field);
-          const col: ColumnConfig = { field: lf.field, header } as any;
-          const t = (lf.type || 'string').toLowerCase();
-          if (t === 'date' || t === 'datetime') { col.type = 'date'; col.filterType = 'date'; col.dateFormat = lf.dateFormat || 'MM/dd/yyyy'; }
+          const rawField = String((lf as any).field || '').trim();
+          if (rawField && EXCLUDE.has(rawField.toLowerCase())) continue;
+          const meta = rawField ? (qbFieldsAll[rawField] || {}) : {};
+          const sortFields = this.normalizeColumnSort((lf as any).sort);
+          const internalField = rawField || sortFields[0] || `__column_${cols.length}`;
+          const header = (lf as any).name || (lf as any).header || meta.column || meta.name || (rawField ? this.prettyHeader(rawField) : 'Column');
+          const col: ColumnConfig = { field: internalField, header } as any;
+          const hasTemplate = Object.prototype.hasOwnProperty.call(lf, 'template');
+          const t = String((lf as any).type || meta.type || (hasTemplate ? 'pseudo' : 'string')).toLowerCase();
+          if (t === 'date' || t === 'datetime') { col.type = 'date'; col.filterType = 'date'; col.dateFormat = (lf as any).dateFormat || 'MM/dd/yyyy'; }
           else if (t === 'number' || t === 'numeric') { col.type = 'string'; col.filterType = 'numeric'; }
           else if (t === 'computed') {
             col.type = 'string'; col.filterType = 'text';
@@ -445,14 +461,28 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
             col.computeFields = this.parseCompute(expr);
           }
           else if (t === 'boolean') { col.type = 'boolean'; col.filterType = 'boolean'; }
+          else if (t === 'pseudo' || t === 'template') {
+            col.type = 'string';
+            const tmpl = (lf as any).template;
+            if (typeof tmpl === 'string' || Array.isArray(tmpl)) {
+              (col as any).templateSpec = tmpl;
+            }
+          }
           else { col.type = 'string'; col.filterType = 'text'; }
           if (!col.width && (lf as any).width) col.width = this.normalizeWidth((lf as any).width);
           if (!col.width && meta.width) col.width = this.normalizeWidth(meta.width);
+          if (sortFields.length) {
+            (col as any).sortFields = sortFields;
+          } else if (rawField) {
+            (col as any).sortFields = [rawField];
+          }
           // Attach annotations, if any (prefer explicit lf.annotations over meta)
-          const anns = this.parseAnnotationsForField(spec, lf.field, (lf as any).annotations ? { annotations: (lf as any).annotations } : meta);
+          const annotationField = rawField || sortFields[0] || internalField;
+          const anns = this.parseAnnotationsForField(spec, annotationField, (lf as any).annotations ? { annotations: (lf as any).annotations } : meta);
           if (anns && anns.length) (col as any).annotations = anns;
-          const tt = (lf as any).tooltip ?? meta.tooltip;
-          if (tt !== undefined) (col as any).tooltipSpec = tt;
+          if (meta && Object.prototype.hasOwnProperty.call(meta, 'tooltip')) {
+            (col as any).tooltipSpec = meta.tooltip;
+          }
           cols.push(col);
         }
       }
@@ -519,6 +549,12 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     // Support syntax like "a | b | c" or "a||b"
     const parts = expr.split(/\|\|?|,/).map(s => s.trim()).filter(Boolean);
     return Array.from(new Set(parts));
+  }
+
+  private normalizeColumnSort(sort: any): string[] {
+    if (Array.isArray(sort)) return sort.map(s => String(s || '').trim()).filter(Boolean);
+    const one = String(sort || '').trim();
+    return one ? [one] : [];
   }
 
   onQueryChange(query: string, restoreState = false): void {
