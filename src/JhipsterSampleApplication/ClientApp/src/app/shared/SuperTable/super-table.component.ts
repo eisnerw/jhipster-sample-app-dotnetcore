@@ -12,6 +12,7 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { FormsModule } from '@angular/forms';
 import { DataLoader } from '../data-loader';
 import { environment } from 'environments/environment';
+import dayjs from 'dayjs/esm';
 
 export interface ColumnConfig {
   field: string;
@@ -352,6 +353,17 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       const s = String(value);
       return s.trim().length > 0;
     } catch { return false; }
+  }
+
+  formatDateCell(value: any, format?: string): string {
+    if (!this.nonEmpty(value)) return '';
+    try {
+      const parsed = dayjs(value);
+      if (!parsed.isValid()) return String(value);
+      return parsed.format(format || 'MM/DD/YYYY');
+    } catch {
+      return String(value);
+    }
   }
 
   // Get display string for a column, supporting computed fields (first non-empty among computeFields)

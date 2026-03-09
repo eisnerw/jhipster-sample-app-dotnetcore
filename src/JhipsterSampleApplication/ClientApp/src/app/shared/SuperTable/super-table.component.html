@@ -287,13 +287,13 @@
                   <ng-container *ngIf="linkWrap(rowData, col) as href; else noLinkDate">
                     <a class="cell-link" [href]="href" target="_blank" rel="noopener">
                       <span class="cell-content">
-                        {{ nonEmpty(rowData[col.field]) ? (rowData[col.field] | date: col.dateFormat || 'MM/dd/yyyy') : '' }}
+                        {{ formatDateCell(rowData[col.field], col.dateFormat) }}
                       </span>
                     </a>
                   </ng-container>
                   <ng-template #noLinkDate>
                     <span class="cell-content">
-                      {{ nonEmpty(rowData[col.field]) ? (rowData[col.field] | date: col.dateFormat || 'MM/dd/yyyy') : '' }}
+                      {{ formatDateCell(rowData[col.field], col.dateFormat) }}
                     </span>
                   </ng-template>
                   <ng-container *ngIf="col.annotations?.length">

@@ -426,7 +426,11 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
           const width = this.normalizeWidth(meta.width);
           const t = String(meta.type || 'string').toLowerCase();
           const col: ColumnConfig = { field: lf, header, width } as any;
-          if (t === 'date' || t === 'datetime') { col.type = 'date'; col.filterType = 'date'; col.dateFormat = meta.dateFormat || (t === 'datetime' ? 'MM/dd/yyyy HH:mm' : 'MM/dd/yyyy'); }
+          if (t === 'date' || t === 'datetime') {
+            col.type = 'date';
+            col.filterType = 'date';
+            col.dateFormat = meta.format || meta.dateFormat || this.defaultDateFormat(t);
+          }
           else if (t === 'number' || t === 'numeric') { col.type = 'string'; col.filterType = 'numeric'; }
           else if (t === 'computed') {
             col.type = 'string'; col.filterType = 'text';
@@ -453,7 +457,11 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
           const col: ColumnConfig = { field: internalField, header } as any;
           const hasTemplate = Object.prototype.hasOwnProperty.call(lf, 'template');
           const t = String((lf as any).type || meta.type || (hasTemplate ? 'pseudo' : 'string')).toLowerCase();
-          if (t === 'date' || t === 'datetime') { col.type = 'date'; col.filterType = 'date'; col.dateFormat = (lf as any).dateFormat || 'MM/dd/yyyy'; }
+          if (t === 'date' || t === 'datetime') {
+            col.type = 'date';
+            col.filterType = 'date';
+            col.dateFormat = (lf as any).format || (lf as any).dateFormat || meta.format || meta.dateFormat || this.defaultDateFormat(t);
+          }
           else if (t === 'number' || t === 'numeric') { col.type = 'string'; col.filterType = 'numeric'; }
           else if (t === 'computed') {
             col.type = 'string'; col.filterType = 'text';
@@ -510,7 +518,9 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
         const t = (f.type || '').toLowerCase();
         let col: ColumnConfig;
         const header = (f.column || f.name || this.prettyHeader(k));
-        if (t === 'date' || t === 'datetime') col = { field: k, header, type: 'date', filterType: 'date', dateFormat: 'MM/dd/yyyy' };
+        if (t === 'date' || t === 'datetime') {
+          col = { field: k, header, type: 'date', filterType: 'date', dateFormat: (f as any).format || (f as any).dateFormat || this.defaultDateFormat(t) };
+        }
         else if (t === 'boolean') col = { field: k, header, type: 'boolean', filterType: 'boolean' };
         else if (t === 'number') col = { field: k, header, type: 'string', filterType: 'numeric' };
         else if (t === 'computed') { col = { field: k, header, type: 'string', filterType: 'text', computeFields: this.parseCompute(String((f as any).computation || '')) } as any; }
@@ -534,6 +544,9 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private prettyHeader(k: string): string { return (k || '').replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()); }
+  private defaultDateFormat(type: string): string {
+    return type === 'datetime' ? 'MM/DD/YYYY HH:mm' : 'MM/DD/YYYY';
+  }
 
   private normalizeWidth(w: any): string | undefined {
     if (w === null || w === undefined) return undefined;

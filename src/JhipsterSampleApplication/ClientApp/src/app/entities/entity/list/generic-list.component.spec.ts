@@ -85,4 +85,20 @@ describe('GenericListComponent', () => {
     expect(cols[0].field).toBe('lineNumber');
     expect(cols.some((c: any) => c.field === 'title' && c.header === 'Title')).toBe(true);
   });
+
+  it('uses field format for datetime columns', () => {
+    const specWithFormat = {
+      columns: ['dob'],
+      fields: {
+        dob: { type: 'datetime', column: 'DOB', format: 'DD-MMM-YY HH:mm' },
+      },
+    };
+
+    const cols = (component as any).buildColumnsFromSpec(specWithFormat);
+    const dobCol = cols.find((c: any) => c.field === 'dob');
+
+    expect(dobCol).toBeTruthy();
+    expect(dobCol.type).toBe('date');
+    expect(dobCol.dateFormat).toBe('DD-MMM-YY HH:mm');
+  });
 });

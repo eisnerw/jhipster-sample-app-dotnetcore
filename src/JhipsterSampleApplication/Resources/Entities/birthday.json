@@ -236,6 +236,7 @@
     "dob": {
       "name": "Birthday",
       "type": "datetime",
+      "format": "DD-MMM-YY HH:mm",
       "operators": [
         "=",
         "<=",
