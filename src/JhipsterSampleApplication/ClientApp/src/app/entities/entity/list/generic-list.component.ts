@@ -1448,42 +1448,56 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     const params: any = { from: 0, pageSize: 1000, view: this.viewName! };
     if (path.length >= 1) params.category = path[0];
     if (path.length >= 2) params.alternateCategory = path[1];
-    const groupData: GroupData = { mode: 'group', groups: [] };
+    const groupData: GroupData = { mode: 'group', groups: [], loading: true, loadingMessage: 'Loading ...' };
     const hasQuery = this.currentQuery && this.currentQuery.trim().length > 0;
     if (hasQuery) {
-      this.entityService.searchWithBql<any>(this.entity, this.currentQuery.trim(), params).subscribe((res: any) => {
-        const hits = res.body?.hits ?? [];
-        if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
-          groupData.groups = hits.map((h: any) => ({ name: h.categoryName, count: h.count, categories: path }));
-          groupData.mode = 'group';
-        } else {
-          const fetch: FetchFunction<AnyRow> = (q: any) => { if (q.bqlQuery) { const bql = q.bqlQuery; delete q.bqlQuery; return this.entityService.searchWithBql<AnyRow>(this.entity, bql, q); } return this.entityService.query<AnyRow>(this.entity, q); };
-          const loader = new DataLoader<AnyRow>(fetch);
-          const filter: any = { view: this.viewName! };
-          filter.bqlQuery = this.currentQuery.trim();
-          if (path.length >= 1) filter.category = path[0];
-          if (path.length >= 2) filter.alternateCategory = path[1];
-          loader.load(this.itemsPerPage, this.sort, filter);
-          groupData.mode = 'grid';
-          groupData.loader = loader;
-        }
+      this.entityService.searchWithBql<any>(this.entity, this.currentQuery.trim(), params).subscribe({
+        next: (res: any) => {
+          const hits = res.body?.hits ?? [];
+          if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
+            groupData.groups = hits.map((h: any) => ({ name: h.categoryName, count: h.count, categories: path }));
+            groupData.mode = 'group';
+          } else {
+            const fetch: FetchFunction<AnyRow> = (q: any) => { if (q.bqlQuery) { const bql = q.bqlQuery; delete q.bqlQuery; return this.entityService.searchWithBql<AnyRow>(this.entity, bql, q); } return this.entityService.query<AnyRow>(this.entity, q); };
+            const loader = new DataLoader<AnyRow>(fetch);
+            const filter: any = { view: this.viewName! };
+            filter.bqlQuery = this.currentQuery.trim();
+            if (path.length >= 1) filter.category = path[0];
+            if (path.length >= 2) filter.alternateCategory = path[1];
+            loader.load(this.itemsPerPage, this.sort, filter);
+            groupData.mode = 'grid';
+            groupData.loader = loader;
+          }
+          groupData.loading = false;
+        },
+        error: () => {
+          groupData.loading = false;
+          groupData.loadingMessage = 'Error loading data.';
+        },
       });
     } else {
-      this.entityService.searchView(this.entity, { ...params, query: '*' }).subscribe((res: any) => {
-        const hits = res.body?.hits ?? [];
-        if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
-          groupData.groups = hits.map((h: any) => ({ name: h.categoryName, count: h.count, categories: path }));
-          groupData.mode = 'group';
-        } else {
-          const fetch: FetchFunction<AnyRow> = (q: any) => { if (q.bqlQuery) { const bql = q.bqlQuery; delete q.bqlQuery; return this.entityService.searchWithBql<AnyRow>(this.entity, bql, q); } return this.entityService.query<AnyRow>(this.entity, q); };
-          const loader = new DataLoader<AnyRow>(fetch);
-          const filter: any = { view: this.viewName!, query: '*' };
-          if (path.length >= 1) filter.category = path[0];
-          if (path.length >= 2) filter.alternateCategory = path[1];
-          loader.load(this.itemsPerPage, this.sort, filter);
-          groupData.mode = 'grid';
-          groupData.loader = loader;
-        }
+      this.entityService.searchView(this.entity, { ...params, query: '*' }).subscribe({
+        next: (res: any) => {
+          const hits = res.body?.hits ?? [];
+          if (hits.length > 0 && (hits[0] as any).categoryName !== undefined) {
+            groupData.groups = hits.map((h: any) => ({ name: h.categoryName, count: h.count, categories: path }));
+            groupData.mode = 'group';
+          } else {
+            const fetch: FetchFunction<AnyRow> = (q: any) => { if (q.bqlQuery) { const bql = q.bqlQuery; delete q.bqlQuery; return this.entityService.searchWithBql<AnyRow>(this.entity, bql, q); } return this.entityService.query<AnyRow>(this.entity, q); };
+            const loader = new DataLoader<AnyRow>(fetch);
+            const filter: any = { view: this.viewName!, query: '*' };
+            if (path.length >= 1) filter.category = path[0];
+            if (path.length >= 2) filter.alternateCategory = path[1];
+            loader.load(this.itemsPerPage, this.sort, filter);
+            groupData.mode = 'grid';
+            groupData.loader = loader;
+          }
+          groupData.loading = false;
+        },
+        error: () => {
+          groupData.loading = false;
+          groupData.loadingMessage = 'Error loading data.';
+        },
       });
     }
     return groupData;

@@ -58,6 +58,8 @@ export interface GroupData {
   mode: 'grid' | 'group';
   loader?: DataLoader<any>;
   groups?: GroupDescriptor[];
+  loading?: boolean;
+  loadingMessage?: string;
 }
 
 @Component({
@@ -126,6 +128,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   groupLoaders: { [key: string]: GroupData | undefined } = {};
   private loaderWatchHandles: { [key: string]: any} = {};
+  private syncedDetailTables = new WeakSet<SuperTable>();
+  private detailSyncScheduled = false;
+  private detailSyncForceAll = false;
+  private detailSyncHandle: any;
 
   // (No-op placeholder removed: child-grid loading is now indicated
   // within the child table itself via the grid header template.)
@@ -540,12 +546,13 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       this.enforceWidthsAfterLayout();
     });
     this.detailTables.changes.subscribe(() => {
-      setTimeout(() => this.applyStoredStateToDetails(), 100);
+      this.scheduleDetailSync();
     });
   }
 
   ngOnDestroy(): void {
     this.destroyScroll();
+    this.cancelDetailSync();
     if (typeof window !== 'undefined' && this.windowResizeHandler) {
       window.removeEventListener('resize', this.windowResizeHandler as any);
       this.windowResizeHandler = undefined;
@@ -578,14 +585,20 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       this.expandedRowKeys[groupName] = true;
       if (this.groupQuery && !this.groupLoaders[groupName]) {
         const result = this.groupQuery(group) || ({} as GroupData);
-        // If the groupQuery did not return an immediate loader (it may
-        // do async work and attach one later), provide a tiny placehoder
-        // loader so the child table can bind to loading observables and
-        // render its "loading" row immediately.
-        if (!!(result as any).loader) {
+        const hasImmediateContent = !!(result as any).loader || !!result.groups?.length;
+        if (result.loading === undefined) {
+          result.loading = !hasImmediateContent;
+        }
+        if (result.loading && !result.loadingMessage) {
+          result.loadingMessage = this.loadingMessage || 'Loading ...';
+        }
+        // If the groupQuery resolves a grid asynchronously and attaches the
+        // real loader later, use a placeholder so the child table can show a
+        // loading row immediately.
+        if (result.mode === 'grid' && result.loading && !(result as any).loader) {
           const dataSub = new BehaviorSubject<any[]>([]);
           const loadingSub = new BehaviorSubject<boolean>(true);
-          const msgSub = new BehaviorSubject<string>(this.loadingMessage || 'Loading ...');
+          const msgSub = new BehaviorSubject<string>(result.loadingMessage || this.loadingMessage || 'Loading ...');
           (result as any).loader = {
             data$: dataSub,
             loading$: loadingSub.asObservable(),
@@ -599,7 +612,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
             if (!current) return;
             const l = (current as any).loader;
             if (l && !(l as any).__st_placeholder){
-              try { clearInterval(this.loaderWatchHandles[groupName]); } catch {}
+              current.loading = false;
+              try { clearInterval(handle); } catch {}
               try { clearTimeout((this.loaderWatchHandles as any)[groupName + '_timeout']); } catch {}
               delete this.loaderWatchHandles[groupName];
               delete (this.loaderWatchHandles as any)[groupName + '_timeout'];
@@ -611,22 +625,22 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
             try { clearTimeout(timeout); } catch {}
             if (this.loaderWatchHandles[groupName]) delete this.loaderWatchHandles[groupName];
             if ((this.loaderWatchHandles as any)[groupName + '_timeout']) delete (this.loaderWatchHandles as any)[groupName + '_timeout'];
-          }, 5000)
-          this.loaderWatchHandles[groupName] = result;
+          }, 5000);
+          this.loaderWatchHandles[groupName] = handle;
           (this.loaderWatchHandles as any)[groupName + '_timeout'] = timeout;
         }
         this.groupLoaders[groupName] = result;
         try { this.cdr.detectChanges(); } catch {}
       }
       this.rowExpand.emit({ data: group });
-      setTimeout(() => this.applyStoredStateToDetails(), 100);
+      this.scheduleDetailSync();
     }
   }
 
   onRowExpand(event: { originalEvent: Event; data: any }) {
     this.expandedRowKeys[event.data.id] = true;
     this.rowExpand.emit(event);
-    setTimeout(() => this.applyStoredStateToDetails(), 100);
+    this.scheduleDetailSync();
   }
 
   onRowCollapse(event: any) {
@@ -733,22 +747,76 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     this.detailTables?.forEach(table => table.resetLayoutState());
   }
 
-  private applyStoredStateToDetails(): void {
+  private applyStoredStateToDetails(forceAll = false): void {
     const currentWidths = this._getColumnWidths();
     if (currentWidths) {
       this.lastColumnWidths = currentWidths;
     }
 
     this.detailTables?.forEach((table) => {
-      table.columns = [...this.columns];
+      if (!forceAll && this.syncedDetailTables.has(table)) {
+        return;
+      }
       if (this.lastSortEvent) {
         table.applySort(this.lastSortEvent);
       }
       if (this.lastFilterEvent) {
         table.applyFilter(this.lastFilterEvent);
       }
+      this.syncedDetailTables.add(table);
     });
     this.attemptScrollRestore();
+  }
+
+  private scheduleDetailSync(forceAll = false, attempt = 0): void {
+    this.detailSyncForceAll = this.detailSyncForceAll || forceAll;
+    if (this.detailSyncScheduled) {
+      return;
+    }
+    this.detailSyncScheduled = true;
+    const schedule =
+      typeof requestAnimationFrame === 'function'
+        ? (cb: () => void) => requestAnimationFrame(() => cb())
+        : (cb: () => void) => setTimeout(cb, 0);
+    this.detailSyncHandle = schedule(() => this.flushDetailSync(attempt));
+  }
+
+  private flushDetailSync(attempt: number): void {
+    this.detailSyncScheduled = false;
+    this.detailSyncHandle = null;
+    const forceAll = this.detailSyncForceAll;
+    this.detailSyncForceAll = false;
+
+    let needsRetry = false;
+    this.detailTables?.forEach((table) => {
+      if (!forceAll && this.syncedDetailTables.has(table)) {
+        return;
+      }
+      if (!table.pTable) {
+        needsRetry = true;
+        return;
+      }
+    });
+
+    this.applyStoredStateToDetails(forceAll);
+
+    if (needsRetry && attempt < 2) {
+      this.scheduleDetailSync(forceAll, attempt + 1);
+    }
+  }
+
+  private cancelDetailSync(): void {
+    if (!this.detailSyncHandle) {
+      return;
+    }
+    if (typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(this.detailSyncHandle);
+    } else {
+      clearTimeout(this.detailSyncHandle);
+    }
+    this.detailSyncHandle = null;
+    this.detailSyncScheduled = false;
+    this.detailSyncForceAll = false;
   }
 
   applySort(event: any): void {
@@ -915,7 +983,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     this.cdr.detectChanges();
     this.desiredScrollTop = state.scrollTop || 0;
     setTimeout(() => {
-      this.applyStoredStateToDetails();
+      this.applyStoredStateToDetails(true);
       const children = state.children || {};
       this.detailTables?.forEach((table) => {
         const key = table.parentKey;

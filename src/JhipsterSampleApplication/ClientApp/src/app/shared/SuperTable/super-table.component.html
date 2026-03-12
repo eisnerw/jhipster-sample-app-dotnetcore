@@ -692,6 +692,8 @@
               [groups]="groupLoaders[rowData.name]?.groups || []"
               [mode]="groupLoaders[rowData.name]?.mode || 'grid'"
               [groupQuery]="groupQuery"
+              [loading]="groupLoaders[rowData.name]?.loading || false"
+              [loadingMessage]="groupLoaders[rowData.name]?.loadingMessage || loadingMessage"
               [columns]="visibleColumns"
               [showRowNumbers]="showRowNumbers"
               [superTableParent]="this"
