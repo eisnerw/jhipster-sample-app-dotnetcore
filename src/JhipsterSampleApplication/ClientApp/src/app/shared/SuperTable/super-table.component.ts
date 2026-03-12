@@ -60,6 +60,7 @@ export interface GroupData {
   groups?: GroupDescriptor[];
   loading?: boolean;
   loadingMessage?: string;
+  refresh?: () => void;
 }
 
 @Component({
@@ -592,6 +593,11 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       this.renderedGroupRows[groupName] = true;
       if (this.groupQuery && !this.groupLoaders[groupName]) {
         const result = this.groupQuery(group) || ({} as GroupData);
+        const existingRefresh = result.refresh;
+        result.refresh = () => {
+          try { existingRefresh?.(); } catch {}
+          try { this.cdr.detectChanges(); } catch {}
+        };
         const hasImmediateContent = !!(result as any).loader || !!result.groups?.length;
         if (result.loading === undefined) {
           result.loading = !hasImmediateContent;
@@ -937,7 +943,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   // Public: replace or update a specific row in-place. The `row` parameter must
-  // contain the `id` propert used as the dataKey.  If the row exists in the 
+  // contain the `id` property used as the dataKey.  If the row exists in the 
   // currently rendered buffer, its object will be replaced and change detection
   // triggered so the UI rebuilds the row (including annotations rendered from
   // the entity spec).
@@ -967,7 +973,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         copy[idx] = updated;
         try { (this.dataLoader as any).data$?.next?.(copy); } catch {}
       }
-      // Trigger change detection on this table to ensure annotations re-render
+      // Trigger change detection on this table to ensure annotations re-render.
       this.cdr.detectChanges();
     } catch {}
   }

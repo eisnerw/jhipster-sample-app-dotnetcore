@@ -317,8 +317,10 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     this.columns = columns;
     this.initialWidths = this.columns.map(c => c.width || undefined);
-    // Base signature tied to column spec
-    this.baseSpecSignature = this.columns.map(c => `${c.field}:${c.width || ''}`).join('|');
+    // Base signature tied to the rendered column definition so persisted widths
+    // are invalidated when template-backed columns or other layout-relevant
+    // properties change without changing the raw field name.
+    this.baseSpecSignature = this.buildColumnLayoutSignature(this.columns);
     const vw = this.getStableViewportWidth();
     this.specSignature = `${this.baseSpecSignature}|vw:${vw}`;
     this.globalFilterFields = columns
@@ -541,6 +543,25 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
 
     cols.push({ field: 'expander', header: '', type: 'expander', width: '25px', style: 'font-weight: 700;' });
     return cols;
+  }
+
+  private buildColumnLayoutSignature(columns: ColumnConfig[]): string {
+    const payload = columns.map((col: any) => ({
+      field: col.field || '',
+      header: col.header || '',
+      type: col.type || '',
+      filterType: col.filterType || '',
+      width: col.width || '',
+      minWidth: col.minWidth || '',
+      style: col.style || '',
+      dateFormat: col.dateFormat || '',
+      computeFields: Array.isArray(col.computeFields) ? [...col.computeFields] : [],
+      sortFields: Array.isArray(col.sortFields) ? [...col.sortFields] : [],
+      templateSpec: Array.isArray(col.templateSpec) ? [...col.templateSpec] : (col.templateSpec || ''),
+      listOptions: Array.isArray(col.listOptions) ? col.listOptions.map((o: any) => ({ label: o?.label || '', value: o?.value || '' })) : [],
+      annotations: Array.isArray(col.annotations) ? col.annotations.map((a: any) => ({ type: a?.type || '', pos: a?.pos || '' })) : [],
+    }));
+    return JSON.stringify(payload);
   }
 
   private prettyHeader(k: string): string { return (k || '').replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()); }
@@ -1469,10 +1490,12 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
             groupData.loader = loader;
           }
           groupData.loading = false;
+          groupData.refresh?.();
         },
         error: () => {
           groupData.loading = false;
           groupData.loadingMessage = 'Error loading data.';
+          groupData.refresh?.();
         },
       });
     } else {
@@ -1493,10 +1516,12 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
             groupData.loader = loader;
           }
           groupData.loading = false;
+          groupData.refresh?.();
         },
         error: () => {
           groupData.loading = false;
           groupData.loadingMessage = 'Error loading data.';
+          groupData.refresh?.();
         },
       });
     }

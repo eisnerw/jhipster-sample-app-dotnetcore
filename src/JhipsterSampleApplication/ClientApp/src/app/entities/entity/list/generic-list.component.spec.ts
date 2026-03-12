@@ -101,4 +101,43 @@ describe('GenericListComponent', () => {
     expect(dobCol.type).toBe('date');
     expect(dobCol.dateFormat).toBe('DD-MMM-YY HH:mm');
   });
+
+  it('changes the width persistence signature when a template column changes', () => {
+    const specA = {
+      columns: [
+        {
+          name: 'Name',
+          template: ['{lname}', ', {fname}'],
+          sort: ['lname', 'fname'],
+        },
+        'dob',
+      ],
+      fields: {
+        lname: { type: 'string', column: 'Last Name' },
+        fname: { type: 'string', column: 'First Name' },
+        dob: { type: 'date', column: 'DOB' },
+      },
+    };
+    const specB = {
+      columns: [
+        {
+          name: 'Name',
+          template: ['{fname}', ' {lname}'],
+          sort: ['lname', 'fname'],
+        },
+        'dob',
+      ],
+      fields: specA.fields,
+    };
+
+    (component as any).loadColumnsFromSpec(specA);
+    const sigA = component.specSignature;
+
+    (component as any).loadColumnsFromSpec(specB);
+    const sigB = component.specSignature;
+
+    expect(sigA).toBeTruthy();
+    expect(sigB).toBeTruthy();
+    expect(sigA).not.toEqual(sigB);
+  });
 });

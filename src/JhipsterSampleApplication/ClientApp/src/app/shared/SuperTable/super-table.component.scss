@@ -45,9 +45,10 @@
     min-width: 0; /* allow children to shrink for ellipsis */
   }
   .cell-inline .cell-content {
-    flex: 0 1 auto; /* do not force-fill; sit just before pills */
+    flex: 1 1 auto; /* fill remaining cell width so content spans the cell */
     min-width: 0;
     display: block; /* keep ellipsis behavior */
+    max-width: 100%;
   }
 
   .header-cell {
@@ -217,8 +218,9 @@
 :host ::ng-deep td .cell-inline .cell-link {
   display: inline-flex;           /* behave well inside flex and keep inline baseline */
   align-items: center;
-  flex: 0 1 auto;                 /* allow shrinking */
+  flex: 1 1 auto;                 /* fill available cell width */
   min-width: 0;                   /* REQUIRED for ellipsis within flex children */
+  max-width: 100%;
   text-decoration: underline;
   color: inherit;
 }
