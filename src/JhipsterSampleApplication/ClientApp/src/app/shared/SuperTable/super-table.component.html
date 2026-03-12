@@ -682,8 +682,8 @@
           </div>
         </td>
       </tr>
-      @if (isGroupExpanded(rowData)) {
-        <tr>
+      @if (isGroupExpanded(rowData) || hasRenderedGroup(rowData)) {
+        <tr [style.display]="isGroupExpanded(rowData) ? '' : 'none'">
           <td [attr.colspan]="visibleColumns.length">
             <super-table
               #detailTable

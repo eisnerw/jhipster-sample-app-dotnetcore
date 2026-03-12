@@ -128,6 +128,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   groupLoaders: { [key: string]: GroupData | undefined } = {};
   private loaderWatchHandles: { [key: string]: any} = {};
+  private renderedGroupRows: { [key: string]: boolean } = {};
   private syncedDetailTables = new WeakSet<SuperTable>();
   private detailSyncScheduled = false;
   private detailSyncForceAll = false;
@@ -525,6 +526,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       // Clear cached group data and expanded state when groups change
       this.groupLoaders = {};
       this.expandedRowKeys = {};
+      this.renderedGroupRows = {};
     }
     // Avoid re-entrancy: ignore change events we caused while applying widths
     if (this.applyingWidths) {
@@ -575,6 +577,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     return this.expandedRowKeys[group.name] === true;
   }
 
+  hasRenderedGroup(group: GroupDescriptor): boolean {
+    return this.renderedGroupRows[group.name] === true;
+  }
+
   onGroupToggle(group: GroupDescriptor): void {
     const groupName = group.name;
     const isExpanded = this.isGroupExpanded(group);
@@ -583,6 +589,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       this.rowCollapse.emit({ data: group });
     } else {
       this.expandedRowKeys[groupName] = true;
+      this.renderedGroupRows[groupName] = true;
       if (this.groupQuery && !this.groupLoaders[groupName]) {
         const result = this.groupQuery(group) || ({} as GroupData);
         const hasImmediateContent = !!(result as any).loader || !!result.groups?.length;
@@ -733,6 +740,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     this.lastFilterEvent = undefined;
     this.capturedWidths = false;
     this.groupLoaders = {};
+    this.renderedGroupRows = {};
     try {
       Object.values(this.loaderWatchHandles || {}).forEach((h) => {
         try { clearInterval(h); } catch {}
