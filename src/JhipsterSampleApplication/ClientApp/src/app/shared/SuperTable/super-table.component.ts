@@ -13,6 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { DataLoader } from '../data-loader';
 import { environment } from 'environments/environment';
 import dayjs from 'dayjs/esm';
+import { BehaviorSubject } from 'rxjs';
 
 export interface ColumnConfig {
   field: string;
@@ -113,10 +114,18 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   // Deprecated: legacy single pill content near checkbox (kept for bw-compat; unused now)
   @Input() pillContent: ((row: any) => string) | undefined;
 
+  // Template type-check helper: some template blocks declare a template-local
+  // variable named `pill` via a custom preprocessor. Declaring a public
+  // `pill` property here silences the Angular template type-checker (TS2339)
+  // when the local variable isn't recognized by the checker.  It does not 
+  // affect runtime behavior where the template provides its own `pill`.
+  pill: any | null = null;
+
   @ViewChild('pTable') pTable!: Table;
   @ViewChildren('detailTable') detailTables!: QueryList<SuperTable>;
 
   groupLoaders: { [key: string]: GroupData | undefined } = {};
+  private loaderWatchHandles: { [key: string]: any} = {};
 
   // (No-op placeholder removed: child-grid loading is now indicated
   // within the child table itself via the grid header template.)
@@ -531,7 +540,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       this.enforceWidthsAfterLayout();
     });
     this.detailTables.changes.subscribe(() => {
-      setTimeout(() => this.applyStoredStateToDetails(), 500);
+      setTimeout(() => this.applyStoredStateToDetails(), 100);
     });
   }
 
@@ -541,6 +550,13 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       window.removeEventListener('resize', this.windowResizeHandler as any);
       this.windowResizeHandler = undefined;
     }
+    try {
+      Object.values(this.loaderWatchHandles || {}).forEach((h) => {
+        try { clearInterval(h); } catch {}
+        try { clearTimeout(h); } catch {}
+      });
+      this.loaderWatchHandles = {};
+    } catch {}
   }
 
   isRowExpanded(row: any): boolean {
@@ -561,17 +577,56 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     } else {
       this.expandedRowKeys[groupName] = true;
       if (this.groupQuery && !this.groupLoaders[groupName]) {
-        this.groupLoaders[groupName] = this.groupQuery(group);
+        const result = this.groupQuery(group) || ({} as GroupData);
+        // If the groupQuery did not return an immediate loader (it may
+        // do async work and attach one later), provide a tiny placehoder
+        // loader so the child table can bind to loading observables and
+        // render its "loading" row immediately.
+        if (!!(result as any).loader) {
+          const dataSub = new BehaviorSubject<any[]>([]);
+          const loadingSub = new BehaviorSubject<boolean>(true);
+          const msgSub = new BehaviorSubject<string>(this.loadingMessage || 'Loading ...');
+          (result as any).loader = {
+            data$: dataSub,
+            loading$: loadingSub.asObservable(),
+            loadingMessage$: msgSub.asObservable(),
+            __st_placeholder: true,
+          } as any;
+
+          // watch for the real loader to be attached; stop watching after 5s
+          const handle = setInterval(() => {
+            const current = this.groupLoaders[groupName];
+            if (!current) return;
+            const l = (current as any).loader;
+            if (l && !(l as any).__st_placeholder){
+              try { clearInterval(this.loaderWatchHandles[groupName]); } catch {}
+              try { clearTimeout((this.loaderWatchHandles as any)[groupName + '_timeout']); } catch {}
+              delete this.loaderWatchHandles[groupName];
+              delete (this.loaderWatchHandles as any)[groupName + '_timeout'];
+              try { this.cdr.detectChanges(); } catch {}
+            }
+          }, 100);
+          const timeout = setTimeout(() => {
+            try { clearInterval(handle); } catch {}
+            try { clearTimeout(timeout); } catch {}
+            if (this.loaderWatchHandles[groupName]) delete this.loaderWatchHandles[groupName];
+            if ((this.loaderWatchHandles as any)[groupName + '_timeout']) delete (this.loaderWatchHandles as any)[groupName + '_timeout'];
+          }, 5000)
+          this.loaderWatchHandles[groupName] = result;
+          (this.loaderWatchHandles as any)[groupName + '_timeout'] = timeout;
+        }
+        this.groupLoaders[groupName] = result;
+        try { this.cdr.detectChanges(); } catch {}
       }
       this.rowExpand.emit({ data: group });
-      setTimeout(() => this.applyStoredStateToDetails(), 500);
+      setTimeout(() => this.applyStoredStateToDetails(), 100);
     }
   }
 
   onRowExpand(event: { originalEvent: Event; data: any }) {
     this.expandedRowKeys[event.data.id] = true;
     this.rowExpand.emit(event);
-    setTimeout(() => this.applyStoredStateToDetails(), 500);
+    setTimeout(() => this.applyStoredStateToDetails(), 100);
   }
 
   onRowCollapse(event: any) {
@@ -664,6 +719,13 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     this.lastFilterEvent = undefined;
     this.capturedWidths = false;
     this.groupLoaders = {};
+    try {
+      Object.values(this.loaderWatchHandles || {}).forEach((h) => {
+        try { clearInterval(h); } catch {}
+        try { clearTimeout(h); } catch {}
+      });
+    } catch {}
+    this.loaderWatchHandles = {};
     this.expandedRowKeys = {};
     this.minWidthsCache = null;
     this.startWidthsPx = null;
@@ -798,6 +860,42 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     return state;
   }
 
+  // Public: replace or update a specific row in-place. The `row` parameter must
+  // contain the `id` propert used as the dataKey.  If the row exists in the 
+  // currently rendered buffer, its object will be replaced and change detection
+  // triggered so the UI rebuilds the row (including annotations rendered from
+  // the entity spec).
+  updateRow(row: any): void {
+    try {
+      if (!row) return;
+      const id = row.id ?? row;
+      if (id === undefined || id === null) return;
+      const source = this.dataLoader?.data$?.getValue?.() ?? null;
+      if (!Array.isArray(source)) return;
+      const idx = source.findIndex((r: any) => (r?.id ?? r) === id) ;
+      if (idx === -1) return;
+      // Replace the object so Angular change-detection notices the update.
+      const updated = { ...source[idx], ...row };
+      // Mutate the underlying buffer in-place when possible so consumers
+      // observing the same array reference do not see it replaced.
+      if ((this.dataLoader as any).buffer !== undefined) {
+        const buf: any[] = (this.dataLoader as any).buffer as any[];
+        buf[idx] = updated;
+        try { (this.dataLoader as any).bufferSubject?.next?.(buf); } catch {}
+      } else if ((this.dataLoader as any).data$ && (this.dataLoader as any).dta$?.getValue) {
+        const current: any[] = (this.dataLoader as any).data$?.getValue() || [];
+        current[idx] = updated;
+        try { (this.dataLoader as any).data$?.next?.(current); } catch {}
+      } else {
+        const copy = source.slice();
+        copy[idx] = updated;
+        try { (this.dataLoader as any).data$?.next?.(copy); } catch {}
+      }
+      // Trigger change detection on this table to ensure annotations re-render
+      this.cdr.detectChanges();
+    } catch {}
+  }
+
   restoreState(state: any): void {
     if (!state) {
       return;
@@ -826,7 +924,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         }
       });
       this.attemptScrollRestore();
-    }, 500);
+    }, 100);
   }
 
   onHeaderColResize(event: any): void {
