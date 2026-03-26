@@ -669,6 +669,15 @@
         }
       </ng-template>
     }
+    <ng-template pTemplate="emptymessage">
+      @if (superTableParent || !loading) {
+        <tr class="loading-row">
+          <td [attr.colspan]="visibleColumns.length">
+            {{ loading ? (loadingMessage || 'Loading…') : 'No hits' }}
+          </td>
+        </tr>
+      }
+    </ng-template>
     <ng-template pTemplate="body" let-rowData>
       <tr class="p-row-odd">
         <td [attr.colspan]="visibleColumns.length">
