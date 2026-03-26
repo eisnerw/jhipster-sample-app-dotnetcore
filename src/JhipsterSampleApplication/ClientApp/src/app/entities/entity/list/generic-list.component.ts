@@ -664,6 +664,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
   loadRootGroups(restoreState: boolean = false, sessionId: number = this.entitySession): void {
     const activeView = this.viewName;
     if (!activeView) { this.groups = []; this.groupLoading = false; this.viewMode = 'grid'; this.loadPage(sessionId); setTimeout(() => this.superTable?.applyCapturedHeaderState(), 300); return; }
+    this.dataLoader?.cancel();
     const viewParams: any = { from: 0, pageSize: 1000, view: activeView };
     const hasQuery = this.currentQuery.trim().length > 0;
     this.viewMode = 'group';

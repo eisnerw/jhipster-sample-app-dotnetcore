@@ -559,171 +559,183 @@
   </p-table>
 }
 @if (mode === 'group') {
-  <p-table
-    [columns]="visibleColumns"
-    #pTable
-    [resizableColumns]="false"
-    columnResizeMode="expand"
-    [scrollable]="true"
-    [scrollHeight]="scrollHeight"
-    [tableStyle]="tableStyle"
-    [showGridlines]="false"
-    [globalFilterFields]="['name']"
-    (onSort)="onHeaderSort($event)"
-    (onFilter)="onHeaderFilter($event)"
-    (onColResize)="onHeaderColResize($event)"
-    [value]="displayGroups"
-  >
-    @if (showHeader && !superTableParent) {
-      <ng-template pTemplate="header" let-columns>
-        <tr class="header-row">
-          @for (col of columns; track col; let i = $index) {
-            <th
-              [pSortableColumn]="
-                col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list' ? getSortField(col) : undefined
-              "
-              [style.width]="col.width"
-              [style]="col.style"
-              [ngClass]="{ 'numeric-header': col.filterType === 'numeric' }"
-            >
-              <div class="p-d-flex p-jc-between p-ai-center">
-                {{ col.header }}
-                @switch (col.type) {
-                  @case ('string') {
-                    <p-sortIcon [field]="getSortField(col) || ''"></p-sortIcon>
-                    @if (col.filterType) {
-                      <p-columnFilter [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
-                    }
-                  }
-                  @case ('date') {
-                    <p-sortIcon [field]="getSortField(col) || ''"></p-sortIcon>
-                    @if (col.filterType) {
-                      <p-columnFilter [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
-                    }
-                  }
-                  @case ('boolean') {
-                    <p-sortIcon [field]="getSortField(col) || ''"></p-sortIcon>
-                    @if (col.filterType) {
-                      <p-columnFilter [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
-                    }
-                  }
-                  @case ('list') {
-                    <p-sortIcon [field]="getSortField(col) || ''"></p-sortIcon>
-                    <p-columnFilter
-                      [field]="col.field"
-                      matchMode="in"
-                      display="menu"
-                      [showMatchModes]="false"
-                      [showOperator]="false"
-                      [showAddButton]="false"
-                    >
-                      <ng-template pTemplate="filter" let-value let-filter="filterCallback">
-                        <p-multiselect
-                          [options]="col.listOptions"
-                          placeholder="Any"
-                          (onChange)="filterList($event, col.field)"
-                          optionLabel="label"
-                          [style]="{ 'min-width': '14rem' }"
-                          [panelStyle]="{ 'min-width': '16rem' }"
-                          [showToggleAll]="true"
-                          [showClear]="true"
-                        >
-                        </p-multiselect>
-                      </ng-template>
-                    </p-columnFilter>
-                  }
-                  @case ('checkbox') {
-                    <p-checkbox
-                      [binary]="true"
-                      [ngModel]="isAllVisibleSelected()"
-                      aria-label="Select all visible detail rows"
-                      (onChange)="onGroupHeaderSelectAll($event.checked)"
-                    ></p-checkbox>
-                  }
-                  @case ('expander') {
-                    <span></span>
-                  }
-                  @case ('lineNumber') {
-                    <span></span>
-                  }
-                }
-              </div>
-              <span
-                class="st-resize-handle"
-                *ngIf="resizableColumns && (col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list')"
-                (mousedown)="onResizeStart(i, $event)"
-                (mouseup)="$event.stopPropagation()"
-                (click)="$event.stopPropagation()"
-                (dblclick)="onResizeReset(i, $event)"
-              ></span>
-            </th>
-          }
-        </tr>
-        <!-- Group mode: show loading row while categories are loading -->
-        @if (loading) {
-          <tr class="loading-row">
-            <td [attr.colspan]="visibleColumns.length">
-              {{ loadingMessage || 'Loading…' }}
-            </td>
-          </tr>
-        }
-      </ng-template>
-    }
-    <ng-template pTemplate="emptymessage">
-      @if (superTableParent || !loading) {
+  @if (superTableParent && displayGroups.length === 0) {
+    <table class="p-datatable-table" style="width: 100%">
+      <tbody>
         <tr class="loading-row">
           <td [attr.colspan]="visibleColumns.length">
             {{ loading ? (loadingMessage || 'Loading…') : 'No hits' }}
           </td>
         </tr>
+      </tbody>
+    </table>
+  } @else {
+    <p-table
+      [columns]="visibleColumns"
+      #pTable
+      [resizableColumns]="false"
+      columnResizeMode="expand"
+      [scrollable]="true"
+      [scrollHeight]="scrollHeight"
+      [tableStyle]="tableStyle"
+      [showGridlines]="false"
+      [globalFilterFields]="['name']"
+      (onSort)="onHeaderSort($event)"
+      (onFilter)="onHeaderFilter($event)"
+      (onColResize)="onHeaderColResize($event)"
+      [value]="displayGroups"
+    >
+      @if (showHeader && !superTableParent) {
+        <ng-template pTemplate="header" let-columns>
+          <tr class="header-row">
+            @for (col of columns; track col; let i = $index) {
+              <th
+                [pSortableColumn]="
+                  col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list' ? getSortField(col) : undefined
+                "
+                [style.width]="col.width"
+                [style]="col.style"
+                [ngClass]="{ 'numeric-header': col.filterType === 'numeric' }"
+              >
+                <div class="p-d-flex p-jc-between p-ai-center">
+                  {{ col.header }}
+                  @switch (col.type) {
+                    @case ('string') {
+                      <p-sortIcon [field]="getSortField(col) || ''"></p-sortIcon>
+                      @if (col.filterType) {
+                        <p-columnFilter [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
+                      }
+                    }
+                    @case ('date') {
+                      <p-sortIcon [field]="getSortField(col) || ''"></p-sortIcon>
+                      @if (col.filterType) {
+                        <p-columnFilter [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
+                      }
+                    }
+                    @case ('boolean') {
+                      <p-sortIcon [field]="getSortField(col) || ''"></p-sortIcon>
+                      @if (col.filterType) {
+                        <p-columnFilter [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
+                      }
+                    }
+                    @case ('list') {
+                      <p-sortIcon [field]="getSortField(col) || ''"></p-sortIcon>
+                      <p-columnFilter
+                        [field]="col.field"
+                        matchMode="in"
+                        display="menu"
+                        [showMatchModes]="false"
+                        [showOperator]="false"
+                        [showAddButton]="false"
+                      >
+                        <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                          <p-multiselect
+                            [options]="col.listOptions"
+                            placeholder="Any"
+                            (onChange)="filterList($event, col.field)"
+                            optionLabel="label"
+                            [style]="{ 'min-width': '14rem' }"
+                            [panelStyle]="{ 'min-width': '16rem' }"
+                            [showToggleAll]="true"
+                            [showClear]="true"
+                          >
+                          </p-multiselect>
+                        </ng-template>
+                      </p-columnFilter>
+                    }
+                    @case ('checkbox') {
+                      <p-checkbox
+                        [binary]="true"
+                        [ngModel]="isAllVisibleSelected()"
+                        aria-label="Select all visible detail rows"
+                        (onChange)="onGroupHeaderSelectAll($event.checked)"
+                      ></p-checkbox>
+                    }
+                    @case ('expander') {
+                      <span></span>
+                    }
+                    @case ('lineNumber') {
+                      <span></span>
+                    }
+                  }
+                </div>
+                <span
+                  class="st-resize-handle"
+                  *ngIf="resizableColumns && (col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list')"
+                  (mousedown)="onResizeStart(i, $event)"
+                  (mouseup)="$event.stopPropagation()"
+                  (click)="$event.stopPropagation()"
+                  (dblclick)="onResizeReset(i, $event)"
+                ></span>
+              </th>
+            }
+          </tr>
+          <!-- Group mode: show loading row while categories are loading -->
+          @if (loading) {
+            <tr class="loading-row">
+              <td [attr.colspan]="visibleColumns.length">
+                {{ loadingMessage || 'Loading…' }}
+              </td>
+            </tr>
+          }
+        </ng-template>
       }
-    </ng-template>
-    <ng-template pTemplate="body" let-rowData>
-      <tr class="p-row-odd">
-        <td [attr.colspan]="visibleColumns.length">
-          <div style="display: flex; align-items: center">
-            <span [ngStyle]="getIndentStyle(rowData)"></span>
-            <button type="button" pButton class="p-button-text p-button-rounded p-button-plain" (click)="onGroupToggle(rowData)">
-              <span class="group-toggle-icon" [class]="isGroupExpanded(rowData) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></span>
-            </button>
-            <span class="group-name">{{ rowData.name }}</span>
-            <span class="group-count">({{ rowData.count }})</span>
-          </div>
-        </td>
-      </tr>
-      @if (isGroupExpanded(rowData) || hasRenderedGroup(rowData)) {
-        <tr [style.display]="isGroupExpanded(rowData) ? '' : 'none'">
+      <ng-template pTemplate="emptymessage">
+        @if (!loading) {
+          <tr class="loading-row">
+            <td [attr.colspan]="visibleColumns.length">
+              No hits
+            </td>
+          </tr>
+        }
+      </ng-template>
+      <ng-template pTemplate="body" let-rowData>
+        <tr class="p-row-odd">
           <td [attr.colspan]="visibleColumns.length">
-            <super-table
-              #detailTable
-              class="grid-table"
-              [dataLoader]="groupLoaders[rowData.name]?.loader"
-              [groups]="groupLoaders[rowData.name]?.groups || []"
-              [mode]="groupLoaders[rowData.name]?.mode || 'grid'"
-              [groupQuery]="groupQuery"
-              [loading]="groupLoaders[rowData.name]?.loading || false"
-              [loadingMessage]="groupLoaders[rowData.name]?.loadingMessage || loadingMessage"
-              [columns]="visibleColumns"
-              [showRowNumbers]="showRowNumbers"
-              [superTableParent]="this"
-              [parentKey]="rowData.name"
-              [expandedRowTemplate]="expandedRowTemplate"
-              [resizableColumns]="false"
-              [scrollable]="false"
-              [scrollHeight]="undefined"
-              [selectionMode]="selectionMode"
-              [selection]="selection"
-              (selectionChange)="selectionChange.emit($event)"
-              [contextMenu]="contextMenu"
-              [contextMenuSelection]="contextMenuSelection"
-              (onContextMenuSelect)="onContextMenuSelect.emit($event)"
-              (contextMenuSelectionChange)="contextMenuSelectionChange.emit($event)"
-              (rowExpand)="rowExpand.emit($event)"
-              (rowCollapse)="rowCollapse.emit($event)"
-            ></super-table>
+            <div style="display: flex; align-items: center">
+              <span [ngStyle]="getIndentStyle(rowData)"></span>
+              <button type="button" pButton class="p-button-text p-button-rounded p-button-plain" (click)="onGroupToggle(rowData)">
+                <span class="group-toggle-icon" [class]="isGroupExpanded(rowData) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></span>
+              </button>
+              <span class="group-name">{{ rowData.name }}</span>
+              <span class="group-count">({{ rowData.count }})</span>
+            </div>
           </td>
         </tr>
-      }
-    </ng-template>
-  </p-table>
+        @if (isGroupExpanded(rowData) || hasRenderedGroup(rowData)) {
+          <tr [style.display]="isGroupExpanded(rowData) ? '' : 'none'">
+            <td [attr.colspan]="visibleColumns.length">
+              <super-table
+                #detailTable
+                class="grid-table"
+                [dataLoader]="groupLoaders[rowData.name]?.loader"
+                [groups]="groupLoaders[rowData.name]?.groups || []"
+                [mode]="groupLoaders[rowData.name]?.mode || 'grid'"
+                [groupQuery]="groupQuery"
+                [loading]="groupLoaders[rowData.name]?.loading || false"
+                [loadingMessage]="groupLoaders[rowData.name]?.loadingMessage || loadingMessage"
+                [columns]="visibleColumns"
+                [showRowNumbers]="showRowNumbers"
+                [superTableParent]="this"
+                [parentKey]="rowData.name"
+                [expandedRowTemplate]="expandedRowTemplate"
+                [resizableColumns]="false"
+                [scrollable]="false"
+                [scrollHeight]="undefined"
+                [selectionMode]="selectionMode"
+                [selection]="selection"
+                (selectionChange)="selectionChange.emit($event)"
+                [contextMenu]="contextMenu"
+                [contextMenuSelection]="contextMenuSelection"
+                (onContextMenuSelect)="onContextMenuSelect.emit($event)"
+                (contextMenuSelectionChange)="contextMenuSelectionChange.emit($event)"
+                (rowExpand)="rowExpand.emit($event)"
+                (rowCollapse)="rowCollapse.emit($event)"
+              ></super-table>
+            </td>
+          </tr>
+        }
+      </ng-template>
+    </p-table>
+  }
 }

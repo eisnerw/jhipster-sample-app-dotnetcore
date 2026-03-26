@@ -42,6 +42,21 @@ export class DataLoader<T> {
     this.loadingMessage$ = this.loadingMessageSubject.asObservable();
   }
 
+  cancel(clearData = false): void {
+    // Invalidate any pending paged load or delayed loadMore callback.
+    this.activeLoadId++;
+    this.pitId = null;
+    this.searchAfter = [];
+    this.loadingMessageSubject.next('');
+    this.loadingSubject.next(false);
+
+    if (clearData) {
+      this.buffer = [];
+      this.bufferSubject.next([]);
+      this.totalItemsSubject.next(0);
+    }
+  }
+
   load(itemsPerPage: number, sort: string, filter?: any): void {
     this.loadingSubject.next(true);
     this.loadingMessageSubject.next('Loading... ');
