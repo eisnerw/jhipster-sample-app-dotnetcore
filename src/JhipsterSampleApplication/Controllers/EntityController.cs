@@ -205,7 +205,7 @@ namespace JhipsterSampleApplication.Controllers
                         }
                     };
                 }
-                var secondaryViewDto = GetChildViewByParentId(entity, view);
+                var secondaryViewDto = GetChildViewByParentId(entity, viewDto.Id ?? viewDto.Name ?? view);
                 if (secondaryViewDto != null)
                 {
                     if (secondaryCategory == null)

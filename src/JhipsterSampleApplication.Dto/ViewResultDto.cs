@@ -3,6 +3,7 @@ namespace JhipsterSampleApplication.Dto
     public class ViewResultDto
     {
         public string CategoryName { get; set; } = string.Empty;
+        public bool IsGroup { get; set; }
         public bool? Selected { get; set; }
         public bool? NotCategorized { get; set; }
         public string? FocusType { get; set; }

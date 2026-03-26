@@ -644,7 +644,13 @@ public class EntityService : IEntityService
                 categoryName = Regex.Replace(categoryName, @"(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}.\d{3}Z", "$1-$2-$3");
             }
             if (string.IsNullOrEmpty(categoryName)) { categoryName = "(Uncategorized)"; notCategorized = true; }
-            content.Add(new ViewResultDto { CategoryName = categoryName, Count = b["doc_count"]?.Value<long?>(), NotCategorized = notCategorized });
+            content.Add(new ViewResultDto
+            {
+                CategoryName = categoryName,
+                Count = b["doc_count"]?.Value<long?>(),
+                NotCategorized = notCategorized,
+                IsGroup = false
+            });
         }
 
         content = content.OrderBy(cat => cat.CategoryName).ToList();
@@ -674,9 +680,43 @@ public class EntityService : IEntityService
         {
             var existingUncategorized = content.FirstOrDefault(c => c.NotCategorized == true);
             if (existingUncategorized != null) existingUncategorized.Count = (existingUncategorized.Count ?? 0) + uncatCount;
-            else content.Add(new ViewResultDto { CategoryName = "(Uncategorized)", Selected = false, NotCategorized = true, Count = uncatCount });
+            else content.Add(new ViewResultDto
+            {
+                CategoryName = "(Uncategorized)",
+                Selected = false,
+                NotCategorized = true,
+                Count = uncatCount,
+                IsGroup = false
+            });
         }
         return content;
+    }
+
+    private bool ViewHasChildView(string entity, ViewDto viewDto)
+    {
+        if (!_specRegistry.TryGetArray(entity, "views", out JsonArray views))
+        {
+            return false;
+        }
+
+        var parentKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(viewDto.Id)) parentKeys.Add(viewDto.Id);
+        if (!string.IsNullOrWhiteSpace(viewDto.Name)) parentKeys.Add(viewDto.Name);
+        if (parentKeys.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (var node in views.OfType<JsonObject>())
+        {
+            var parentViewId = node["parentViewId"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(parentViewId) && parentKeys.Contains(parentViewId))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // Legacy overload removed after v8 migration
@@ -897,7 +937,13 @@ private static RulesetDto MapToDto(Ruleset rr)
     {
         var (indexName, _) = GetEntitySpec(entity);
         string query = queryObject.ToString();
-        return await SearchUsingViewAsync(indexName, query, viewDto, from, size);
+        var results = await SearchUsingViewAsync(indexName, query, viewDto, from, size);
+        var isGroup = ViewHasChildView(entity, viewDto);
+        foreach (var result in results)
+        {
+            result.IsGroup = isGroup;
+        }
+        return results;
     }
 
     public async Task<SimpleApiResponse> CategorizeAsync(string entity, CategorizeRequestDto request)

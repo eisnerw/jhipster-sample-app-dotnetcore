@@ -11,8 +11,14 @@ export type SearchResponse<T> = HttpResponse<{
   pitId: string | null;
 }>;
 
+export interface ViewSearchHit {
+  categoryName: string;
+  count: number;
+  isGroup: boolean;
+}
+
 export type ViewSearchResponse = HttpResponse<{
-  hits: any[];
+  hits: ViewSearchHit[];
   hitType: string;
   viewName: string;
   viewCategory?: string;

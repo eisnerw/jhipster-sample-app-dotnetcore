@@ -51,6 +51,7 @@ export interface ColumnConfig {
 export interface GroupDescriptor {
   name: string;
   count: number;
+  isGroup: boolean;
   categories?: string[] | null;
 }
 
