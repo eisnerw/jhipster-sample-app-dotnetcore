@@ -1,148 +1,160 @@
 <!-- super-table.component.html -->
 @if (dataLoader && mode === 'grid') {
-  <p-table
-    #pTable
-    [value]="(dataLoader.data$ | async)!"
-    [columns]="visibleColumns"
-    dataKey="id"
-    [rowTrackBy]="trackByFn"
-    [lazy]="false"
-    [virtualScroll]="false"
-    [resizableColumns]="false"
-    columnResizeMode="expand"
-    [reorderableColumns]="reorderableColumns"
-    [scrollable]="scrollable"
-    [scrollHeight]="scrollHeight"
-    [tableStyle]="tableStyle"
-    [paginator]="paginator"
-    [showGridlines]="true"
-    [globalFilterFields]="globalFilterFields"
-    (onSort)="handleSort($event)"
-    (onFilter)="handleFilter($event)"
-    (onColResize)="onColResize.emit($event)"
-    expandableRow
-    [expandedRowKeys]="expandedRowKeys"
-    (onRowExpand)="onRowExpand($event)"
-    (onRowCollapse)="onRowCollapse($event)"
-    [selectionMode]="selectionMode"
-    [(selection)]="selection"
-    (selectionChange)="selectionChange.emit($event)"
-    [contextMenu]="contextMenu"
-    [(contextMenuSelection)]="contextMenuSelection"
-    (onContextMenuSelect)="onContextMenuSelect.emit($event)"
-    (contextMenuSelectionChange)="contextMenuSelectionChange.emit($event)"
-  >
-    <ng-template pTemplate="colgroup" let-columns>
-      <colgroup>
-        @for (col of columns; track col; let i = $index) {
-          <col [style.width]="col.width" />
-        }
-      </colgroup>
-    </ng-template>
-    <ng-template pTemplate="header" let-columns>
-      @if (!superTableParent && showHeader) {
-        <tr class="header-row">
-          @for (col of columns; track col; let i = $index) {
-            <th
-              [pSortableColumn]="
-                col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list' ? getSortField(col) : undefined
-              "
-              [style.width]="col.width"
-              [style]="col.style"
-              [ngClass]="{ 'numeric-header': col.filterType === 'numeric' }"
-            >
-              <div class="header-cell">
-                <span class="header-text">{{ col.header }}</span>
-                @switch (col.type) {
-                  @case ('string') {
-                    <p-sortIcon class="sort-icon" [field]="getSortField(col) || ''"></p-sortIcon>
-                    @if (col.filterType) {
-                      <p-columnFilter class="filter-button" [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
-                    }
-                  }
-                  @case ('date') {
-                    <p-sortIcon class="sort-icon" [field]="getSortField(col) || ''"></p-sortIcon>
-                    @if (col.filterType) {
-                      <p-columnFilter class="filter-button" [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
-                    }
-                  }
-                  @case ('boolean') {
-                    <p-sortIcon class="sort-icon" [field]="getSortField(col) || ''"></p-sortIcon>
-                    @if (col.filterType) {
-                      <p-columnFilter class="filter-button" [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
-                    }
-                  }
-                  @case ('list') {
-                    <p-sortIcon class="sort-icon" [field]="getSortField(col) || ''"></p-sortIcon>
-                    <p-columnFilter
-                      class="filter-button"
-                      [field]="col.field"
-                      matchMode="in"
-                      display="menu"
-                      [showMatchModes]="false"
-                      [showOperator]="false"
-                      [showAddButton]="false"
-                    >
-                      <ng-template pTemplate="filter" let-value let-filter="filterCallback">
-                        <p-multiselect
-                          [options]="col.listOptions"
-                          placeholder="Any"
-                          (onChange)="filterList($event, col.field)"
-                          optionLabel="label"
-                          [style]="{ 'min-width': '14rem' }"
-                          [panelStyle]="{ 'min-width': '16rem' }"
-                          [showToggleAll]="true"
-                          [showClear]="true"
-                        >
-                        </p-multiselect>
-                      </ng-template>
-                    </p-columnFilter>
-                  }
-                  @case ('checkbox') {
-                    <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
-                  }
-                  @case ('expander') {
-                    <span></span>
-                  }
-                  @case ('lineNumber') {
-                    <span></span>
-                  }
-                }
-              </div>
-              <span
-                class="st-resize-handle"
-                *ngIf="resizableColumns && (col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list')"
-                (mousedown)="onResizeStart(i, $event)"
-                (mouseup)="$event.stopPropagation()"
-                (click)="$event.stopPropagation()"
-                (dblclick)="onResizeReset(i, $event)"
-              ></span>
-            </th>
-          }
-        </tr>
-      }
-      @if (dataLoader.loading$ | async) {
+  @if (superTableParent && (((dataLoader.data$ | async)?.length || 0) === 0)) {
+    <table class="p-datatable-table" style="width: 100%">
+      <tbody>
         <tr class="loading-row">
           <td [attr.colspan]="visibleColumns.length">
-            {{ dataLoader.loadingMessage$ | async }}
+            {{ (dataLoader.loadingMessage$ | async) || ((dataLoader.loading$ | async) ? 'Loading...' : 'No hits') }}
           </td>
         </tr>
-      }
-    </ng-template>
-    <ng-template pTemplate="body" let-rowData let-columns="columns" let-rowIndex="rowIndex">
-      <tr [pContextMenuRow]="rowData">
-        @for (col of columns; track col; let i = $index) {
-          <td [ngClass]="{ 'numeric-cell': col.filterType === 'numeric' }">
-            @switch (col.type) {
-              @case ('checkbox') {
-                <p-tableCheckbox [value]="rowData" dataKey="id"></p-tableCheckbox>
-              }
-              @case ('string') {
-                <span class="cell-inline">
-                  <ng-container *ngIf="col.annotations?.length">
+      </tbody>
+    </table>
+  } @else {
+    <p-table
+      #pTable
+      [value]="(dataLoader.data$ | async)!"
+      [columns]="visibleColumns"
+      dataKey="id"
+      [rowTrackBy]="trackByFn"
+      [lazy]="false"
+      [virtualScroll]="false"
+      [resizableColumns]="false"
+      columnResizeMode="expand"
+      [reorderableColumns]="reorderableColumns"
+      [scrollable]="scrollable"
+      [scrollHeight]="scrollHeight"
+      [tableStyle]="tableStyle"
+      [paginator]="paginator"
+      [showGridlines]="true"
+      [globalFilterFields]="globalFilterFields"
+      (onSort)="handleSort($event)"
+      (onFilter)="handleFilter($event)"
+      (onColResize)="onColResize.emit($event)"
+      expandableRow
+      [expandedRowKeys]="expandedRowKeys"
+      (onRowExpand)="onRowExpand($event)"
+      (onRowCollapse)="onRowCollapse($event)"
+      [selectionMode]="selectionMode"
+      [(selection)]="selection"
+      (selectionChange)="selectionChange.emit($event)"
+      [contextMenu]="contextMenu"
+      [(contextMenuSelection)]="contextMenuSelection"
+      (onContextMenuSelect)="onContextMenuSelect.emit($event)"
+      (contextMenuSelectionChange)="contextMenuSelectionChange.emit($event)"
+    >
+      <ng-template pTemplate="colgroup" let-columns>
+        <colgroup>
+          @for (col of columns; track col; let i = $index) {
+            <col [style.width]="col.width" />
+          }
+        </colgroup>
+      </ng-template>
+      <ng-template pTemplate="header" let-columns>
+        @if (!superTableParent && showHeader) {
+          <tr class="header-row">
+            @for (col of columns; track col; let i = $index) {
+              <th
+                [pSortableColumn]="
+                  col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list' ? getSortField(col) : undefined
+                "
+                [style.width]="col.width"
+                [style]="col.style"
+                [ngClass]="{ 'numeric-header': col.filterType === 'numeric' }"
+              >
+                <div class="header-cell">
+                  <span class="header-text">{{ col.header }}</span>
+                  @switch (col.type) {
+                    @case ('string') {
+                      <p-sortIcon class="sort-icon" [field]="getSortField(col) || ''"></p-sortIcon>
+                      @if (col.filterType) {
+                        <p-columnFilter class="filter-button" [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
+                      }
+                    }
+                    @case ('date') {
+                      <p-sortIcon class="sort-icon" [field]="getSortField(col) || ''"></p-sortIcon>
+                      @if (col.filterType) {
+                        <p-columnFilter class="filter-button" [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
+                      }
+                    }
+                    @case ('boolean') {
+                      <p-sortIcon class="sort-icon" [field]="getSortField(col) || ''"></p-sortIcon>
+                      @if (col.filterType) {
+                        <p-columnFilter class="filter-button" [field]="col.field" [type]="col.filterType" display="menu"> </p-columnFilter>
+                      }
+                    }
+                    @case ('list') {
+                      <p-sortIcon class="sort-icon" [field]="getSortField(col) || ''"></p-sortIcon>
+                      <p-columnFilter
+                        class="filter-button"
+                        [field]="col.field"
+                        matchMode="in"
+                        display="menu"
+                        [showMatchModes]="false"
+                        [showOperator]="false"
+                        [showAddButton]="false"
+                      >
+                        <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                          <p-multiselect
+                            [options]="col.listOptions"
+                            placeholder="Any"
+                            (onChange)="filterList($event, col.field)"
+                            optionLabel="label"
+                            [style]="{ 'min-width': '14rem' }"
+                            [panelStyle]="{ 'min-width': '16rem' }"
+                            [showToggleAll]="true"
+                            [showClear]="true"
+                          >
+                          </p-multiselect>
+                        </ng-template>
+                      </p-columnFilter>
+                    }
+                    @case ('checkbox') {
+                      <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
+                    }
+                    @case ('expander') {
+                      <span></span>
+                    }
+                    @case ('lineNumber') {
+                      <span></span>
+                    }
+                  }
+                </div>
+                @if (resizableColumns && (col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list')) {
+                  <span
+                    class="st-resize-handle"
+                    (mousedown)="onResizeStart(i, $event)"
+                    (mouseup)="$event.stopPropagation()"
+                    (click)="$event.stopPropagation()"
+                    (dblclick)="onResizeReset(i, $event)"
+                  ></span>
+                }
+              </th>
+            }
+          </tr>
+        }
+        @if (dataLoader.loading$ | async) {
+          <tr class="loading-row">
+            <td [attr.colspan]="visibleColumns.length">
+              {{ dataLoader.loadingMessage$ | async }}
+            </td>
+          </tr>
+        }
+      </ng-template>
+      <ng-template pTemplate="body" let-rowData let-columns="columns" let-rowIndex="rowIndex">
+        <tr [pContextMenuRow]="rowData">
+          @for (col of columns; track col; let i = $index) {
+            <td [ngClass]="{ 'numeric-cell': col.filterType === 'numeric' }">
+              @switch (col.type) {
+                @case ('checkbox') {
+                  <p-tableCheckbox [value]="rowData" dataKey="id"></p-tableCheckbox>
+                }
+                @case ('string') {
+                  <span class="cell-inline">
+                  @if (col.annotations?.length) {
                     <ng-container *ngFor="let a of col.annotations">
-                      <ng-container *ngIf="a.type === 'pill' && a.pos !== 'after'">
-                        <ng-container *ngIf="a.render(rowData) as pill">
+                      @if (a.type === 'pill' && a.pos !== 'after') {
+                        @if (a.render(rowData); as pill) {
                           <span
                             class="cat-pill"
                             [pTooltip]="pill.tooltip || null"
@@ -155,10 +167,10 @@
                           >
                             {{ pill.text }}
                           </span>
-                        </ng-container>
-                      </ng-container>
-                      <ng-container *ngIf="a.type === 'linkPill' && a.pos !== 'after'">
-                        <ng-container *ngIf="a.render(rowData) as pill">
+                        }
+                      }
+                      @if (a.type === 'linkPill' && a.pos !== 'after') {
+                        @if (a.render(rowData); as pill) {
                           <a
                             class="cat-pill"
                             [href]="pill.link"
@@ -174,11 +186,11 @@
                           >
                             {{ pill.text }}
                           </a>
-                        </ng-container>
-                      </ng-container>
+                        }
+                      }
                     </ng-container>
-                  </ng-container>
-                  <ng-container *ngIf="linkWrap(rowData, col) as href; else noLinkStr">
+                  }
+                  @if (linkWrap(rowData, col); as href) {
                     <a class="cell-link" [href]="href" target="_blank" rel="noopener">
                       <span
                         class="cell-content"
@@ -190,8 +202,7 @@
                         [innerHTML]="formatCell(getCellString(rowData, col), col.field)"
                       ></span>
                     </a>
-                  </ng-container>
-                  <ng-template #noLinkStr>
+                  } @else {
                     <span
                       class="cell-content"
                       [pTooltip]="getCellTooltip(rowData, col, getCellString(rowData, col))"
@@ -201,11 +212,11 @@
                       [hideDelay]="350"
                       [innerHTML]="formatCell(getCellString(rowData, col), col.field)"
                     ></span>
-                  </ng-template>
-                  <ng-container *ngIf="col.annotations?.length">
+                  }
+                  @if (col.annotations?.length) {
                     <ng-container *ngFor="let a of col.annotations">
-                      <ng-container *ngIf="a.type === 'linkPill' && a.pos === 'after'">
-                        <ng-container *ngIf="a.render(rowData) as pill">
+                      @if (a.type === 'linkPill' && a.pos === 'after') {
+                        @if (a.render(rowData); as pill) {
                           <a
                             class="cat-pill after-pill"
                             [href]="pill.link"
@@ -221,10 +232,10 @@
                           >
                             {{ pill.text }}
                           </a>
-                        </ng-container>
-                      </ng-container>
-                      <ng-container *ngIf="a.type === 'pill' && a.pos === 'after'">
-                        <ng-container *ngIf="a.render(rowData) as pill">
+                        }
+                      }
+                      @if (a.type === 'pill' && a.pos === 'after') {
+                        @if (a.render(rowData); as pill) {
                           <span
                             class="cat-pill after-pill"
                             [pTooltip]="pill.tooltip || null"
@@ -237,18 +248,18 @@
                           >
                             {{ pill.text }}
                           </span>
-                        </ng-container>
-                      </ng-container>
+                        }
+                      }
                     </ng-container>
-                  </ng-container>
+                  }
                 </span>
               }
               @case ('date') {
                 <span class="cell-inline">
-                  <ng-container *ngIf="col.annotations?.length">
+                  @if (col.annotations?.length) {
                     <ng-container *ngFor="let a of col.annotations">
-                      <ng-container *ngIf="a.type === 'pill' && a.pos !== 'after'">
-                        <ng-container *ngIf="a.render(rowData) as pill">
+                      @if (a.type === 'pill' && a.pos !== 'after') {
+                        @if (a.render(rowData); as pill) {
                           <span
                             class="cat-pill"
                             [pTooltip]="pill.tooltip || null"
@@ -261,10 +272,10 @@
                           >
                             {{ pill.text }}
                           </span>
-                        </ng-container>
-                      </ng-container>
-                      <ng-container *ngIf="a.type === 'linkPill' && a.pos !== 'after'">
-                        <ng-container *ngIf="a.render(rowData) as pill">
+                        }
+                      }
+                      @if (a.type === 'linkPill' && a.pos !== 'after') {
+                        @if (a.render(rowData); as pill) {
                           <a
                             class="cat-pill"
                             [href]="pill.link"
@@ -280,26 +291,25 @@
                           >
                             {{ pill.text }}
                           </a>
-                        </ng-container>
-                      </ng-container>
+                        }
+                      }
                     </ng-container>
-                  </ng-container>
-                  <ng-container *ngIf="linkWrap(rowData, col) as href; else noLinkDate">
+                  }
+                  @if (linkWrap(rowData, col); as href) {
                     <a class="cell-link" [href]="href" target="_blank" rel="noopener">
                       <span class="cell-content">
                         {{ formatDateCell(rowData[col.field], col.dateFormat) }}
                       </span>
                     </a>
-                  </ng-container>
-                  <ng-template #noLinkDate>
+                  } @else {
                     <span class="cell-content">
                       {{ formatDateCell(rowData[col.field], col.dateFormat) }}
                     </span>
-                  </ng-template>
-                  <ng-container *ngIf="col.annotations?.length">
+                  }
+                  @if (col.annotations?.length) {
                     <ng-container *ngFor="let a of col.annotations">
-                      <ng-container *ngIf="a.type === 'linkPill' && a.pos === 'after'">
-                        <ng-container *ngIf="a.render(rowData) as pill">
+                      @if (a.type === 'linkPill' && a.pos === 'after') {
+                        @if (a.render(rowData); as pill) {
                           <a
                             class="cat-pill after-pill"
                             [href]="pill.link"
@@ -315,10 +325,10 @@
                           >
                             {{ pill.text }}
                           </a>
-                        </ng-container>
-                      </ng-container>
-                      <ng-container *ngIf="a.type === 'pill' && a.pos === 'after'">
-                        <ng-container *ngIf="a.render(rowData) as pill">
+                        }
+                      }
+                      @if (a.type === 'pill' && a.pos === 'after') {
+                        @if (a.render(rowData); as pill) {
                           <span
                             class="cat-pill after-pill"
                             [pTooltip]="pill.tooltip || null"
@@ -331,18 +341,18 @@
                           >
                             {{ pill.text }}
                           </span>
-                        </ng-container>
-                      </ng-container>
+                        }
+                      }
                     </ng-container>
-                  </ng-container>
+                  }
                 </span>
               }
               @case ('boolean') {
                 <span class="cell-inline">
-                  <ng-container *ngIf="col.annotations?.length">
+                  @if (col.annotations?.length) {
                     <ng-container *ngFor="let a of col.annotations">
-                      <ng-container *ngIf="a.type === 'pill' && a.pos !== 'after'">
-                        <ng-container *ngIf="a.render(rowData) as pill">
+                      @if (a.type === 'pill' && a.pos !== 'after') {
+                        @if (a.render(rowData); as pill) {
                           <span
                             class="cat-pill"
                             [pTooltip]="pill.tooltip || null"
@@ -355,10 +365,10 @@
                           >
                             {{ pill.text }}
                           </span>
-                        </ng-container>
-                      </ng-container>
-                      <ng-container *ngIf="a.type === 'linkPill' && a.pos !== 'after'">
-                        <ng-container *ngIf="a.render(rowData) as pill">
+                        }
+                      }
+                      @if (a.type === 'linkPill' && a.pos !== 'after') {
+                        @if (a.render(rowData); as pill) {
                           <a
                             class="cat-pill"
                             [href]="pill.link"
@@ -374,11 +384,11 @@
                           >
                             {{ pill.text }}
                           </a>
-                        </ng-container>
-                      </ng-container>
+                        }
+                      }
                     </ng-container>
-                  </ng-container>
-                  <ng-container *ngIf="linkWrap(rowData, col) as href; else noLinkBool">
+                  }
+                  @if (linkWrap(rowData, col); as href) {
                     <a class="cell-link" [href]="href" target="_blank" rel="noopener">
                       <span
                         class="cell-content"
@@ -390,8 +400,7 @@
                         >{{ rowData[col.field] ? 'Yes' : 'No' }}</span
                       >
                     </a>
-                  </ng-container>
-                  <ng-template #noLinkBool>
+                  } @else {
                     <span
                       class="cell-content"
                       [pTooltip]="rowData[col.field] ? 'Yes' : 'No'"
@@ -401,11 +410,11 @@
                       [hideDelay]="350"
                       >{{ rowData[col.field] ? 'Yes' : 'No' }}</span
                     >
-                  </ng-template>
-                  <ng-container *ngIf="col.annotations?.length">
+                  }
+                  @if (col.annotations?.length) {
                     <ng-container *ngFor="let a of col.annotations">
-                      <ng-container *ngIf="a.type === 'linkPill' && a.pos === 'after'">
-                        <ng-container *ngIf="a.render(rowData) as pill">
+                      @if (a.type === 'linkPill' && a.pos === 'after') {
+                        @if (a.render(rowData); as pill) {
                           <a
                             class="cat-pill after-pill"
                             [href]="pill.link"
@@ -421,10 +430,10 @@
                           >
                             {{ pill.text }}
                           </a>
-                        </ng-container>
-                      </ng-container>
-                      <ng-container *ngIf="a.type === 'pill' && a.pos === 'after'">
-                        <ng-container *ngIf="a.render(rowData) as pill">
+                        }
+                      }
+                      @if (a.type === 'pill' && a.pos === 'after') {
+                        @if (a.render(rowData); as pill) {
                           <span
                             class="cat-pill after-pill"
                             [pTooltip]="pill.tooltip || null"
@@ -437,18 +446,18 @@
                           >
                             {{ pill.text }}
                           </span>
-                        </ng-container>
-                      </ng-container>
+                        }
+                      }
                     </ng-container>
-                  </ng-container>
+                  }
                 </span>
               }
               @case ('list') {
                 <span class="cell-inline">
-                  <ng-container *ngIf="col.annotations?.length">
+                  @if (col.annotations?.length) {
                     <ng-container *ngFor="let a of col.annotations">
-                      <ng-container *ngIf="a.type === 'pill'">
-                        <ng-container *ngIf="a.render(rowData) as pill">
+                      @if (a.type === 'pill') {
+                        @if (a.render(rowData); as pill) {
                           <span
                             class="cat-pill"
                             [pTooltip]="pill.tooltip || null"
@@ -461,11 +470,11 @@
                           >
                             {{ pill.text }}
                           </span>
-                        </ng-container>
-                      </ng-container>
+                        }
+                      }
                     </ng-container>
-                  </ng-container>
-                  <ng-container *ngIf="linkWrap(rowData, col) as href; else noLinkList">
+                  }
+                  @if (linkWrap(rowData, col); as href) {
                     <a class="cell-link" [href]="href" target="_blank" rel="noopener">
                       <span
                         class="cell-content"
@@ -477,8 +486,7 @@
                         [innerHTML]="formatCell(getCellString(rowData, col), col.field)"
                       ></span>
                     </a>
-                  </ng-container>
-                  <ng-template #noLinkList>
+                  } @else {
                     <span
                       class="cell-content"
                       [pTooltip]="getCellString(rowData, col)"
@@ -488,11 +496,11 @@
                       [hideDelay]="350"
                       [innerHTML]="formatCell(getCellString(rowData, col), col.field)"
                     ></span>
-                  </ng-template>
-                  <ng-container *ngIf="col.annotations?.length">
+                  }
+                  @if (col.annotations?.length) {
                     <ng-container *ngFor="let a of col.annotations">
-                      <ng-container *ngIf="a.type === 'linkPill'">
-                        <ng-container *ngIf="a.render(rowData) as pill">
+                      @if (a.type === 'linkPill') {
+                        @if (a.render(rowData); as pill) {
                           <a
                             class="cat-pill after-pill"
                             [href]="pill.link"
@@ -508,10 +516,10 @@
                           >
                             {{ pill.text }}
                           </a>
-                        </ng-container>
-                      </ng-container>
+                        }
+                      }
                     </ng-container>
-                  </ng-container>
+                  }
                 </span>
               }
               @case ('lineNumber') {
@@ -536,27 +544,28 @@
               }
             }
           </td>
-        }
-      </tr>
-    </ng-template>
-    <ng-template #expandedrow let-rowData>
-      <tr>
-        <td [attr.colspan]="visibleColumns.length">
-          <ng-container
-            *ngIf="expandedRowTemplate; else defaultExpandedRow"
-            [ngTemplateOutlet]="expandedRowTemplate"
-            [ngTemplateOutletContext]="{ $implicit: rowData }"
-          >
-          </ng-container>
-          <ng-template #defaultExpandedRow>
-            <div class="p-p-3">
-              <p>No expanded row template provided</p>
-            </div>
-          </ng-template>
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
+          }
+        </tr>
+      </ng-template>
+      <ng-template #expandedrow let-rowData>
+        <tr>
+          <td [attr.colspan]="visibleColumns.length">
+            @if (expandedRowTemplate) {
+              <ng-container
+                [ngTemplateOutlet]="expandedRowTemplate"
+                [ngTemplateOutletContext]="{ $implicit: rowData }"
+              >
+              </ng-container>
+            } @else {
+              <div class="p-p-3">
+                <p>No expanded row template provided</p>
+              </div>
+            }
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  }
 }
 @if (mode === 'group') {
   @if (superTableParent && displayGroups.length === 0) {
@@ -659,14 +668,15 @@
                     }
                   }
                 </div>
-                <span
-                  class="st-resize-handle"
-                  *ngIf="resizableColumns && (col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list')"
-                  (mousedown)="onResizeStart(i, $event)"
-                  (mouseup)="$event.stopPropagation()"
-                  (click)="$event.stopPropagation()"
-                  (dblclick)="onResizeReset(i, $event)"
-                ></span>
+                @if (resizableColumns && (col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list')) {
+                  <span
+                    class="st-resize-handle"
+                    (mousedown)="onResizeStart(i, $event)"
+                    (mouseup)="$event.stopPropagation()"
+                    (click)="$event.stopPropagation()"
+                    (dblclick)="onResizeReset(i, $event)"
+                  ></span>
+                }
               </th>
             }
           </tr>
