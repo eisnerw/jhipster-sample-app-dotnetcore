@@ -651,6 +651,15 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  private publishRootGroups(groups: GroupDescriptor[], loading: boolean, loadingMessage?: string): void {
+    this.groups = [...groups];
+    this.groupLoading = loading;
+    if (loadingMessage !== undefined) {
+      this.groupLoadingMessage = loadingMessage;
+    }
+    try { this.cdr.detectChanges(); } catch { }
+  }
+
   onQueryChange(query: string, restoreState = false): void {
     this.currentQuery = query || '';
     this.gridHighlightPattern = this.buildHighlightPattern(this.currentQuery);
@@ -663,15 +672,19 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   loadRootGroups(restoreState: boolean = false, sessionId: number = this.entitySession): void {
     const activeView = this.viewName;
-    if (!activeView) { this.groups = []; this.groupLoading = false; this.viewMode = 'grid'; this.loadPage(sessionId); setTimeout(() => this.superTable?.applyCapturedHeaderState(), 300); return; }
+    if (!activeView) {
+      this.publishRootGroups([], false, 'Loading…');
+      this.viewMode = 'grid';
+      this.loadPage(sessionId);
+      setTimeout(() => this.superTable?.applyCapturedHeaderState(), 300);
+      return;
+    }
     this.dataLoader?.cancel();
     const viewParams: any = { from: 0, pageSize: 1000, view: activeView };
     const hasQuery = this.currentQuery.trim().length > 0;
     this.viewMode = 'group';
-    this.groups = [];
     // Signal that the category list is loading in group mode
-    this.groupLoading = true;
-    this.groupLoadingMessage = 'Loading categories…';
+    this.publishRootGroups([], true, 'Loading categories…');
     if (hasQuery) {
       this.entityService.searchWithBql<ViewSearchHit>(this.entity, this.currentQuery.trim(), viewParams).subscribe({
         next: res => {
@@ -679,8 +692,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
             return;
           }
           const hits = res.body?.hits ?? [];
-          this.groups = hits.map(hit => this.mapGroupDescriptor(hit));
-          this.groupLoading = false;
+          this.publishRootGroups(hits.map(hit => this.mapGroupDescriptor(hit)), false);
           setTimeout(() => {
             if (!this.superTable) return;
             if (restoreState) {
@@ -694,8 +706,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
           if (!this.isActiveSession(sessionId) || activeView !== this.viewName) {
             return;
           }
-          this.groupLoading = false;
-          this.groups = [];
+          this.publishRootGroups([], false);
           setTimeout(() => this.superTable?.applyCapturedHeaderState(), 300);
         }
       });
@@ -706,8 +717,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
             return;
           }
           const hits = res.body?.hits ?? [];
-          this.groups = hits.map(hit => this.mapGroupDescriptor(hit));
-          this.groupLoading = false;
+          this.publishRootGroups(hits.map(hit => this.mapGroupDescriptor(hit)), false);
           setTimeout(() => {
             if (!this.superTable) return;
             if (restoreState) {
@@ -721,8 +731,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
           if (!this.isActiveSession(sessionId) || activeView !== this.viewName) {
             return;
           }
-          this.groupLoading = false;
-          this.groups = [];
+          this.publishRootGroups([], false);
           setTimeout(() => this.superTable?.applyCapturedHeaderState(), 300);
         }
       });
@@ -732,7 +741,12 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
   onViewChange(view: string | null): void {
     this.viewName = view;
     if (this.viewName) { try { this.superTable?.filterGlobal(''); } catch { } this.loadRootGroups(); }
-    else { this.groups = []; this.viewMode = 'grid'; this.loadPage(); setTimeout(() => this.superTable?.applyCapturedHeaderState(), 500); }
+    else {
+      this.publishRootGroups([], false, 'Loading…');
+      this.viewMode = 'grid';
+      this.loadPage();
+      setTimeout(() => this.superTable?.applyCapturedHeaderState(), 500);
+    }
   }
 
   loadPage(sessionId: number = this.entitySession): void {
