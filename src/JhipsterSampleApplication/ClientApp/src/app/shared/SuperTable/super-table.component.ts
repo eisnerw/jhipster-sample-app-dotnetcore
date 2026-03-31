@@ -131,6 +131,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @ViewChild('pTable') pTable!: Table;
   @ViewChildren('detailTable') detailTables!: QueryList<SuperTable>;
   @ViewChildren('groupVirtualDetail') groupVirtualDetails!: QueryList<ElementRef<HTMLElement>>;
+  private groupVirtualHeaderTableElement?: HTMLTableElement;
 
   groupLoaders: { [key: string]: GroupData | undefined } = {};
   private loaderWatchHandles: { [key: string]: any} = {};
@@ -213,7 +214,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   // Prefer a surrounding Bootstrap .table-responsive scroller when present; otherwise use PrimeNG wrapper.
   private getContainerWidth(): number {
     try {
-      const host = this.pTable?.el?.nativeElement as HTMLElement | undefined;
+      const host = this.getHeaderHostElement();
       if (!host) return 0;
       let cand: HTMLElement | null = host;
       while (cand && cand.parentElement) {
@@ -229,6 +230,18 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       const base = Math.min(containerEl.clientWidth || 0, viewport || (containerEl.clientWidth || 0));
       return Math.max(0, base - 24);
     } catch { return 0; }
+  }
+
+  private getHeaderHostElement(): HTMLElement | undefined {
+    return (this.pTable?.el?.nativeElement as HTMLElement | undefined) || this.groupVirtualHeaderTableElement || this.groupVirtualViewportElement;
+  }
+
+  private getHeaderCells(): HTMLTableCellElement[] {
+    const host = this.getHeaderHostElement();
+    if (!host) {
+      return [];
+    }
+    return Array.from(host.querySelectorAll('thead th')) as HTMLTableCellElement[];
   }
 
   // Holds the current global filter text for group mode
@@ -299,6 +312,12 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       this.initScroll();
       this.scheduleGroupViewportRefresh();
     });
+  }
+
+  @ViewChild('groupVirtualHeaderTable')
+  set groupVirtualHeaderTableRef(value: ElementRef<HTMLTableElement> | undefined) {
+    this.groupVirtualHeaderTableElement = value?.nativeElement;
+    setTimeout(() => this.enforceWidthsAfterLayout());
   }
 
   trackByFn(index: number, item: any): any {
@@ -953,14 +972,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       return this.superTableParent._getColumnWidths();
     }
 
-    if (this.pTable?.el) {
-      const header: NodeListOf<HTMLTableCellElement> =
-        this.pTable.el.nativeElement.querySelectorAll('th');
-      if (header) {
-        return Array.from(header).map(
-          (th: HTMLTableCellElement) => th.offsetWidth + 'px',
-        );
-      }
+    const header = this.getHeaderCells();
+    if (header.length > 0) {
+      return header.map((th: HTMLTableCellElement) => th.offsetWidth + 'px');
     }
     return undefined;
   }
@@ -1277,8 +1291,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     this.columns = [...this.columns];
     this.cdr.detectChanges();
     setTimeout(() => {
-      if (!this.pTable?.el) return;
-      const ths: NodeListOf<HTMLTableCellElement> = this.pTable.el.nativeElement.querySelectorAll('thead th');
+      const ths = this.getHeaderCells();
+      if (ths.length === 0) return;
       pairs.forEach(([i, px]) => {
         const th = ths[i];
         if (th) th.style.width = Math.max(30, Math.round(px)) + 'px';
@@ -1694,8 +1708,11 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     this.columns = [...this.columns];
     this.updateTableStyleWidth();
     setTimeout(() => {
-      if (!this.pTable?.el) return;
-      const ths: NodeListOf<HTMLTableCellElement> = this.pTable.el.nativeElement.querySelectorAll('thead th');
+      const ths = this.getHeaderCells();
+      if (ths.length === 0) {
+        this.applyingWidths = false;
+        return;
+      }
       widths.forEach((w, i) => {
         if (!w || !ths[i]) return;
         ths[i].style.width = w;
@@ -1754,8 +1771,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     const checkAndEnforce = () => {
       // Do not enforce while the user is actively resizing columns
       if (this.resizingIndex != null) return;
-      const ths: NodeListOf<HTMLTableCellElement> | null = this.pTable?.el?.nativeElement?.querySelectorAll('thead th') || null;
-      if (!ths || ths.length === 0) return; // nothing to enforce
+      const ths = this.getHeaderCells();
+      if (ths.length === 0) return; // nothing to enforce
       // Compare only for indices where a desired width exists
       let mismatch = false;
       desired.forEach((w, i) => {
@@ -1914,11 +1931,12 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   private adjustToMeasuredContainer(): void {
     try {
-      if (!this.pTable?.el) return;
-      const host = this.pTable.el.nativeElement as HTMLElement;
+      const host = this.getHeaderHostElement();
+      if (!host) return;
       const container = this.getContainerWidth();
       const ths: NodeListOf<HTMLTableCellElement> = host.querySelectorAll('thead th');
-      const firstRow = host.querySelector('.p-datatable-tbody tr');
+      const firstRow = this.pTable?.el?.nativeElement?.querySelector('.p-datatable-tbody tr')
+        || this.groupVirtualViewportElement?.querySelector('.st-group-virtual-row-table .p-datatable-tbody tr');
       // Measure header sum
       let sumHeader = 0;
       if (ths && ths.length) ths.forEach(th => (sumHeader += th.offsetWidth));
@@ -1926,7 +1944,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       let sumBody = 0;
       if (firstRow) {
         const tds = firstRow.querySelectorAll('td');
-        if (tds && tds.length) tds.forEach(td => (sumBody += (td as HTMLTableCellElement).offsetWidth));
+        if (tds && tds.length) tds.forEach((td: Element) => (sumBody += (td as HTMLTableCellElement).offsetWidth));
       }
       const actual = Math.max(sumHeader, sumBody);
       let delta = Math.round(container - actual);
@@ -1949,8 +1967,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   private autoExpandToContainer(): void {
     try {
-      if (!this.pTable?.el) return;
-      const host = this.pTable.el.nativeElement as HTMLElement;
+      const host = this.getHeaderHostElement();
+      if (!host) return;
       const wrapper = (host.querySelector('.p-datatable-wrapper') as HTMLElement) || host;
       const container = wrapper.clientWidth || host.clientWidth;
       const total = this.visibleColumns.reduce((sum, c) => sum + this.parsePx(c.width, 120), 0);

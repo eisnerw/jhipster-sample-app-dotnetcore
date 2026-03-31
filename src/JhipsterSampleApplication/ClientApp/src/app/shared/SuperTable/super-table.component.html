@@ -582,10 +582,10 @@
     <div class="p-datatable p-component st-group-virtual-table">
       @if (showHeader && !superTableParent) {
         <div class="p-datatable-wrapper">
-          <table class="p-datatable-table" style="width: 100%">
+          <table #groupVirtualHeaderTable class="p-datatable-table" [ngStyle]="tableStyle">
             <thead class="p-datatable-thead">
               <tr class="header-row">
-                @for (col of visibleColumns; track col) {
+                @for (col of visibleColumns; track col; let i = $index) {
                   <th
                     [style.width]="col.width"
                     [style]="col.style"
@@ -610,6 +610,15 @@
                         }
                       }
                     </div>
+                    @if (resizableColumns && (col.type === 'string' || col.type === 'date' || col.type === 'boolean' || col.type === 'list')) {
+                      <span
+                        class="st-resize-handle"
+                        (mousedown)="onResizeStart(i, $event)"
+                        (mouseup)="$event.stopPropagation()"
+                        (click)="$event.stopPropagation()"
+                        (dblclick)="onResizeReset(i, $event)"
+                      ></span>
+                    }
                   </th>
                 }
               </tr>
