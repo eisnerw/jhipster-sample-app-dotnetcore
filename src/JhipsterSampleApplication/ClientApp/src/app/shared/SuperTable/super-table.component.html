@@ -593,8 +593,8 @@
       (onFilter)="onHeaderFilter($event)"
       (onColResize)="onHeaderColResize($event)"
       [value]="displayGroups"
-      [virtualScroll]="true"
-      [virtualScrollItemSize]="22"
+      [virtualScroll]="useGroupVirtualScroll"
+      [virtualScrollItemSize]="useGroupVirtualScroll ? 22 : undefined"
     >
       @if (showHeader && !superTableParent) {
         <ng-template pTemplate="header" let-columns>

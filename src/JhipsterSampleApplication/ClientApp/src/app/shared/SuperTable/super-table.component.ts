@@ -85,6 +85,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   // Increment this to invalidate/ignore all previously persisted widths when
   // the algorithm or persisted object shape changes.
   private static readonly WIDTHS_STORAGE_VERSION = 2;
+  private static readonly GROUP_VIRTUAL_SCROLL_THRESHOLD = 1000;
   private cdr = inject(ChangeDetectorRef);
 
   @Input() dataLoader: DataLoader<any> | undefined;
@@ -226,6 +227,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   // Holds the current global filter text for group mode
   private groupFilterValue: string = '';
+  useGroupVirtualScroll = false;
 
   // Returns groups filtered by groupFilterValue (group mode only)
   get displayGroups(): GroupDescriptor[] {
@@ -504,6 +506,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['mode'] || changes['scrollHeight'] || changes['superTableParent'] || changes['groups']) {
+      this.syncGroupVirtualScrollState();
+    }
     if (changes['columns']) {
       if (!this.applyingWidths) {
         const nextCount = (changes['columns'].currentValue || []).length;
@@ -529,6 +534,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       this.groupLoaders = {};
       this.expandedRowKeys = {};
       this.renderedGroupRows = {};
+      this.syncGroupVirtualScrollState();
     }
     // Avoid re-entrancy: ignore change events we caused while applying widths
     if (this.applyingWidths) {
@@ -756,6 +762,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     } catch {}
     this.loaderWatchHandles = {};
     this.expandedRowKeys = {};
+    this.syncGroupVirtualScrollState();
     this.minWidthsCache = null;
     this.startWidthsPx = null;
     this.resizingIndex = null;
@@ -995,6 +1002,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
         this.expandedRowKeys[key] = true;
       }
     }
+    this.syncGroupVirtualScrollState();
     this.cdr.detectChanges();
     this.desiredScrollTop = state.scrollTop || 0;
     setTimeout(() => {
@@ -1238,11 +1246,24 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   private attemptScrollRestore(): void {
+    this.getTopTable().scheduleScrollRestore();
+  }
+
+  private getTopTable(): SuperTable {
     let top: SuperTable = this;
     while (top.superTableParent) {
       top = top.superTableParent;
     }
-    top.scheduleScrollRestore();
+    return top;
+  }
+
+  private syncGroupVirtualScrollState(): void {
+    const groupCount = Array.isArray(this.groups) ? this.groups.length : 0;
+    this.useGroupVirtualScroll =
+      this.mode === 'group' &&
+      !this.superTableParent &&
+      !!this.scrollHeight &&
+      groupCount >= SuperTable.GROUP_VIRTUAL_SCROLL_THRESHOLD;
   }
 
   private scheduleScrollRestore(): void {
