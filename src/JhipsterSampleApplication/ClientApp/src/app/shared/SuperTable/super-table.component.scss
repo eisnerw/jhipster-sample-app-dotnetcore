@@ -261,6 +261,16 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
 }
 
+/* PrimeNG table container can show a horizontal scrollbar even for 1px rounding differences.
+   Hide X overflow; SuperTable is intended to fit columns to the available width. */
+:host ::ng-deep .p-datatable-table-container {
+  overflow-x: hidden !important;
+}
+
+:host ::ng-deep .p-datatable-table {
+  max-width: 100% !important;
+}
+
 .st-group-virtual-table {
   display: flex;
   flex-direction: column;
