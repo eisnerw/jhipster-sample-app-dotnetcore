@@ -578,6 +578,132 @@
         </tr>
       </tbody>
     </table>
+  } @else if (useCustomGroupVirtualViewport) {
+    <div class="p-datatable p-component st-group-virtual-table">
+      @if (showHeader && !superTableParent) {
+        <div class="p-datatable-wrapper">
+          <table class="p-datatable-table" style="width: 100%">
+            <thead class="p-datatable-thead">
+              <tr class="header-row">
+                @for (col of visibleColumns; track col) {
+                  <th
+                    [style.width]="col.width"
+                    [style]="col.style"
+                    [ngClass]="{ 'numeric-header': col.filterType === 'numeric' }"
+                  >
+                    <div class="p-d-flex p-jc-between p-ai-center">
+                      {{ col.header }}
+                      @switch (col.type) {
+                        @case ('checkbox') {
+                          <p-checkbox
+                            [binary]="true"
+                            [ngModel]="isAllVisibleSelected()"
+                            aria-label="Select all visible detail rows"
+                            (onChange)="onGroupHeaderSelectAll($event.checked)"
+                          ></p-checkbox>
+                        }
+                        @case ('expander') {
+                          <span></span>
+                        }
+                        @case ('lineNumber') {
+                          <span></span>
+                        }
+                      }
+                    </div>
+                  </th>
+                }
+              </tr>
+            </thead>
+          </table>
+        </div>
+      }
+
+      <div
+        #groupVirtualViewport
+        class="st-group-virtual-viewport"
+        [style.height]="groupViewportHeightStyle"
+      >
+        @if (loading) {
+          <table class="p-datatable-table" style="width: 100%">
+            <tbody class="p-datatable-tbody">
+              <tr class="loading-row">
+                <td [attr.colspan]="visibleColumns.length">
+                  {{ loadingMessage || 'Loading…' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        } @else if (displayGroups.length === 0) {
+          <table class="p-datatable-table" style="width: 100%">
+            <tbody class="p-datatable-tbody">
+              <tr class="loading-row">
+                <td [attr.colspan]="visibleColumns.length">
+                  No hits
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        } @else {
+          <div class="st-group-virtual-spacer" [style.height.px]="groupViewportTopSpacerHeight"></div>
+          @for (row of groupViewportVisibleRows; track row.group.name) {
+            <div class="st-group-virtual-row-block">
+              <table class="p-datatable-table st-group-virtual-row-table" style="width: 100%">
+                <tbody class="p-datatable-tbody">
+                  <tr class="p-row-odd">
+                    <td [attr.colspan]="visibleColumns.length">
+                      <div class="st-group-row-content">
+                        <span [ngStyle]="getIndentStyle(row.group)"></span>
+                        <button type="button" pButton class="p-button-text p-button-rounded p-button-plain" (click)="onGroupToggle(row.group)">
+                          <span class="group-toggle-icon" [class]="isGroupExpanded(row.group) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></span>
+                        </button>
+                        <span class="group-name">{{ row.group.name }}</span>
+                        <span class="group-count">({{ row.group.count }})</span>
+                      </div>
+                    </td>
+                  </tr>
+                  @if (isGroupExpanded(row.group) || hasRenderedGroup(row.group)) {
+                    <tr [style.display]="isGroupExpanded(row.group) ? '' : 'none'">
+                      <td [attr.colspan]="visibleColumns.length">
+                        <div #groupVirtualDetail [attr.data-group-name]="row.group.name">
+                          <super-table
+                            #detailTable
+                            class="grid-table"
+                            [dataLoader]="groupLoaders[row.group.name]?.loader"
+                            [groups]="groupLoaders[row.group.name]?.groups || []"
+                            [mode]="groupLoaders[row.group.name]?.mode || 'grid'"
+                            [groupQuery]="groupQuery"
+                            [loading]="groupLoaders[row.group.name]?.loading || false"
+                            [loadingMessage]="groupLoaders[row.group.name]?.loadingMessage || loadingMessage"
+                            [columns]="visibleColumns"
+                            [showRowNumbers]="showRowNumbers"
+                            [superTableParent]="this"
+                            [parentKey]="row.group.name"
+                            [expandedRowTemplate]="expandedRowTemplate"
+                            [resizableColumns]="false"
+                            [scrollable]="false"
+                            [scrollHeight]="undefined"
+                            [selectionMode]="selectionMode"
+                            [selection]="selection"
+                            (selectionChange)="selectionChange.emit($event)"
+                            [contextMenu]="contextMenu"
+                            [contextMenuSelection]="contextMenuSelection"
+                            (onContextMenuSelect)="onContextMenuSelect.emit($event)"
+                            (contextMenuSelectionChange)="contextMenuSelectionChange.emit($event)"
+                            (rowExpand)="rowExpand.emit($event)"
+                            (rowCollapse)="rowCollapse.emit($event)"
+                          ></super-table>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+          <div class="st-group-virtual-spacer" [style.height.px]="groupViewportBottomSpacerHeight"></div>
+        }
+      </div>
+    </div>
   } @else {
     <p-table
       [columns]="visibleColumns"

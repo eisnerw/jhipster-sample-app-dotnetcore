@@ -1,6 +1,6 @@
 /* eslint-disable */
 
-import { Component, OnInit, AfterViewInit, OnDestroy, OnChanges, SimpleChanges, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, TemplateRef, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, OnChanges, SimpleChanges, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, TemplateRef, ChangeDetectionStrategy, ChangeDetectorRef, inject, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -85,7 +85,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   // Increment this to invalidate/ignore all previously persisted widths when
   // the algorithm or persisted object shape changes.
   private static readonly WIDTHS_STORAGE_VERSION = 2;
-  private static readonly GROUP_VIRTUAL_SCROLL_THRESHOLD = 1000;
+  private static readonly GROUP_VIRTUAL_SCROLL_THRESHOLD = 500;
+  private static readonly GROUP_ROW_HEIGHT = 22;
+  private static readonly GROUP_VIRTUAL_OVERSCAN_PX = 264;
   private cdr = inject(ChangeDetectorRef);
 
   @Input() dataLoader: DataLoader<any> | undefined;
@@ -128,6 +130,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   @ViewChild('pTable') pTable!: Table;
   @ViewChildren('detailTable') detailTables!: QueryList<SuperTable>;
+  @ViewChildren('groupVirtualDetail') groupVirtualDetails!: QueryList<ElementRef<HTMLElement>>;
 
   groupLoaders: { [key: string]: GroupData | undefined } = {};
   private loaderWatchHandles: { [key: string]: any} = {};
@@ -157,6 +160,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private scrollListener = () => {
     if (this.scrollContainer) {
       this.lastScrollTop = this.scrollContainer.scrollTop;
+      if (this.useCustomGroupVirtualViewport) {
+        this.scheduleGroupViewportWindowUpdate();
+      }
       if (this.desiredScrollTop !== null) {
         // User interacted with the scroll while a restoration was pending.
         // Cancel any further attempts to reposition.
@@ -228,6 +234,22 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   // Holds the current global filter text for group mode
   private groupFilterValue: string = '';
   useGroupVirtualScroll = false;
+  useCustomGroupVirtualViewport = false;
+  groupViewportHeightStyle = 'auto';
+  groupViewportVisibleRows: Array<{ group: GroupDescriptor; index: number; top: number; height: number }> = [];
+  groupViewportTopSpacerHeight = 0;
+  groupViewportBottomSpacerHeight = 0;
+  private groupVirtualViewportElement?: HTMLElement;
+  private groupViewportLayoutRows: Array<{ group: GroupDescriptor; index: number; top: number; height: number }> = [];
+  private groupViewportMeasuredDetailHeights: { [key: string]: number } = {};
+  private groupViewportObservedDetailElements = new Map<string, HTMLElement>();
+  private groupViewportDetailObservers = new Map<string, ResizeObserver>();
+  private groupViewportResizeObserver?: ResizeObserver;
+  private groupViewportRefreshScheduled = false;
+  private groupViewportRefreshHandle: any;
+  private groupViewportScrollScheduled = false;
+  private groupViewportScrollHandle: any;
+  private groupViewportResetScrollPending = false;
 
   // Returns groups filtered by groupFilterValue (group mode only)
   get displayGroups(): GroupDescriptor[] {
@@ -266,8 +288,25 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @Output() onSort = new EventEmitter<any>();
   @Output() onFilter = new EventEmitter<any>();
 
+  @ViewChild('groupVirtualViewport')
+  set groupVirtualViewportRef(value: ElementRef<HTMLElement> | undefined) {
+    if (this.groupVirtualViewportElement !== value?.nativeElement) {
+      this.disconnectGroupViewportResizeObserver();
+    }
+    this.groupVirtualViewportElement = value?.nativeElement;
+    this.bindGroupViewportResizeObserver();
+    setTimeout(() => {
+      this.initScroll();
+      this.scheduleGroupViewportRefresh();
+    });
+  }
+
   trackByFn(index: number, item: any): any {
     return item?.id || index;
+  }
+
+  trackByGroupName(index: number, item: { group: GroupDescriptor }): string {
+    return item?.group?.name || String(index);
   }
 
   // Deprecated helper for legacy single pill; no longer used
@@ -508,6 +547,8 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['mode'] || changes['scrollHeight'] || changes['superTableParent'] || changes['groups']) {
       this.syncGroupVirtualScrollState();
+      this.scheduleGroupViewportRefresh();
+      setTimeout(() => this.initScroll());
     }
     if (changes['columns']) {
       if (!this.applyingWidths) {
@@ -534,7 +575,9 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       this.groupLoaders = {};
       this.expandedRowKeys = {};
       this.renderedGroupRows = {};
+      this.groupViewportMeasuredDetailHeights = {};
       this.syncGroupVirtualScrollState();
+      this.scheduleGroupViewportRefresh(true);
     }
     // Avoid re-entrancy: ignore change events we caused while applying widths
     if (this.applyingWidths) {
@@ -554,15 +597,23 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       }
       this.initScroll();
       this.enforceWidthsAfterLayout();
+      this.scheduleGroupViewportRefresh();
     });
     this.detailTables.changes.subscribe(() => {
       this.scheduleDetailSync();
+    });
+    this.groupVirtualDetails.changes.subscribe(() => {
+      this.syncGroupVirtualDetailObservers();
     });
   }
 
   ngOnDestroy(): void {
     this.destroyScroll();
     this.cancelDetailSync();
+    this.cancelGroupViewportRefresh();
+    this.cancelGroupViewportWindowUpdate();
+    this.disconnectGroupVirtualDetailObservers();
+    this.disconnectGroupViewportResizeObserver();
     if (typeof window !== 'undefined' && this.windowResizeHandler) {
       window.removeEventListener('resize', this.windowResizeHandler as any);
       this.windowResizeHandler = undefined;
@@ -595,6 +646,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     if (isExpanded) {
       delete this.expandedRowKeys[groupName];
       this.rowCollapse.emit({ data: group });
+      this.scheduleGroupViewportRefresh();
     } else {
       this.expandedRowKeys[groupName] = true;
       this.renderedGroupRows[groupName] = true;
@@ -654,6 +706,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       }
       this.rowExpand.emit({ data: group });
       this.scheduleDetailSync();
+      this.scheduleGroupViewportRefresh();
     }
   }
 
@@ -754,6 +807,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     this.capturedWidths = false;
     this.groupLoaders = {};
     this.renderedGroupRows = {};
+    this.groupViewportMeasuredDetailHeights = {};
     try {
       Object.values(this.loaderWatchHandles || {}).forEach((h) => {
         try { clearInterval(h); } catch {}
@@ -763,6 +817,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     this.loaderWatchHandles = {};
     this.expandedRowKeys = {};
     this.syncGroupVirtualScrollState();
+    this.scheduleGroupViewportRefresh(true);
     this.minWidthsCache = null;
     this.startWidthsPx = null;
     this.resizingIndex = null;
@@ -863,6 +918,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   filterGlobal(value: string): void {
     if (this.mode === 'group') {
       this.groupFilterValue = value || '';
+      this.scheduleGroupViewportRefresh(true);
       this.cdr.markForCheck();
       return;
     }
@@ -1003,6 +1059,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       }
     }
     this.syncGroupVirtualScrollState();
+    this.scheduleGroupViewportRefresh();
     this.cdr.detectChanges();
     this.desiredScrollTop = state.scrollTop || 0;
     setTimeout(() => {
@@ -1230,9 +1287,10 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   }
 
   private initScroll(): void {
-    const body =
-      (this.pTable?.scroller?.getElementRef()?.nativeElement as HTMLElement) ||
-      (this.pTable?.wrapperViewChild?.nativeElement as HTMLElement);
+    const body = this.useCustomGroupVirtualViewport
+      ? this.groupVirtualViewportElement
+      : ((this.pTable?.scroller?.getElementRef()?.nativeElement as HTMLElement) ||
+        (this.pTable?.wrapperViewChild?.nativeElement as HTMLElement));
     if (body) {
       this.destroyScroll();
       this.scrollContainer = body;
@@ -1264,6 +1322,294 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       !this.superTableParent &&
       !!this.scrollHeight &&
       groupCount >= SuperTable.GROUP_VIRTUAL_SCROLL_THRESHOLD;
+    this.useCustomGroupVirtualViewport =
+      this.useGroupVirtualScroll &&
+      Array.isArray(this.groups) &&
+      this.groups.length > 0 &&
+      this.groups.every((group) => !group.isGroup);
+    this.groupViewportHeightStyle = this.scrollHeight && this.scrollHeight !== 'flex' ? this.scrollHeight : '';
+    if (!this.useCustomGroupVirtualViewport) {
+      this.groupViewportVisibleRows = [];
+      this.groupViewportLayoutRows = [];
+      this.groupViewportTopSpacerHeight = 0;
+      this.groupViewportBottomSpacerHeight = 0;
+      this.disconnectGroupVirtualDetailObservers();
+      this.disconnectGroupViewportResizeObserver();
+    }
+  }
+
+  private scheduleGroupViewportRefresh(resetScroll = false): void {
+    if (resetScroll) {
+      this.groupViewportResetScrollPending = true;
+    }
+    if (this.groupViewportRefreshScheduled) {
+      return;
+    }
+    this.groupViewportRefreshScheduled = true;
+    const schedule =
+      typeof requestAnimationFrame === 'function'
+        ? (cb: () => void) => requestAnimationFrame(() => cb())
+        : (cb: () => void) => setTimeout(cb, 0);
+    this.groupViewportRefreshHandle = schedule(() => this.flushGroupViewportRefresh());
+  }
+
+  private flushGroupViewportRefresh(): void {
+    this.groupViewportRefreshScheduled = false;
+    this.groupViewportRefreshHandle = null;
+
+    if (!this.useCustomGroupVirtualViewport) {
+      return;
+    }
+
+    this.bindGroupViewportResizeObserver();
+
+    if (this.groupViewportResetScrollPending && this.scrollContainer) {
+      this.scrollContainer.scrollTop = 0;
+      this.lastScrollTop = 0;
+    }
+    this.groupViewportResetScrollPending = false;
+
+    this.rebuildGroupViewportLayout();
+    this.updateGroupViewportWindow();
+    this.syncGroupVirtualDetailObservers();
+    this.cdr.detectChanges();
+  }
+
+  private cancelGroupViewportRefresh(): void {
+    if (!this.groupViewportRefreshHandle) {
+      return;
+    }
+    if (typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(this.groupViewportRefreshHandle);
+    } else {
+      clearTimeout(this.groupViewportRefreshHandle);
+    }
+    this.groupViewportRefreshHandle = null;
+    this.groupViewportRefreshScheduled = false;
+    this.groupViewportResetScrollPending = false;
+  }
+
+  private scheduleGroupViewportWindowUpdate(): void {
+    if (!this.useCustomGroupVirtualViewport || this.groupViewportScrollScheduled) {
+      return;
+    }
+    this.groupViewportScrollScheduled = true;
+    const schedule =
+      typeof requestAnimationFrame === 'function'
+        ? (cb: () => void) => requestAnimationFrame(() => cb())
+        : (cb: () => void) => setTimeout(cb, 0);
+    this.groupViewportScrollHandle = schedule(() => this.flushGroupViewportWindowUpdate());
+  }
+
+  private flushGroupViewportWindowUpdate(): void {
+    this.groupViewportScrollScheduled = false;
+    this.groupViewportScrollHandle = null;
+    if (!this.useCustomGroupVirtualViewport) {
+      return;
+    }
+    this.updateGroupViewportWindow();
+    this.cdr.detectChanges();
+  }
+
+  private cancelGroupViewportWindowUpdate(): void {
+    if (!this.groupViewportScrollHandle) {
+      return;
+    }
+    if (typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(this.groupViewportScrollHandle);
+    } else {
+      clearTimeout(this.groupViewportScrollHandle);
+    }
+    this.groupViewportScrollHandle = null;
+    this.groupViewportScrollScheduled = false;
+  }
+
+  private rebuildGroupViewportLayout(): void {
+    if (!this.useCustomGroupVirtualViewport) {
+      this.groupViewportLayoutRows = [];
+      this.groupViewportTopSpacerHeight = 0;
+      this.groupViewportBottomSpacerHeight = 0;
+      this.groupViewportVisibleRows = [];
+      return;
+    }
+
+    let top = 0;
+    this.groupViewportLayoutRows = this.displayGroups.map((group, index) => {
+      const height = this.getGroupViewportRowHeight(group);
+      const row = { group, index, top, height };
+      top += height;
+      return row;
+    });
+  }
+
+  private updateGroupViewportWindow(): void {
+    const viewport = this.groupVirtualViewportElement || this.scrollContainer;
+    if (!this.useCustomGroupVirtualViewport || !viewport) {
+      return;
+    }
+
+    const rows = this.groupViewportLayoutRows;
+    if (rows.length === 0) {
+      this.groupViewportVisibleRows = [];
+      this.groupViewportTopSpacerHeight = 0;
+      this.groupViewportBottomSpacerHeight = 0;
+      return;
+    }
+
+    const startOffset = Math.max(0, viewport.scrollTop - SuperTable.GROUP_VIRTUAL_OVERSCAN_PX);
+    const endOffset = viewport.scrollTop + viewport.clientHeight + SuperTable.GROUP_VIRTUAL_OVERSCAN_PX;
+    const startIndex = this.findGroupViewportStartIndex(startOffset);
+    const endIndex = Math.max(startIndex + 1, this.findGroupViewportEndIndex(endOffset));
+    const visibleRows = rows.slice(startIndex, endIndex);
+    const first = visibleRows[0];
+    const last = visibleRows[visibleRows.length - 1];
+    const totalHeight = rows[rows.length - 1].top + rows[rows.length - 1].height;
+
+    this.groupViewportVisibleRows = visibleRows;
+    this.groupViewportTopSpacerHeight = first ? first.top : 0;
+    this.groupViewportBottomSpacerHeight = last ? Math.max(0, totalHeight - (last.top + last.height)) : totalHeight;
+  }
+
+  private findGroupViewportStartIndex(offset: number): number {
+    const rows = this.groupViewportLayoutRows;
+    let low = 0;
+    let high = rows.length;
+    while (low < high) {
+      const mid = Math.floor((low + high) / 2);
+      const row = rows[mid];
+      if (row.top + row.height <= offset) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    return Math.min(low, Math.max(0, rows.length - 1));
+  }
+
+  private findGroupViewportEndIndex(offset: number): number {
+    const rows = this.groupViewportLayoutRows;
+    let low = 0;
+    let high = rows.length;
+    while (low < high) {
+      const mid = Math.floor((low + high) / 2);
+      if (rows[mid].top < offset) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    return Math.min(rows.length, low);
+  }
+
+  private getGroupViewportRowHeight(group: GroupDescriptor): number {
+    if (!this.isGroupExpanded(group)) {
+      return SuperTable.GROUP_ROW_HEIGHT;
+    }
+    return SuperTable.GROUP_ROW_HEIGHT + this.getGroupViewportDetailHeight(group);
+  }
+
+  private getGroupViewportDetailHeight(group: GroupDescriptor): number {
+    const measured = this.groupViewportMeasuredDetailHeights[group.name];
+    if (measured !== undefined) {
+      return measured;
+    }
+
+    const groupData = this.groupLoaders[group.name];
+    if (groupData?.loading) {
+      return SuperTable.GROUP_ROW_HEIGHT;
+    }
+
+    return Math.max(SuperTable.GROUP_ROW_HEIGHT, (group.count || 0) * SuperTable.GROUP_ROW_HEIGHT);
+  }
+
+  private bindGroupViewportResizeObserver(): void {
+    if (!this.useCustomGroupVirtualViewport || !this.groupVirtualViewportElement || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    if (this.groupViewportResizeObserver) {
+      return;
+    }
+    this.groupViewportResizeObserver = new ResizeObserver(() => {
+      this.scheduleGroupViewportWindowUpdate();
+    });
+    this.groupViewportResizeObserver.observe(this.groupVirtualViewportElement);
+  }
+
+  private disconnectGroupViewportResizeObserver(): void {
+    try {
+      this.groupViewportResizeObserver?.disconnect();
+    } catch {}
+    this.groupViewportResizeObserver = undefined;
+  }
+
+  private syncGroupVirtualDetailObservers(): void {
+    if (!this.useCustomGroupVirtualViewport) {
+      this.disconnectGroupVirtualDetailObservers();
+      return;
+    }
+
+    const activeNames = new Set<string>();
+    this.groupVirtualDetails?.forEach((detailRef) => {
+      const element = detailRef.nativeElement;
+      const groupName = element.dataset['groupName'];
+      if (!groupName) {
+        return;
+      }
+      activeNames.add(groupName);
+
+      const currentElement = this.groupViewportObservedDetailElements.get(groupName);
+      if (currentElement !== element) {
+        const currentObserver = this.groupViewportDetailObservers.get(groupName);
+        if (currentObserver) {
+          currentObserver.disconnect();
+          this.groupViewportDetailObservers.delete(groupName);
+        }
+        this.groupViewportObservedDetailElements.set(groupName, element);
+        if (typeof ResizeObserver !== 'undefined') {
+          const observer = new ResizeObserver(() => {
+            this.measureGroupVirtualDetailElement(groupName, element);
+          });
+          observer.observe(element);
+          this.groupViewportDetailObservers.set(groupName, observer);
+        }
+      }
+
+      this.measureGroupVirtualDetailElement(groupName, element);
+    });
+
+    Array.from(this.groupViewportObservedDetailElements.keys()).forEach((groupName) => {
+      if (activeNames.has(groupName)) {
+        return;
+      }
+      const observer = this.groupViewportDetailObservers.get(groupName);
+      if (observer) {
+        observer.disconnect();
+        this.groupViewportDetailObservers.delete(groupName);
+      }
+      this.groupViewportObservedDetailElements.delete(groupName);
+    });
+  }
+
+  private disconnectGroupVirtualDetailObservers(): void {
+    this.groupViewportDetailObservers.forEach((observer) => {
+      try {
+        observer.disconnect();
+      } catch {}
+    });
+    this.groupViewportDetailObservers.clear();
+    this.groupViewportObservedDetailElements.clear();
+  }
+
+  private measureGroupVirtualDetailElement(groupName: string, element: HTMLElement): void {
+    if (!this.expandedRowKeys[groupName]) {
+      return;
+    }
+    const nextHeight = Math.max(SuperTable.GROUP_ROW_HEIGHT, Math.ceil(element.getBoundingClientRect().height));
+    if (this.groupViewportMeasuredDetailHeights[groupName] === nextHeight) {
+      return;
+    }
+    this.groupViewportMeasuredDetailHeights[groupName] = nextHeight;
+    this.scheduleGroupViewportRefresh();
   }
 
   private scheduleScrollRestore(): void {
@@ -1290,6 +1636,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private destroyScroll(): void {
     this.scrollContainer?.removeEventListener('scroll', this.scrollListener);
     this.scrollContainer = undefined;
+    this.cancelGroupViewportWindowUpdate();
     if (this.scrollRestoreHandle) {
       clearTimeout(this.scrollRestoreHandle);
       this.scrollRestoreHandle = null;

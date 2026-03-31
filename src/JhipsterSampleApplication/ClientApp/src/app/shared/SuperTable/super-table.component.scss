@@ -260,3 +260,76 @@
   font-weight: 400;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
 }
+
+.st-group-virtual-table {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.st-group-virtual-viewport {
+  overflow: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.st-group-virtual-spacer {
+  width: 100%;
+  pointer-events: none;
+}
+
+.st-group-virtual-row-block {
+  width: 100%;
+}
+
+.st-group-virtual-row-table {
+  table-layout: fixed;
+}
+
+:host ::ng-deep .st-group-virtual-table .p-datatable-tbody > tr {
+  min-height: 22px !important;
+  line-height: 22px !important;
+}
+
+:host ::ng-deep .st-group-virtual-table .p-datatable-tbody > tr > td {
+  padding: 0 0.5rem !important;
+  min-height: 22px !important;
+  line-height: 22px !important;
+}
+
+:host ::ng-deep .st-group-virtual-table .p-datatable-tbody > tr > td:first-child {
+  padding: 0 !important;
+  margin: 0 !important;
+  min-height: 22px !important;
+}
+
+.st-group-row-content {
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+  line-height: 22px;
+  padding: 0;
+  margin: 0;
+}
+
+:host ::ng-deep .st-group-virtual-table .st-group-row-content > .p-button {
+  width: 22px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: 22px !important;
+}
+
+:host ::ng-deep .st-group-virtual-table .st-group-row-content > .p-button .p-button-icon,
+:host ::ng-deep .st-group-virtual-table .st-group-row-content > .p-button .group-toggle-icon {
+  font-size: 12px !important;
+  line-height: 22px !important;
+  width: 22px !important;
+  height: 22px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

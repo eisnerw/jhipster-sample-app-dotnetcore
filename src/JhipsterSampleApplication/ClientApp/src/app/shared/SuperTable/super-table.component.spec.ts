@@ -6,11 +6,11 @@ import { GroupDescriptor } from './super-table.component';
 
 describe('SuperTable', () => {
   let component: SuperTable;
-  const buildGroups = (count: number): GroupDescriptor[] =>
+  const buildGroups = (count: number, isGroup = true): GroupDescriptor[] =>
     Array.from({ length: count }, (_, index) => ({
       name: `Group ${index}`,
       count: index + 1,
-      isGroup: true,
+      isGroup,
     }));
 
   beforeEach(async () => {
@@ -48,6 +48,7 @@ describe('SuperTable', () => {
     component['syncGroupVirtualScrollState']();
 
     expect(component.useGroupVirtualScroll).toBe(true);
+    expect(component.useCustomGroupVirtualViewport).toBe(false);
   });
 
   it('disables virtual scroll for nested group tables', () => {
@@ -64,9 +65,30 @@ describe('SuperTable', () => {
     component.mode = 'group';
     component.scrollHeight = 'flex';
     component.superTableParent = null;
-    component.groups = buildGroups(999);
+    component.groups = buildGroups(499);
     component['syncGroupVirtualScrollState']();
 
     expect(component.useGroupVirtualScroll).toBe(false);
+  });
+
+  it('uses the custom viewport for a large top-level leaf group table', () => {
+    component.mode = 'group';
+    component.scrollHeight = 'flex';
+    component.superTableParent = null;
+    component.groups = buildGroups(500, false);
+    component['syncGroupVirtualScrollState']();
+
+    expect(component.useGroupVirtualScroll).toBe(true);
+    expect(component.useCustomGroupVirtualViewport).toBe(true);
+  });
+
+  it('keeps multilevel grouped tables on the p-table path', () => {
+    component.mode = 'group';
+    component.scrollHeight = 'flex';
+    component.superTableParent = null;
+    component.groups = buildGroups(500, true);
+    component['syncGroupVirtualScrollState']();
+
+    expect(component.useCustomGroupVirtualViewport).toBe(false);
   });
 });
