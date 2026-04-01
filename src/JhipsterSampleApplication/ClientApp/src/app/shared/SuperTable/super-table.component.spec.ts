@@ -40,14 +40,13 @@ describe('SuperTable', () => {
     expect(component.linkWrap({ id: 1 }, col)).toBeNull();
   });
 
-  it('uses virtual scroll for a large top-level group table', () => {
+  it('does not use the custom viewport for a large multilevel top-level group table', () => {
     component.mode = 'group';
     component.scrollHeight = 'flex';
     component.superTableParent = null;
     component.groups = buildGroups(1000);
-    component['syncGroupVirtualScrollState']();
+    component['syncGroupViewportState']();
 
-    expect(component.useGroupVirtualScroll).toBe(true);
     expect(component.useCustomGroupVirtualViewport).toBe(false);
   });
 
@@ -56,19 +55,19 @@ describe('SuperTable', () => {
     component.scrollHeight = 'flex';
     component.superTableParent = {} as SuperTable;
     component.groups = buildGroups(1000);
-    component['syncGroupVirtualScrollState']();
+    component['syncGroupViewportState']();
 
-    expect(component.useGroupVirtualScroll).toBe(false);
+    expect(component.useCustomGroupVirtualViewport).toBe(false);
   });
 
-  it('disables virtual scroll for smaller group tables', () => {
+  it('disables the custom viewport for smaller group tables', () => {
     component.mode = 'group';
     component.scrollHeight = 'flex';
     component.superTableParent = null;
     component.groups = buildGroups(499);
-    component['syncGroupVirtualScrollState']();
+    component['syncGroupViewportState']();
 
-    expect(component.useGroupVirtualScroll).toBe(false);
+    expect(component.useCustomGroupVirtualViewport).toBe(false);
   });
 
   it('uses the custom viewport for a large top-level leaf group table', () => {
@@ -76,9 +75,8 @@ describe('SuperTable', () => {
     component.scrollHeight = 'flex';
     component.superTableParent = null;
     component.groups = buildGroups(500, false);
-    component['syncGroupVirtualScrollState']();
+    component['syncGroupViewportState']();
 
-    expect(component.useGroupVirtualScroll).toBe(true);
     expect(component.useCustomGroupVirtualViewport).toBe(true);
   });
 
@@ -87,7 +85,7 @@ describe('SuperTable', () => {
     component.scrollHeight = 'flex';
     component.superTableParent = null;
     component.groups = buildGroups(500, true);
-    component['syncGroupVirtualScrollState']();
+    component['syncGroupViewportState']();
 
     expect(component.useCustomGroupVirtualViewport).toBe(false);
   });

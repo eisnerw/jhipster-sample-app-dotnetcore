@@ -719,8 +719,6 @@
       #pTable
       [resizableColumns]="false"
       columnResizeMode="expand"
-      [scrollable]="true"
-      [scrollHeight]="scrollHeight"
       [tableStyle]="tableStyle"
       [showGridlines]="false"
       [globalFilterFields]="['name']"
@@ -728,8 +726,6 @@
       (onFilter)="onHeaderFilter($event)"
       (onColResize)="onHeaderColResize($event)"
       [value]="displayGroups"
-      [virtualScroll]="useGroupVirtualScroll"
-      [virtualScrollItemSize]="useGroupVirtualScroll ? 22 : undefined"
     >
       @if (showHeader && !superTableParent) {
         <ng-template pTemplate="header" let-columns>
