@@ -851,7 +851,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
               if (label === null) {
                 const def = String((ann as any).default || '').toLowerCase();
                 if (def === 'countof' && Array.isArray(v) && v.length > 0) {
-                  const text = String(v.length);
+                  const text = v.length > 1 ? String(v.length) : v[0];
                   const tooltip = this.resolveTooltip(row, tooltipSpec, text, text, srcField);
                   return { text, tooltip };
                 }
