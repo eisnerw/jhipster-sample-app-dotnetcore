@@ -45,10 +45,9 @@
     min-width: 0; /* allow children to shrink for ellipsis */
   }
   .cell-inline .cell-content {
-    flex: 1 1 auto; /* fill remaining cell width so content spans the cell */
+    flex: 0 1 auto; /* do not force-fill; sit just before pills */
     min-width: 0;
     display: block; /* keep ellipsis behavior */
-    max-width: 100%;
   }
 
   .header-cell {
@@ -119,9 +118,7 @@
 }
 
 /* Checkboxes: center vertically; body rows nudged down slightly */
-:host ::ng-deep td > p-tablecheckbox,
-:host ::ng-deep td > p-tableHeaderCheckbox,
-:host ::ng-deep th > div > p-tableHeaderCheckbox {
+:host ::ng-deep td > p-tablecheckbox {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -143,14 +140,15 @@
   align-items: center;
 }
 
-/* Center header checkbox horizontally and fine-tune position */
-:host ::ng-deep thead th p-tableHeaderCheckbox {
+/* Center header checkbox independent of other header content */
+:host ::ng-deep thead th .st-header-checkbox {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) translateY(3px);
   display: flex;
-  margin-left: auto;
-  margin-right: auto;
-}
-:host ::ng-deep thead th p-tableHeaderCheckbox .p-checkbox {
-  transform: translate(-2px, 2px) !important; /* shift slightly left and down */
+  align-items: center;
+  justify-content: center;
 }
 .st-resize-handle {
   position: absolute;
@@ -218,7 +216,7 @@
 :host ::ng-deep td .cell-inline .cell-link {
   display: inline-flex;           /* behave well inside flex and keep inline baseline */
   align-items: center;
-  flex: 1 1 auto;                 /* fill available cell width */
+  flex: 0 1 auto;                 /* allow shrinking */
   min-width: 0;                   /* REQUIRED for ellipsis within flex children */
   max-width: 100%;
   text-decoration: underline;
