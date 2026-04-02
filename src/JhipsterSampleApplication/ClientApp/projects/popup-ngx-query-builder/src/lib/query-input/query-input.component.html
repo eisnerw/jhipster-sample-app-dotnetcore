@@ -2,10 +2,10 @@
   <button pButton icon="pi pi-search" class="search-btn" (click)="clickSearch()"></button>
 
   @if (!editing) {
-    <div class="text" (click)="startEdit()">
+    <div role="button" tabindex="0" class="text" (click)="startEdit()">
       <span [ngClass]="{ placeholder: !query }">{{ query || placeholder }}</span>
       @if (query) {
-        <i class="pi pi-times clear-icon" (click)="clearQuery($event)"></i>
+        <i role="button" tabindex="1" class="pi pi-times clear-icon" (click)="clearQuery($event)"></i>
       }
     </div>
   }
@@ -48,8 +48,8 @@
 
   @if (editing) {
     <div class="btn-group">
-      <i class="pi pi-times action-icon" (click)="cancelEdit()"></i>
-      <i class="pi pi-check action-icon" (click)="acceptEdit()" [ngClass]="{ disabled: !validQuery }"></i>
+      <i role="button" tabindex="2" class="pi pi-times action-icon" (click)="cancelEdit()"></i>
+      <i role="button" tabindex="3" class="pi pi-check action-icon" (click)="acceptEdit()" [ngClass]="{ disabled: !validQuery }"></i>
     </div>
   }
 </div>
@@ -91,8 +91,8 @@
 
   <ng-template pTemplate="footer">
     <div class="dialog-footer">
-      <button pButton label="Cancel" (click)="cancelQuery()" class="p-button-secondary"></button>
-      <button pButton label="Apply" (click)="applyQuery()" class="p-button-primary" [disabled]="builder?.namingRuleset"></button>
+      <button pButton label="Cancel" (click)="cancelQuery()" class="p-button-secondary" aria-label="Cancel Query"></button>
+      <button pButton label="Apply" (click)="applyQuery()" class="p-button-primary" [disabled]="builder?.namingRuleset" aria-label="Apply Query"></button>
     </div>
   </ng-template>
 </p-dialog>
