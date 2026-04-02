@@ -110,7 +110,14 @@
                       </p-columnFilter>
                     }
                     @case ('checkbox') {
-                      <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
+                      <span class=""st-header-checkbox>
+                        <p-checkbox
+                          [binary]="true"
+                          [ngModel]="isAllLoadedSelected()"
+                          aria-label="Select all loaded rows"
+                          (onChange)="onHeaderSelectAll($event.originalEvent, $event.checked)"
+                        ></p-checkbox>
+                      </span>
                     }
                     @case ('expander') {
                       <span></span>
@@ -127,6 +134,8 @@
                     (mouseup)="$event.stopPropagation()"
                     (click)="$event.stopPropagation()"
                     (dblclick)="onResizeReset(i, $event)"
+                    role="button"
+                    tabindex="0"
                   ></span>
                 }
               </th>
@@ -151,47 +160,58 @@
                 }
                 @case ('string') {
                   <span class="cell-inline">
-                  @if (col.annotations?.length) {
-                    <ng-container *ngFor="let a of col.annotations">
-                      @if (a.type === 'pill' && a.pos !== 'after') {
-                        @if (a.render(rowData); as pill) {
-                          <span
-                            class="cat-pill"
-                            [pTooltip]="pill.tooltip || null"
-                            tooltipPosition="right"
-                            appendTo="body"
-                            [autoHide]="false"
-                            [showDelay]="120"
-                            [hideDelay]="350"
-                            [tooltipStyleClass]="'cat-tooltip'"
-                          >
-                            {{ pill.text }}
-                          </span>
+                    @if (col.annotations?.length) {
+                      @for (a of col.annotations; track a) {
+                        @if (a.type === 'pill' && a.pos !== 'after') {
+                          @if (a.render(rowData); as pill) {
+                            <span
+                              class="cat-pill"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'"
+                            >
+                              {{ pill.text }}
+                            </span>
+                          }
+                        }
+                        @if (a.type === 'linkPill' && a.pos !== 'after') {
+                          @if (a.render(rowData); as pill) {
+                            <a
+                              class="cat-pill"
+                              [attr.href]="pill.link"
+                              [attr.target]="pill.link ? '_blank' : null"
+                              [attr.rel]="pill.link ? 'noopener' : null"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'"
+                            >
+                              {{ pill.text }}
+                            </a>
+                          }
                         }
                       }
-                      @if (a.type === 'linkPill' && a.pos !== 'after') {
-                        @if (a.render(rowData); as pill) {
-                          <a
-                            class="cat-pill"
-                            [href]="pill.link"
-                            target="_blank"
-                            rel="noopener"
-                            [pTooltip]="pill.tooltip || null"
-                            tooltipPosition="right"
-                            appendTo="body"
-                            [autoHide]="false"
-                            [showDelay]="120"
-                            [hideDelay]="350"
-                            [tooltipStyleClass]="'cat-tooltip'"
-                          >
-                            {{ pill.text }}
-                          </a>
-                        }
-                      }
-                    </ng-container>
-                  }
-                  @if (linkWrap(rowData, col); as href) {
-                    <a class="cell-link" [href]="href" target="_blank" rel="noopener">
+                    }
+                    @if (linkWrap(rowData, col); as href) {
+                      <a class="cell-link" [href]="href" target="_blank" rel="noopener">
+                        <span
+                          class="cell-content"
+                          [pTooltip]="getCellTooltip(rowData, col, getCellString(rowData, col))"
+                          [tooltipStyleClass]="'cell-tooltip'"
+                          [autoHide]="false"
+                          [showDelay]="120"
+                          [hideDelay]="350"
+                          [innerHTML]="formatCell(getCellString(rowData, col), col.field)"
+                        ></span>
+                      </a>
+                    } @else {
                       <span
                         class="cell-content"
                         [pTooltip]="getCellTooltip(rowData, col, getCellString(rowData, col))"
@@ -201,195 +221,195 @@
                         [hideDelay]="350"
                         [innerHTML]="formatCell(getCellString(rowData, col), col.field)"
                       ></span>
-                    </a>
-                  } @else {
-                    <span
-                      class="cell-content"
-                      [pTooltip]="getCellTooltip(rowData, col, getCellString(rowData, col))"
-                      [tooltipStyleClass]="'cell-tooltip'"
-                      [autoHide]="false"
-                      [showDelay]="120"
-                      [hideDelay]="350"
-                      [innerHTML]="formatCell(getCellString(rowData, col), col.field)"
-                    ></span>
-                  }
-                  @if (col.annotations?.length) {
-                    <ng-container *ngFor="let a of col.annotations">
-                      @if (a.type === 'linkPill' && a.pos === 'after') {
-                        @if (a.render(rowData); as pill) {
-                          <a
-                            class="cat-pill after-pill"
-                            [href]="pill.link"
-                            target="_blank"
-                            rel="noopener"
-                            [pTooltip]="pill.tooltip || null"
-                            tooltipPosition="right"
-                            appendTo="body"
-                            [autoHide]="false"
-                            [showDelay]="120"
-                            [hideDelay]="350"
-                            [tooltipStyleClass]="'cat-tooltip'"
-                          >
-                            {{ pill.text }}
-                          </a>
+                    }
+                    @if (col.annotations?.length) {
+                      @for (a of col.annotations; track a) {
+                        @if (a.type === 'linkPill' && a.pos === 'after') {
+                          @if (a.render(rowData); as pill) {
+                            <a
+                              class="cat-pill after-pill"
+                              [attr.href]="pill.link"
+                              [attr.target]="pill.link ? '_blank' : null"
+                              [attr.rel]="pill.link ? 'noopener' : null"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'"
+                            >
+                              {{ pill.text }}
+                            </a>
+                          }
+                        }
+                        @if (a.type === 'pill' && a.pos === 'after') {
+                          @if (a.render(rowData); as pill) {
+                            <span
+                              class="cat-pill after-pill"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'"
+                            >
+                              {{ pill.text }}
+                            </span>
+                          }
                         }
                       }
-                      @if (a.type === 'pill' && a.pos === 'after') {
-                        @if (a.render(rowData); as pill) {
-                          <span
-                            class="cat-pill after-pill"
-                            [pTooltip]="pill.tooltip || null"
-                            tooltipPosition="right"
-                            appendTo="body"
-                            [autoHide]="false"
-                            [showDelay]="120"
-                            [hideDelay]="350"
-                            [tooltipStyleClass]="'cat-tooltip'"
-                          >
-                            {{ pill.text }}
-                          </span>
+                    }
+                  </span>
+                }
+                @case ('date') {
+                  <span class="cell-inline">
+                    @if (col.annotations?.length) {
+                      @for (a of col.annotations; track a) {
+                        @if (a.type === 'pill' && a.pos !== 'after') {
+                          @if (a.render(rowData); as pill) {
+                            <span
+                              class="cat-pill"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'"
+                            >
+                              {{ pill.text }}
+                            </span>
+                          }
+                        }
+                        @if (a.type === 'linkPill' && a.pos !== 'after') {
+                          @if (a.render(rowData); as pill) {
+                            <a
+                              class="cat-pill"
+                              [attr.href]="pill.link"
+                              [attr.target]="pill.link ? '_blank' : null"
+                              [attr.rel]="pill.link ? 'noopener' : null"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'"
+                            >
+                              {{ pill.text }}
+                            </a>
+                          }
                         }
                       }
-                    </ng-container>
-                  }
-                </span>
-              }
-              @case ('date') {
-                <span class="cell-inline">
-                  @if (col.annotations?.length) {
-                    <ng-container *ngFor="let a of col.annotations">
-                      @if (a.type === 'pill' && a.pos !== 'after') {
-                        @if (a.render(rowData); as pill) {
-                          <span
-                            class="cat-pill"
-                            [pTooltip]="pill.tooltip || null"
-                            tooltipPosition="right"
-                            appendTo="body"
-                            [autoHide]="false"
-                            [showDelay]="120"
-                            [hideDelay]="350"
-                            [tooltipStyleClass]="'cat-tooltip'"
-                          >
-                            {{ pill.text }}
-                          </span>
-                        }
-                      }
-                      @if (a.type === 'linkPill' && a.pos !== 'after') {
-                        @if (a.render(rowData); as pill) {
-                          <a
-                            class="cat-pill"
-                            [href]="pill.link"
-                            target="_blank"
-                            rel="noopener"
-                            [pTooltip]="pill.tooltip || null"
-                            tooltipPosition="right"
-                            appendTo="body"
-                            [autoHide]="false"
-                            [showDelay]="120"
-                            [hideDelay]="350"
-                            [tooltipStyleClass]="'cat-tooltip'"
-                          >
-                            {{ pill.text }}
-                          </a>
-                        }
-                      }
-                    </ng-container>
-                  }
-                  @if (linkWrap(rowData, col); as href) {
-                    <a class="cell-link" [href]="href" target="_blank" rel="noopener">
+                    }
+                    @if (linkWrap(rowData, col); as href) {
+                      <a class="cell-link" [href]="href" target="_blank" rel="noopener">
+                        <span class="cell-content">
+                          {{ formatDateCell(rowData[col.field], col.dateFormat) }}
+                        </span>
+                      </a>
+                    } @else {
                       <span class="cell-content">
                         {{ formatDateCell(rowData[col.field], col.dateFormat) }}
                       </span>
-                    </a>
-                  } @else {
-                    <span class="cell-content">
-                      {{ formatDateCell(rowData[col.field], col.dateFormat) }}
-                    </span>
-                  }
-                  @if (col.annotations?.length) {
-                    <ng-container *ngFor="let a of col.annotations">
-                      @if (a.type === 'linkPill' && a.pos === 'after') {
-                        @if (a.render(rowData); as pill) {
-                          <a
-                            class="cat-pill after-pill"
-                            [href]="pill.link"
-                            target="_blank"
-                            rel="noopener"
-                            [pTooltip]="pill.tooltip || null"
-                            tooltipPosition="right"
-                            appendTo="body"
-                            [autoHide]="false"
-                            [showDelay]="120"
-                            [hideDelay]="350"
-                            [tooltipStyleClass]="'cat-tooltip'"
-                          >
-                            {{ pill.text }}
-                          </a>
+                    }
+                    @if (col.annotations?.length) {
+                      @for (a of col.annotations; track a) {
+                        @if (a.type === 'linkPill' && a.pos === 'after') {
+                          @if (a.render(rowData); as pill) {
+                            <a
+                              class="cat-pill after-pill"
+                              [attr.href]="pill.link"
+                              [attr.target]="pill.link ? '_blank' : null"
+                              [attr.rel]="pill.link ? 'noopener' : null"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'"
+                            >
+                              {{ pill.text }}
+                            </a>
+                          }
+                        }
+                        @if (a.type === 'pill' && a.pos === 'after') {
+                          @if (a.render(rowData); as pill) {
+                            <span
+                              class="cat-pill after-pill"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'"
+                            >
+                              {{ pill.text }}
+                            </span>
+                          }
                         }
                       }
-                      @if (a.type === 'pill' && a.pos === 'after') {
-                        @if (a.render(rowData); as pill) {
-                          <span
-                            class="cat-pill after-pill"
-                            [pTooltip]="pill.tooltip || null"
-                            tooltipPosition="right"
-                            appendTo="body"
-                            [autoHide]="false"
-                            [showDelay]="120"
-                            [hideDelay]="350"
-                            [tooltipStyleClass]="'cat-tooltip'"
-                          >
-                            {{ pill.text }}
-                          </span>
+                    }
+                  </span>
+                }
+                @case ('boolean') {
+                  <span class="cell-inline">
+                    @if (col.annotations?.length) {
+                      @for (a of col.annotations; track a) {
+                        @if (a.type === 'pill' && a.pos !== 'after') {
+                          @if (a.render(rowData); as pill) {
+                            <span
+                              class="cat-pill"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'"
+                            >
+                              {{ pill.text }}
+                            </span>
+                          }
+                        }
+                        @if (a.type === 'linkPill' && a.pos !== 'after') {
+                          @if (a.render(rowData); as pill) {
+                            <a
+                              class="cat-pill"
+                              [attr.href]="pill.link"
+                              [attr.target]="pill.link ? '_blank' : null"
+                              [attr.rel]="pill.link ? 'noopener' : null"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'"
+                            >
+                              {{ pill.text }}
+                            </a>
+                          }
                         }
                       }
-                    </ng-container>
-                  }
-                </span>
-              }
-              @case ('boolean') {
-                <span class="cell-inline">
-                  @if (col.annotations?.length) {
-                    <ng-container *ngFor="let a of col.annotations">
-                      @if (a.type === 'pill' && a.pos !== 'after') {
-                        @if (a.render(rowData); as pill) {
-                          <span
-                            class="cat-pill"
-                            [pTooltip]="pill.tooltip || null"
-                            tooltipPosition="right"
-                            appendTo="body"
-                            [autoHide]="false"
-                            [showDelay]="120"
-                            [hideDelay]="350"
-                            [tooltipStyleClass]="'cat-tooltip'"
-                          >
-                            {{ pill.text }}
-                          </span>
-                        }
-                      }
-                      @if (a.type === 'linkPill' && a.pos !== 'after') {
-                        @if (a.render(rowData); as pill) {
-                          <a
-                            class="cat-pill"
-                            [href]="pill.link"
-                            target="_blank"
-                            rel="noopener"
-                            [pTooltip]="pill.tooltip || null"
-                            tooltipPosition="right"
-                            appendTo="body"
-                            [autoHide]="false"
-                            [showDelay]="120"
-                            [hideDelay]="350"
-                            [tooltipStyleClass]="'cat-tooltip'"
-                          >
-                            {{ pill.text }}
-                          </a>
-                        }
-                      }
-                    </ng-container>
-                  }
-                  @if (linkWrap(rowData, col); as href) {
-                    <a class="cell-link" [href]="href" target="_blank" rel="noopener">
+                    }
+                    @if (linkWrap(rowData, col); as href) {
+                      <a class="cell-link" [href]="href" target="_blank" rel="noopener">
+                        <span
+                          class="cell-content"
+                          [pTooltip]="rowData[col.field] ? 'Yes' : 'No'"
+                          [tooltipStyleClass]="'cell-tooltip'"
+                          [autoHide]="false"
+                          [showDelay]="120"
+                          [hideDelay]="350"
+                          >{{ rowData[col.field] ? 'Yes' : 'No' }}</span
+                        >
+                      </a>
+                    } @else {
                       <span
                         class="cell-content"
                         [pTooltip]="rowData[col.field] ? 'Yes' : 'No'"
@@ -399,83 +419,83 @@
                         [hideDelay]="350"
                         >{{ rowData[col.field] ? 'Yes' : 'No' }}</span
                       >
-                    </a>
-                  } @else {
-                    <span
-                      class="cell-content"
-                      [pTooltip]="rowData[col.field] ? 'Yes' : 'No'"
-                      [tooltipStyleClass]="'cell-tooltip'"
-                      [autoHide]="false"
-                      [showDelay]="120"
-                      [hideDelay]="350"
-                      >{{ rowData[col.field] ? 'Yes' : 'No' }}</span
-                    >
-                  }
-                  @if (col.annotations?.length) {
-                    <ng-container *ngFor="let a of col.annotations">
-                      @if (a.type === 'linkPill' && a.pos === 'after') {
-                        @if (a.render(rowData); as pill) {
-                          <a
-                            class="cat-pill after-pill"
-                            [href]="pill.link"
-                            target="_blank"
-                            rel="noopener"
-                            [pTooltip]="pill.tooltip || null"
-                            tooltipPosition="right"
-                            appendTo="body"
-                            [autoHide]="false"
-                            [showDelay]="120"
-                            [hideDelay]="350"
-                            [tooltipStyleClass]="'cat-tooltip'"
-                          >
-                            {{ pill.text }}
-                          </a>
+                    }
+                    @if (col.annotations?.length) {
+                      @for (a of col.annotations; track a) {
+                        @if (a.type === 'linkPill' && a.pos === 'after') {
+                          @if (a.render(rowData); as pill) {
+                            <a
+                              class="cat-pill after-pill"
+                              [attr.href]="pill.link"
+                              [attr.target]="pill.link ? '_blank' : null"
+                              [attr.rel]="pill.link ? 'noopener' : null"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'"
+                            >
+                              {{ pill.text }}
+                            </a>
+                          }
+                        }
+                        @if (a.type === 'pill' && a.pos === 'after') {
+                          @if (a.render(rowData); as pill) {
+                            <span
+                              class="cat-pill after-pill"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'"
+                            >
+                              {{ pill.text }}
+                            </span>
+                          }
                         }
                       }
-                      @if (a.type === 'pill' && a.pos === 'after') {
-                        @if (a.render(rowData); as pill) {
-                          <span
-                            class="cat-pill after-pill"
-                            [pTooltip]="pill.tooltip || null"
-                            tooltipPosition="right"
-                            appendTo="body"
-                            [autoHide]="false"
-                            [showDelay]="120"
-                            [hideDelay]="350"
-                            [tooltipStyleClass]="'cat-tooltip'"
-                          >
-                            {{ pill.text }}
-                          </span>
+                    }
+                  </span>
+                }
+                @case ('list') {
+                  <span class="cell-inline">
+                    @if (col.annotations?.length) {
+                      @for (a of col.annotations; track a) {
+                        @if (a.type === 'pill') {
+                          @if (a.render(rowData); as pill) {
+                            <span
+                              class="cat-pill"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'"
+                            >
+                              {{ pill.text }}
+                            </span>
+                          }
                         }
                       }
-                    </ng-container>
-                  }
-                </span>
-              }
-              @case ('list') {
-                <span class="cell-inline">
-                  @if (col.annotations?.length) {
-                    <ng-container *ngFor="let a of col.annotations">
-                      @if (a.type === 'pill') {
-                        @if (a.render(rowData); as pill) {
-                          <span
-                            class="cat-pill"
-                            [pTooltip]="pill.tooltip || null"
-                            tooltipPosition="right"
-                            appendTo="body"
-                            [autoHide]="false"
-                            [showDelay]="120"
-                            [hideDelay]="350"
-                            [tooltipStyleClass]="'cat-tooltip'"
-                          >
-                            {{ pill.text }}
-                          </span>
-                        }
-                      }
-                    </ng-container>
-                  }
-                  @if (linkWrap(rowData, col); as href) {
-                    <a class="cell-link" [href]="href" target="_blank" rel="noopener">
+                    }
+                    @if (linkWrap(rowData, col); as href) {
+                      <a class="cell-link" [href]="href" target="_blank" rel="noopener">
+                        <span
+                          class="cell-content"
+                          [pTooltip]="getCellString(rowData, col)"
+                          [tooltipStyleClass]="'cell-tooltip'"
+                          [autoHide]="false"
+                          [showDelay]="120"
+                          [hideDelay]="350"
+                          [innerHTML]="formatCell(getCellString(rowData, col), col.field)"
+                        ></span>
+                      </a>
+                    } @else {
                       <span
                         class="cell-content"
                         [pTooltip]="getCellString(rowData, col)"
@@ -485,65 +505,55 @@
                         [hideDelay]="350"
                         [innerHTML]="formatCell(getCellString(rowData, col), col.field)"
                       ></span>
-                    </a>
-                  } @else {
-                    <span
-                      class="cell-content"
-                      [pTooltip]="getCellString(rowData, col)"
-                      [tooltipStyleClass]="'cell-tooltip'"
-                      [autoHide]="false"
-                      [showDelay]="120"
-                      [hideDelay]="350"
-                      [innerHTML]="formatCell(getCellString(rowData, col), col.field)"
-                    ></span>
-                  }
-                  @if (col.annotations?.length) {
-                    <ng-container *ngFor="let a of col.annotations">
-                      @if (a.type === 'linkPill') {
-                        @if (a.render(rowData); as pill) {
-                          <a
-                            class="cat-pill after-pill"
-                            [href]="pill.link"
-                            target="_blank"
-                            rel="noopener"
-                            [pTooltip]="pill.tooltip || null"
-                            tooltipPosition="right"
-                            appendTo="body"
-                            [autoHide]="false"
-                            [showDelay]="120"
-                            [hideDelay]="350"
-                            [tooltipStyleClass]="'cat-tooltip'"
-                          >
-                            {{ pill.text }}
-                          </a>
+                    }
+                    @if (col.annotations?.length) {
+                      @for (a of col.annotations; track a) {
+                        @if (a.type === 'linkPill') {
+                          @if (a.render(rowData); as pill) {
+                            <a
+                              class="cat-pill after-pill"
+                              [href]="pill.link"
+                              target="_blank"
+                              rel="noopener"
+                              [pTooltip]="pill.tooltip || null"
+                              tooltipPosition="right"
+                              appendTo="body"
+                              [autoHide]="false"
+                              [showDelay]="120"
+                              [hideDelay]="350"
+                              [tooltipStyleClass]="'cat-tooltip'"
+                            >
+                              {{ pill.text }}
+                            </a>
+                          }
                         }
                       }
-                    </ng-container>
-                  }
-                </span>
+                    }
+                  </span>
+                }
+                @case ('lineNumber') {
+                  <span
+                    class="cell-content"
+                    [pTooltip]="rowIndex + 1"
+                    [tooltipStyleClass]="'cell-tooltip'"
+                    [autoHide]="false"
+                    [showDelay]="120"
+                    [hideDelay]="350"
+                    >{{ rowIndex + 1 }}</span
+                  >
+                }
+                @case ('expander') {
+                  <button
+                    pButton
+                    [icon]="isRowExpanded(rowData) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                    [pRowToggler]="rowData"
+                    class="p-button-text p-button-rounded p-button-plain"
+                    style="width: 2rem; height: 2rem; padding: 0"
+                    aria-label="Row expander"
+                  ></button>
+                }
               }
-              @case ('lineNumber') {
-                <span
-                  class="cell-content"
-                  [pTooltip]="rowIndex + 1"
-                  [tooltipStyleClass]="'cell-tooltip'"
-                  [autoHide]="false"
-                  [showDelay]="120"
-                  [hideDelay]="350"
-                  >{{ rowIndex + 1 }}</span
-                >
-              }
-              @case ('expander') {
-                <button
-                  pButton
-                  [icon]="isRowExpanded(rowData) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                  [pRowToggler]="rowData"
-                  class="p-button-text p-button-rounded p-button-plain"
-                  style="width: 2rem; height: 2rem; padding: 0"
-                ></button>
-              }
-            }
-          </td>
+            </td>
           }
         </tr>
       </ng-template>
@@ -808,6 +818,8 @@
                     (mouseup)="$event.stopPropagation()"
                     (click)="$event.stopPropagation()"
                     (dblclick)="onResizeReset(i, $event)"
+                    tabindex="1"
+                    role="button"
                   ></span>
                 }
               </th>

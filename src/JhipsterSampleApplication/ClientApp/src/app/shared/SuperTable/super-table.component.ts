@@ -327,6 +327,36 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     return item?.group?.name || String(index);
   }
 
+  isAllLoadedSelected(): boolean {
+    // Only the top-level grid shows a header checkbox.
+    if (this.superTableParent || this.mode !== 'grid' || this.selectionMode !== 'multiple') return false;
+    try {
+      const list = this.dataLoader?.data$?.getValue?.() as any[] | undefined;
+      if (!list || list.length === 0) return false;
+      for (const row of list) {
+        if (!this.isRowSelected(row)) return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  onHeaderSelectAll(originalEvent: Event | undefined, checked: boolean): void {
+    if (this.superTableParent || this.mode !== 'grid' || this.selectionMode !== 'multiple') {
+      return;
+    }
+    try {
+      this.pTable?.toggleRowWithCheckbox({ originalEvent} as any, checked);
+    } catch {
+      const list = this.dataLoader?.data$?.getValue?.() as any[] | undefined;
+      const next = checked ? (list ? [...list] : []) : [];
+      this.selection = next;
+      this.selectionChange.emit(next);
+      this.cdr.markForCheck();
+    }
+  }
+
   // Deprecated helper for legacy single pill; no longer used
   getPillText(row: any): string { const n = (row?.categories?.length || 0); return String(n); }
 
