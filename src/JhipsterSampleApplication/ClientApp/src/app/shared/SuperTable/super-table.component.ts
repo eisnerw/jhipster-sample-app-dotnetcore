@@ -347,7 +347,7 @@ export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
       return;
     }
     try {
-      this.pTable?.toggleRowWithCheckbox({ originalEvent} as any, checked);
+      this.pTable?.toggleRowsWithCheckbox({ originalEvent} as any, checked);
     } catch {
       const list = this.dataLoader?.data$?.getValue?.() as any[] | undefined;
       const next = checked ? (list ? [...list] : []) : [];

@@ -218,7 +218,6 @@
   align-items: center;
   flex: 0 1 auto;                 /* allow shrinking */
   min-width: 0;                   /* REQUIRED for ellipsis within flex children */
-  max-width: 100%;
   text-decoration: underline;
   color: inherit;
 }
