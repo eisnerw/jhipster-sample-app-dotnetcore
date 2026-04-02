@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, OnInit, ViewChild, TemplateRef, AfterViewInit, inject, Input, HostListener, ChangeDetectorRef, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChild, TemplateRef, AfterViewInit, inject, Input, HostListener, ChangeDetectorRef, OnDestroy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
@@ -59,6 +59,7 @@ type MenuSpecItem = { action?: string; icon?: string; label?: string; type?: str
     FontAwesomeModule,
   ],
   standalone: true,
+  encapsulation: ViewEncapsulation.None,
 })
 export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() entity!: string;

@@ -1,47 +1,47 @@
-.global-filter-input { width: 12rem; }
-.chip-bar { padding: 0.25rem 0; }
+jhi-generic-list .global-filter-input { width: 12rem; }
+jhi-generic-list .chip-bar { padding: 0.25rem 0; }
 
 /* Optional invert mode for quick black/white preview */
-:host-context(.prime-theme-invert-grid) .generic-list-root {
+.prime-theme-invert-grid jhi-generic-list .generic-list-root {
   filter: invert(1) hue-rotate(180deg);
 }
 
 /* Force true white text in dark mode for better contrast */
-:host-context(.prime-theme-dark) .generic-list-root {
+.prime-theme-dark jhi-generic-list .generic-list-root {
   color: #ffffff;
 }
 
-:host-context(.prime-theme-dark) .generic-list-root ::ng-deep .p-datatable,
-:host-context(.prime-theme-dark) .generic-list-root ::ng-deep .p-datatable thead th,
-:host-context(.prime-theme-dark) .generic-list-root ::ng-deep .p-datatable-tbody > tr > td {
+.prime-theme-dark jhi-generic-list .generic-list-root .p-datatable,
+.prime-theme-dark jhi-generic-list .generic-list-root .p-datatable thead th,
+.prime-theme-dark jhi-generic-list .generic-list-root .p-datatable-tbody > tr > td {
   color: #ffffff;
 }
 
 /* Match 22px row height used by other entity lists */
-:host {
+jhi-generic-list {
   /* Body rows */
-  ::ng-deep .p-datatable .p-datatable-tbody > tr {
+  .p-datatable .p-datatable-tbody > tr {
     min-height: 22px !important;
     line-height: 22px !important;
   }
-  ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+  .p-datatable .p-datatable-tbody > tr > td {
     padding: 0 0.5rem !important;
     min-height: 22px !important;
     line-height: 22px !important;
   }
-  ::ng-deep .p-datatable .p-datatable-tbody > tr > td:first-child {
+  .p-datatable .p-datatable-tbody > tr > td:first-child {
     padding: 0 !important;
     margin: 0 !important;
     min-height: 22px !important;
   }
-  ::ng-deep .p-datatable .p-datatable-tbody > tr > td:first-child > div {
+  .p-datatable .p-datatable-tbody > tr > td:first-child > div {
     min-height: 22px !important;
     line-height: 22px !important;
     padding: 0 !important;
     margin: 0 !important;
   }
   /* Buttons inside cells */
-  ::ng-deep .p-datatable .p-datatable-tbody > tr > td > .p-button {
+  .p-datatable .p-datatable-tbody > tr > td > .p-button {
     width: 22px !important;
     height: 22px !important;
     min-height: 22px !important;
@@ -50,7 +50,7 @@
     margin: 0 !important;
     line-height: 22px !important;
   }
-  ::ng-deep .p-datatable .p-datatable-tbody > tr > td > .p-button .p-button-icon {
+  .p-datatable .p-datatable-tbody > tr > td > .p-button .p-button-icon {
     font-size: 12px !important;
     line-height: 22px !important;
     height: 22px !important;
@@ -59,23 +59,23 @@
     margin: 0 !important;
   }
   /* Checkbox sizing + neutral style */
-  ::ng-deep .p-checkbox { width: 16px !important; height: 16px !important; margin: 0 !important; padding: 0 !important; min-height: 16px !important; max-height: 16px !important; position: relative !important; top: -3px !important; }
-  ::ng-deep .p-checkbox .p-checkbox-box { width: 16px !important; height: 16px !important; margin: 0 !important; padding: 0 !important; min-height: 16px !important; max-height: 16px !important; }
-  ::ng-deep .p-datatable .p-datatable-tbody .p-checkbox .p-checkbox-box.p-highlight,
-  ::ng-deep .p-datatable .p-datatable-thead .p-checkbox .p-checkbox-box.p-highlight,
-  ::ng-deep .p-checkbox .p-checkbox-box.p-highlight { background: #ffffff !important; border-color: var(--surface-border, #ced4da) !important; box-shadow: none !important; }
-  ::ng-deep .p-datatable .p-datatable-tbody .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
-  ::ng-deep .p-datatable .p-datatable-thead .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
-  ::ng-deep .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
-  ::ng-deep .p-checkbox .p-checkbox-icon { color: var(--text-color, #212529) !important; }
-  ::ng-deep .p-checkbox .p-checkbox-icon { font-size: 12px !important; margin: 0 !important; padding: 0 !important; line-height: 12px !important; height: 12px !important; }
+  .p-checkbox { width: 16px !important; height: 16px !important; margin: 0 !important; padding: 0 !important; min-height: 16px !important; max-height: 16px !important; position: relative !important; top: -3px !important; }
+  .p-checkbox .p-checkbox-box { width: 16px !important; height: 16px !important; margin: 0 !important; padding: 0 !important; min-height: 16px !important; max-height: 16px !important; }
+  .p-datatable .p-datatable-tbody .p-checkbox .p-checkbox-box.p-highlight,
+  .p-datatable .p-datatable-thead .p-checkbox .p-checkbox-box.p-highlight,
+  .p-checkbox .p-checkbox-box.p-highlight { background: #ffffff !important; border-color: var(--surface-border, #ced4da) !important; box-shadow: none !important; }
+  .p-datatable .p-datatable-tbody .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
+  .p-datatable .p-datatable-thead .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
+  .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon,
+  .p-checkbox .p-checkbox-icon { color: var(--text-color, #212529) !important; }
+  .p-checkbox .p-checkbox-icon { font-size: 12px !important; margin: 0 !important; padding: 0 !important; line-height: 12px !important; height: 12px !important; }
 
   /* Header height to match other lists */
-  ::ng-deep .p-datatable .p-datatable-thead > tr.header-row { height: 32px !important; line-height: 32px !important; min-height: 32px !important; max-height: 32px !important; }
-  ::ng-deep .p-datatable .p-datatable-thead > tr.header-row > th { padding: 0 0.5rem !important; height: 32px !important; line-height: 32px !important; min-height: 32px !important; max-height: 32px !important; }
+  .p-datatable .p-datatable-thead > tr.header-row { height: 32px !important; line-height: 32px !important; min-height: 32px !important; max-height: 32px !important; }
+  .p-datatable .p-datatable-thead > tr.header-row > th { padding: 0 0.5rem !important; height: 32px !important; line-height: 32px !important; min-height: 32px !important; max-height: 32px !important; }
 
   /* Query builder density + font size: match other entities */
-  ::ng-deep ngx-query-builder {
+  ngx-query-builder {
     font-size: 0.875rem;
 
     .q-switch-label,
@@ -95,19 +95,19 @@
       width: 1.5rem;
     }
   }
+}
 
-  /* Cap context/menu height and allow scrolling when menus are long */
-  ::ng-deep .p-menu .p-menu-list,
-  ::ng-deep .p-contextmenu .p-menu-list {
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-  }
-  ::ng-deep .p-menu .p-submenu-list,
-  ::ng-deep .p-contextmenu .p-submenu-list,
-  ::ng-deep .p-contextmenu-submenu,
-  ::ng-deep .p-contextmenu .p-contextmenu-submenu,
-  ::ng-deep .p-submenu-list .p-submenu-list {
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-  }
+/* PrimeNG menus are rendered in overlays, so these selectors stay global. */
+.p-menu .p-menu-list,
+.p-contextmenu .p-menu-list {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+.p-menu .p-submenu-list,
+.p-contextmenu .p-submenu-list,
+.p-contextmenu-submenu,
+.p-contextmenu .p-contextmenu-submenu,
+.p-submenu-list .p-submenu-list {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }

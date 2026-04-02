@@ -10,6 +10,7 @@ import {
   ViewChild,
   ElementRef,
   inject,
+  ViewEncapsulation,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -67,6 +68,7 @@ interface NamedQuery {
   providers: [BqlAutocompleteService],
   styleUrls: ['./query-input.component.scss'],
   templateUrl: './query-input.component.html',
+  encapsulation: ViewEncapsulation.None,
 })
 export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
   private dialog = inject(MatDialog);

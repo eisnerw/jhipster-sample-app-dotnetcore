@@ -2,27 +2,27 @@
 // by increasing the default overlay z-index. PrimeNG's dialog uses a base
 // z-index of 10000, so we push Material dialogs higher to keep them visible
 // and modal.
-::ng-deep .cdk-overlay-container {
+.cdk-overlay-container {
   z-index: 20000 !important;
 }
 
-::ng-deep .cdk-overlay-backdrop {
+.cdk-overlay-backdrop {
   z-index: 1000 !important;
 }
 
-::ng-deep .cdk-overlay-pane.resizable-dialog {
+.cdk-overlay-pane.resizable-dialog {
   resize: both;
   overflow: auto;
 }
 
-::ng-deep .cdk-overlay-pane.resizable-dialog .mat-dialog-container {
+.cdk-overlay-pane.resizable-dialog .mat-dialog-container {
   max-width: none;
   max-height: none;
   height: 100%;
 }
 
 
-.query-input {
+lib-query-input .query-input {
   display: inline-flex;
   align-items: center;
   font-size: 1rem;
@@ -96,7 +96,7 @@
 }
 
 /* Query Builder Dialog Styles */
-::ng-deep .p-dialog.query-builder-dialog {
+.p-dialog.query-builder-dialog {
   border-radius: 8px;
   border: 2px solid #667eea;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
@@ -174,7 +174,7 @@
   }
 }
 
-.query-builder-content {
+.query-builder-dialog .query-builder-content {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -315,7 +315,7 @@
   }
 }
 
-.dialog-footer {
+.query-builder-dialog .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
@@ -349,7 +349,7 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  ::ng-deep .p-dialog.query-builder-dialog {
+  .p-dialog.query-builder-dialog {
     width: 95vw !important;
     height: 90vh !important;
     margin: 0 !important;
@@ -358,7 +358,7 @@
     transform: none !important;
   }
   
-  .query-builder-content {
+  .query-builder-dialog .query-builder-content {
     .condition-row {
       flex-direction: column;
       align-items: flex-start;
@@ -389,7 +389,8 @@
 }
 
 /* Basic PrimeNG Button Styles */
-.p-button {
+lib-query-input .p-button,
+.query-builder-dialog .p-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -464,7 +465,8 @@
 }
 
 /* PrimeNG Icon Styles */
-.pi {
+lib-query-input .pi,
+.query-builder-dialog .pi {
   font-family: 'PrimeIcons' !important;
   font-style: normal;
   font-weight: normal !important;
@@ -477,7 +479,7 @@
 }
 
 /* Specific query input button styles */
-.query-input {
+lib-query-input .query-input {
   .search-btn {
     background: #007bff;
     border: 1px solid #007bff;
@@ -514,7 +516,7 @@
 }
 
 /* Autocomplete Dropdown Styles */
-::ng-deep .p-autocomplete {
+lib-query-input .query-input-autocomplete {
   flex: 1;
   display: flex;
   position: relative;
@@ -551,7 +553,7 @@
   }
 }
 
-::ng-deep .p-autocomplete-panel {
+.query-input-autocomplete-panel {
   background: white;
   border: 1px solid #ddd;
   border-radius: 6px;
@@ -726,7 +728,7 @@
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {
-  ::ng-deep .p-autocomplete-panel {
+  .query-input-autocomplete-panel {
     border: 2px solid #000;
     
     .p-autocomplete-items .p-autocomplete-item {
@@ -762,14 +764,14 @@
 
 /* Responsive styles for mobile devices */
 @media (max-width: 768px) {
-  .query-input {
+  lib-query-input .query-input {
     &.editing {
       width: 100%;
       max-width: 100%;
     }
   }
   
-  ::ng-deep .p-autocomplete-panel {
+  .query-input-autocomplete-panel {
     min-width: 250px;
     max-width: calc(100vw - 32px);
     max-height: 200px;
@@ -801,7 +803,7 @@
 
 /* Touch-friendly styles for mobile */
 @media (hover: none) and (pointer: coarse) {
-  ::ng-deep .p-autocomplete-panel {
+  .query-input-autocomplete-panel {
     .p-autocomplete-items .p-autocomplete-item {
       .autocomplete-item {
         padding: 14px 12px;
@@ -813,7 +815,7 @@
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
-  ::ng-deep .p-autocomplete-panel {
+  .query-input-autocomplete-panel {
     animation: none;
     
     .p-autocomplete-items .p-autocomplete-item {
@@ -824,7 +826,7 @@
 
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
-  ::ng-deep .p-autocomplete-panel {
+  .query-input-autocomplete-panel {
     background: #2d2d2d;
     border-color: #444;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);

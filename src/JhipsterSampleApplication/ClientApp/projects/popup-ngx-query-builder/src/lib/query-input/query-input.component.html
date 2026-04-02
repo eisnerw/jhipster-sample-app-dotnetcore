@@ -13,6 +13,8 @@
     <p-autoComplete
       #editBox
       [(ngModel)]="query"
+      styleClass="query-input-autocomplete"
+      panelStyleClass="query-input-autocomplete-panel"
       [suggestions]="autocompleteSuggestions"
       [minLength]="0"
       (completeMethod)="onInputChange($event)"

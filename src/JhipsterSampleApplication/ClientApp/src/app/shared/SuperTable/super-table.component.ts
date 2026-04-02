@@ -1,6 +1,6 @@
 /* eslint-disable */
 
-import { Component, OnInit, AfterViewInit, OnDestroy, OnChanges, SimpleChanges, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, TemplateRef, ChangeDetectionStrategy, ChangeDetectorRef, inject, ElementRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, OnChanges, SimpleChanges, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, TemplateRef, ChangeDetectionStrategy, ChangeDetectorRef, inject, ElementRef, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -80,6 +80,7 @@ export interface GroupData {
     FormsModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None,
 })
 export class SuperTable implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   // Increment this to invalidate/ignore all previously persisted widths when

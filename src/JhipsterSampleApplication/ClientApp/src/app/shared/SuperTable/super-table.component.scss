@@ -1,4 +1,4 @@
-:host ::ng-deep {
+super-table {
   .p-button.p-button-text.p-button-rounded.p-button-plain {
     width: 2rem;
     height: 2rem;
@@ -82,17 +82,17 @@
 }
 
 /* Scope header typography to SuperTable only */
-:host ::ng-deep .p-datatable thead th {
+super-table .p-datatable thead th {
   font-size: 13px !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
 }
-:host ::ng-deep .p-datatable thead th .header-text {
+super-table .p-datatable thead th .header-text {
   font-size: inherit !important;
   font-family: inherit !important;
 }
 
 /* "Loading…" / "No hits" message row: make it look like body rows */
-:host ::ng-deep .loading-row td {
+super-table .loading-row td {
   /* Gridlines to match body cells */
   border-bottom: 1px solid var(--surface-border, #dee2e6);
   border-left: 1px solid var(--surface-border, #dee2e6);
@@ -118,7 +118,7 @@
 }
 
 /* Checkboxes: center vertically; body rows nudged down slightly */
-:host ::ng-deep td > p-tablecheckbox {
+super-table td > p-tablecheckbox {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -126,22 +126,22 @@
 
 /* Lower body-row checkboxes a touch for visual centering */
 /* Nudge body-row checkboxes down slightly (PrimeNG places them a bit high) */
-:host ::ng-deep .p-datatable-tbody td p-tablecheckbox .p-checkbox {
+super-table .p-datatable-tbody td p-tablecheckbox .p-checkbox {
   transform: translateY(2px) !important;
 }
 /* Extra safeguard: nudge the visible box as well in case inner box is measured */
-:host ::ng-deep .p-datatable-tbody td p-tablecheckbox .p-checkbox .p-checkbox-box {
+super-table .p-datatable-tbody td p-tablecheckbox .p-checkbox .p-checkbox-box {
   margin-top: 1px !important;
 }
 
 /* Vertically center header contents (including header checkbox) */
-:host ::ng-deep .header-cell {
+super-table .header-cell {
   display: flex;
   align-items: center;
 }
 
 /* Center header checkbox independent of other header content */
-:host ::ng-deep thead th .st-header-checkbox {
+super-table thead th .st-header-checkbox {
   position: absolute;
   left: 50%;
   top: 50%;
@@ -150,7 +150,7 @@
   align-items: center;
   justify-content: center;
 }
-.st-resize-handle {
+super-table .st-resize-handle {
   position: absolute;
   right: 0;
   top: 0;
@@ -161,23 +161,23 @@
   z-index: 2;
   border-right: 1px solid var(--surface-border, #dee2e6);
 }
-.st-resize-handle:hover {
+super-table .st-resize-handle:hover {
   background: rgba(0,0,0,0.06);
 }
 
-:host ::ng-deep .header-cell {
+super-table .header-cell {
   position: relative;
 }
 
-:host ::ng-deep .p-datatable thead th {
+super-table .p-datatable thead th {
   position: relative;
   background: var(--p-content-background);
   color: var(--p-content-color);
 }
 
 /* Numeric columns: right-align body, keep header left-aligned */
-:host ::ng-deep td.numeric-cell { text-align: right; }
-:host ::ng-deep th.numeric-header { text-align: left; }
+super-table td.numeric-cell { text-align: right; }
+super-table th.numeric-header { text-align: left; }
 
 .st-resizing * {
   cursor: col-resize !important;
@@ -185,12 +185,12 @@
 }
 
 /* Category row highlight */
-:host ::ng-deep .row-has-category {
+super-table .row-has-category {
   box-shadow: inset 3px 0 0 0 var(--p-primary-color, #0d6efd);
 }
 
 /* Generic inline pill styling (used for annotations in any column) */
-:host ::ng-deep td .cat-pill {
+super-table td .cat-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -209,11 +209,11 @@
 }
 
 /* Pills and text inline within cell-inline flex container */
-:host ::ng-deep td .cell-inline .cat-pill + .cell-content { display: inline-block; vertical-align: middle; }
-:host ::ng-deep td .cell-inline .cell-content { vertical-align: middle; }
+super-table td .cell-inline .cat-pill + .cell-content { display: inline-block; vertical-align: middle; }
+super-table td .cell-inline .cell-content { vertical-align: middle; }
 
 /* Link annotation wrapper: make it a shrinkable flex item so inner text can ellipsize */
-:host ::ng-deep td .cell-inline .cell-link {
+super-table td .cell-inline .cell-link {
   display: inline-flex;           /* behave well inside flex and keep inline baseline */
   align-items: center;
   flex: 0 1 auto;                 /* allow shrinking */
@@ -222,7 +222,7 @@
   color: inherit;
 }
 /* Ensure the inner content still has ellipsis rules even when wrapped by <a> */
-:host ::ng-deep td .cell-inline .cell-link .cell-content {
+super-table td .cell-inline .cell-link .cell-content {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -230,20 +230,20 @@
 }
 
 /* When pills are positioned AFTER the text (linkPill), add left spacing */
-:host ::ng-deep td .after-pill {
+super-table td .after-pill {
   margin-left: 0.25rem;
   margin-right: 0; /* avoid extra right gap after trailing pills */
 }
 
 /* PrimeNG tooltip styling for categories */
-:host ::ng-deep .cat-tooltip {
+super-table .cat-tooltip {
   white-space: pre-wrap;
   max-width: 24rem;
   font-size: 0.75rem;
 }
 
 /* Smaller tooltip text for general cell hover callouts */
-:host ::ng-deep .cell-tooltip .p-tooltip-text {
+super-table .cell-tooltip .p-tooltip-text {
   font-size: 0.75rem; /* ~12px */
   line-height: 1.25;
   padding: 0.25rem 0.375rem;
@@ -251,7 +251,7 @@
 }
 
 /* Body row typography */
-:host ::ng-deep .p-datatable .p-datatable-tbody td {
+super-table .p-datatable .p-datatable-tbody td {
   font-size: 12px !important;
   color: #333333;
   font-weight: 400;
@@ -260,58 +260,58 @@
 
 /* PrimeNG table container can show a horizontal scrollbar even for 1px rounding differences.
    Hide X overflow; SuperTable is intended to fit columns to the available width. */
-:host ::ng-deep .p-datatable-table-container {
+super-table .p-datatable-table-container {
   overflow-x: hidden !important;
 }
 
-:host ::ng-deep .p-datatable-table {
+super-table .p-datatable-table {
   max-width: 100% !important;
 }
 
-.st-group-virtual-table {
+super-table .st-group-virtual-table {
   display: flex;
   flex-direction: column;
   min-height: 0;
   height: 100%;
 }
 
-.st-group-virtual-viewport {
+super-table .st-group-virtual-viewport {
   overflow: auto;
   min-height: 0;
   flex: 1 1 auto;
 }
 
-.st-group-virtual-spacer {
+super-table .st-group-virtual-spacer {
   width: 100%;
   pointer-events: none;
 }
 
-.st-group-virtual-row-block {
+super-table .st-group-virtual-row-block {
   width: 100%;
 }
 
-.st-group-virtual-row-table {
+super-table .st-group-virtual-row-table {
   table-layout: fixed;
 }
 
-:host ::ng-deep .st-group-virtual-table .p-datatable-tbody > tr {
+super-table .st-group-virtual-table .p-datatable-tbody > tr {
   min-height: 22px !important;
   line-height: 22px !important;
 }
 
-:host ::ng-deep .st-group-virtual-table .p-datatable-tbody > tr > td {
+super-table .st-group-virtual-table .p-datatable-tbody > tr > td {
   padding: 0 0.5rem !important;
   min-height: 22px !important;
   line-height: 22px !important;
 }
 
-:host ::ng-deep .st-group-virtual-table .p-datatable-tbody > tr > td:first-child {
+super-table .st-group-virtual-table .p-datatable-tbody > tr > td:first-child {
   padding: 0 !important;
   margin: 0 !important;
   min-height: 22px !important;
 }
 
-.st-group-row-content {
+super-table .st-group-row-content {
   display: flex;
   align-items: center;
   min-height: 22px;
@@ -320,7 +320,7 @@
   margin: 0;
 }
 
-:host ::ng-deep .st-group-virtual-table .st-group-row-content > .p-button {
+super-table .st-group-virtual-table .st-group-row-content > .p-button {
   width: 22px !important;
   height: 22px !important;
   min-height: 22px !important;
@@ -330,8 +330,8 @@
   line-height: 22px !important;
 }
 
-:host ::ng-deep .st-group-virtual-table .st-group-row-content > .p-button .p-button-icon,
-:host ::ng-deep .st-group-virtual-table .st-group-row-content > .p-button .group-toggle-icon {
+super-table .st-group-virtual-table .st-group-row-content > .p-button .p-button-icon,
+super-table .st-group-virtual-table .st-group-row-content > .p-button .group-toggle-icon {
   font-size: 12px !important;
   line-height: 22px !important;
   width: 22px !important;
