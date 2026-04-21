@@ -85,4 +85,72 @@ public class BqlServiceTest
         Assert.Equal("johnson", positive.value);
         Assert.False(positive.not);
     }
+
+    [Fact]
+    public async Task Ruleset2ElasticSearch_DocumentRegex_ShouldTargetProvidedKeywordFields()
+    {
+        var result = await _service.Ruleset2ElasticSearch(
+            new RulesetDto
+            {
+                field = "document",
+                @operator = "contains",
+                value = "/ann/"
+            },
+            new[] { "fname", "lname.keyword", "document" });
+
+        var expected = new JObject
+        {
+            {
+                "bool",
+                new JObject
+                {
+                    {
+                        "should",
+                        new JArray
+                        {
+                            new JObject
+                            {
+                                {
+                                    "regexp",
+                                    new JObject
+                                    {
+                                        {
+                                            "fname.keyword",
+                                            new JObject
+                                            {
+                                                { "value", ".*ann.*" },
+                                                { "flags", "ALL" },
+                                                { "rewrite", "constant_score" }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            new JObject
+                            {
+                                {
+                                    "regexp",
+                                    new JObject
+                                    {
+                                        {
+                                            "lname.keyword",
+                                            new JObject
+                                            {
+                                                { "value", ".*ann.*" },
+                                                { "flags", "ALL" },
+                                                { "rewrite", "constant_score" }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    { "minimum_should_match", 1 }
+                }
+            }
+        };
+
+        Assert.True(JToken.DeepEquals(expected, (JToken)result));
+    }
 }

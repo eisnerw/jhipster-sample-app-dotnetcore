@@ -894,10 +894,11 @@ public async Task<JObject> ConvertRulesetToElasticSearch(string entity, Ruleset 
         qbSpec = new JObject { ["fields"] = new JObject() };
     }
     // Ensure "document" field exists for BQL processing
+    var documentKeywordFields = GetDocumentKeywordFields(qbSpec);
     EnsureDocumentField(qbSpec);
     var logger = _loggerFactory.CreateLogger<BqlService<object>>();
     var bql = new BqlService<object>(logger, _namedQueryService, qbSpec, entity);
-    var result = await bql.Ruleset2ElasticSearch(dto);
+    var result = await bql.Ruleset2ElasticSearch(dto, documentKeywordFields);
     return result is JObject jo ? jo : JObject.FromObject(result);
 }
 
@@ -921,6 +922,27 @@ private static RulesetDto MapToDto(Ruleset rr)
         @not = rr.@not,
         rules = rr.rules?.Select(MapToDto).ToList() ?? new List<RulesetDto>()
     };
+}
+
+private static List<string> GetDocumentKeywordFields(JObject qbSpec)
+{
+    var fields = qbSpec["fields"] as JObject;
+    if (fields == null)
+    {
+        return new List<string>();
+    }
+
+    return fields.Properties()
+        .Where(p => !string.Equals(p.Name, "document", StringComparison.OrdinalIgnoreCase))
+        .Select(p => new { Field = p.Name, Spec = p.Value as JObject })
+        .Where(x =>
+            x.Spec != null &&
+            string.Equals(x.Spec.Value<string>("type"), "string", StringComparison.OrdinalIgnoreCase) &&
+            (x.Spec["operators"] as JArray)?.Values<string>()
+                .Any(op => string.Equals(op?.Trim(), "contains", StringComparison.OrdinalIgnoreCase)) == true)
+        .Select(x => x.Field)
+        .Distinct(StringComparer.Ordinal)
+        .ToList();
 }
 
 /// <summary>

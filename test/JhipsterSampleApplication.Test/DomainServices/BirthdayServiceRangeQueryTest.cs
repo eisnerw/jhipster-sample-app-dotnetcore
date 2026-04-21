@@ -172,4 +172,62 @@ public class BirthdayServiceRangeQueryTest
 
         Assert.True(JToken.DeepEquals(expectedObject, result));
     }
+
+    [Fact]
+    public async Task ConvertRulesetToElasticSearch_DocumentRegexTargetsContainsKeywordFields()
+    {
+        var ruleset = new Ruleset
+        {
+            field = "document",
+            @operator = "contains",
+            value = "/ann/"
+        };
+
+        var result = await _service.ConvertRulesetToElasticSearch("birthday", ruleset);
+
+        var expectedObject = new JObject
+        {
+            {
+                "bool",
+                new JObject
+                {
+                    {
+                        "should",
+                        new JArray
+                        {
+                            BuildRegexpClause("lname.keyword"),
+                            BuildRegexpClause("fname.keyword"),
+                            BuildRegexpClause("categories.keyword"),
+                            BuildRegexpClause("wikipedia.keyword")
+                        }
+                    },
+                    { "minimum_should_match", 1 }
+                }
+            }
+        };
+
+        Assert.True(JToken.DeepEquals(expectedObject, result));
+    }
+
+    private static JObject BuildRegexpClause(string field)
+    {
+        return new JObject
+        {
+            {
+                "regexp",
+                new JObject
+                {
+                    {
+                        field,
+                        new JObject
+                        {
+                            { "value", ".*ann.*" },
+                            { "flags", "ALL" },
+                            { "rewrite", "constant_score" }
+                        }
+                    }
+                }
+            }
+        };
+    }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using JhipsterSampleApplication.Dto;
 
@@ -23,7 +24,8 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
         /// Converts a Ruleset to an Elasticsearch query
         /// </summary>
         /// <param name="ruleset">The Ruleset to convert</param>
+        /// <param name="documentKeywordFields">Optional keyword-backed fields to use for document-level regex queries</param>
         /// <returns>An Elasticsearch query object</returns>
-        Task<object> Ruleset2ElasticSearch(RulesetDto ruleset);
+        Task<object> Ruleset2ElasticSearch(RulesetDto ruleset, IEnumerable<string>? documentKeywordFields = null);
     }
-} 
+}
