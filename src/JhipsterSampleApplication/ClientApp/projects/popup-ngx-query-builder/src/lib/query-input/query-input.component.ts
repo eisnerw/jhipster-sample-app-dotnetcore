@@ -310,10 +310,10 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   onEnter(event: any) {
+    event.preventDefault();
+    event.stopPropagation();
     if (this.validQuery) {
       this.acceptEdit();
-    } else {
-      event.preventDefault();
     }
   }
 

@@ -418,4 +418,19 @@ describe('validateBql', () => {
     } as any;
     expect(validateBql('B', cfgLoop, ['A'])).toBeFalse();
   });
+
+  it('should accept regex search for contains-only string fields', () => {
+    const regexCfg: QueryBuilderConfig = {
+      fields: {
+        wikipedia: {
+          name: 'Wikipedia',
+          type: 'string',
+          operators: ['contains', '!contains'],
+        },
+      },
+    } as any;
+
+    expect(validateBql('wikipedia CONTAINS /american singer/i', regexCfg)).toBeTrue();
+    expect(validateBql('wikipedia LIKE /american singer/i', regexCfg)).toBeTrue();
+  });
 });

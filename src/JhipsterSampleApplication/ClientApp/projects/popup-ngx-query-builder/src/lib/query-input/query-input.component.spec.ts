@@ -501,11 +501,17 @@ describe('QueryInputComponent - Autocomplete Integration Tests', () => {
     it('should not accept invalid query even with autocomplete', fakeAsync(() => {
       component.query = 'invalid &&&';
       component.validQuery = false;
+      const event = {
+        preventDefault: jasmine.createSpy('preventDefault'),
+        stopPropagation: jasmine.createSpy('stopPropagation'),
+      };
 
-      component.onEnter({ preventDefault: () => {} });
+      component.onEnter(event);
       tick();
 
       expect(component.editing).toBe(true);
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(event.stopPropagation).toHaveBeenCalled();
     }));
   });
 

@@ -634,7 +634,7 @@ function validateRule(
   if (!fieldConf) return false;
 
   const operators = getAllowedOperators(rule.field, config);
-  if (operators.length && !operators.includes(rule.operator)) {
+  if (operators.length && !isAllowedRuleOperator(rule, operators)) {
     return false;
   }
 
@@ -746,6 +746,30 @@ function validateRule(
   }
 
   return true;
+}
+
+function isRegexLiteral(value: unknown): value is string {
+  return typeof value === 'string' && /^\/(?:\\\/|\\.|[^\/])+\/[a-z]*$/.test(value);
+}
+
+function isAllowedRuleOperator(rule: Rule, operators: string[]): boolean {
+  if (operators.includes(rule.operator)) {
+    return true;
+  }
+
+  if (!isRegexLiteral(rule.value)) {
+    return false;
+  }
+
+  if (rule.operator === 'like' && operators.includes('contains')) {
+    return true;
+  }
+
+  if (rule.operator === '!like' && operators.includes('!contains')) {
+    return true;
+  }
+
+  return false;
 }
 
 export function validateRuleset(
