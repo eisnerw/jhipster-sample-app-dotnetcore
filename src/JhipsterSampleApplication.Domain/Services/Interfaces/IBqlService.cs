@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using JhipsterSampleApplication.Dto;
 
@@ -10,14 +11,14 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
         /// </summary>
         /// <param name="bqlQuery">The BQL query string to convert</param>
         /// <returns>A Ruleset representing the BQL query</returns>
-        Task<RulesetDto> Bql2Ruleset(string bqlQuery);
+        RulesetDto Bql2Ruleset(string bqlQuery, IEnumerable<NamedQueryDto>? userSystemAndGlobalRulesets = null);
 
         /// <summary>
         /// Converts a Ruleset to a BQL query string
         /// </summary>
         /// <param name="ruleset">The Ruleset to convert</param>
         /// <returns>A BQL query string representing the Ruleset</returns>
-        Task<string> Ruleset2Bql(RulesetDto ruleset);
+        string Ruleset2Bql(RulesetDto ruleset);
 
         /// <summary>
         /// Converts a Ruleset to an Elasticsearch query

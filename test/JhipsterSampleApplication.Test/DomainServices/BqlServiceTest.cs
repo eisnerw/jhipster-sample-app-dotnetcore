@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
 using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
@@ -34,7 +33,7 @@ public class BqlServiceTest
     [Theory]
     [InlineData("/ani/")]
     [InlineData("/dani/i")]
-    public async Task Ruleset2Bql_ShouldReturnRegexWithoutQuotes(string pattern)
+    public void Ruleset2Bql_ShouldReturnRegexWithoutQuotes(string pattern)
     {
         var ruleset = new RulesetDto
         {
@@ -45,15 +44,15 @@ public class BqlServiceTest
             }
         };
 
-        var result = await _service.Ruleset2Bql(ruleset);
+        var result = _service.Ruleset2Bql(ruleset);
 
         Assert.Equal(pattern, result);
     }
 
     [Fact]
-    public async Task Bql2Ruleset_ShouldUseNegatedOperatorForSingleRule()
+    public void Bql2Ruleset_ShouldUseNegatedOperatorForSingleRule()
     {
-        var result = await _service.Bql2Ruleset("!(fname CONTAINS john)");
+        var result = _service.Bql2Ruleset("!(fname CONTAINS john)");
 
         Assert.Equal("fname", result.field);
         Assert.Equal("!contains", result.@operator);
@@ -64,9 +63,9 @@ public class BqlServiceTest
     }
 
     [Fact]
-    public async Task Bql2Ruleset_ShouldPreserveNotForNegatedNamedQuery()
+    public void Bql2Ruleset_ShouldPreserveNotForNegatedNamedQuery()
     {
-        var result = await _service.Bql2Ruleset("!(JOHNS) & JOHNSONS");
+        var result = _service.Bql2Ruleset("!(JOHNS) & JOHNSONS");
 
         Assert.Equal("and", result.condition);
         Assert.False(result.not);

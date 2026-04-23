@@ -127,7 +127,7 @@ namespace JhipsterSampleApplication.Controllers
                 qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = new Newtonsoft.Json.Linq.JObject() };
             }
             JhipsterSampleApplication.Domain.Services.EntityService.EnsureDocumentField(qbSpec);
-            var rulesetDto = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Bql2Ruleset(bqlQuery.Trim());
+            var rulesetDto = new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Bql2Ruleset(bqlQuery.Trim());
             var ruleset = MapRuleset(rulesetDto);
             var queryObject = await _entityService.ConvertRulesetToElasticSearch(entity, ruleset);
             return await Search(entity, queryObject, view, category, secondaryCategory, includeDetails, from, pageSize, sort, pitId, searchAfter);
@@ -351,7 +351,7 @@ namespace JhipsterSampleApplication.Controllers
                 qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = new Newtonsoft.Json.Linq.JObject() };
             }
             JhipsterSampleApplication.Domain.Services.EntityService.EnsureDocumentField(qbSpec);
-            var ruleset = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Bql2Ruleset(query.Trim());
+            var ruleset = new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Bql2Ruleset(query.Trim());
             return Ok(ruleset);
         }
 
@@ -386,7 +386,7 @@ namespace JhipsterSampleApplication.Controllers
                 qbSpec = new Newtonsoft.Json.Linq.JObject { ["fields"] = new Newtonsoft.Json.Linq.JObject() };
             }
             JhipsterSampleApplication.Domain.Services.EntityService.EnsureDocumentField(qbSpec);
-            var bqlQuery = await new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Ruleset2Bql(ruleset);
+            var bqlQuery = new BqlService<object>(new Microsoft.Extensions.Logging.Abstractions.NullLogger<BqlService<object>>(), _namedQueryService, qbSpec, entity).Ruleset2Bql(ruleset);
             return Ok(bqlQuery);
         }
 

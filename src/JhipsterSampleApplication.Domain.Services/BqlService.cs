@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
 using JhipsterSampleApplication.Dto;
 using Microsoft.Extensions.Logging;
@@ -29,9 +30,7 @@ namespace JhipsterSampleApplication.Domain.Services
         private readonly HashSet<string> _allOperatorTokensUpper = new HashSet<string>(StringComparer.Ordinal);
         // Case-insensitive keyword support per field (e.g., country.ci)
         private readonly Dictionary<string, string> _ciFieldByName = new Dictionary<string, string>(StringComparer.Ordinal);
-        		private string? _defaultFullTextField;
-		private readonly Regex _tokenizer;
-
+        private string? _defaultFullTextField;
         public BqlService(ILogger<BqlService<TDomain>> logger, INamedQueryService namedQueryService, JObject qbSpec, string domain)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -40,31 +39,17 @@ namespace JhipsterSampleApplication.Domain.Services
             _domain = domain ?? throw new ArgumentNullException(nameof(domain));
 
             BuildSpecCaches();
-            _tokenizer = BuildTokenizer();
         }
 
-        private bool TryGetCiField(string? field, out string? ciField)
+        public virtual RulesetDto Bql2Ruleset(string bqlQuery, IEnumerable<NamedQueryDto>? userSystemAndGlobalRulesets = null)
         {
-            ciField = string.Empty;
-            if (string.IsNullOrWhiteSpace(field)) return false;
-            return _ciFieldByName.TryGetValue(field, out ciField);
-        }
+            IEnumerable<string>? namedQueryNames = null;
+            namedQueryNames = (userSystemAndGlobalRulesets ?? [])
+                .Where(n => !string.IsNullOrWhiteSpace(n.Name))
+                .Select(n => n.Name!.ToUpperInvariant())
+                .Distinct();
 
-        public static JObject LoadSpec(string entity)
-        {
-            var baseDir = AppContext.BaseDirectory;
-            var specPath = Path.Combine(baseDir, "Resources", "query-builder", $"{entity}-qb-spec.json");
-            if (!File.Exists(specPath))
-            {
-                throw new FileNotFoundException($"BQL spec file not found at {specPath}");
-            }
-            var json = File.ReadAllText(specPath);
-            return JObject.Parse(json);
-        }
-
-        public virtual async Task<RulesetDto> Bql2Ruleset(string bqlQuery)
-        {
-            if (!ValidateBqlQuery(bqlQuery))
+            if (!ValidateBqlQuery(bqlQuery, namedQueryNames))
             {
                 throw new ArgumentException($"Invalid BQL query: '{bqlQuery}'", nameof(bqlQuery));
             }
@@ -75,16 +60,14 @@ namespace JhipsterSampleApplication.Domain.Services
                 {
                     condition = "or",
                     not = false,
-                    rules = new List<RulesetDto>()
+                    rules = null
                 };
             }
 
-            var matches = _tokenizer.Matches(bqlQuery);
-            var tokens = matches
-                .Cast<Match>()
+            MatchCollection matches = BuildTokenizer().Matches(bqlQuery);
+            string[] tokens = [.. matches.Cast<Match>()
                 .Select(m => m.Groups[1].Value)
-                .Where(t => !string.IsNullOrWhiteSpace(t))
-                .ToArray();
+                .Where(t => !string.IsNullOrWhiteSpace(t))];
 
             if (tokens.Length == 0)
             {
@@ -92,7 +75,7 @@ namespace JhipsterSampleApplication.Domain.Services
             }
 
             var normalizedTokens = new List<string>(tokens.Length);
-            foreach (var token in tokens)
+            foreach (string token in tokens)
             {
                 if (string.IsNullOrWhiteSpace(token))
                 {
@@ -100,18 +83,17 @@ namespace JhipsterSampleApplication.Domain.Services
                 }
 
                 // Preserve quoted strings and regex patterns verbatim
-                if (token.StartsWith("\"", StringComparison.Ordinal) || token.StartsWith("/", StringComparison.Ordinal))
+                if ((token.StartsWith('/') && (token.EndsWith('/') || token.EndsWith("/i"))) || (token.StartsWith('"') && token.EndsWith('"')))
                 {
                     normalizedTokens.Add(token);
                     continue;
                 }
-
-                var core = token;
+                string core = token;
                 int closingCount = 0;
                 while (core.Length > 0 &&
-                       core.EndsWith(")", StringComparison.Ordinal) &&
-                       core != ")" &&
-                       !core.StartsWith("(", StringComparison.Ordinal))
+                    core.EndsWith(')') &&
+                    core != ")" &&
+                    !core.StartsWith('('))
                 {
                     closingCount++;
                     core = core.Substring(0, core.Length - 1);
@@ -128,8 +110,8 @@ namespace JhipsterSampleApplication.Domain.Services
                 }
             }
 
-            tokens = normalizedTokens.ToArray();
-            var result = await ParseRuleset(tokens, 0, false);
+            tokens = [..normalizedTokens];
+            (bool matches, int index, RulesetDto ruleset) result = ParseRuleset(tokens, 0, false, userSystemAndGlobalRulesets);
             if (!result.matches || result.index < tokens.Length)
             {
                 throw new ArgumentException($"Invalid BQL query '{bqlQuery}' at position {result.index}", nameof(bqlQuery));
@@ -138,7 +120,7 @@ namespace JhipsterSampleApplication.Domain.Services
             return result.ruleset;
         }
 
-        public virtual Task<string> Ruleset2Bql(RulesetDto ruleset)
+        public virtual string Ruleset2Bql(RulesetDto ruleset)
         {
             ArgumentNullException.ThrowIfNull(ruleset);
 
@@ -155,7 +137,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 };
             }
 
-            return Task.FromResult(QueryAsString(ruleset));
+            return QueryAsString(ruleset);
         }
 
         public virtual async Task<object> Ruleset2ElasticSearch(RulesetDto ruleset)
@@ -170,14 +152,15 @@ namespace JhipsterSampleApplication.Domain.Services
             {
                 // Handle negated operators (e.g. !LIKE, !IN, !EXISTS) by generating the
                 // positive query and wrapping it in a must_not bool clause.
-                if (ruleset.@operator?.Contains("!") == true ||
+                if (ruleset.@operator?.Contains('!') == true ||
                     (ruleset.@operator == "exists" && ruleset.value is bool b && !b))
                 {
-                    var inner = await Ruleset2ElasticSearch(new RulesetDto
+                    object inner = await Ruleset2ElasticSearch(new RulesetDto
                     {
                         field = ruleset.field,
                         @operator = ruleset.@operator?.Replace("!", string.Empty),
-                        value = ruleset.@operator == "exists" ? true : ruleset.value
+                        value = ruleset.@operator == "exists" ? true : ruleset.value,
+                        rules = null
                     });
 
                     return new JObject
@@ -191,18 +174,28 @@ namespace JhipsterSampleApplication.Domain.Services
                     };
                 }
 
-                JObject ret = new JObject
+                JObject ret = new()
                 {
                     { "term", new JObject{ { "BOGUSFIELD", "CANTMATCH" } } }
                 };
-
+                if (ruleset.field == "daysFromToday" || ruleset.field == "minutesFromNow")
+                {
+                    DateTime dt = DateTime.UtcNow;
+                    if (ruleset.value?.ToString() != "0")
+                    {
+                        int minus = int.Parse(ruleset.value?.ToString() ?? "");
+                        dt = ruleset.field.StartsWith("days") ? dt.AddDays(minus) : dt.AddMinutes(minus);
+                    }
+                    ruleset.value = ruleset.field.StartsWith("days") ? dt.ToString("yyyy-MM-dd") : dt.ToString("yyyy-MM-ddTHH:mm");
+                    ruleset.field = ruleset.field.StartsWith("days") ? "date" : "datetime";
+                }
                 if ((ruleset.@operator?.Contains("contains", StringComparison.OrdinalIgnoreCase) ?? false) ||
                     (ruleset.@operator?.Contains("like", StringComparison.OrdinalIgnoreCase) ?? false))
                 {
                     if (ruleset.value is IEnumerable<object> list && ruleset.value is not string)
                     {
                         var shouldClauses = new JArray();
-                        foreach (var item in list)
+                        foreach (object item in list)
                         {
                             string itemValue = item switch
                             {
@@ -215,14 +208,14 @@ namespace JhipsterSampleApplication.Domain.Services
                                 continue;
                             }
 
-                            var childRule = new RulesetDto
+                            RulesetDto childRule = new()
                             {
                                 field = ruleset.field,
                                 @operator = (ruleset.@operator?.Contains("like", StringComparison.OrdinalIgnoreCase) ?? false) ? "like" : "contains",
                                 value = itemValue
                             };
 
-                            var childQuery = await Ruleset2ElasticSearch(childRule);
+                            object childQuery = await Ruleset2ElasticSearch(childRule);
                             shouldClauses.Add(JToken.FromObject(childQuery));
                         }
 
@@ -247,14 +240,14 @@ namespace JhipsterSampleApplication.Domain.Services
                     string stringValue = ruleset.value?.ToString() ?? string.Empty;
 
                     // Support regex literals: /exp/ or /exp/i
-                    if (stringValue.StartsWith("/") &&
-                       (stringValue.EndsWith("/") || stringValue.EndsWith("/i")))
+                    if (stringValue.StartsWith('/') &&
+                       (stringValue.EndsWith('/') || stringValue.EndsWith("/i")))
                     {
                         bool caseInsensitive = stringValue.EndsWith("/i");
-                        string re = stringValue.Substring(1, stringValue.Length - (caseInsensitive ? 3 : 2));
-                        string regex = ToElasticRegEx(re.Replace(@"\\", @"\"), caseInsensitive);
+                        string pattern = stringValue.Substring(1, stringValue.Length - (caseInsensitive ? 3 : 2));
+                        string regex = ToElasticRegEx(pattern.Replace(@"\\", @"\"), caseInsensitive);
 
-                        if (!regex.StartsWith("^"))
+                        if (!regex.StartsWith('^'))
                         {
                             regex = ".*" + regex;
                         }
@@ -263,7 +256,7 @@ namespace JhipsterSampleApplication.Domain.Services
                             regex = regex.Substring(1);
                         }
 
-                        if (!regex.EndsWith("$"))
+                        if (!regex.EndsWith('$'))
                         {
                             regex += ".*";
                         }
@@ -316,7 +309,7 @@ namespace JhipsterSampleApplication.Domain.Services
                         return BuildDateQuery(ruleset.field!, ruleset.@operator!, valueString);
                     }
 
-                    var rangeOperator = ruleset.@operator switch
+                    string rangeOperator = ruleset.@operator switch
                     {
                         ">" => "gt",
                         ">=" => "gte",
@@ -339,16 +332,16 @@ namespace JhipsterSampleApplication.Domain.Services
                         }
                     };
                 }
-                else if (ruleset.@operator?.Contains("=") == true)
+                else if (ruleset.@operator?.Contains('=') == true)
                 {
-                    var valueStr = ruleset.value?.ToString() ?? string.Empty;
+                    string valueStr = ruleset.value?.ToString() ?? string.Empty;
 
                     // Boolean fields: use exact term query with boolean value
                     if (!string.IsNullOrWhiteSpace(ruleset.field) &&
-                        _fieldTypeByName.TryGetValue(ruleset.field!, out var ftype) &&
+                        _fieldTypeByName.TryGetValue(ruleset.field!, out string ftype) &&
                         string.Equals(ftype, "boolean", StringComparison.OrdinalIgnoreCase))
                     {
-                        var boolVal = string.Equals(valueStr, "true", StringComparison.OrdinalIgnoreCase);
+                        bool boolVal = string.Equals(valueStr, "true", StringComparison.OrdinalIgnoreCase);
                         return new JObject
                         {
                             { "term", new JObject { { ruleset.field!, boolVal } } }
@@ -361,7 +354,7 @@ namespace JhipsterSampleApplication.Domain.Services
                         return BuildDateQuery(ruleset.field!, "=", valueStr);
                     }
 
-                    var valueLower = valueStr.ToLowerInvariant();
+                    string valueLower = valueStr.ToLowerInvariant();
 
                     if (TryGetCiField(ruleset.field, out var ciField))
                     {
@@ -428,9 +421,9 @@ namespace JhipsterSampleApplication.Domain.Services
                 else if (ruleset.@operator?.Contains("in") == true)
                 {
                     var valueArray = ruleset.value as IEnumerable<object>;
-                    var values = valueArray?.Select(v => v?.ToString() ?? string.Empty)
+                    List<string> values = valueArray?.Select(v => v?.ToString() ?? string.Empty)
                         .Where(s => !string.IsNullOrWhiteSpace(s))
-                        .ToList() ?? new List<string>();
+                        .ToList() ?? [];
 
                     // Boolean fields: terms with booleans
                     if (!string.IsNullOrWhiteSpace(ruleset.field) &&
@@ -457,7 +450,7 @@ namespace JhipsterSampleApplication.Domain.Services
                     {
                         // Case-insensitive IN: analyzer prefilter OR + exact check via script
                         var lowerValues = values.Select(s => s.ToLowerInvariant()).ToList();
-                        var matchQuery = string.Join(" ", lowerValues);
+                        string matchQuery = string.Join(" ", lowerValues);
                         ret = new JObject
                         {
                             {
@@ -522,7 +515,7 @@ namespace JhipsterSampleApplication.Domain.Services
             else
             {
                 var rls = new List<object>();
-                foreach (var rule in ruleset.rules)
+                foreach (RulesetDto rule in ruleset.rules!)
                 {
                     rls.Add(await Ruleset2ElasticSearch(rule));
                 }
@@ -540,7 +533,7 @@ namespace JhipsterSampleApplication.Domain.Services
                     };
                 }
 
-                JObject ret = new JObject
+                JObject ret = new()
                 {
                     { "bool", new JObject { { "should", JArray.FromObject(rls) } } }
                 };
@@ -561,49 +554,48 @@ namespace JhipsterSampleApplication.Domain.Services
         {
             if (Regex.IsMatch(value, @"^\d{4}$"))
             {
-                var year = int.Parse(value);
+                int year = int.Parse(value);
                 var start = new DateTime(year, 1, 1, 0, 0, 0);
                 return (start, start.AddYears(1));
             }
             if (Regex.IsMatch(value, @"^\d{4}-\d{2}$"))
             {
-                var year = int.Parse(value.Substring(0, 4));
-                var month = int.Parse(value.Substring(5, 2));
+                int year = int.Parse(value.Substring(0, 4));
+                int month = int.Parse(value.Substring(5, 2));
                 var start = new DateTime(year, month, 1, 0, 0, 0);
                 return (start, start.AddMonths(1));
             }
             if (Regex.IsMatch(value, @"^\d{4}-\d{2}-\d{2}$"))
             {
-                var year = int.Parse(value.Substring(0, 4));
-                var month = int.Parse(value.Substring(5, 2));
-                var day = int.Parse(value.Substring(8, 2));
-                var start = new DateTime(year, month, day, 0, 0, 0);
+                int year = int.Parse(value.Substring(0, 4));
+                int month = int.Parse(value.Substring(5, 2));
+                int day = int.Parse(value.Substring(8, 2));
+                DateTime start = new (year, month, day, 0, 0, 0);
                 return (start, start.AddDays(1));
             }
             // yyyy-MM-ddTHH:mm
             if (Regex.IsMatch(value, @"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$"))
             {
-                var year = int.Parse(value.Substring(0, 4));
-                var month = int.Parse(value.Substring(5, 2));
-                var day = int.Parse(value.Substring(8, 2));
-                var hour = int.Parse(value.Substring(11, 2));
-                var minute = int.Parse(value.Substring(14, 2));
-                var start = new DateTime(year, month, day, hour, minute, 0);
+                int year = int.Parse(value.Substring(0, 4));
+                int month = int.Parse(value.Substring(5, 2));
+                int day = int.Parse(value.Substring(8, 2));
+                int hour = int.Parse(value.Substring(11, 2));
+                int minute = int.Parse(value.Substring(14, 2));
+                DateTime start = new(year, month, day, hour, minute, 0);
                 return (start, null);
             }
-            if (DateTime.TryParse(value, out var dt))
+            if (DateTime.TryParse(value, out DateTime dt))
             {
                 return (dt, null);
             }
             return (DateTime.MinValue, null);
         }
-
         private static JObject BuildDateQuery(string field, string op, string value)
         {
-            var (start, endExclusive) = ParseDateValue(value);
-            var startStr = start.ToString("yyyy-MM-dd'T'HH:mm:ss");
+            (DateTime start, DateTime? endExclusive) = ParseDateValue(value);
+            string startStr = start.ToString("yyyy-MM-dd'T'HH:mm:ss");
 
-            JObject rangeBody = new JObject();
+            JObject rangeBody = [];
 
             switch (op)
             {
@@ -645,7 +637,527 @@ namespace JhipsterSampleApplication.Domain.Services
             };
         }
 
-        private static string ToElasticRegEx(string pattern, bool caseInsensitive)
+       protected virtual bool ValidateRuleset(RulesetDto ruleset)
+        {
+            if (ruleset == null)
+            {
+                _logger.LogWarning("Null Ruleset provided");
+                return false;
+            }
+            return true;
+        }
+
+        private (bool matches, int index, RulesetDto ruleset) ParseRuleset(string[] tokens, int index, bool not, IEnumerable<NamedQueryDto>? userSystemAndGlobalRulesets)
+        {
+            if (index >= tokens.Length)
+            {
+                return (false, index, new RulesetDto());
+            }
+
+            (bool matches, int index, RulesetDto ruleset) result = ParseAndOrRuleset(tokens, index, not, userSystemAndGlobalRulesets);
+            if (!result.matches)
+            {
+                result = ParseNotRuleset(tokens, index, userSystemAndGlobalRulesets);
+                if (!result.matches)
+                {
+                    result = ParseParened(tokens, index, not, userSystemAndGlobalRulesets);
+                }
+            }
+
+            return result;
+        }
+
+        private (bool matches, int index, RulesetDto ruleset) ParseAndOrRuleset(string[] tokens, int index, bool not, IEnumerable<NamedQueryDto>? userSystemAndGlobalRulesets)
+        {
+            if (index >= tokens.Length)
+            {
+                return (false, index, new RulesetDto());
+            }
+
+            var rules = new List<RulesetDto>();
+            (bool matches, int index, RulesetDto ruleset) result = ParseParened(tokens, index, not, userSystemAndGlobalRulesets);
+            if (!result.matches)
+            {
+                result = ParseRule(tokens, index);
+                if (!result.matches)
+                {
+                    return (false, index, new RulesetDto());
+                }
+            }
+
+            if (result.index >= tokens.Length || (tokens[result.index] != "&" && tokens[result.index] != "|"))
+            {
+                return result;
+            }
+
+            string condition = tokens[result.index];
+            rules.Add(result.ruleset);
+            index = result.index + 1;
+
+            while (index < tokens.Length)
+            {
+                result = ParseParened(tokens, index, not, userSystemAndGlobalRulesets);
+                if (!result.matches)
+                {
+                    result = ParseRule(tokens, index);
+                    if (!result.matches)
+                    {
+                        break;
+                    }
+                }
+
+                if (result.matches)
+                {
+                    rules.Add(result.ruleset);
+                    index = result.index;
+                    if (index >= tokens.Length || tokens[index] != condition)
+                    {
+                        break;
+                    }
+                    index++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if (rules.Count < 2)
+            {
+                return (false, index, new RulesetDto());
+            }
+
+            return (true, index, new RulesetDto
+            {
+                condition = condition == "&" ? "and" : "or",
+                rules = rules,
+                not = not
+            });
+        }
+
+        private (bool matches, int index, RulesetDto ruleset) ParseNotRuleset(string[] tokens, int index, IEnumerable<NamedQueryDto>? userSystemAndGlobalRulesets)
+        {
+            if (index >= tokens.Length || tokens[index] != "!")
+            {
+                return (false, index, new RulesetDto());
+            }
+
+            index++;
+            (bool matches, int index, RulesetDto ruleset) result = ParseParened(tokens, index, true, userSystemAndGlobalRulesets);
+            if (!result.matches)
+            {
+                return (false, index, new RulesetDto());
+            }
+
+            return result;
+        }
+
+        private (bool matches, int index, RulesetDto ruleset) ParseParened(string[] tokens, int index, bool not, IEnumerable<NamedQueryDto>? userSystemAndGlobalRulesets)
+        {
+            if (index >= tokens.Length)
+            {
+                return (false, index, new RulesetDto());
+            }
+
+            bool negate = not;
+            while (index < tokens.Length && tokens[index] == "!")
+            {
+                negate = !negate;
+                index++;
+            }
+
+            if (index >= tokens.Length)
+            {
+                return (false, index, new RulesetDto());
+            }
+
+            // Named ruleset reference (UPPER_SNAKE_CASE)
+            if (Regex.IsMatch(tokens[index], @"^(?=.*[A-Z])[A-Z0-9_]+$"))
+            {
+                string rulesetName = tokens[index];
+                NamedQuery? namedQuery = _namedQueryService.FindByNameAndOwner(rulesetName, null, _domain).GetAwaiter().GetResult();
+                string? namedQueryText = namedQuery?.Text;
+
+                if (!string.IsNullOrWhiteSpace(namedQueryText))
+                {
+                    RulesetDto namedRuleset = Bql2Ruleset(namedQueryText, userSystemAndGlobalRulesets);
+                    namedRuleset.name = rulesetName;
+                    RulesetDto adjusted = negate ? ApplyNegation(namedRuleset) : namedRuleset;
+                    return (true, index + 1, adjusted);
+                }
+                return (false, index, new RulesetDto());
+            }
+
+            // Check for parenthesized expression
+            if (tokens[index] != "(")
+            {
+                return (false, index, new RulesetDto());
+            }
+
+            index++;
+            (bool matches, int index, RulesetDto ruleset) result = ParseRuleset(tokens, index, false, userSystemAndGlobalRulesets);
+            if (!result.matches)
+            {
+                result = ParseRule(tokens, index);
+                if (!result.matches)
+                {
+                    return result;
+                }
+            }
+
+            if (result.index >= tokens.Length || tokens[result.index] != ")")
+            {
+                return (false, result.index, new RulesetDto());
+            }
+
+            var adjustedRuleset = negate ? ApplyNegation(result.ruleset) : result.ruleset;
+            return (true, result.index + 1, adjustedRuleset);
+        }
+
+        private (bool matches, int index, RulesetDto ruleset) ParseRule(string[] tokens, int index)
+        {
+            if (index >= tokens.Length)
+            {
+                return (false, index, new RulesetDto());
+            }
+
+            // Handle default full-text field (e.g., document) with direct value
+            if (!_validFields.Contains(tokens[index]))
+            {
+                if (_defaultFullTextField is not null &&
+                    (Regex.IsMatch(tokens[index], @"^[A-Za-z0-9?*]+$") || tokens[index].StartsWith("\"") || tokens[index].StartsWith("/")))
+                {
+                    string docValue = tokens[index];
+                    if (docValue.StartsWith('"'))
+                    {
+                        if (docValue.EndsWith("\\\""))
+                        {
+                            return (false, index, new RulesetDto());
+                        }
+                    }
+                    else if (docValue.StartsWith('/'))
+                    {
+                        try
+                        {
+                            string pattern = docValue.Substring(1);
+                            if (pattern.EndsWith("/i"))
+                            {
+                                pattern = pattern.Substring(0, pattern.Length - 2);
+                            }
+                            else if (pattern.EndsWith('/'))
+                            {
+                                pattern = pattern.Substring(0, pattern.Length - 1);
+                            }
+                            _ = new Regex(pattern);
+                        }
+                        catch
+                        {
+                            return (false, index, new RulesetDto());
+                        }
+                    }
+                    else if (docValue.StartsWith('"')  && docValue.EndsWith('"'))
+                    {
+                        docValue = docValue.Substring(1, docValue.Length - 2);
+                    }
+                    var op = Regex.IsMatch(docValue ?? string.Empty, @"^/.*/i?$", RegexOptions.IgnoreCase) ? "like" : "contains";
+                    return (true, index + 1, new RulesetDto
+                    {
+                        field = _defaultFullTextField,
+                        @operator = op,
+                        value = docValue ?? string.Empty,
+                        rules = null
+                    });
+                }
+                return (false, index, new RulesetDto());
+            }
+
+            string field = tokens[index];
+            index++;
+
+            if (index >= tokens.Length)
+            {
+                return (false, index, new RulesetDto());
+            }
+
+            string opToken = tokens[index];
+            if (!IsValidOperator(field, opToken))
+            {
+                return (false, index, new RulesetDto());
+            }
+            index++;
+
+            // EXISTS / !EXISTS
+            if (opToken == "EXISTS" || opToken == "!EXISTS")
+            {
+                return (true, index, new RulesetDto
+                {
+                    field = field,
+                    @operator = "exists",
+                    value = !opToken.StartsWith('!')
+                });
+            }
+
+            if (index >= tokens.Length)
+            {
+                return (false, index, new RulesetDto());
+            }
+
+            // IN / !IN list
+            if (opToken == "IN" || opToken == "!IN")
+            {
+                if (!TryParseInValues(field, tokens, ref index, out List<string>? parsedValues) || parsedValues.Count == 0)
+                {
+                    return (false, index, new RulesetDto());
+                }
+
+                return (true, index, new RulesetDto
+                {
+                    field = field,
+                    @operator = opToken == "IN" ? "in" : "!in",
+                    value = parsedValues,
+                    rules = null
+                });
+            }
+
+            if ((opToken == "CONTAINS" || opToken == "!CONTAINS") &&
+                index < tokens.Length &&
+                tokens[index].StartsWith('('))
+            {
+                if (!TryParseInValues(field, tokens, ref index, out List<string>? containsValues) || containsValues.Count == 0)
+                {
+                    return (false, index, new RulesetDto());
+                }
+
+                return (true, index, new RulesetDto
+                {
+                    field = field,
+                    @operator = opToken == "CONTAINS" ? "contains" : "!contains",
+                    value = containsValues,
+                    rules = null
+                });
+            }
+
+            // Single value
+            string value = tokens[index];
+            if (value.StartsWith('"') && value.EndsWith('"'))
+            {
+                value = value.Substring(1, value.Length - 2);
+            }
+
+            if (!IsValidValue(field, value))
+            {
+                return (false, index, new RulesetDto());
+            }
+
+            // Map op token to ruleset operator, preserving negation for contains/like
+            string rulesetOperator = OpTokenToRulesetOperator(opToken);
+
+            return (true, index + 1, new RulesetDto
+            {
+                field = field,
+                @operator = rulesetOperator,
+                value = value ?? string.Empty,
+                rules = null
+            });
+        }
+
+        private static RulesetDto ApplyNegation(RulesetDto ruleset)
+        {
+            ArgumentNullException.ThrowIfNull(ruleset);
+
+            if (!string.IsNullOrWhiteSpace(ruleset.condition) && ruleset.rules != null && ruleset.rules.Count > 0)
+            {
+                ruleset.not = !ruleset.not;
+                return ruleset;
+            }
+
+            if (TryNegateLeafRule(ruleset))
+            {
+                return ruleset;
+            }
+
+            ruleset.not = false;
+            return new RulesetDto
+            {
+                condition = "or",
+                not = true,
+                rules = [ruleset]
+            };
+        }
+
+        private static bool TryNegateLeafRule(RulesetDto rule)
+        {
+            if (rule == null)
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(rule.condition) && rule.rules != null && rule.rules.Count > 0)
+            {
+                return false;
+            }
+
+            string op = rule.@operator?.ToLowerInvariant();
+            switch (op)
+            {
+                case "=":
+                    rule.@operator = "!=";
+                    rule.not = false;
+                    return true;
+                case "!=":
+                    rule.@operator = "=";
+                    rule.not = false;
+                    return true;
+                case "contains":
+                    rule.@operator = "!contains";
+                    rule.not = false;
+                    return true;
+                case "!contains":
+                    rule.@operator = "contains";
+                    rule.not = false;
+                    return true;
+                case "like":
+                    rule.@operator = "!like";
+                    rule.not = false;
+                    return true;
+                case "!like":
+                    rule.@operator = "like";
+                    rule.not = false;
+                    return true;
+                case "in":
+                    rule.@operator = "!in";
+                    rule.not = false;
+                    return true;
+                case "!in":
+                    rule.@operator = "in";
+                    rule.not = false;
+                    return true;
+                case "exists":
+                    if (rule.value is bool boolVal)
+                    {
+                        rule.value = !boolVal;
+                        rule.not = false;
+                        return true;
+                    }
+                    return false;
+                default:
+                    return false;
+            }
+        }
+        private bool TryParseInValues(string field, string[] tokens, ref int index, out List<string> normalizedValues)
+        {
+            normalizedValues = [];
+            if (index >= tokens.Length)
+            {
+                return false;
+            }
+
+            string combinedValuesToken;
+            int nextIndex;
+
+            if (tokens[index].StartsWith('(') && tokens[index].EndsWith(')'))
+            {
+                combinedValuesToken = tokens[index];
+                nextIndex = index + 1;
+            }
+            else if (TryCollectParenthesizedTokens(tokens, index, out combinedValuesToken, out nextIndex))
+            {
+                // combinedValuesToken populated by helper
+            }
+            else
+            {
+                return false;
+            }
+
+            List<string> extracted = ExtractInValues(field, combinedValuesToken);
+            if (extracted.Count == 0)
+            {
+                return false;
+            }
+
+            normalizedValues = extracted;
+            index = nextIndex;
+            return true;
+        }
+        private static bool TryCollectParenthesizedTokens(string[] tokens, int startIndex, out string combined, out int nextIndex)
+        {
+            combined = string.Empty;
+            nextIndex = startIndex;
+
+            if (startIndex >= tokens.Length)
+            {
+                return false;
+            }
+
+            var sb = new StringBuilder();
+            int depth = 0;
+            bool started = false;
+
+            for (int i = startIndex; i < tokens.Length; i++)
+            {
+                string token = tokens[i];
+                if (!started)
+                {
+                    if (token == "(" || token.StartsWith('('))
+                    {
+                        started = true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                sb.Append(token);
+
+                depth += CountParenthesis(token, '(');
+                depth -= CountParenthesis(token, ')');
+
+                if (started && depth <= 0)
+                {
+                    string candidate = sb.ToString();
+                    if (candidate.StartsWith('(') && candidate.EndsWith(')'))
+                    {
+                        combined = candidate;
+                        nextIndex = i + 1;
+                        return true;
+                    }
+                    return false;
+                }
+            }
+
+            return false;
+        }
+
+        private static int CountParenthesis(string token, char paren)
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                return 0;
+            }
+
+            int count = 0;
+            foreach (char ch in token)
+            {
+                if (ch == paren)
+                {
+                    count++;
+                }
+            }
+            return count;
+        }
+        private static string OpTokenToRulesetOperator(string opToken)
+        {
+            return opToken switch
+            {
+                "CONTAINS" => "contains",
+                "!CONTAINS" => "!contains",
+                "LIKE" => "like",
+                "!LIKE" => "!like",
+                _ => opToken.ToLowerInvariant(),
+            };
+        }
+       private static string ToElasticRegEx(string pattern, bool caseInsensitive)
         {
             string ret = string.Empty;
             string[] tokens = Regex.Replace(pattern, @"([\[\]]|\\\\|\\\[|\\\]|\\s|\\S|\\w|\\W|\\d|\\D|.)", "`$1").Split('`');
@@ -717,25 +1229,186 @@ namespace JhipsterSampleApplication.Domain.Services
             }
             return ret;
         }
+        private bool IsValidOperator(string field, string opToken)
+        {
+            if (!_allowedBqlTokensUpperByField.TryGetValue(field, out var allowed))
+            {
+                return false;
+            }
+            return allowed.Contains(opToken);
+        }
 
-        protected virtual bool ValidateBqlQuery(string bqlQuery)
+        private bool IsValidValue(string field, string value)
+        {
+            var type = _fieldTypeByName.TryGetValue(field, out var t) ? t : "string";
+
+            switch (type.ToLowerInvariant())
+            {
+                case "boolean":
+                    return string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) || string.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
+                case "category":
+                    // Be permissive: allow any non-empty category value even if not pre-declared
+                    return !string.IsNullOrWhiteSpace(value);
+                case "date":
+                case "time":
+                case "datetime":
+                    return Regex.IsMatch(value, @"^\d{4}(-\d{2}(-\d{2}(T\d{2}:\d{2}(:\d{2})?)?)?)?$");
+                case "number":
+                    return double.TryParse(value, out _);
+                default:
+                    // strings (including document/categories) allow regex (/.../i?) or non-empty strings
+                    return !string.IsNullOrWhiteSpace(value) || Regex.IsMatch(value, @"^/.*/i?$", RegexOptions.IgnoreCase);
+            }
+        }
+
+        protected static string QueryAsString(RulesetDto query, bool recurse = false)
+        {
+            ArgumentNullException.ThrowIfNull(query);
+            var result = new StringBuilder();
+            bool multipleConditions = false;
+
+            if (query.rules == null)
+            {
+                return result.ToString();
+            }
+
+            foreach (RulesetDto r in query.rules)
+            {
+                if (r == null) continue;
+
+                if (result.Length > 0)
+                {
+                    result.Append(" " + (query.condition == "and" ? "&" : "|") + " ");
+                    multipleConditions = true;
+                }
+
+                if (r is RulesetDto ruleQuery && !string.IsNullOrEmpty(ruleQuery.condition))
+                {
+                    if (!string.IsNullOrEmpty(ruleQuery.name))
+                    {
+                        result.Append(ruleQuery.name);
+                    }
+                    else
+                    {
+                        result.Append(QueryAsString(ruleQuery, query.rules.Count > 1));
+                    }
+                }
+                else if (r.field == "document")
+                {
+                    string valStr = r.value?.ToString() ?? string.Empty;
+
+                    if (Regex.IsMatch(valStr, @"^/.*/i?$", RegexOptions.IgnoreCase))
+                    {
+                        // result.Append(valStr);
+                    }
+                    else if (!Regex.IsMatch(valStr, "^[a-zA-Z\\d]+$"))
+                    {
+                        valStr = "\"" + Regex.Replace(valStr, "([\\\"])", "\\$1") + "\"";
+                    }
+                    else
+                    {
+                        valStr = valStr.ToLowerInvariant();
+                    }
+                    if (r.@operator == "!contains")
+                    {
+                        valStr = $"!({valStr})";
+                    }
+                    result.Append(valStr);
+                }
+                else if (!string.IsNullOrEmpty(r.name))
+                {
+                    result.Append(r.name);
+                }
+                else
+                {
+                    string field = r.field ?? "document";
+                    string op = (r.@operator ?? "=").ToUpperInvariant();
+                    result.Append(field);
+
+                    if (op == "EXISTS")
+                    {
+                        result.Append(" " + (r.value is bool b && !b ? "!" : string.Empty) + "EXISTS");
+                    }
+                    else if (op == "IN" || op == "!IN")
+                    {
+                        IEnumerable<string> values = (r.value as IEnumerable<object>)?.Select(v => v?.ToString() ?? string.Empty) ?? Enumerable.Empty<string>();
+                        IEnumerable<string> quoted = values.Select(v => Regex.IsMatch(v, "^[a-zA-Z\\d]+$") ? v : "\"" + Regex.Replace(v, "([\\\"])", "\\$1") + "\"");
+                        result.Append(" " + op + " (" + string.Join(", ", quoted) + ")");
+                    }
+                    else if (op == "CONTAINS" || op == "!CONTAINS")
+                    {
+                        string v = (r.value as string) ?? "";
+                        string quoted = Regex.IsMatch(v, "^[a-zA-Z\\d]+$") || Regex.IsMatch(v, @"^/.*/i?$") ? v : "\"" + Regex.Replace(v, "([\\\"])", "\\$1") + "\"";
+                        result.Append(" " + op + " (" + string.Join(", ", quoted) + ")");
+                    }
+                    else if (!string.IsNullOrWhiteSpace(op))
+                    {
+                        result.Append(/*" " +*/ op /*+ " "*/);
+                        if (r.value != null)
+                        {
+                            string? valStr = r.value.ToString();
+                            if (valStr != null && Regex.IsMatch(valStr, @"^/.*/i?$", RegexOptions.IgnoreCase))
+                            {
+                                result.Append(valStr);
+                            }
+                            else if (valStr != null && !Regex.IsMatch(valStr, "^[A-Za-z0-9]+$"))
+                            {
+                                result.Append("\"" + Regex.Replace(valStr, "([\\\"])", "\\$1") + "\"");
+                            }
+                            else
+                            {
+                                result.Append(valStr?.ToLowerInvariant() ?? string.Empty);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (query.not)
+            {
+                if (query.rules.Count == 1 && query.rules[0] is RulesetDto { name: not null })
+                {
+                    result.Insert(0, "!");
+                }
+                else
+                {
+                    result.Insert(0, "!(").Append(')');
+                }
+            }
+            else if (recurse && multipleConditions)
+            {
+                result.Insert(0, "(").Append(')');
+            }
+
+            return result.ToString();
+        }
+            private bool TryGetCiField(string? field, out string? ciField)
+        {
+            ciField = string.Empty;
+            if (string.IsNullOrWhiteSpace(field)) return false;
+            return _ciFieldByName.TryGetValue(field, out ciField);
+        }
+
+        public static JObject LoadSpec(string entity)
+        {
+            var baseDir = AppContext.BaseDirectory;
+            var specPath = Path.Combine(baseDir, "Resources", "query-builder", $"{entity}-qb-spec.json");
+            if (!File.Exists(specPath))
+            {
+                throw new FileNotFoundException($"BQL spec file not found at {specPath}");
+            }
+            var json = File.ReadAllText(specPath);
+            return JObject.Parse(json);
+        }
+
+        protected virtual bool ValidateBqlQuery(string bqlQuery, IEnumerable<string>? namedQueryNames)
         {
             if (string.IsNullOrWhiteSpace(bqlQuery))
             {
                 return true;
             }
 
-            return _tokenizer.IsMatch(bqlQuery);
-        }
-
-        protected virtual bool ValidateRuleset(RulesetDto ruleset)
-        {
-            if (ruleset == null)
-            {
-                _logger.LogWarning("Null Ruleset provided");
-                return false;
-            }
-            return true;
+            return BuildTokenizer(namedQueryNames).IsMatch(bqlQuery);
         }
 
         private void BuildSpecCaches()
@@ -864,16 +1537,28 @@ namespace JhipsterSampleApplication.Domain.Services
             }
         }
 
-        private Regex BuildTokenizer()
+        private Regex BuildTokenizer(IEnumerable<string>? namedQueryNames = null)
         {
-            string fieldsAlt = _validFields.Count > 0 ? string.Join("|", _validFields.Select(Regex.Escape)) : string.Empty;
+            string fieldsAlt = _validFields.Count > 0 ? string.Join("|", _validFields.OrderByDescending(s => s, StringComparer.Ordinal).Select(Regex.Escape)) : string.Empty;
+            string namesAlt = string.Empty;
+            if (namedQueryNames != null)
+            {
+                var names = namedQueryNames.Where(n => !string.IsNullOrEmpty(n)).Select(n => n!.ToUpperInvariant()).Distinct().ToList();
+                if (names.Count > 0)
+                {
+                    // Sort by descending length so longer names are matched before shorter ones
+                    names.Sort((a, b) => b.Length.CompareTo(a.Length));
+                    namesAlt = "|()" + string.Join("|", names.Select(Regex.Escape)) + ")";
+                }
+            }
 
-            var regexString = @"\s*(" +
-                @"(?:(?<=IN\s)|(?<=CONTAINS\s)|(?<=!CONTAINS\s))(\(""(\\""|[^""])+""|\/(\\\/|[^/]+\/)|[^""\s]+\s*)(,\s*(""(\\""|[^""])+""|[^""\s]+\s*))*\s*\)" +
+            string regexString = @"\s*(" +
+                @"(""(\\""|\\\\|[^""])+\""|\/(\\\/|[^\/])+\/i?" +
+                @"|(?:(?<=IN\s)|(?<=CONTAINS\s)|(?<=!CONTAINS\s))(\(""(\\""|[^""])+""|[^""\s]+\s*)(,\s*(""(\\""|[^""])+""|[^""\s]+\s*))*\s*\)" +
                 @"|[()]" +
-                @"|(""(\\""|\\\\|[^""])+\""|\/(\\\/|[^\/])+\/i?" +
                 (string.IsNullOrEmpty(fieldsAlt) ? string.Empty : @"|" + fieldsAlt) +
                 @")" +
+                namesAlt +
                 @"|(=|!=|CONTAINS|!CONTAINS|LIKE|!LIKE|EXISTS|!EXISTS|IN|!IN|>=|<=|>|<)" +
                 @"|(&|\||!)" +
                 @"|[^""/=!<>() ]+)\s*";
@@ -911,481 +1596,6 @@ namespace JhipsterSampleApplication.Domain.Services
                     return Array.Empty<string>();
             }
         }
-
-        private async Task<(bool matches, int index, RulesetDto ruleset)> ParseRuleset(string[] tokens, int index, bool not)
-        {
-            if (index >= tokens.Length)
-            {
-                return (false, index, new RulesetDto());
-            }
-
-            var result = await ParseAndOrRuleset(tokens, index, not);
-            if (!result.matches)
-            {
-                result = await ParseNotRuleset(tokens, index);
-                if (!result.matches)
-                {
-                    result = await ParseParened(tokens, index, not);
-                }
-            }
-
-            return result;
-        }
-
-        private async Task<(bool matches, int index, RulesetDto ruleset)> ParseAndOrRuleset(string[] tokens, int index, bool not)
-        {
-            if (index >= tokens.Length)
-            {
-                return (false, index, new RulesetDto());
-            }
-
-            var rules = new List<RulesetDto>();
-            var result = await ParseParened(tokens, index, not);
-            if (!result.matches)
-            {
-                result = ParseRule(tokens, index);
-                if (!result.matches)
-                {
-                    return (false, index, new RulesetDto());
-                }
-            }
-
-            if (result.index >= tokens.Length || (tokens[result.index] != "&" && tokens[result.index] != "|"))
-            {
-                return result;
-            }
-
-            var condition = tokens[result.index];
-            rules.Add(result.ruleset);
-            index = result.index + 1;
-
-            while (index < tokens.Length)
-            {
-                result = await ParseParened(tokens, index, not);
-                if (!result.matches)
-                {
-                    result = ParseRule(tokens, index);
-                    if (!result.matches)
-                    {
-                        break;
-                    }
-                }
-
-                if (result.matches)
-                {
-                    rules.Add(result.ruleset);
-                    index = result.index;
-                    if (index >= tokens.Length || tokens[index] != condition)
-                    {
-                        break;
-                    }
-                    index++;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            if (rules.Count < 2)
-            {
-                return (false, index, new RulesetDto());
-            }
-
-            return (true, index, new RulesetDto
-            {
-                condition = condition == "&" ? "and" : "or",
-                rules = rules,
-                not = not
-            });
-        }
-
-        private async Task<(bool matches, int index, RulesetDto ruleset)> ParseNotRuleset(string[] tokens, int index)
-        {
-            if (index >= tokens.Length || tokens[index] != "!")
-            {
-                return (false, index, new RulesetDto());
-            }
-
-            index++;
-            var result = await ParseParened(tokens, index, true);
-            if (!result.matches)
-            {
-                return (false, index, new RulesetDto());
-            }
-
-            return result;
-        }
-
-        private async Task<(bool matches, int index, RulesetDto ruleset)> ParseParened(string[] tokens, int index, bool not)
-        {
-            if (index >= tokens.Length)
-            {
-                return (false, index, new RulesetDto());
-            }
-
-            bool negate = not;
-            while (index < tokens.Length && tokens[index] == "!")
-            {
-                negate = !negate;
-                index++;
-            }
-
-            if (index >= tokens.Length)
-            {
-                return (false, index, new RulesetDto());
-            }
-
-            // Named ruleset reference (UPPER_SNAKE_CASE)
-            if (Regex.IsMatch(tokens[index], @"^(?=.*[A-Z])[A-Z0-9_]+$"))
-            {
-                var rulesetName = tokens[index];
-                var namedQuery = await _namedQueryService.FindByNameAndOwner(rulesetName, null, _domain);
-                if (namedQuery != null)
-                {
-                    var namedRuleset = await Bql2Ruleset(namedQuery.Text);
-                    var adjusted = negate ? ApplyNegation(namedRuleset) : namedRuleset;
-                    return (true, index + 1, adjusted);
-                }
-                return (false, index, new RulesetDto());
-            }
-
-            // Check for parenthesized expression
-            if (tokens[index] != "(")
-            {
-                return (false, index, new RulesetDto());
-            }
-
-            index++;
-            var result = await ParseRuleset(tokens, index, false);
-            if (!result.matches)
-            {
-                result = ParseRule(tokens, index);
-                if (!result.matches)
-                {
-                    return result;
-                }
-            }
-
-            if (result.index >= tokens.Length || tokens[result.index] != ")")
-            {
-                return (false, result.index, new RulesetDto());
-            }
-
-            var adjustedRuleset = negate ? ApplyNegation(result.ruleset) : result.ruleset;
-            return (true, result.index + 1, adjustedRuleset);
-        }
-
-        private (bool matches, int index, RulesetDto ruleset) ParseRule(string[] tokens, int index)
-        {
-            if (index >= tokens.Length)
-            {
-                return (false, index, new RulesetDto());
-            }
-
-            // Handle default full-text field (e.g., document) with direct value
-            if (!_validFields.Contains(tokens[index]))
-            {
-                if (_defaultFullTextField != null &&
-                    (Regex.IsMatch(tokens[index], @"^[A-Za-z0-9?*]+$") || tokens[index].StartsWith("\"") || tokens[index].StartsWith("/")))
-                {
-                    var docValue = tokens[index];
-                    if (docValue.StartsWith("\""))
-                    {
-                        if (docValue.EndsWith("\\\""))
-                        {
-                            return (false, index, new RulesetDto());
-                        }
-                    }
-                    else if (docValue.StartsWith("/"))
-                    {
-                        try
-                        {
-                            var pattern = docValue.Substring(1);
-                            if (pattern.EndsWith("/i"))
-                            {
-                                pattern = pattern.Substring(0, pattern.Length - 2);
-                            }
-                            else if (pattern.EndsWith("/"))
-                            {
-                                pattern = pattern.Substring(0, pattern.Length - 1);
-                            }
-                            _ = new Regex(pattern);
-                        }
-                        catch
-                        {
-                            return (false, index, new RulesetDto());
-                        }
-                    }
-
-                    var op = Regex.IsMatch(docValue ?? string.Empty, @"^/.*/i?$", RegexOptions.IgnoreCase) ? "like" : "contains";
-                    return (true, index + 1, new RulesetDto
-                    {
-                        field = _defaultFullTextField,
-                        @operator = op,
-                        value = docValue ?? string.Empty
-                    });
-                }
-                return (false, index, new RulesetDto());
-            }
-
-            var field = tokens[index];
-            index++;
-
-            if (index >= tokens.Length)
-            {
-                return (false, index, new RulesetDto());
-            }
-
-            var opToken = tokens[index];
-            if (!IsValidOperator(field, opToken))
-            {
-                return (false, index, new RulesetDto());
-            }
-            index++;
-
-            // EXISTS / !EXISTS
-            if (opToken == "EXISTS" || opToken == "!EXISTS")
-            {
-                return (true, index, new RulesetDto
-                {
-                    field = field,
-                    @operator = "exists",
-                    value = !opToken.StartsWith("!")
-                });
-            }
-
-            if (index >= tokens.Length)
-            {
-                return (false, index, new RulesetDto());
-            }
-
-            // IN / !IN list
-            if (opToken == "IN" || opToken == "!IN")
-            {
-                if (!TryParseInValues(field, tokens, ref index, out var parsedValues) || parsedValues.Count == 0)
-                {
-                    return (false, index, new RulesetDto());
-                }
-
-                return (true, index, new RulesetDto
-                {
-                    field = field,
-                    @operator = opToken == "IN" ? "in" : "!in",
-                    value = parsedValues
-                });
-            }
-
-            if ((opToken == "CONTAINS" || opToken == "!CONTAINS") &&
-                index < tokens.Length &&
-                (tokens[index].StartsWith("(", StringComparison.Ordinal) || tokens[index] == "("))
-            {
-                if (!TryParseInValues(field, tokens, ref index, out var containsValues) || containsValues.Count == 0)
-                {
-                    return (false, index, new RulesetDto());
-                }
-
-                return (true, index, new RulesetDto
-                {
-                    field = field,
-                    @operator = opToken == "CONTAINS" ? "contains" : "!contains",
-                    value = containsValues
-                });
-            }
-
-            // Single value
-            string value = tokens[index];
-            if (value.StartsWith('"') && value.EndsWith('"'))
-            {
-                value = value.Substring(1, value.Length - 2);
-            }
-
-            if (!IsValidValue(field, value))
-            {
-                return (false, index, new RulesetDto());
-            }
-
-            // Map op token to ruleset operator, preserving negation for contains/like
-            var rulesetOperator = OpTokenToRulesetOperator(opToken);
-
-            return (true, index + 1, new RulesetDto
-            {
-                field = field,
-                @operator = rulesetOperator,
-                value = value ?? string.Empty
-            });
-        }
-
-        private RulesetDto ApplyNegation(RulesetDto ruleset)
-        {
-            ArgumentNullException.ThrowIfNull(ruleset);
-
-            if (!string.IsNullOrWhiteSpace(ruleset.condition) && ruleset.rules != null && ruleset.rules.Count > 0)
-            {
-                ruleset.not = !ruleset.not;
-                return ruleset;
-            }
-
-            if (TryNegateLeafRule(ruleset))
-            {
-                return ruleset;
-            }
-
-            ruleset.not = false;
-            return new RulesetDto
-            {
-                condition = "or",
-                not = true,
-                rules = new List<RulesetDto> { ruleset }
-            };
-        }
-
-        private bool TryNegateLeafRule(RulesetDto rule)
-        {
-            if (rule == null)
-            {
-                return false;
-            }
-
-            if (!string.IsNullOrWhiteSpace(rule.condition) && rule.rules != null && rule.rules.Count > 0)
-            {
-                return false;
-            }
-
-            var op = rule.@operator?.ToLowerInvariant();
-            switch (op)
-            {
-                case "=":
-                    rule.@operator = "!=";
-                    rule.not = false;
-                    return true;
-                case "!=":
-                    rule.@operator = "=";
-                    rule.not = false;
-                    return true;
-                case "contains":
-                    rule.@operator = "!contains";
-                    rule.not = false;
-                    return true;
-                case "!contains":
-                    rule.@operator = "contains";
-                    rule.not = false;
-                    return true;
-                case "like":
-                    rule.@operator = "!like";
-                    rule.not = false;
-                    return true;
-                case "!like":
-                    rule.@operator = "like";
-                    rule.not = false;
-                    return true;
-                case "in":
-                    rule.@operator = "!in";
-                    rule.not = false;
-                    return true;
-                case "!in":
-                    rule.@operator = "in";
-                    rule.not = false;
-                    return true;
-                case "exists":
-                    if (rule.value is bool boolVal)
-                    {
-                        rule.value = !boolVal;
-                        rule.not = false;
-                        return true;
-                    }
-                    return false;
-                default:
-                    return false;
-            }
-        }
-
-        private bool TryParseInValues(string field, string[] tokens, ref int index, out List<string> normalizedValues)
-        {
-            normalizedValues = new List<string>();
-            if (index >= tokens.Length)
-            {
-                return false;
-            }
-
-            string combinedValuesToken;
-            int nextIndex;
-
-            if (tokens[index].StartsWith("(") && tokens[index].EndsWith(")"))
-            {
-                combinedValuesToken = tokens[index];
-                nextIndex = index + 1;
-            }
-            else if (TryCollectParenthesizedTokens(tokens, index, out combinedValuesToken, out nextIndex))
-            {
-                // combinedValuesToken populated by helper
-            }
-            else
-            {
-                return false;
-            }
-
-            var extracted = ExtractInValues(field, combinedValuesToken);
-            if (extracted.Count == 0)
-            {
-                return false;
-            }
-
-            normalizedValues = extracted;
-            index = nextIndex;
-            return true;
-        }
-
-        private bool TryCollectParenthesizedTokens(string[] tokens, int startIndex, out string combined, out int nextIndex)
-        {
-            combined = string.Empty;
-            nextIndex = startIndex;
-
-            if (startIndex >= tokens.Length)
-            {
-                return false;
-            }
-
-            var sb = new StringBuilder();
-            int depth = 0;
-            bool started = false;
-
-            for (int i = startIndex; i < tokens.Length; i++)
-            {
-                var token = tokens[i];
-                if (!started)
-                {
-                    if (token == "(" || token.StartsWith("(", StringComparison.Ordinal))
-                    {
-                        started = true;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-
-                sb.Append(token);
-
-                depth += CountParenthesis(token, '(');
-                depth -= CountParenthesis(token, ')');
-
-                if (started && depth <= 0)
-                {
-                    var candidate = sb.ToString();
-                    if (candidate.StartsWith("(", StringComparison.Ordinal) && candidate.EndsWith(")", StringComparison.Ordinal))
-                    {
-                        combined = candidate;
-                        nextIndex = i + 1;
-                        return true;
-                    }
-                    return false;
-                }
-            }
-
-            return false;
-        }
-
         private List<string> ExtractInValues(string field, string combinedValuesToken)
         {
             var values = new List<string>();
@@ -1419,180 +1629,6 @@ namespace JhipsterSampleApplication.Domain.Services
             }
 
             return values;
-        }
-
-        private static int CountParenthesis(string token, char paren)
-        {
-            if (string.IsNullOrEmpty(token))
-            {
-                return 0;
-            }
-
-            int count = 0;
-            foreach (var ch in token)
-            {
-                if (ch == paren)
-                {
-                    count++;
-                }
-            }
-            return count;
-        }
-
-        private static string OpTokenToRulesetOperator(string opToken)
-        {
-            switch (opToken)
-            {
-                case "CONTAINS": return "contains";
-                case "!CONTAINS": return "!contains";
-                case "LIKE": return "like";
-                case "!LIKE": return "!like";
-                default: return opToken.ToLowerInvariant();
-            }
-        }
-
-        private bool IsValidOperator(string field, string opToken)
-        {
-            if (!_allowedBqlTokensUpperByField.TryGetValue(field, out var allowed))
-            {
-                return false;
-            }
-            return allowed.Contains(opToken);
-        }
-
-        private bool IsValidValue(string field, string value)
-        {
-            var type = _fieldTypeByName.TryGetValue(field, out var t) ? t : "string";
-
-            switch (type.ToLowerInvariant())
-            {
-                case "boolean":
-                    return string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) || string.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
-                case "category":
-                    // Be permissive: allow any non-empty category value even if not pre-declared
-                    return !string.IsNullOrWhiteSpace(value);
-                case "date":
-                case "time":
-                case "datetime":
-                    return Regex.IsMatch(value, @"^\d{4}(-\d{2}(-\d{2}(T\d{2}:\d{2}(:\d{2})?)?)?)?$");
-                case "number":
-                    return double.TryParse(value, out _);
-                default:
-                    // strings (including document/categories) allow regex (/.../i?) or non-empty strings
-                    return !string.IsNullOrWhiteSpace(value) || Regex.IsMatch(value, @"^/.*/i?$", RegexOptions.IgnoreCase);
-            }
-        }
-
-        protected static string QueryAsString(RulesetDto query, bool recurse = false)
-        {
-            ArgumentNullException.ThrowIfNull(query);
-            var result = new StringBuilder();
-            bool multipleConditions = false;
-
-            if (query.rules == null)
-            {
-                return result.ToString();
-            }
-
-            foreach (var r in query.rules)
-            {
-                if (r == null) continue;
-
-                if (result.Length > 0)
-                {
-                    result.Append(" " + (query.condition == "and" ? "&" : "|") + " ");
-                    multipleConditions = true;
-                }
-
-                if (r is RulesetDto ruleQuery && !string.IsNullOrEmpty(ruleQuery.condition))
-                {
-                    if (!string.IsNullOrEmpty(ruleQuery.name))
-                    {
-                        result.Append(ruleQuery.name);
-                    }
-                    else
-                    {
-                        result.Append(QueryAsString(ruleQuery, query.rules.Count > 1));
-                    }
-                }
-                else if (r.field == "document")
-                {
-                    var valStr = r.value?.ToString() ?? string.Empty;
-                    if (Regex.IsMatch(valStr, @"^/.*/i?$", RegexOptions.IgnoreCase))
-                    {
-                        result.Append(valStr);
-                    }
-                    else if (!Regex.IsMatch(valStr, "^[a-zA-Z\\d]+$"))
-                    {
-                        result.Append("\"" + Regex.Replace(valStr, "([\\\"])", "\\$1") + "\"");
-                    }
-                    else
-                    {
-                        result.Append(valStr.ToLowerInvariant());
-                    }
-                }
-                else
-                {
-                    var field = r.field ?? "document";
-                    var op = (r.@operator ?? "=").ToUpperInvariant();
-                    result.Append(field);
-
-                    if (op == "EXISTS")
-                    {
-                        result.Append(" " + (r.value is bool b && !b ? "!" : string.Empty) + "EXISTS");
-                    }
-                    else if (op == "IN" || op == "!IN")
-                    {
-                        var values = (r.value as IEnumerable<object>)?.Select(v => v?.ToString() ?? string.Empty) ?? Enumerable.Empty<string>();
-                        var quoted = values.Select(v => Regex.IsMatch(v, "^[a-zA-Z\\d]+$") ? v : "\"" + Regex.Replace(v, "([\\\"])", "\\$1") + "\"");
-                        result.Append(" " + op + " (" + string.Join(", ", quoted) + ")");
-                    }
-                    else if (op == "CONTAINS" || op == "!CONTAINS")
-                    {
-                        var values = (r.value as IEnumerable<object>)?.Select(v => v?.ToString() ?? string.Empty) ?? Enumerable.Empty<string>();
-                        var quoted = values.Select(v => Regex.IsMatch(v, "^[a-zA-Z\\d]+$") ? v : "\"" + Regex.Replace(v, "([\\\"])", "\\$1") + "\"");
-                        result.Append(" " + op + " (" + string.Join(", ", quoted) + ")");
-                    }
-                    else if (!string.IsNullOrWhiteSpace(op))
-                    {
-                        result.Append(" " + op + " ");
-                        if (r.value != null)
-                        {
-                            var valStr = r.value.ToString();
-                            if (valStr != null && Regex.IsMatch(valStr, @"^/.*/i?$", RegexOptions.IgnoreCase))
-                            {
-                                result.Append(valStr);
-                            }
-                            else if (valStr != null && !Regex.IsMatch(valStr, "^[A-Za-z0-9]+$"))
-                            {
-                                result.Append("\"" + Regex.Replace(valStr, "([\\\"])", "\\$1") + "\"");
-                            }
-                            else
-                            {
-                                result.Append(valStr?.ToLowerInvariant() ?? string.Empty);
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (query.not)
-            {
-                if (query.rules.Count == 1 && (query.rules[0] as RulesetDto)?.name != null)
-                {
-                    result.Insert(0, "!");
-                }
-                else
-                {
-                    result.Insert(0, "!(").Append(")");
-                }
-            }
-            else if (recurse && multipleConditions)
-            {
-                result.Insert(0, "(").Append(")");
-            }
-
-            return result.ToString();
         }
     }
 } 
