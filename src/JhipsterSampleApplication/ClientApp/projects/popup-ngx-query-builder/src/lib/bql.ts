@@ -58,6 +58,10 @@ export interface Token {
   value: string;
 }
 
+function isSupportedRegexLiteral(value: string): boolean {
+  return /^\/(?:\\\/|\\.|[^\/])+\/i?$/.test(value);
+}
+
 function isRulesetName(name: string): boolean {
   return /^[A-Z0-9_]+$/.test(name) && /[A-Z]/.test(name);
 }
@@ -409,7 +413,7 @@ export function bqlToRuleset(
       if (
         (operator === 'contains' || operator === '!contains') &&
         typeof value === 'string' &&
-        /^\/.*\/i?$/.test(value)
+        isSupportedRegexLiteral(value)
       ) {
         operator = operator === 'contains' ? 'like' : '!like';
       }
@@ -424,7 +428,7 @@ export function bqlToRuleset(
       return { condition: 'and', rules: [{ field, operator, value }] };
     } else {
       const value = first.type === 'string' ? first.value : first.value;
-      const op = /^\/.*\/i?$/.test(value) ? 'like' : 'contains';
+      const op = isSupportedRegexLiteral(value) ? 'like' : 'contains';
       return {
         condition: 'and',
         rules: [
@@ -533,7 +537,7 @@ function valueToString(value: any): string {
     return '(' + value.map((v) => valueToString(v)).join(',') + ')';
   }
   if (typeof value === 'string') {
-    if (/^\/.*\/i?$/.test(value)) {
+    if (isSupportedRegexLiteral(value)) {
       return value;
     }
     if (/^[A-Za-z0-9._-]+$/.test(value)) {
@@ -678,7 +682,7 @@ function validateRule(
  
   // Incomplete regex literals (start with '/' but missing closing '/') are invalid
   if (typeof rule.value === 'string') {
-    if (rule.value.startsWith('/') && !/^\/(?:\\\/|\\.|[^\/])+\/[a-z]*$/.test(rule.value)) {
+    if (rule.value.startsWith('/') && !isSupportedRegexLiteral(rule.value)) {
       return false;
     }
   }
@@ -686,10 +690,10 @@ function validateRule(
   // For like operators, restrict regex literals to /exp/ or /exp/i only
   if (rule.operator === 'like' || rule.operator === '!like') {
     if (typeof rule.value === 'string') {
-      const m = rule.value.match(/^\/(?:\\\/|\\.|[^\/])+\/([a-z]*)$/);
+      const m = rule.value.match(/^\/(?:\\\/|\\.|[^\/])+\/(i?)$/);
       if (m) {
-        const flags = (m[1] || '').replace(/[^i]/g, '');
-        const body = rule.value.replace(/^\//, '').replace(/\/[a-z]*$/, '');
+        const flags = m[1] || '';
+        const body = rule.value.replace(/^\//, '').replace(/\/i?$/, '');
         try {
           // Attempt to build JS regex; reject only if it throws
           // Limit flags to 'i' as per UI spec
@@ -749,7 +753,7 @@ function validateRule(
 }
 
 function isRegexLiteral(value: unknown): value is string {
-  return typeof value === 'string' && /^\/(?:\\\/|\\.|[^\/])+\/[a-z]*$/.test(value);
+  return typeof value === 'string' && isSupportedRegexLiteral(value);
 }
 
 function isAllowedRuleOperator(rule: Rule, operators: string[]): boolean {
