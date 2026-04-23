@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using JhipsterSampleApplication.Domain.Entities;
 using JhipsterSampleApplication.Domain.Services;
 using JhipsterSampleApplication.Domain.Services.Interfaces;
@@ -83,5 +84,61 @@ public class BqlServiceTest
         Assert.Equal("=", positive.@operator);
         Assert.Equal("johnson", positive.value);
         Assert.False(positive.not);
+    }
+
+    [Fact]
+    public async Task Ruleset2ElasticSearch_DocumentRegex_ShouldTargetProvidedKeywordFields()
+    {
+        var result = await _service.Ruleset2ElasticSearch(
+            new RulesetDto
+            {
+                field = "document",
+                @operator = "contains",
+                value = "/ann/"
+            },
+            new[] { "fname", "lname.keyword", "document" });
+
+        var expected = new JObject
+        {
+            {
+                "bool",
+                new JObject
+                {
+                    {
+                        "should",
+                        new JArray
+                        {
+                            BuildRegexpClause("fname.keyword"),
+                            BuildRegexpClause("lname.keyword")
+                        }
+                    },
+                    { "minimum_should_match", 1 }
+                }
+            }
+        };
+
+        Assert.True(JToken.DeepEquals(expected, (JToken)result));
+    }
+
+    private static JObject BuildRegexpClause(string field)
+    {
+        return new JObject
+        {
+            {
+                "regexp",
+                new JObject
+                {
+                    {
+                        field,
+                        new JObject
+                        {
+                            { "value", ".*ann.*" },
+                            { "flags", "ALL" },
+                            { "rewrite", "constant_score" }
+                        }
+                    }
+                }
+            }
+        };
     }
 }

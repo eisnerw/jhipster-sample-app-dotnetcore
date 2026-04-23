@@ -19,11 +19,11 @@ curl -sS -X PUT "http://localhost:9200/supreme" \
       "Respondent":  { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
       "advocates":   { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
       "argument2_url": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
-      "conclusion":  { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "conclusion":  { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 32766 } } },
       "decision":    { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
-      "description": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "description": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 32766 } } },
       "docket_number": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
-      "facts_of_the_case": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "facts_of_the_case": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 32766 } } },
       "heard_by":    { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
       "justia_url":  { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
       "lower_court": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
@@ -31,7 +31,7 @@ curl -sS -X PUT "http://localhost:9200/supreme" \
       "manner_of_jurisdiction": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
       "minority":    { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
       "name":        { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
-      "question":    { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+      "question":    { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 32766 } } },
       "recused":     { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
       "term":        { "type": "integer", "coerce": true }
     }

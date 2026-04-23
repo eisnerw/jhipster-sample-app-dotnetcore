@@ -25,6 +25,6 @@ namespace JhipsterSampleApplication.Domain.Services.Interfaces
         /// </summary>
         /// <param name="ruleset">The Ruleset to convert</param>
         /// <returns>An Elasticsearch query object</returns>
-        Task<object> Ruleset2ElasticSearch(RulesetDto ruleset);
+        Task<object> Ruleset2ElasticSearch(RulesetDto ruleset, IEnumerable<string>? documentKeywordFields = null);
     }
-} 
+}

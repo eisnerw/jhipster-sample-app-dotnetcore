@@ -140,7 +140,7 @@ namespace JhipsterSampleApplication.Domain.Services
             return QueryAsString(ruleset);
         }
 
-        public virtual async Task<object> Ruleset2ElasticSearch(RulesetDto ruleset)
+        public virtual async Task<object> Ruleset2ElasticSearch(RulesetDto ruleset, IEnumerable<string>? documentKeywordFields = null)
         {
             ArgumentNullException.ThrowIfNull(ruleset);
 
@@ -161,7 +161,7 @@ namespace JhipsterSampleApplication.Domain.Services
                         @operator = ruleset.@operator?.Replace("!", string.Empty),
                         value = ruleset.@operator == "exists" ? true : ruleset.value,
                         rules = null
-                    });
+                    }, documentKeywordFields);
 
                     return new JObject
                     {
@@ -215,7 +215,7 @@ namespace JhipsterSampleApplication.Domain.Services
                                 value = itemValue
                             };
 
-                            object childQuery = await Ruleset2ElasticSearch(childRule);
+                            object childQuery = await Ruleset2ElasticSearch(childRule, documentKeywordFields);
                             shouldClauses.Add(JToken.FromObject(childQuery));
                         }
 
@@ -265,24 +265,36 @@ namespace JhipsterSampleApplication.Domain.Services
                             regex = regex.Substring(0, regex.Length - 1);
                         }
 
-                        return new JObject
+                        if (string.Equals(ruleset.field, "document", StringComparison.OrdinalIgnoreCase))
                         {
+                            List<string> keywordFields = GetDocumentKeywordFields(documentKeywordFields);
+                            if (keywordFields.Count == 0)
                             {
-                                "regexp",
-                                new JObject
+                                return ret;
+                            }
+
+                            if (keywordFields.Count == 1)
+                            {
+                                return BuildRegexpQuery(keywordFields[0] + ".keyword", regex);
+                            }
+
+                            return new JObject
+                            {
                                 {
+                                    "bool",
+                                    new JObject
                                     {
-                                        ruleset.field + ".keyword",
-                                        new JObject
                                         {
-                                            { "value", regex },
-                                            { "flags", "ALL" },
-                                            { "rewrite", "constant_score" }
-                                        }
+                                            "should",
+                                            new JArray(keywordFields.Select(field => BuildRegexpQuery(field + ".keyword", regex)))
+                                        },
+                                        { "minimum_should_match", 1 }
                                     }
                                 }
-                            }
-                        };
+                            };
+                        }
+
+                        return BuildRegexpQuery(ruleset.field + ".keyword", regex);
                     }
 
                     string quote = Regex.IsMatch(stringValue, @"\W") ? "\"" : string.Empty;
@@ -517,7 +529,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 var rls = new List<object>();
                 foreach (RulesetDto rule in ruleset.rules!)
                 {
-                    rls.Add(await Ruleset2ElasticSearch(rule));
+                    rls.Add(await Ruleset2ElasticSearch(rule, documentKeywordFields));
                 }
 
                 if (ruleset.condition == "and")
@@ -548,6 +560,69 @@ namespace JhipsterSampleApplication.Domain.Services
 
                 return ret;
             }
+        }
+
+        private static JObject BuildRegexpQuery(string field, string regex)
+        {
+            return new JObject
+            {
+                {
+                    "regexp",
+                    new JObject
+                    {
+                        {
+                            field,
+                            new JObject
+                            {
+                                { "value", regex },
+                                { "flags", "ALL" },
+                                { "rewrite", "constant_score" }
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        private List<string> GetDocumentKeywordFields(IEnumerable<string>? documentKeywordFields)
+        {
+            List<string> explicitFields = (documentKeywordFields ?? Enumerable.Empty<string>())
+                .Select(NormalizeKeywordFieldName)
+                .Where(field => !string.IsNullOrWhiteSpace(field))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+            if (explicitFields.Count > 0)
+            {
+                return explicitFields;
+            }
+
+            return _validFields
+                .Where(field =>
+                    !string.Equals(field, "document", StringComparison.OrdinalIgnoreCase) &&
+                    _fieldTypeByName.TryGetValue(field, out string? type) &&
+                    string.Equals(type, "string", StringComparison.OrdinalIgnoreCase) &&
+                    _allowedBqlTokensUpperByField.TryGetValue(field, out HashSet<string>? allowedOps) &&
+                    (allowedOps.Contains("CONTAINS") || allowedOps.Contains("LIKE")))
+                .ToList();
+        }
+
+        private static string NormalizeKeywordFieldName(string? field)
+        {
+            if (string.IsNullOrWhiteSpace(field))
+            {
+                return string.Empty;
+            }
+
+            string normalized = field.Trim();
+            if (normalized.EndsWith(".keyword", StringComparison.OrdinalIgnoreCase))
+            {
+                normalized = normalized.Substring(0, normalized.Length - ".keyword".Length);
+            }
+
+            return string.Equals(normalized, "document", StringComparison.OrdinalIgnoreCase)
+                ? string.Empty
+                : normalized;
         }
 
         private static (DateTime start, DateTime? endExclusive) ParseDateValue(string value)
