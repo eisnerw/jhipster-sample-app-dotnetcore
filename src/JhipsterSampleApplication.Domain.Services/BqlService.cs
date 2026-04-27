@@ -350,7 +350,7 @@ namespace JhipsterSampleApplication.Domain.Services
 
                     // Boolean fields: use exact term query with boolean value
                     if (!string.IsNullOrWhiteSpace(ruleset.field) &&
-                        _fieldTypeByName.TryGetValue(ruleset.field!, out string ftype) &&
+                        _fieldTypeByName.TryGetValue(ruleset.field!, out string? ftype) &&
                         string.Equals(ftype, "boolean", StringComparison.OrdinalIgnoreCase))
                     {
                         bool boolVal = string.Equals(valueStr, "true", StringComparison.OrdinalIgnoreCase);
@@ -1072,7 +1072,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 return false;
             }
 
-            string op = rule.@operator?.ToLowerInvariant();
+            string? op = rule.@operator?.ToLowerInvariant();
             switch (op)
             {
                 case "=":

@@ -82,7 +82,15 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(QueryInputComponent) queryInput!: QueryInputComponent;
 
   currentQuery = '';
+  private readonly urlQueryParamName = 'bql';
+  private readonly urlViewParamName = 'view';
+  private readonly urlFilterParamName = 'filter';
+  private readonly urlQueryMaxLength = 2000;
+  private pendingUrlQuery: string | null = null;
+  private entitySpecLoaded = false;
+
   gridHighlightPattern = '';
+  globalFilterValue = '';
   spec: QueryLanguageSpec | undefined;
   dataLoader!: DataLoader<AnyRow>;
   columns: ColumnConfig[] = [];
@@ -113,6 +121,11 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
   chipMenuIsCount = false;
   chipMenuModel: MenuItem[] = [];
   showRowNumbers = false;
+
+  bDisplayActionDialog = false;
+  actionDialogTitle = '';
+  actionDialogHtml: any = null;
+  actionDialogHeaderHtml: any = null;
 
   showCategorizeDialog = false;
   allCategories: string[] = [];
@@ -159,6 +172,39 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.route.paramMap.subscribe(pm => {
       const pEntity = pm.get('entity') || this.entity;
       this.initForEntity(pEntity);
+    });
+
+    // Seed query input from URL (?query=...) and run it.
+    // This supports deep links like /entity/cable?query=DAILY
+    this.route.queryParamMap.subscribe(qp => {
+      const q = (qp.get(this.urlQueryParamName) || '').trim();
+      if (!q) return;
+      if ((this.currentQuery || '').trim() === q) return;
+      if (!this.entitySpecLoaded) {
+        this.pendingUrlQuery = q;
+        return;
+      }
+      this.applyUrlQuery(q);
+    });
+
+    // Seed selected view from URL (?view=...) and apply it
+    this.route.queryParamMap.subscribe(qp => {
+      const v = (qp.get(this.urlViewParamName) || '').trim();
+      const nextView = v || null;
+      if (this.viewName == nextView) return;
+      // Defer so initForEntity + view list have time to load
+      setTimeout(() => this.onViewChange(nextView), 0);
+    });
+
+    // Seed global filter from URL (?filter=...) and apply it.
+    this.route.queryParamMap.subscribe(qp => {
+      const f = (qp.get(this.urlFilterParamName) || '').trim();
+      if ((this.globalFilterValue || '').trim() === f) return;
+      this.globalFilterValue = f;
+      // Defer so ViewChild SuperTable exists.
+      setTimeout(() => {
+        try { this.superTable?.filterGlobal(this.globalFilterValue); } catch { }
+      }, 0);
     });
 
     const data = this.route.snapshot.data || {};
@@ -250,6 +296,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.specSignature = undefined;
     this.globalFilterFields = [];
     this.entitySpec = null;
+    this.entitySpecLoaded = false;
     this.menuSpec = [];
     this.views = [];
     this.viewName = null;
@@ -371,7 +418,10 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
         // Proceed to load columns and views after both specs are available
         this.loadColumnsFromSpec(entitySpec);
         this.loadViews(sessionId, this.entity);
-        this.loadPage();
+        this.entitySpecLoaded = true;
+        if (!this.applyPendingUrlQuery()) {
+          this.loadPage();
+        }
       },
       error: () => {
         if (!this.isActiveSession(sessionId)) {
@@ -386,9 +436,42 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
         // As a fallback, load columns and views even if spec fetch fails
         this.loadColumnsFromSpec(undefined);
         this.loadViews(sessionId, this.entity);
-        this.loadPage();
+        this.entitySpecLoaded = true;
+        if (!this.applyPendingUrlQuery()) {
+          this.loadPage();
+        }
       }
     });
+  }
+
+  private getUrlQueryParam(): string {
+    try {
+      return (this.route.snapshot.queryParamMap.get(this.urlQueryParamName) || '').trim();
+    } catch {
+      return '';
+    }
+  }
+
+  private applyPendingUrlQuery(): boolean {
+    const q = this.pendingUrlQuery || this.getUrlQueryParam();
+    this.pendingUrlQuery = null;
+    if (!q || (this.currentQuery || '').trim() === q) {
+      return false;
+    }
+    this.applyUrlQuery(q);
+    return true;
+  }
+
+  private applyUrlQuery(query: string): void {
+    // Defer so ViewChild QueryInputComponent is ready.
+    setTimeout(() => {
+      try {
+        if (this.queryInput) {
+          (this.queryInput as any).query = query;
+        }
+      } catch { }
+      this.onQueryChange(query);
+    }, 0);
   }
 
   private buildColumnsFromSpec(spec: any): ColumnConfig[] {
@@ -664,11 +747,80 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
   onQueryChange(query: string, restoreState = false): void {
     this.currentQuery = query || '';
     this.gridHighlightPattern = this.buildHighlightPattern(this.currentQuery);
+
+    this.maybeUpdateUrlQueryParam(this.currentQuery);
+    this.maybeUpdateUrlViewParam(this.viewName);
+    this.maybeUpdateUrlFilterParam(this.globalFilterValue);
+
     if (this.viewName) {
       this.loadRootGroups(restoreState);
     } else {
       this.loadPage();
     }
+  }
+
+  private maybeUpdateUrlQueryParam(query: string): void {
+    try {
+      const trimmed = (query || '').trim();
+      const current = (this.route.snapshot.queryParamMap.get(this.urlQueryParamName) || '').trim();
+      if (trimmed === current) return;
+
+      // Approximate URL limit: if the encoded query itself is to long, don't touch the URL.
+      // This avoids breaking navigation/history on very large BQL queries.
+      const encoded = encodeURIComponent(trimmed);
+      if (encoded.length > this.urlQueryMaxLength) return;
+
+      const queryParams = trimmed ? { [this.urlQueryParamName]: trimmed } : { [this.urlQueryParamName]: null};
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams,
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+
+    } catch {}
+  }
+
+  private maybeUpdateUrlViewParam(view: string | null): void {
+    try {
+      const trimmed = (view || '').trim();
+      const current = (this.route.snapshot.queryParamMap.get(this.urlViewParamName) || '').trim();
+      if (trimmed === current) return;
+
+      // Approximate URL limit: if the encoded query itself is to long, don't touch the URL.
+      // This avoids breaking navigation/history on very large BQL queries.
+      const encoded = encodeURIComponent(trimmed);
+      if (encoded.length > this.urlQueryMaxLength) return;
+
+      const queryParams = trimmed ? { [this.urlViewParamName]: trimmed } : { [this.urlViewParamName]: null};
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams,
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    } catch {}
+  }
+
+  private maybeUpdateUrlFilterParam(filter: string | null): void {
+    try {
+      const trimmed = (filter || '').trim();
+      const current = (this.route.snapshot.queryParamMap.get(this.urlFilterParamName) || '').trim();
+      if (trimmed === current) return;
+
+      const queryParams = trimmed ? { [this.urlFilterParamName]: trimmed } : { [this.urlFilterParamName]: null};
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams,
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    } catch {}
+  }
+
+  onGlobalFilterChange(value: string): void {
+    this.globalFilterValue = value || '';
+    try { this.superTable?.filterGlobal(this.globalFilterValue); } catch { }
   }
 
   loadRootGroups(restoreState: boolean = false, sessionId: number = this.entitySession): void {
@@ -741,6 +893,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onViewChange(view: string | null): void {
     this.viewName = view;
+    this.maybeUpdateUrlViewParam(this.viewName);
     if (this.viewName) { try { this.superTable?.filterGlobal(''); } catch { } this.loadRootGroups(); }
     else {
       this.publishRootGroups([], false, 'Loading…');
