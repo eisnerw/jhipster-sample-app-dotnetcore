@@ -821,6 +821,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
   onGlobalFilterChange(value: string): void {
     this.globalFilterValue = value || '';
     try { this.superTable?.filterGlobal(this.globalFilterValue); } catch { }
+    this.maybeUpdateUrlFilterParam(this.globalFilterValue);
   }
 
   loadRootGroups(restoreState: boolean = false, sessionId: number = this.entitySession): void {

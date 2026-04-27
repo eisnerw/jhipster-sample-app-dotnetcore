@@ -56,7 +56,8 @@
         type="text"
         class="p-inputtext-sm ms-2 global-filter-input"
         placeholder="filter"
-        (input)="superTable.filterGlobal(globalFilterInput.value)"
+        [(ngModel)]="globalFilterValue"
+        (ngModelChange)="onGlobalFilterChange($event)"
       />
 
       <div class="form-check ms-2" style="font-size: 1rem; display: flex; align-items: center; font-weight: 400">
