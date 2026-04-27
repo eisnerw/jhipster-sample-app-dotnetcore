@@ -55,7 +55,8 @@
 </div>
 
 <p-dialog
-  [(visible)]="showBuilder"
+  [visible]="showBuilder"
+  (visibleChange)="onQueryBuilderVisibleChange($event)"
   [modal]="true"
   [closable]="true"
   [draggable]="true"

@@ -92,6 +92,7 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
   @Input() namedQueryEntity: string | null = null;
   @Input() historyEntity: string | null = null;
   @Output() queryChange = new EventEmitter<string>();
+  @Output() queryBuilderVisibilityChange = new EventEmitter<boolean>();
 
   editing = false;
   showBuilder = false;
@@ -275,14 +276,14 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
       this.builderQuery.condition = 'and';
     }
 
-    this.showBuilder = true;
+    this.setQueryBuilderVisible(true);
   }
 
   builderApplied(q: RuleSet) {
     this.query = this.stringifyQuery(q);
     this.onQueryChange();
     this.queryChange.emit(this.query);
-    this.showBuilder = false;
+    this.setQueryBuilderVisible(false);
   }
 
   cancelEdit() {
@@ -446,7 +447,19 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   cancelQuery() {
-    this.showBuilder = false;
+    this.setQueryBuilderVisible(false);
+  }
+
+  onQueryBuilderVisibleChange(visible: boolean): void {
+    this.setQueryBuilderVisible(visible);
+  }
+
+  private setQueryBuilderVisible(visible: boolean): void {
+    if (this.showBuilder === visible) {
+      return;
+    }
+    this.showBuilder = visible;
+    this.queryBuilderVisibilityChange.emit(visible);
   }
 
   listNamedRulesets(): string[] {

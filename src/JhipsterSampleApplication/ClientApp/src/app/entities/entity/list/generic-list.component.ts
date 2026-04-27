@@ -85,8 +85,10 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly urlQueryParamName = 'bql';
   private readonly urlViewParamName = 'view';
   private readonly urlFilterParamName = 'filter';
+  private readonly urlEditingParamName = 'editing';
   private readonly urlQueryMaxLength = 2000;
   private pendingUrlQuery: string | null = null;
+  private pendingOpenQueryWidget = false;
   private entitySpecLoaded = false;
 
   gridHighlightPattern = '';
@@ -207,6 +209,14 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
       }, 0);
     });
 
+    // Open the query builder widget from URL state (?editing=yes).
+    this.route.queryParamMap.subscribe(qp => {
+      const shouldOpen = (qp.get(this.urlEditingParamName) || '').trim().toLowerCase() === 'yes';
+      if (!shouldOpen) return;
+      this.pendingOpenQueryWidget = true;
+      this.openPendingQueryWidget();
+    });
+
     const data = this.route.snapshot.data || {};
     if (!this.entity && data['entity']) {
       this.initForEntity(data['entity']);
@@ -215,6 +225,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     //this.onQueryChange(this.currentQuery);
+    this.openPendingQueryWidget();
     try {
       document.addEventListener('mouseover', this.menuHoverListener, true);
     } catch { }
@@ -422,6 +433,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
         if (!this.applyPendingUrlQuery()) {
           this.loadPage();
         }
+        this.openPendingQueryWidget();
       },
       error: () => {
         if (!this.isActiveSession(sessionId)) {
@@ -440,6 +452,7 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
         if (!this.applyPendingUrlQuery()) {
           this.loadPage();
         }
+        this.openPendingQueryWidget();
       }
     });
   }
@@ -471,6 +484,20 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       } catch { }
       this.onQueryChange(query);
+    }, 0);
+  }
+
+  private openPendingQueryWidget(): void {
+    if (!this.pendingOpenQueryWidget || !this.entitySpecLoaded || !this.queryInput) {
+      return;
+    }
+    this.pendingOpenQueryWidget = false;
+    setTimeout(() => {
+      try {
+        if (!(this.queryInput as any).showBuilder) {
+          this.queryInput.clickSearch();
+        }
+      } catch { }
     }, 0);
   }
 
@@ -812,6 +839,25 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
       this.router.navigate([], {
         relativeTo: this.route,
         queryParams,
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    } catch {}
+  }
+
+  onQueryBuilderVisibilityChange(visible: boolean): void {
+    this.maybeUpdateUrlEditingParam(visible);
+  }
+
+  private maybeUpdateUrlEditingParam(visible: boolean): void {
+    try {
+      const current = (this.route.snapshot.queryParamMap.get(this.urlEditingParamName) || '').trim().toLowerCase();
+      const next = visible ? 'yes' : '';
+      if ((visible && current === next) || (!visible && !current)) return;
+
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { [this.urlEditingParamName]: visible ? 'yes' : null },
         queryParamsHandling: 'merge',
         replaceUrl: true,
       });
