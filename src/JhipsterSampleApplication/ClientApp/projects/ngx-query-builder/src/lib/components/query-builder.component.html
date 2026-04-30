@@ -33,7 +33,7 @@
             [ngClass]="getClassNames('button')"
             [class.q-name-action-modified]="namedRulesetModified(data)"
             [disabled]="disabled"
-            [title]="namedRulesetModified(data) ? rulesetName + ' has been modified needs to be saved, renamed or unnamed' : null"
+            [attr.title]="namedRulesetModified(data) ? rulesetName + ' has been modified and needs to be saved, renamed, or unnamed' : null"
           >
             <i [ngClass]="getClassNames(namedRulesetModified(data) ? 'saveIcon' : 'searchIcon')"></i>
             <span class="q-name-label" [ngClass]="{ 'q-name-modified': namedRulesetModified(data) }">{{ data.name }}</span>
