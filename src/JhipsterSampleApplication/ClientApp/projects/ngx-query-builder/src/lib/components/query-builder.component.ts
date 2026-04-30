@@ -1826,6 +1826,38 @@ export class QueryBuilderComponent
     return existing.indexOf(name) === -1;
   }
 
+  private hasOnlyPartialDefaultRule(ruleset: RuleSet): boolean {
+    if (
+      !ruleset ||
+      !Array.isArray(ruleset.rules) ||
+      ruleset.rules.length !== 1
+    ) {
+      return false;
+    }
+    const rule = ruleset.rules[0] as Rule;
+    if (!rule || (rule as any).rules || !rule.field || !rule.operator) {
+      return false;
+    }
+    const field = this.config.fields[rule.field];
+    if (!field) {
+      return false;
+    }
+    const fields = Object.keys(this.config.fields);
+    const expectedField = this.defaultRuleAttribute || fields[0];
+    const expectedOperator =
+      field.defaultOperator !== undefined
+        ? this.getDefaultValue(field.defaultOperator)
+        : field.operators && field.operators.length
+          ? field.operators[0]
+          : 'contains';
+
+    return (
+      rule.field === expectedField &&
+      rule.operator === expectedOperator &&
+      (rule.value === undefined || rule.value === null || rule.value === '')
+    );
+  }
+
   addNamedRuleSet(parent?: RuleSet): void {
     if (
       this.disabled ||
@@ -1857,8 +1889,16 @@ export class QueryBuilderComponent
       .subscribe((selection: string | null) => {
         if (selection && names.includes(selection)) {
           const rs = this.cloneRuleset(this.config.getNamedRuleset!(selection));
-          this.registerParentRefs(rs, target);
-          target.rules.push(rs);
+          rs.name = selection;
+          if (this.hasOnlyPartialDefaultRule(target)) {
+            const parent = QueryBuilderComponent.parentMap.get(target) || null;
+            Object.keys(target).forEach((key) => delete (target as any)[key]);
+            Object.assign(target, rs);
+            this.registerParentRefs(target, parent);
+          } else {
+            this.registerParentRefs(rs, target);
+            target.rules.push(rs);
+          }
           this.handleTouched();
           this.handleDataChange();
         }

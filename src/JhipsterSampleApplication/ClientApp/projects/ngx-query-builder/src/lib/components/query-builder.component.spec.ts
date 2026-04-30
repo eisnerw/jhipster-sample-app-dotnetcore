@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MatDialogModule } from '@angular/material/dialog';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { SimpleChange } from '@angular/core';
+import { of } from 'rxjs';
 import { QueryBuilderComponent } from './query-builder.component';
 import { RuleSet } from '../models/query-builder.interfaces';
 import { AddNamedRulesetDialogComponent } from './add-named-ruleset-dialog.component';
@@ -84,5 +85,71 @@ describe('QueryBuilderComponent', () => {
     expect(component.data.condition).toBe('or');
     expect(component.data.rules.length).toBe(2);
     expect((component.data.rules[1] as any).field).toBe('name');
+  });
+
+  it('should replace the partial default rule when adding a named ruleset', () => {
+    const named: RuleSet = {
+      condition: 'and',
+      rules: [{ field: 'title', operator: 'contains', value: 'alpha' }],
+    };
+    component.config = {
+      fields: {
+        document: {
+          name: 'Document',
+          type: 'string',
+          operators: ['contains'],
+          defaultOperator: 'contains',
+        },
+        title: { name: 'Title', type: 'string', operators: ['contains'] },
+      },
+      listNamedRulesets: () => ['SAVED'],
+      getNamedRuleset: () => named,
+    } as any;
+    component.data = {
+      condition: 'and',
+      rules: [{ field: 'document', operator: 'contains' }],
+    };
+    spyOn((component as any).dialog, 'open').and.returnValue({
+      afterClosed: () => of('SAVED'),
+    } as any);
+
+    component.addNamedRuleSet();
+
+    expect(component.data.name).toBe('SAVED');
+    expect(component.data.rules.length).toBe(1);
+    expect((component.data.rules[0] as any).field).toBe('title');
+  });
+
+  it('should append a named ruleset when the target has a complete rule', () => {
+    const named: RuleSet = {
+      condition: 'and',
+      rules: [{ field: 'title', operator: 'contains', value: 'alpha' }],
+      name: 'SAVED',
+    };
+    component.config = {
+      fields: {
+        document: {
+          name: 'Document',
+          type: 'string',
+          operators: ['contains'],
+          defaultOperator: 'contains',
+        },
+        title: { name: 'Title', type: 'string', operators: ['contains'] },
+      },
+      listNamedRulesets: () => ['SAVED'],
+      getNamedRuleset: () => named,
+    } as any;
+    component.data = {
+      condition: 'and',
+      rules: [{ field: 'document', operator: 'contains', value: 'beta' }],
+    };
+    spyOn((component as any).dialog, 'open').and.returnValue({
+      afterClosed: () => of('SAVED'),
+    } as any);
+
+    component.addNamedRuleSet();
+
+    expect(component.data.rules.length).toBe(2);
+    expect((component.data.rules[1] as RuleSet).name).toBe('SAVED');
   });
 });
