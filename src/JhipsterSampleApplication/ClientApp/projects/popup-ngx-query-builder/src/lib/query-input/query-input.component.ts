@@ -473,6 +473,7 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
   saveNamedRuleset(rs: RuleSet) {
     if (rs.name) {
       this.namedRulesets[rs.name] = JSON.parse(JSON.stringify(rs));
+      this.autocompleteService.upsertNamedQuery(rs.name);
       const rsClone = JSON.parse(JSON.stringify(rs));
       delete rsClone.name;
       const bql = rulesetToBql(rsClone, this.queryBuilderConfig);
@@ -496,6 +497,7 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
 
   deleteNamedRuleset(name: string) {
     delete this.namedRulesets[name];
+    this.autocompleteService.removeNamedQuery(name);
     const id = this.namedQueryIds[name];
     if (id !== undefined) {
       this.http.delete(`/api/NamedQueries/${id}`).subscribe();

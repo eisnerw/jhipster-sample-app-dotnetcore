@@ -48,6 +48,9 @@ export class BqlAutocompleteService {
   // Cache for field and operator suggestions per QueryBuilderConfig
   private fieldSuggestionsCache = new Map<string, AutocompleteSuggestion[]>();
   private operatorSuggestionsCache = new Map<string, Map<string, AutocompleteSuggestion[]>>();
+  private serverNamedQuerySuggestions: AutocompleteSuggestion[] = [];
+  private localNamedQuerySuggestions = new Map<string, AutocompleteSuggestion>();
+  private deletedNamedQueryNames = new Set<string>();
   private namedQuerySuggestions: AutocompleteSuggestion[] = [];
   private namedQueriesLoaded = false;
   private namedQueriesLoading = false;
@@ -76,6 +79,9 @@ export class BqlAutocompleteService {
     }
 
     this.namedQueryEntity = normalized;
+    this.serverNamedQuerySuggestions = [];
+    this.localNamedQuerySuggestions.clear();
+    this.deletedNamedQueryNames.clear();
     this.namedQuerySuggestions = [];
     this.namedQueryNames.clear();
     this.namedQueriesLoaded = false;
@@ -159,6 +165,38 @@ export class BqlAutocompleteService {
   clearCache(): void {
     this.fieldSuggestionsCache.clear();
     this.operatorSuggestionsCache.clear();
+  }
+
+  upsertNamedQuery(name: string, owner?: string | null): void {
+    const normalized = name?.trim();
+    if (!normalized) {
+      return;
+    }
+
+    const suggestion: AutocompleteSuggestion = {
+      value: normalized,
+      display: normalized,
+      type: 'field',
+      metadata: {
+        description: owner ? `Named query (${owner})` : 'Named query',
+      },
+    };
+    const lowerName = normalized.toLowerCase();
+
+    this.localNamedQuerySuggestions.set(lowerName, suggestion);
+    this.deletedNamedQueryNames.delete(lowerName);
+    this.rebuildNamedQuerySuggestions();
+  }
+
+  removeNamedQuery(name: string): void {
+    const normalized = name?.trim().toLowerCase();
+    if (!normalized) {
+      return;
+    }
+
+    this.localNamedQuerySuggestions.delete(normalized);
+    this.deletedNamedQueryNames.add(normalized);
+    this.rebuildNamedQuerySuggestions();
   }
 
   /**
@@ -859,14 +897,30 @@ export class BqlAutocompleteService {
         })
       )
       .subscribe(suggestions => {
-        this.namedQuerySuggestions = suggestions;
-        this.namedQueryNames = new Set(
-          suggestions.map(s => s.value.toLowerCase())
-        );
+        this.serverNamedQuerySuggestions = suggestions;
+        this.rebuildNamedQuerySuggestions();
         this.namedQueriesLoaded = true;
-        this.fieldSuggestionsCache.clear();
-        this.namedQueriesSubject.next();
       });
+  }
+
+  private rebuildNamedQuerySuggestions(): void {
+    const suggestionsByName = new Map<string, AutocompleteSuggestion>();
+    this.serverNamedQuerySuggestions.forEach(suggestion => {
+      const key = suggestion.value.toLowerCase();
+      if (!this.deletedNamedQueryNames.has(key)) {
+        suggestionsByName.set(key, suggestion);
+      }
+    });
+    this.localNamedQuerySuggestions.forEach((suggestion, key) => {
+      suggestionsByName.set(key, suggestion);
+    });
+
+    this.namedQuerySuggestions = Array.from(suggestionsByName.values()).sort((a, b) =>
+      a.value.localeCompare(b.value),
+    );
+    this.namedQueryNames = new Set(this.namedQuerySuggestions.map(s => s.value.toLowerCase()));
+    this.fieldSuggestionsCache.clear();
+    this.namedQueriesSubject.next();
   }
 
   /**

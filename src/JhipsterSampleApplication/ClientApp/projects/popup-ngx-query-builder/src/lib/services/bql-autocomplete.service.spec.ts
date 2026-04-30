@@ -159,6 +159,53 @@ describe('BqlAutocompleteService', () => {
       expect(suggestions.some(s => s.value === '|')).toBeTrue();
     });
 
+    it('should include locally saved named queries in field suggestions immediately', () => {
+      service.upsertNamedQuery('NewSegment');
+
+      const suggestions = service.getSuggestions('New', 3, config);
+
+      expect(suggestions.some(s => s.value === 'NewSegment')).toBeTrue();
+    });
+
+    it('should keep locally saved named queries when server named queries finish loading', () => {
+      const serverNamedQuery: INamedQuery = {
+        id: 1,
+        name: 'ServerSegment',
+        text: 'age > 30',
+        owner: 'SYSTEM',
+        entity: 'Birthday'
+      };
+      namedQueryService.query.and.returnValue(of(new HttpResponse({ body: [serverNamedQuery] })));
+
+      service.upsertNamedQuery('LocalSegment');
+      service.setNamedQueryContext('Birthday');
+      service.upsertNamedQuery('LocalSegment');
+
+      const suggestions = service.getSuggestions('', 0, config);
+
+      expect(suggestions.some(s => s.value === 'LocalSegment')).toBeTrue();
+      expect(suggestions.some(s => s.value === 'ServerSegment')).toBeTrue();
+    });
+
+    it('should remove locally deleted named queries from field suggestions', () => {
+      const namedQuery: INamedQuery = {
+        id: 1,
+        name: 'DeletedSegment',
+        text: 'age > 30',
+        owner: 'SYSTEM',
+        entity: 'Birthday'
+      };
+      namedQueryService.query.and.returnValue(of(new HttpResponse({ body: [namedQuery] })));
+
+      service.setNamedQueryContext('Birthday');
+      service.getSuggestions('', 0, config);
+      service.removeNamedQuery('DeletedSegment');
+
+      const suggestions = service.getSuggestions('', 0, config);
+
+      expect(suggestions.some(s => s.value === 'DeletedSegment')).toBeFalse();
+    });
+
     it('should suggest fields after opening parenthesis', () => {
       const suggestions = service.getSuggestions('(', 1, config);
       expect(suggestions.length).toBeGreaterThan(0);
