@@ -1923,6 +1923,21 @@ export class QueryBuilderComponent
     return a !== b;
   }
 
+  anyNamedRulesetModified(ruleset: RuleSet = this.data): boolean {
+    if (!ruleset) {
+      return false;
+    }
+    if (this.namedRulesetModified(ruleset)) {
+      return true;
+    }
+    if (!Array.isArray(ruleset.rules)) {
+      return false;
+    }
+    return ruleset.rules.some((child) =>
+      this.isRuleset(child) && this.anyNamedRulesetModified(child),
+    );
+  }
+
   namedRulesetAction(ruleset: RuleSet = this.data): void {
     if (
       !ruleset.name ||

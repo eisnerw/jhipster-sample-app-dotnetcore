@@ -93,7 +93,14 @@
   <ng-template pTemplate="footer">
     <div class="dialog-footer">
       <button pButton label="Cancel" (click)="cancelQuery()" class="p-button-secondary" aria-label="Cancel Query"></button>
-      <button pButton label="Apply" (click)="applyQuery()" class="p-button-primary" [disabled]="builder?.namingRuleset" aria-label="Apply Query"></button>
+      <button
+        pButton
+        label="Apply"
+        (click)="applyQuery()"
+        class="p-button-primary"
+        [disabled]="builder?.namingRuleset || builder?.anyNamedRulesetModified()"
+        aria-label="Apply Query"
+      ></button>
     </div>
   </ng-template>
 </p-dialog>
