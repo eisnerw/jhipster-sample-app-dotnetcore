@@ -37,6 +37,28 @@ describe('QueryInputComponent', () => {
     const payload = postSpy.calls.mostRecent().args[1];
     expect(payload.text).toBe('a=1');
   });
+
+  it('should apply a single named child ruleset instead of its unnamed container', () => {
+    const component = new QueryInputComponent();
+    (component as any).config = { fields: {} } as any;
+    const emitSpy = spyOn(component.queryChange, 'emit');
+    const setVisibleSpy = spyOn(component as any, 'setQueryBuilderVisible');
+    const child: RuleSet = {
+      condition: 'and',
+      rules: [{ field: 'a', operator: '=', value: 1 }],
+      name: 'TEST',
+    };
+    const container: RuleSet = {
+      condition: 'and',
+      rules: [child],
+    };
+
+    component.builderApplied(container);
+
+    expect(component.query).toBe('TEST');
+    expect(emitSpy).toHaveBeenCalledWith('TEST');
+    expect(setVisibleSpy).toHaveBeenCalledWith(false);
+  });
 });
 
 describe('QueryInputComponent - Autocomplete Integration Tests', () => {

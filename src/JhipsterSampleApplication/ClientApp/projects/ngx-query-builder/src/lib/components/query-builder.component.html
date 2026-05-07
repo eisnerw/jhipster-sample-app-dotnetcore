@@ -32,7 +32,7 @@
             (click)="namedRulesetAction(data)"
             [ngClass]="getClassNames('button')"
             [class.q-name-action-modified]="namedRulesetModified(data)"
-            [disabled]="disabled"
+            [disabled]="disabled || local.invalid"
             [attr.title]="namedRulesetModified(data) ? rulesetName + ' has been modified and needs to be saved, renamed, or unnamed' : null"
           >
             <i [ngClass]="getClassNames(namedRulesetModified(data) ? 'saveIcon' : 'searchIcon')"></i>

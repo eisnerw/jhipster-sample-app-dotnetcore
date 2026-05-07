@@ -2112,20 +2112,9 @@ export class QueryBuilderComponent
     if (!ruleset.name) {
       return;
     }
-    const name = ruleset.name;
     delete ruleset.name;
-    const finalize = () => {
-      this.handleTouched();
-      this.handleDataChange();
-    };
-    if (!this.isRulesetNameInUse(name, this.getRootRuleset(ruleset))) {
-      if (this.config.deleteNamedRuleset) {
-        this.config.deleteNamedRuleset(name);
-      }
-      finalize();
-    } else {
-      finalize();
-    }
+    this.handleTouched();
+    this.handleDataChange();
   }
 }
 

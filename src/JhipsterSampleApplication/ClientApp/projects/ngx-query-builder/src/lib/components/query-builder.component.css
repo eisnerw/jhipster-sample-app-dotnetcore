@@ -345,6 +345,12 @@
 
   .q-name-action {
     margin-left: 8px;
+
+    &:disabled {
+      cursor: not-allowed;
+      display: inline-block;
+      opacity: 0.65;
+    }
   }
 
   .q-name-action-modified {

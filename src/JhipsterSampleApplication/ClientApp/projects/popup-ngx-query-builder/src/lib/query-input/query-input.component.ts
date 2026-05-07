@@ -280,7 +280,7 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   builderApplied(q: RuleSet) {
-    this.query = this.stringifyQuery(q);
+    this.query = this.stringifyQuery(this.unwrapSingleNamedRuleset(q));
     this.onQueryChange();
     this.queryChange.emit(this.query);
     this.setQueryBuilderVisible(false);
@@ -395,6 +395,29 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
     } catch {
       return '';
     }
+  }
+
+  private unwrapSingleNamedRuleset(query: RuleSet): RuleSet {
+    if (
+      !query ||
+      query.name ||
+      query.not ||
+      !Array.isArray(query.rules) ||
+      query.rules.length !== 1
+    ) {
+      return query;
+    }
+
+    const only = query.rules[0];
+    if (this.isRuleset(only) && only.name) {
+      return only;
+    }
+
+    return query;
+  }
+
+  private isRuleset(item: RuleSet | Rule): item is RuleSet {
+    return Array.isArray((item as RuleSet).rules);
   }
 
   private cleanQuery(query: RuleSet): RuleSet {
