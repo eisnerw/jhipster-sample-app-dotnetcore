@@ -1998,7 +1998,6 @@ export class QueryBuilderComponent
               Object.keys(ruleset).forEach((k) => delete (ruleset as any)[k]);
               Object.assign(ruleset, edited);
               this.registerParentRefs(ruleset, parent);
-              this.saveNamedRulesetDefinition(ruleset);
             }
             this.handleTouched();
             this.handleDataChange();
