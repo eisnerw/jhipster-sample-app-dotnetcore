@@ -198,6 +198,17 @@ function isValidPartialDate(v: string): boolean {
   return false;
 }
 
+function requiresQuotedStringValue(token: Token, field: string, config: QueryBuilderConfig): boolean {
+  if (token.type !== 'word') {
+    return false;
+  }
+  const fieldConf = config.fields[field];
+  if (!fieldConf || (fieldConf.type !== 'string' && fieldConf.type !== 'category')) {
+    return false;
+  }
+  return !isSupportedRegexLiteral(token.value) && !/^[A-Za-z0-9]+$/.test(token.value);
+}
+
 function parseValue(
   token: Token,
   field: string,
@@ -207,6 +218,9 @@ function parseValue(
   if (!fieldConf) return token.value;
   const type = fieldConf.type;
   const v = token.value;
+  if (requiresQuotedStringValue(token, field, config)) {
+    throw new Error('String values containing non-alphanumeric characters must be quoted');
+  }
   if (type === 'number') return Number(v);
   if (type === 'boolean') return v === 'true';
   if (type === 'date') {
@@ -435,7 +449,7 @@ export function bqlToRuleset(
           {
             field: 'document',
             operator: op,
-            value: parseValue({ type: 'word', value }, 'document', config),
+            value: parseValue(first, 'document', config),
           },
         ],
       };
@@ -540,7 +554,7 @@ function valueToString(value: any): string {
     if (isSupportedRegexLiteral(value)) {
       return value;
     }
-    if (/^[A-Za-z0-9._-]+$/.test(value)) {
+    if (/^[A-Za-z0-9]+$/.test(value)) {
       return value;
     }
   }

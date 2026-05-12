@@ -286,6 +286,52 @@ describe('validateBql', () => {
     expect(validateBql('fname!=john', cfg2)).toBeTrue();
   });
 
+  it('should reject unquoted string values containing non-alphanumeric characters', () => {
+    const cfg2: QueryBuilderConfig = {
+      fields: {
+        document: { name: 'Document', type: 'string', operators: ['contains'] },
+        fname: { name: 'First Name', type: 'string', operators: ['='] },
+      },
+    } as any;
+
+    expect(validateBql('fname=a-', cfg2)).toBeFalse();
+    expect(validateBql('fname=a!', cfg2)).toBeFalse();
+    expect(validateBql('fname=a*', cfg2)).toBeFalse();
+    expect(validateBql('a-', cfg2)).toBeFalse();
+    expect(validateBql('a!', cfg2)).toBeFalse();
+    expect(validateBql('a*', cfg2)).toBeFalse();
+  });
+
+  it('should accept quoted string values containing non-alphanumeric characters', () => {
+    const cfg2: QueryBuilderConfig = {
+      fields: {
+        document: { name: 'Document', type: 'string', operators: ['contains'] },
+        fname: { name: 'First Name', type: 'string', operators: ['='] },
+      },
+    } as any;
+
+    expect(validateBql('fname="a-"', cfg2)).toBeTrue();
+    expect(validateBql('fname="a!"', cfg2)).toBeTrue();
+    expect(validateBql('fname="a*"', cfg2)).toBeTrue();
+    expect(validateBql('"a-"', cfg2)).toBeTrue();
+    expect(validateBql('"a!"', cfg2)).toBeTrue();
+    expect(validateBql('"a*"', cfg2)).toBeTrue();
+  });
+
+  it('should quote string values containing non-alphanumeric characters when stringifying', () => {
+    const cfg2: QueryBuilderConfig = {
+      fields: {
+        fname: { name: 'First Name', type: 'string', operators: ['='] },
+      },
+    } as any;
+    const rs: RuleSet = {
+      condition: 'and',
+      rules: [{ field: 'fname', operator: '=', value: 'a-' }],
+    };
+
+    expect(rulesetToBql(rs, cfg2)).toBe('fname="a-"');
+  });
+
   it('should accept !CONTAINS operator', () => {
     const cfg3: QueryBuilderConfig = {
       fields: {
