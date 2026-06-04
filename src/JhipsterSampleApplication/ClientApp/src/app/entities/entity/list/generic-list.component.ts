@@ -1213,7 +1213,8 @@ export class GenericListComponent implements OnInit, AfterViewInit, OnDestroy {
     try {
       if (!tmpl) return '';
       return String(tmpl).replace(/\{([^{}:\s]+)(?::[^{}]+)?\}/g, (_m: string, g1: string) => {
-        const v = row?.[g1];
+        const rowValue = row?.[g1];
+        const v = rowValue === null || rowValue === undefined ? this.entitySpec?.settings?.[g1] : rowValue;
         return v === null || v === undefined ? '' : String(v);
       });
     } catch { return ''; }

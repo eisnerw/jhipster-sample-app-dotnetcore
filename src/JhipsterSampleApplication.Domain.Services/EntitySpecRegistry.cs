@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Configuration;
 
@@ -44,9 +45,11 @@ public interface IEntitySpecRegistry
 public sealed class EntitySpecRegistry : IEntitySpecRegistry
 {
     private readonly Dictionary<string, JsonObject> _specs;
+    private static readonly Regex TemplateTokenRegex = new(@"\{([^{}:\s]+)(?::[^{}]+)?\}", RegexOptions.Compiled);
 
     public EntitySpecRegistry(IConfiguration cfg)
     {
+        var computedTemplateValues = BuildComputedTemplateValues(cfg);
         var folders = new[]
         {
             Path.Combine(Directory.GetCurrentDirectory(), "Resources", "Entities"),
@@ -71,7 +74,7 @@ public sealed class EntitySpecRegistry : IEntitySpecRegistry
         }
 
         _specs = fileByName.Values
-            .Select(f => JsonNode.Parse(File.ReadAllText(f))!.AsObject())
+            .Select(f => ResolveComputedTemplates(JsonNode.Parse(File.ReadAllText(f))!.AsObject(), computedTemplateValues))
             .Where(o => o["name"] is JsonValue)
             .ToDictionary(o => o["name"]!.GetValue<string>(), o => o, StringComparer.OrdinalIgnoreCase);
     }
@@ -137,4 +140,68 @@ public sealed class EntitySpecRegistry : IEntitySpecRegistry
     }
 
     public IEnumerable<string> GetEntityNames() => _specs.Keys;
+
+    private static Dictionary<string, string> BuildComputedTemplateValues(IConfiguration cfg)
+    {
+        var environmentName =
+            cfg["ASPNETCORE_ENVIRONMENT"]
+            ?? cfg["DOTNET_ENVIRONMENT"]
+            ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+            ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+            ?? string.Empty;
+
+        var isDevelopment = string.Equals(environmentName, "Development", StringComparison.OrdinalIgnoreCase);
+        return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["devprod"] = isDevelopment ? "dev" : "prod"
+        };
+    }
+
+    private static JsonObject ResolveComputedTemplates(JsonObject spec, IReadOnlyDictionary<string, string> values)
+    {
+        ResolveComputedTemplatesInNode(spec, values);
+        return spec;
+    }
+
+    private static void ResolveComputedTemplatesInNode(JsonNode? node, IReadOnlyDictionary<string, string> values)
+    {
+        switch (node)
+        {
+            case JsonObject obj:
+                foreach (var property in obj.ToList())
+                {
+                    if (property.Value is JsonValue value && value.TryGetValue<string>(out var str))
+                    {
+                        obj[property.Key] = ResolveComputedTemplateString(str, values);
+                    }
+                    else
+                    {
+                        ResolveComputedTemplatesInNode(property.Value, values);
+                    }
+                }
+                break;
+            case JsonArray arr:
+                for (var i = 0; i < arr.Count; i++)
+                {
+                    if (arr[i] is JsonValue value && value.TryGetValue<string>(out var str))
+                    {
+                        arr[i] = ResolveComputedTemplateString(str, values);
+                    }
+                    else
+                    {
+                        ResolveComputedTemplatesInNode(arr[i], values);
+                    }
+                }
+                break;
+        }
+    }
+
+    private static string ResolveComputedTemplateString(string template, IReadOnlyDictionary<string, string> values)
+    {
+        return TemplateTokenRegex.Replace(template, match =>
+        {
+            var token = match.Groups[1].Value;
+            return values.TryGetValue(token, out var value) ? value : match.Value;
+        });
+    }
 }

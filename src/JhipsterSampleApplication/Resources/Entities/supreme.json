@@ -33,7 +33,7 @@
           {
             "type": "link",
             "field": "justia_url",
-            "link": "{justia_url}"
+            "link": "{justia_url}?system={justiaSetting}"
           },
           {
             "type": "linkPill",
@@ -43,7 +43,7 @@
               { "exists": "o" }
             ],
              "tooltip": "Oyez",
-             "link": "{argument2_url}",
+             "link": "{argument2_url}}",
              "position": "after"
           }
         ]
@@ -238,5 +238,8 @@
             "script": "",
             "entity": "supreme"
         }
-    ]
+    ],
+    "settings" : {
+      "justiaSetting" : "{devprod}"
+    }
 }
