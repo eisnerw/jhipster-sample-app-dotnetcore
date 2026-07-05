@@ -1,0 +1,52 @@
+Test ingest, undo, related with add metadata
+documentSource: "strings" or array of field names
+Open quote auto adds closing quote including ignoring typing the closed quote
+Likewise for /
+(See Quill)
+Some FBI cables don't have TO address
+Fix removed fields on update
+*Speed up metadata check (100 at a time the same? Get rid of EMS check? Use memory cache?)
+transition from one entity to another uses residual pifid
+Date view doesn't retrieve cables
+Cable expander column width should always be narrow. You shouldn't be able to change that
+Log entity
+Distinguish between relatedCableNumbers and relatedSends
+Polling page (refresh cables, send email when outgoing cables are stuck?)
+Date sorting from column heading doesn't work
+
+History isn't working
+OUS, rel views don't work
+View in new tab
+Change "View" to Display
+Use (NAME: ) to display named query in Bql
+Invalid BQL queries can be executed
+Simplify view specification by defaulting
+Default operators by type (e.g., type=string means contains, !contains, like, !like, exists, !exists
+Oyez link !exists/exists doesn't work
+Consider allowing admin to see other user's rules and even create rules for them
+There may be a timing issue where invoking editing of a ruleset occurs before the ruleset text is available
+RulesetDto currently store quoted strings with the quote.
+Polling for outbox should be frequent when the grid is populated but should keep track of repeated items. If there is one present for x minutes, it should send an email and stop looking at that one. If an email has been sent, don't send another until the queue has been emptied.
+Attachments should be nested objects -- name, mime-type and base64
+Refs should be parsed
+Clear all
+Log entity
+Support IN operator
+Refactor auto ingest of idens and add to ingest
+Get all tests working
+Upgrade to Angular/PrimeNg 22
+Date for auto-detected Iden is not marked zulu
+Failed to audit auto-ingested reply
+RelatedType not being updated?
+Avoid false hits due to metadata updates from CONTACT
+supertable export
+system globals shouldn't be suggestions but should be allowed
+Ingest update cache
+Indicate pending/HQ Approval for status
+Resizable expansion for cable
+Checkbox to remove highlighting
+Clear all
+Indicate purged
+LDAP
+Contains support ()
+Like %sdfs% or like // or like (//, sdfsf, "sdfsdf", %dfgfdg%)
