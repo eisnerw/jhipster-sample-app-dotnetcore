@@ -186,16 +186,17 @@ function toOperatorToken(op: string): string {
 function isValidPartialDate(v: string): boolean {
   if (/^\d{4}$/.test(v)) return true;
   if (/^\d{4}-(0[1-9]|1[0-2])$/.test(v)) return true;
-  if (/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(v)) {
-    const [y, m, d] = v.split('-').map(Number);
-    const date = new Date(Date.UTC(y, m - 1, d));
-    return (
-      date.getUTCFullYear() === y &&
-      date.getUTCMonth() === m - 1 &&
-      date.getUTCDate() === d
-    );
-  }
-  return false;
+  const match = v.match(/^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/);
+  return !!match && isValidDateParts(Number(match[1]), Number(match[2]), Number(match[3]));
+}
+
+function isValidDateParts(y: number, m: number, d: number): boolean {
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return (
+    date.getUTCFullYear() === y &&
+    date.getUTCMonth() === m - 1 &&
+    date.getUTCDate() === d
+  );
 }
 
 function requiresQuotedStringValue(token: Token, field: string, config: QueryBuilderConfig): boolean {
@@ -227,7 +228,7 @@ function parseValue(
     if (!isValidPartialDate(v)) {
       throw new Error('Invalid date');
     }
-    return new Date(v);
+    return v;
   }
   return v;
 }
@@ -546,12 +547,15 @@ export function bqlToRuleset(
   return result;
 }
 
-function valueToString(value: any): string {
+function valueToString(value: any, fieldType?: string): string {
   if (Array.isArray(value)) {
-    return '(' + value.map((v) => valueToString(v)).join(',') + ')';
+    return '(' + value.map((v) => valueToString(v, fieldType)).join(',') + ')';
   }
   if (typeof value === 'string') {
     if (isSupportedRegexLiteral(value)) {
+      return value;
+    }
+    if (fieldType === 'date' && isValidPartialDate(value)) {
       return value;
     }
     if (/^[A-Za-z0-9]+$/.test(value)) {
@@ -566,7 +570,7 @@ export function rulesetToBql(rs: RuleSet, config: QueryBuilderConfig): string {
     if (rule.field === 'document') {
       const op = rule.operator.toLowerCase();
       if (op === 'contains' || op === 'like') {
-        return valueToString(rule.value);
+        return valueToString(rule.value, config.fields[rule.field]?.type);
       }
     }
     // EXISTS/!EXISTS postfix form
@@ -576,7 +580,7 @@ export function rulesetToBql(rs: RuleSet, config: QueryBuilderConfig): string {
       return `${rule.field} ${isNeg ? '!EXISTS' : 'EXISTS'}`;
     }
     const op = toOperatorToken(rule.operator);
-    return `${rule.field}${isAlphaOperator(op) ? ' ' : ''}${op}${isAlphaOperator(op) ? ' ' : ''}${valueToString(rule.value)}`;
+    return `${rule.field}${isAlphaOperator(op) ? ' ' : ''}${op}${isAlphaOperator(op) ? ' ' : ''}${valueToString(rule.value, config.fields[rule.field]?.type)}`;
   }
 
   function isRule(obj: Rule | RuleSet): obj is Rule {

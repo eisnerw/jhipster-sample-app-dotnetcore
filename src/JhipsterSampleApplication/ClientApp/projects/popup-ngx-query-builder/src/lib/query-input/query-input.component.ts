@@ -466,7 +466,7 @@ export class QueryInputComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   applyQuery() {
-    this.builderApplied(this.builderQuery);
+    this.builderApplied(this.builder?.value || this.builderQuery);
   }
 
   cancelQuery() {

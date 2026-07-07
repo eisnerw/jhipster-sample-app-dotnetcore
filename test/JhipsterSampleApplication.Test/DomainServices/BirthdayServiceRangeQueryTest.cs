@@ -173,6 +173,37 @@ public class BirthdayServiceRangeQueryTest
         Assert.True(JToken.DeepEquals(expectedObject, result));
     }
 
+    [Theory]
+    [InlineData("1990-01-01T12", "1990-01-01T12:00:00", "1990-01-01T13:00:00")]
+    [InlineData("1990-01-01T12:34", "1990-01-01T12:34:00", "1990-01-01T12:35:00")]
+    public async Task ConvertRulesetToElasticSearch_HandlesDateTimeEqualityRanges(string value, string gte, string lt)
+    {
+        var ruleset = new Ruleset
+        {
+            field = "dob",
+            @operator = "=",
+            value = value,
+        };
+
+        var result = await _service.ConvertRulesetToElasticSearch("birthday", ruleset);
+
+        var expectedObject = new JObject
+        {
+            {
+                "range",
+                new JObject
+                {
+                    {
+                        "dob",
+                        new JObject { { "gte", gte }, { "lt", lt } }
+                    }
+                }
+            }
+        };
+
+        Assert.True(JToken.DeepEquals(expectedObject, result));
+    }
+
     [Fact]
     public async Task ConvertRulesetToElasticSearch_DocumentRegexTargetsContainsKeywordFields()
     {

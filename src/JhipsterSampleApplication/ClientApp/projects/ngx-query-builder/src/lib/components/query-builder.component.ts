@@ -975,6 +975,142 @@ export class QueryBuilderComponent
     this.handleDataChange();
   }
 
+
+  getDatePart(rule: Rule, part: 'month' | 'day' | 'year'): string {
+    const parts = this.getDateParts(rule);
+    return parts[part];
+  }
+
+  getDatePartDisplay(rule: Rule, part: 'month' | 'day' | 'year'): string {
+    return this.getDatePart(rule, part) || (part === 'year' ? 'yyyy' : '--');
+  }
+
+  getDateTimePart(rule: Rule, part: 'month' | 'day' | 'year' | 'hour' | 'minute'): string {
+    const parts = this.getDateTimeParts(rule);
+    return parts[part];
+  }
+
+  getDateTimePartDisplay(rule: Rule, part: 'month' | 'day' | 'year' | 'hour' | 'minute'): string {
+    return this.getDateTimePart(rule, part) || (part === 'year' ? 'yyyy' : '--');
+  }
+
+  changeDatePart(rule: Rule, part: 'month' | 'day' | 'year', value: string): void {
+    if (this.disabled) {
+      return;
+    }
+
+    const parts = this.getDateParts(rule);
+    parts[part] = this.normalizeDatePartInput(part, value, parts[part]);
+    (rule as any).__dateParts = parts;
+
+    const normalized = this.normalizeDateParts(parts);
+    if (normalized) {
+      rule.value = normalized;
+    } else {
+      delete rule.value;
+    }
+
+    this.handleTouched();
+    this.handleDataChange();
+  }
+
+  changeDateTimePart(rule: Rule, part: 'month' | 'day' | 'year' | 'hour' | 'minute', value: string): void {
+    if (this.disabled) {
+      return;
+    }
+
+    const parts = this.getDateTimeParts(rule);
+    parts[part] = this.normalizeDatePartInput(part, value, parts[part]);
+    (rule as any).__dateTimeParts = parts;
+
+    const normalized = this.normalizeDateTimeParts(parts);
+    if (normalized) {
+      rule.value = normalized;
+    } else {
+      delete rule.value;
+    }
+
+    this.handleTouched();
+    this.handleDataChange();
+  }
+
+  selectDateSegment(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    window.setTimeout(() => input.select());
+  }
+
+  onDateSegmentKeydown(event: KeyboardEvent, part: 'month' | 'day' | 'year' | 'hour' | 'minute'): void {
+    if (event.ctrlKey || event.metaKey || event.altKey) {
+      return;
+    }
+
+    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    if (allowedKeys.indexOf(event.key) !== -1) {
+      return;
+    }
+
+    if (/^\d$/.test(event.key)) {
+      return;
+    }
+
+    if ((part === 'month' || part === 'day') && event.key === '*') {
+      return;
+    }
+
+    event.preventDefault();
+  }
+
+  openDatePicker(input: HTMLInputElement): void {
+    if (this.disabled) {
+      return;
+    }
+
+    const picker = input as HTMLInputElement & { showPicker?: () => void };
+    if (picker.showPicker) {
+      picker.showPicker();
+    } else {
+      input.focus();
+      input.click();
+    }
+  }
+
+  getNativePickerValue(rule: Rule, type: 'date' | 'datetime'): string {
+    if (typeof rule.value !== 'string') {
+      return '';
+    }
+
+    if (type === 'date') {
+      return /^\d{4}-\d{2}-\d{2}$/.test(rule.value) ? rule.value : '';
+    }
+
+    return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(rule.value) ? rule.value : '';
+  }
+
+  changeDatePickerValue(rule: Rule, type: 'date' | 'datetime', value: string): void {
+    if (this.disabled || !value) {
+      return;
+    }
+
+    if (type === 'date') {
+      const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!match || !this.isValidDateValue(value)) {
+        return;
+      }
+      (rule as any).__dateParts = { month: match[2], day: match[3], year: match[1] };
+      rule.value = value;
+    } else {
+      const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+      if (!match || !this.isValidDateTimeValue(value)) {
+        return;
+      }
+      (rule as any).__dateTimeParts = { month: match[2], day: match[3], year: match[1], hour: match[4], minute: match[5] };
+      rule.value = value;
+    }
+
+    this.handleTouched();
+    this.handleDataChange();
+  }
+
   changeField(fieldValue: string, rule: Rule): void {
     if (this.disabled) {
       return;
@@ -1377,7 +1513,12 @@ export class QueryBuilderComponent
         return typeof val !== 'string' || !/^\d{2}:\d{2}(:\d{2})?$/.test(val);
       case 'date':
         if (typeof val === 'string') {
-          return !/^\d{4}-\d{2}-\d{2}$/.test(val) || isNaN(Date.parse(val));
+          return !this.isValidDateValue(val);
+        }
+        return true;
+      case 'datetime':
+        if (typeof val === 'string') {
+          return !this.isValidDateTimeValue(val);
         }
         return true;
       case 'category':
@@ -1463,6 +1604,192 @@ export class QueryBuilderComponent
       return true;
     } catch {
       return false;
+    }
+  }
+
+
+  private getDateParts(rule: Rule): { month: string; day: string; year: string } {
+    const draft = (rule as any).__dateParts;
+    if (draft) {
+      return { month: draft.month || '', day: draft.day || '', year: draft.year || '' };
+    }
+
+    if (typeof rule.value === 'string') {
+      if (/^\d{4}$/.test(rule.value)) {
+        return { month: '*', day: '*', year: rule.value };
+      }
+      const monthMatch = rule.value.match(/^(\d{4})-(\d{2})$/);
+      if (monthMatch) {
+        return { month: monthMatch[2], day: '*', year: monthMatch[1] };
+      }
+      const dayMatch = rule.value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (dayMatch) {
+        return { month: dayMatch[2], day: dayMatch[3], year: dayMatch[1] };
+      }
+    }
+
+    return { month: '', day: '', year: '' };
+  }
+
+  private getDateTimeParts(rule: Rule): { month: string; day: string; year: string; hour: string; minute: string } {
+    const draft = (rule as any).__dateTimeParts;
+    if (draft) {
+      return { month: draft.month || '', day: draft.day || '', year: draft.year || '', hour: draft.hour || '', minute: draft.minute || '' };
+    }
+
+    if (typeof rule.value === 'string') {
+      const match = rule.value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+      if (match) {
+        return { month: match[2], day: match[3], year: match[1], hour: match[4], minute: match[5] };
+      }
+    }
+
+    return { month: '', day: '', year: '', hour: '', minute: '' };
+  }
+
+  private normalizeDatePartInput(part: 'month' | 'day' | 'year' | 'hour' | 'minute', value: string, previous = ''): string {
+    const cleaned = String(value ?? '').trim();
+    if (cleaned === '--' || cleaned === 'yyyy') {
+      return '';
+    }
+    if ((part === 'month' || part === 'day') && cleaned === '*') {
+      return '*';
+    }
+
+    const normalized = cleaned.replace(/\D/g, '').slice(0, part === 'year' ? 4 : 2);
+    return this.isPotentialDatePart(part, normalized) ? normalized : previous;
+  }
+
+  private normalizeDateParts(parts: { month: string; day: string; year: string }): string | null {
+    const { month, day, year } = parts;
+    if (!/^\d{4}$/.test(year)) {
+      return null;
+    }
+
+    if (month === '*' && day === '*') {
+      return year;
+    }
+
+    if (month === '*' && day !== '*') {
+      return null;
+    }
+
+    if (!this.isValidMonthPart(month)) {
+      return null;
+    }
+
+    const normalizedMonth = month.padStart(2, '0');
+    if (day === '*') {
+      return `${year}-${normalizedMonth}`;
+    }
+
+    if (!this.isValidDayPart(year, month, day)) {
+      return null;
+    }
+
+    return `${year}-${normalizedMonth}-${day.padStart(2, '0')}`;
+  }
+
+  private normalizeDateTimeParts(parts: { month: string; day: string; year: string; hour: string; minute: string }): string | null {
+    const { month, day, year, hour, minute } = parts;
+    if (!/^\d{4}$/.test(year) || !this.isValidDayPart(year, month, day) || !this.isValidTimePart(hour, 23) || !this.isValidTimePart(minute, 59)) {
+      return null;
+    }
+
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+  }
+
+  private isValidDateValue(value: string): boolean {
+    if (/^\d{4}$/.test(value)) {
+      return true;
+    }
+    if (/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) {
+      return true;
+    }
+    const match = value.match(/^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/);
+    return !!match && this.isValidDayPart(match[1], match[2], match[3]);
+  }
+
+  private isValidDateTimeValue(value: string): boolean {
+    const match = value.match(/^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):([0-5]\d)$/);
+    return !!match && this.isValidDayPart(match[1], match[2], match[3]);
+  }
+
+  private isPotentialDatePart(part: 'month' | 'day' | 'year' | 'hour' | 'minute', value: string): boolean {
+    if (value === '') {
+      return true;
+    }
+
+    if (part === 'year') {
+      return /^\d{1,4}$/.test(value);
+    }
+
+    if (!/^\d{1,2}$/.test(value)) {
+      return false;
+    }
+
+    const number = Number(value);
+    if (part === 'month') {
+      return value.length === 1 ? number >= 0 && number <= 9 : number >= 1 && number <= 12;
+    }
+    if (part === 'day') {
+      return value.length === 1 ? number >= 0 && number <= 9 : number >= 1 && number <= 31;
+    }
+    if (part === 'hour') {
+      return value.length === 1 ? number >= 0 && number <= 9 : number >= 0 && number <= 23;
+    }
+    return value.length === 1 ? number >= 0 && number <= 9 : number >= 0 && number <= 59;
+  }
+
+  private isValidMonthPart(value: string): boolean {
+    if (!/^\d{1,2}$/.test(value)) {
+      return false;
+    }
+    const month = Number(value);
+    return month >= 1 && month <= 12;
+  }
+
+  private isValidDayPart(year: string, month: string, day: string): boolean {
+    if (!/^\d{4}$/.test(year) || !this.isValidMonthPart(month) || !/^\d{1,2}$/.test(day)) {
+      return false;
+    }
+    const y = Number(year);
+    const m = Number(month);
+    const d = Number(day);
+    const date = new Date(Date.UTC(y, m - 1, d));
+    return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
+  }
+
+  private isValidTimePart(value: string, max: number): boolean {
+    if (!/^\d{1,2}$/.test(value)) {
+      return false;
+    }
+    const number = Number(value);
+    return number >= 0 && number <= max;
+  }
+
+  private materializeDateDraft(rule: Rule): void {
+    const field = this.config.fields[rule.field];
+    if (!field) {
+      return;
+    }
+
+    if (field.type === 'date' && (rule as any).__dateParts) {
+      const normalized = this.normalizeDateParts((rule as any).__dateParts);
+      if (normalized) {
+        rule.value = normalized;
+      } else {
+        delete rule.value;
+      }
+    }
+
+    if (field.type === 'datetime' && (rule as any).__dateTimeParts) {
+      const normalized = this.normalizeDateTimeParts((rule as any).__dateTimeParts);
+      if (normalized) {
+        rule.value = normalized;
+      } else {
+        delete rule.value;
+      }
     }
   }
 
@@ -1577,6 +1904,9 @@ export class QueryBuilderComponent
         if (this.isRuleset(rule)) {
           return this.cleanData(rule);
         } else {
+          this.materializeDateDraft(rule as Rule);
+          delete (rule as any).__dateParts;
+          delete (rule as any).__dateTimeParts;
           if (this.config.entities) {
             if (!('entity' in rule) || !rule.entity) {
               const fieldConf = this.config.fields[rule.field];

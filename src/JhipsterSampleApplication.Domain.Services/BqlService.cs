@@ -315,7 +315,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 {
                     string valueString = ruleset.value?.ToString() ?? string.Empty;
 
-                    if (Regex.IsMatch(valueString, @"^\d{4}(?:-\d{2}(?:-\d{2})?)?$") ||
+                    if (Regex.IsMatch(valueString, @"^\d{4}(?:-\d{2}(?:-\d{2}(?:T\d{2}(?::\d{2})?)?)?)?$") ||
                         DateTime.TryParse(valueString, out _))
                     {
                         return BuildDateQuery(ruleset.field!, ruleset.@operator!, valueString);
@@ -360,7 +360,7 @@ namespace JhipsterSampleApplication.Domain.Services
                         };
                     }
 
-                    if (Regex.IsMatch(valueStr, @"^\d{4}(?:-\d{2}(?:-\d{2})?)?$") ||
+                    if (Regex.IsMatch(valueStr, @"^\d{4}(?:-\d{2}(?:-\d{2}(?:T\d{2}(?::\d{2})?)?)?)?$") ||
                         DateTime.TryParse(valueStr, out _))
                     {
                         return BuildDateQuery(ruleset.field!, "=", valueStr);
@@ -648,6 +648,16 @@ namespace JhipsterSampleApplication.Domain.Services
                 DateTime start = new (year, month, day, 0, 0, 0);
                 return (start, start.AddDays(1));
             }
+            // yyyy-MM-ddTHH
+            if (Regex.IsMatch(value, @"^\d{4}-\d{2}-\d{2}T\d{2}$"))
+            {
+                int year = int.Parse(value.Substring(0, 4));
+                int month = int.Parse(value.Substring(5, 2));
+                int day = int.Parse(value.Substring(8, 2));
+                int hour = int.Parse(value.Substring(11, 2));
+                DateTime start = new(year, month, day, hour, 0, 0);
+                return (start, start.AddHours(1));
+            }
             // yyyy-MM-ddTHH:mm
             if (Regex.IsMatch(value, @"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$"))
             {
@@ -657,7 +667,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 int hour = int.Parse(value.Substring(11, 2));
                 int minute = int.Parse(value.Substring(14, 2));
                 DateTime start = new(year, month, day, hour, minute, 0);
-                return (start, null);
+                return (start, start.AddMinutes(1));
             }
             if (DateTime.TryParse(value, out DateTime dt))
             {
@@ -1327,7 +1337,7 @@ namespace JhipsterSampleApplication.Domain.Services
                 case "date":
                 case "time":
                 case "datetime":
-                    return Regex.IsMatch(value, @"^\d{4}(-\d{2}(-\d{2}(T\d{2}:\d{2}(:\d{2})?)?)?)?$");
+                    return Regex.IsMatch(value, @"^\d{4}(-\d{2}(-\d{2}(T\d{2}(:\d{2}(:\d{2})?)?)?)?)?$");
                 case "number":
                     return double.TryParse(value, out _);
                 default:

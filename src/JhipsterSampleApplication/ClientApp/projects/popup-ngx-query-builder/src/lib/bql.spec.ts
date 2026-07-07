@@ -427,6 +427,18 @@ describe('validateBql', () => {
     expect(validateBql('sign IN (aries,taurus)', cfg5)).toBeFalse();
   });
 
+
+
+  it('should stringify partial date values without quotes', () => {
+    const cfg: QueryBuilderConfig = {
+      fields: { dob: { name: 'Birthday', type: 'date', operators: ['='] } },
+    } as any;
+
+    expect(rulesetToBql({ condition: 'and', rules: [{ field: 'dob', operator: '=', value: '1992' }] }, cfg)).toBe('dob=1992');
+    expect(rulesetToBql({ condition: 'and', rules: [{ field: 'dob', operator: '=', value: '1992-06' }] }, cfg)).toBe('dob=1992-06');
+    expect(rulesetToBql({ condition: 'and', rules: [{ field: 'dob', operator: '=', value: '1992-06-15' }] }, cfg)).toBe('dob=1992-06-15');
+  });
+
   it('should validate partial dates', () => {
     const cfgDate: QueryBuilderConfig = {
       fields: { dob: { name: 'Birthday', type: 'date', operators: ['='] } },

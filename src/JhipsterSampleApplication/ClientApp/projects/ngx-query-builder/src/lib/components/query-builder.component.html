@@ -461,22 +461,156 @@
           />
         }
         @case ('date') {
-          <input
-            [ngClass]="getClassNames('inputControl')"
-            [(ngModel)]="rule.value"
-            (ngModelChange)="changeInput()"
-            [disabled]="disabled"
-            type="date"
-          />
+          <span [ngClass]="getClassNames('inputControl')" class="q-date-parts q-date-control">
+            <input
+              class="q-date-part q-date-month"
+              [ngModel]="getDatePartDisplay(rule, 'month')"
+              (ngModelChange)="changeDatePart(rule, 'month', $event)"
+              (keydown)="onDateSegmentKeydown($event, 'month')"
+              (focus)="selectDateSegment($event)"
+              (click)="selectDateSegment($event)"
+              [disabled]="disabled"
+              type="text"
+              inputmode="numeric"
+              maxlength="2"
+              placeholder="--"
+              aria-label="Month"
+            />
+            <span class="q-date-separator">/</span>
+            <input
+              class="q-date-part q-date-day"
+              [ngModel]="getDatePartDisplay(rule, 'day')"
+              (ngModelChange)="changeDatePart(rule, 'day', $event)"
+              (keydown)="onDateSegmentKeydown($event, 'day')"
+              (focus)="selectDateSegment($event)"
+              (click)="selectDateSegment($event)"
+              [disabled]="disabled"
+              type="text"
+              inputmode="numeric"
+              maxlength="2"
+              placeholder="--"
+              aria-label="Day"
+            />
+            <span class="q-date-separator">/</span>
+            <input
+              class="q-date-part q-date-year"
+              [ngModel]="getDatePartDisplay(rule, 'year')"
+              (ngModelChange)="changeDatePart(rule, 'year', $event)"
+              (keydown)="onDateSegmentKeydown($event, 'year')"
+              (focus)="selectDateSegment($event)"
+              (click)="selectDateSegment($event)"
+              [disabled]="disabled"
+              type="text"
+              inputmode="numeric"
+              maxlength="4"
+              placeholder="yyyy"
+              aria-label="Year"
+            />
+            <button class="q-date-picker-button" type="button" (click)="openDatePicker(datePicker)" [disabled]="disabled" aria-label="Open date picker">
+              <span class="q-calendar-icon" aria-hidden="true"></span>
+            </button>
+            <input
+              #datePicker
+              class="q-native-date-picker"
+              [ngModel]="getNativePickerValue(rule, 'date')"
+              (ngModelChange)="changeDatePickerValue(rule, 'date', $event)"
+              [disabled]="disabled"
+              type="date"
+              tabindex="-1"
+              aria-hidden="true"
+            />
+          </span>
         }
         @case ('datetime') {
-          <input
-            [ngClass]="getClassNames('inputControl')"
-            [(ngModel)]="rule.value"
-            (ngModelChange)="changeInput()"
-            [disabled]="disabled"
-            type="datetime-local"
-          />
+          <span [ngClass]="getClassNames('inputControl')" class="q-date-parts q-date-control q-datetime-control">
+            <input
+              class="q-date-part q-date-month"
+              [ngModel]="getDateTimePartDisplay(rule, 'month')"
+              (ngModelChange)="changeDateTimePart(rule, 'month', $event)"
+              (keydown)="onDateSegmentKeydown($event, 'month')"
+              (focus)="selectDateSegment($event)"
+              (click)="selectDateSegment($event)"
+              [disabled]="disabled"
+              type="text"
+              inputmode="numeric"
+              maxlength="2"
+              placeholder="--"
+              aria-label="Month"
+            />
+            <span class="q-date-separator">/</span>
+            <input
+              class="q-date-part q-date-day"
+              [ngModel]="getDateTimePartDisplay(rule, 'day')"
+              (ngModelChange)="changeDateTimePart(rule, 'day', $event)"
+              (keydown)="onDateSegmentKeydown($event, 'day')"
+              (focus)="selectDateSegment($event)"
+              (click)="selectDateSegment($event)"
+              [disabled]="disabled"
+              type="text"
+              inputmode="numeric"
+              maxlength="2"
+              placeholder="--"
+              aria-label="Day"
+            />
+            <span class="q-date-separator">/</span>
+            <input
+              class="q-date-part q-date-year"
+              [ngModel]="getDateTimePartDisplay(rule, 'year')"
+              (ngModelChange)="changeDateTimePart(rule, 'year', $event)"
+              (keydown)="onDateSegmentKeydown($event, 'year')"
+              (focus)="selectDateSegment($event)"
+              (click)="selectDateSegment($event)"
+              [disabled]="disabled"
+              type="text"
+              inputmode="numeric"
+              maxlength="4"
+              placeholder="yyyy"
+              aria-label="Year"
+            />
+            <span class="q-date-space"></span>
+            <input
+              class="q-date-part q-date-hour"
+              [ngModel]="getDateTimePartDisplay(rule, 'hour')"
+              (ngModelChange)="changeDateTimePart(rule, 'hour', $event)"
+              (keydown)="onDateSegmentKeydown($event, 'hour')"
+              (focus)="selectDateSegment($event)"
+              (click)="selectDateSegment($event)"
+              [disabled]="disabled"
+              type="text"
+              inputmode="numeric"
+              maxlength="2"
+              placeholder="--"
+              aria-label="Hour"
+            />
+            <span class="q-date-separator">:</span>
+            <input
+              class="q-date-part q-date-minute"
+              [ngModel]="getDateTimePartDisplay(rule, 'minute')"
+              (ngModelChange)="changeDateTimePart(rule, 'minute', $event)"
+              (keydown)="onDateSegmentKeydown($event, 'minute')"
+              (focus)="selectDateSegment($event)"
+              (click)="selectDateSegment($event)"
+              [disabled]="disabled"
+              type="text"
+              inputmode="numeric"
+              maxlength="2"
+              placeholder="--"
+              aria-label="Minute"
+            />
+            <button class="q-date-picker-button" type="button" (click)="openDatePicker(dateTimePicker)" [disabled]="disabled" aria-label="Open date and time picker">
+              <span class="q-calendar-icon" aria-hidden="true"></span>
+            </button>
+            <input
+              #dateTimePicker
+              class="q-native-date-picker"
+              [ngModel]="getNativePickerValue(rule, 'datetime')"
+              (ngModelChange)="changeDatePickerValue(rule, 'datetime', $event)"
+              [disabled]="disabled"
+              type="datetime-local"
+              tabindex="-1"
+              aria-hidden="true"
+            />
+          </span>
         }
         @case ('time') {
           <input

@@ -38,6 +38,30 @@ describe('QueryInputComponent', () => {
     expect(payload.text).toBe('a=1');
   });
 
+  it('should apply the current builder value instead of a stale cached query', () => {
+    const component = new QueryInputComponent();
+    (component as any).config = {
+      fields: { dob: { name: 'DOB', type: 'date', operators: ['='] } },
+    } as any;
+    const emitSpy = spyOn(component.queryChange, 'emit');
+    spyOn(component as any, 'setQueryBuilderVisible');
+    component.builderQuery = {
+      condition: 'and',
+      rules: [{ field: 'dob', operator: '=', value: '1992-04' }],
+    } as any;
+    (component as any).builder = {
+      value: {
+        condition: 'and',
+        rules: [{ field: 'dob', operator: '=', value: '1992-03' }],
+      },
+    };
+
+    component.applyQuery();
+
+    expect(component.query).toBe('dob=1992-03');
+    expect(emitSpy).toHaveBeenCalledWith('dob=1992-03');
+  });
+
   it('should apply a single named child ruleset instead of its unnamed container', () => {
     const component = new QueryInputComponent();
     (component as any).config = { fields: {} } as any;
