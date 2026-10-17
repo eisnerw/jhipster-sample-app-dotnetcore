@@ -38,6 +38,10 @@ For angular 20, we needed to run the following for a while
 
     npm install --legacy-peer-deps
 
+For arm, we need
+
+  PUPPETEER_SKIP_DOWNLOAD=1 npm install
+
 We use npm scripts and [Webpack][] as our build system.
 
 A development index.html needs to be in the ClientApp/dist directory.  This can be accompished by doing a dotnet build and then deleting everything except index.html from the dist directory
